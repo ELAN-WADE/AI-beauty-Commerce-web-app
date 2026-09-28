@@ -1,5 +1,5 @@
 import { and, eq, inArray, lt } from 'drizzle-orm';
-import type { AppDb } from '../../db/client';
+import type { AppDb, Db } from '../../db/client';
 import { Errors } from '../../lib/errors';
 import { inventoryMovements, reservations, stockLevels } from './schema';
 import { productVariants } from '../catalog/schema';
@@ -64,7 +64,7 @@ export async function adjustStock(
  * check + increment happen atomically — concurrent checkouts cannot oversell.
  */
 export async function reserveStock(
-  db: AppDb,
+  db: Db,
   input: { variantId: string; qty: number; refType: 'cart' | 'order'; refId: string; ttlMinutes: number },
 ) {
   return db.transaction(async (tx) => {
@@ -105,7 +105,7 @@ export async function reserveStock(
 }
 
 async function settleReservation(
-  db: AppDb,
+  db: Db,
   reservationId: string,
   toStatus: 'committed' | 'released' | 'expired',
 ) {
@@ -136,8 +136,8 @@ async function settleReservation(
   });
 }
 
-export const commitReservation = (db: AppDb, id: string) => settleReservation(db, id, 'committed');
-export const releaseReservation = (db: AppDb, id: string) => settleReservation(db, id, 'released');
+export const commitReservation = (db: Db, id: string) => settleReservation(db, id, 'committed');
+export const releaseReservation = (db: Db, id: string) => settleReservation(db, id, 'released');
 
 /** Sweeper (S5 worker): expire overdue active reservations, batched. */
 export async function releaseExpired(db: AppDb, limit = 100): Promise<{ expired: number }> {

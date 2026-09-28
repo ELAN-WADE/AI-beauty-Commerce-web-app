@@ -55,6 +55,22 @@ with TTL (`reserveStock`), sweeper `releaseExpired` (S5 worker), CHECKs as backs
 Seed: `npm run db:seed:catalog` ports the Vite mocks (idempotent; stock seeded once).
 Storefront reads this API when `VITE_API_URL` is set, mocks otherwise.
 
+## Cart + checkout + orders (S3)
+
+| Endpoint | Access | Notes |
+|---|---|---|
+| GET `/api/cart`, POST `/api/cart/items`, PATCH/DELETE `/api/cart/items/[id]`, DELETE `/api/cart/items` | user or `X-Session-Id` guest | authoritative prices, availability attached |
+| POST `/api/cart/merge` | auth | folds guest cart into user cart on login |
+| POST `/api/checkout` (`Idempotency-Key` required) | user or guest | atomic tx: validate → address → server pricing → order+items+history → reserve → clear cart |
+| GET `/api/orders`, GET `/api/orders/[id]` (+`?email=` for guests) | owner / guest-email match | keyset pages; identical 404s (no enumeration) |
+| GET/POST `/api/me/wishlist`, GET/POST `/api/me/recently-viewed` (cap 20) | auth | |
+| GET `/api/admin/orders`, GET+PATCH `/api/admin/orders/[id]` | ADMIN/STAFF | status machine enforced; PAID is system-only |
+
+Checkout trusts nothing from the client: totals/price/discount keys are
+rejected by `strict()`; stock failures roll back the whole order; replays
+return the prior order (`replay: true`); cross-user key reuse → 409.
+Delivery fee is 0 until the S5 shipping module prices it.
+
 ## Conventions (enforced, not suggested)
 - Routes: parse → Zod `.strict()` → rate-limit → service. Never import `db/` from
   components; services never trust client prices/ids (S3+ pattern).

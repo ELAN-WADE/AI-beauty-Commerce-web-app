@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, ilike, inArray, or, lt, type SQL } from 'drizzle-orm';
 import type { AppDb, Db } from '../../db/client';
 import { Errors } from '../../lib/errors';
+import { decodeCursor, encodeCursor, type Cursor } from '../../lib/cursor';
 import {
   attributes,
   brands,
@@ -16,26 +17,8 @@ import { stockLevels } from '../inventory/schema';
 import { computeAvailable } from '../inventory/service';
 import type { ProductCreateInput, ProductQuery, ProductUpdateInput } from './validation';
 
-// ---------- Cursor (opaque keyset token; invalid → restart from head) ----------
-interface Cursor {
-  k: string; // sort-key value (ISO date | number-as-string)
-  id: string; // tiebreak (uuid)
-}
-
-export function encodeCursor(c: Cursor): string {
-  return Buffer.from(JSON.stringify(c)).toString('base64url');
-}
-
-export function decodeCursor(raw: string | undefined): Cursor | null {
-  if (!raw) return null;
-  try {
-    const c = JSON.parse(Buffer.from(raw, 'base64url').toString('utf8')) as Cursor;
-    if (typeof c.k !== 'string' || typeof c.id !== 'string') return null;
-    return c;
-  } catch {
-    return null;
-  }
-}
+// ---------- Cursor helpers live in lib/cursor.ts (shared with orders) ----------
+export { decodeCursor, encodeCursor } from '../../lib/cursor';
 
 function slugify(name: string): string {
   return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 120) || 'item';
