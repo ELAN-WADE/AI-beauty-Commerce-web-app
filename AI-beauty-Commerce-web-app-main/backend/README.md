@@ -119,6 +119,19 @@ Rules: consent recorded (versioned) or no analysis; generated storage keys
 (no user filenames); images private with 30-day purge (S7 sweeper); AI output
 is validated data, never a decision; every response labels its provider.
 
+## Operations (S7 — audit, permissions, worker)
+
+| Surface | Notes |
+|---|---|
+| GET `/api/admin/audit` | `audit:read`; filter by entity/action |
+| POST/DELETE `/api/admin/users/[id]/roles` | `roles:grant`; anti-escalation + anti-lockout guards |
+| All admin mutations | named-permission gates + audit rows with actor/ip/request-id |
+| `npm run worker [--once]` | outbox sender (SMTP or log driver), reservation sweeper, 24h abandoned-cart reminders (7-day dedupe), 30-day scan purge |
+
+Permission bundles live in migration `0006` (STAFF keeps prior catalog access,
+SUPPORT is read-only, grants are SUPER_ADMIN-only). Audit rows are append-only
+by construction — no update/delete path exists.
+
 ## Conventions (enforced, not suggested)
 - Routes: parse → Zod `.strict()` → rate-limit → service. Never import `db/` from
   components; services never trust client prices/ids (S3+ pattern).

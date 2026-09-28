@@ -43,6 +43,13 @@
       "when": 1790629026729,
       "tag": "0005_chilly_captain_stacy",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790629616991,
+      "tag": "0006_watery_mariko_yashida",
+      "breakpoints": true
     }
   ]
 }

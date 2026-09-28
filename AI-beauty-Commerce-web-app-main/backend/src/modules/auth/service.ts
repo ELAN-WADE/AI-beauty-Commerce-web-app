@@ -219,6 +219,38 @@ export async function revokeAllSessions(db: AppDb, userId: string): Promise<void
     .where(and(eq(userSessions.userId, userId), isNull(userSessions.revokedAt)));
 }
 
+const ASSIGNABLE_ROLES = ['CUSTOMER', 'SUPPORT', 'INVENTORY_MANAGER', 'STAFF', 'ADMIN', 'SUPER_ADMIN'] as const;
+
+/**
+ * Role grants (S7, roles:grant gated at the route). Escalation guards:
+ * SUPER_ADMIN can only be granted by a SUPER_ADMIN, and nobody can strip
+ * their own SUPER_ADMIN (anti-lockout).
+ */
+export async function grantRole(db: AppDb, input: { userId: string; roleId: string; grantedBy: string; granterRoles: string[] }) {
+  if (!(ASSIGNABLE_ROLES as readonly string[]).includes(input.roleId)) {
+    throw Errors.badRequest('Unknown role.');
+  }
+  if (input.roleId === 'SUPER_ADMIN' && !input.granterRoles.includes('SUPER_ADMIN')) {
+    throw Errors.forbidden('Only a SUPER_ADMIN can grant SUPER_ADMIN.');
+  }
+  const target = await db.select({ id: users.id }).from(users).where(eq(users.id, input.userId)).limit(1);
+  if (!target[0]) throw Errors.notFound('User not found.');
+  await db.insert(userRoles).values({ userId: input.userId, roleId: input.roleId, grantedBy: input.grantedBy }).onConflictDoNothing();
+  return { userId: input.userId, roleId: input.roleId };
+}
+
+export async function revokeRole(db: AppDb, input: { userId: string; roleId: string; revokedBy: string }) {
+  if (input.roleId === 'SUPER_ADMIN' && input.userId === input.revokedBy) {
+    throw Errors.badRequest('You cannot strip your own SUPER_ADMIN.');
+  }
+  const deleted = await db
+    .delete(userRoles)
+    .where(and(eq(userRoles.userId, input.userId), eq(userRoles.roleId, input.roleId)))
+    .returning({ roleId: userRoles.roleId });
+  if (deleted.length === 0) throw Errors.notFound('Role assignment not found.');
+  return { userId: input.userId, roleId: input.roleId };
+}
+
 /** Reset request: always success (no enumeration); dev echoes token for MailHog-less flow. */
 export async function requestPasswordReset(db: AppDb, email: string) {
   const rows = await db

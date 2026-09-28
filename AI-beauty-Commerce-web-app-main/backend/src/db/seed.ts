@@ -30,6 +30,8 @@ async function main() {
     'inventory:write',
     'reviews:moderate',
     'refunds:write',
+    'payments:confirm',
+    'loyalty:adjust',
     'roles:grant',
     'audit:read',
   ].map((id) => ({ id, description: id }));

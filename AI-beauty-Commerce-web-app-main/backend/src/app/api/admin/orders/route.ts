@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { getDb } from '@/db/client';
 import { api, clientIp, Errors } from '@/lib/errors';
 import { checkRateLimit, Limits } from '@/lib/rate-limit';
-import { requireStaff } from '@/lib/admin';
+import { requirePerm } from '@/lib/admin';
 import { listAllOrders } from '@/modules/orders/service';
 import { orderStatusSchema } from '@/modules/cart/validation';
 
@@ -16,7 +16,7 @@ export const GET = api(async ({ req }) => {
   const rl = checkRateLimit(`admin:${clientIp(req)}`, Limits.admin);
   if (!rl.allowed) throw Errors.rateLimited(60);
   const db = getDb();
-  await requireStaff(db);
+  await requirePerm(db, 'orders:read:all');
   const q = querySchema.parse(Object.fromEntries(new URL(req.url).searchParams));
   return NextResponse.json(await listAllOrders(db, q));
 });

@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { getDb } from '@/db/client';
 import { clientIp, Errors, readJson, toErrorResponse } from '@/lib/errors';
 import { checkRateLimit, Limits } from '@/lib/rate-limit';
-import { requireStaff } from '@/lib/admin';
+import { requirePerm } from '@/lib/admin';
+import { audit } from '@/modules/audit/service';
 import { moderateReview } from '@/modules/reviews/service';
 import { moderateReviewSchema } from '@/modules/reviews/validation';
 
@@ -15,9 +16,11 @@ export async function PATCH(req: Request, { params }: Ctx) {
     if (!rl.allowed) throw Errors.rateLimited(60);
     const { id } = await params;
     const db = getDb();
-    await requireStaff(db);
+    const ctx = await requirePerm(db, 'reviews:moderate');
     const input = moderateReviewSchema.parse(await readJson(req));
-    const res = NextResponse.json({ review: await moderateReview(db, id, input.status) });
+    const review = await moderateReview(db, id, input.status);
+    await audit(db, { actorId: ctx.userId, action: 'review.moderate', entityType: 'review', entityId: id, after: { status: review.status }, ip: clientIp(req), requestId });
+    const res = NextResponse.json({ review });
     res.headers.set('x-request-id', requestId);
     return res;
   } catch (err) {

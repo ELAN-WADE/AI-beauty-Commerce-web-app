@@ -12,3 +12,4 @@ export * from '../modules/shipping/schema';
 export * from '../modules/notifications/schema';
 export * from '../modules/skin/schema';
 export * from '../modules/ai/schema';
+export * from '../modules/audit/schema';

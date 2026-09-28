@@ -1,16 +1,25 @@
 import type { AppDb } from '@/db/client';
-import { requireAuth, requireRole, type AuthContext } from '@/modules/auth/require-auth';
+import { Errors } from '@/lib/errors';
+import { hasPermission } from '@/lib/permissions';
+import { requireAuth, type AuthContext } from '@/modules/auth/require-auth';
 
-/** Catalogue writes: ADMIN or STAFF (permission matrix arrives S7). */
-export async function requireStaff(db: AppDb): Promise<AuthContext> {
+/**
+ * Permission-gated admin access (§8 BFLA). Roles remain as bundles in the DB;
+ * every sensitive route names the permission it needs. Legacy role helper
+ * kept for the few routes where role identity (not capability) matters.
+ */
+export async function requirePerm(db: AppDb, ...perms: string[]): Promise<AuthContext> {
   const ctx = await requireAuth(db);
-  requireRole(ctx, 'ADMIN', 'STAFF');
+  if (!(await hasPermission(db, ctx.userId, ...perms))) throw Errors.forbidden();
   return ctx;
 }
 
-/** Stock ledger writes: ADMIN, STAFF, or INVENTORY_MANAGER. */
+/** Catalogue writes. */
+export async function requireStaff(db: AppDb): Promise<AuthContext> {
+  return requirePerm(db, 'products:write');
+}
+
+/** Stock ledger writes. */
 export async function requireInventoryRole(db: AppDb): Promise<AuthContext> {
-  const ctx = await requireAuth(db);
-  requireRole(ctx, 'ADMIN', 'STAFF', 'INVENTORY_MANAGER');
-  return ctx;
+  return requirePerm(db, 'inventory:write');
 }
