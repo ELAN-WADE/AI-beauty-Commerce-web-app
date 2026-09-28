@@ -38,10 +38,17 @@ const TRANSITIONS: Record<string, { to: string; actors: OrderActor[] }[]> = {
   PAID: [
     { to: 'FULFILLING', actors: ['admin'] },
     { to: 'CANCELLED', actors: ['admin'] },
+    { to: 'REFUNDED', actors: ['admin'] },
   ],
-  FULFILLING: [{ to: 'SHIPPED', actors: ['admin'] }],
-  SHIPPED: [{ to: 'DELIVERED', actors: ['admin'] }],
-  DELIVERED: [],
+  FULFILLING: [
+    { to: 'SHIPPED', actors: ['admin'] },
+    { to: 'REFUNDED', actors: ['admin'] },
+  ],
+  SHIPPED: [
+    { to: 'DELIVERED', actors: ['admin'] },
+    { to: 'REFUNDED', actors: ['admin'] },
+  ],
+  DELIVERED: [{ to: 'REFUNDED', actors: ['admin'] }],
   CANCELLED: [],
   REFUNDED: [],
 };
@@ -108,7 +115,7 @@ export async function getOrderView(db: Db, orderId: string): Promise<OrderView> 
 }
 
 export async function transitionOrder(
-  db: AppDb,
+  db: Db,
   orderId: string,
   to: string,
   opts: { actor: OrderActor; actorId?: string; note?: string },

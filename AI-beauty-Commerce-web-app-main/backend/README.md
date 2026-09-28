@@ -71,6 +71,23 @@ rejected by `strict()`; stock failures roll back the whole order; replays
 return the prior order (`replay: true`); cross-user key reuse → 409.
 Delivery fee is 0 until the S5 shipping module prices it.
 
+## Payments (S4 — Flutterwave + Paystack + Opay + bank transfer)
+
+| Endpoint | Access | Notes |
+|---|---|---|
+| POST `/api/payments/init` `{orderId, provider, guestEmail?}` | owner | server-side init; returns hosted `authorizationUrl` (transfer → bank details) |
+| GET `/api/payments/status?reference=` | owner | frontend polling |
+| GET `/api/payments/return?...` | public (lookup only) | provider redirect landing; settles via server verify, never trusts query |
+| POST `/api/webhooks/flutterwave|paystack|opay` | signature-verified | HMAC-SHA256 / HMAC-SHA512 / HMAC-SHA512; dedupe ledger; verified 200s |
+| POST `/api/payments/transfer-claim` | owner | proof of manual transfer for PENDING orders |
+| GET `/api/admin/transfer-claims`, POST `…/confirm` | ADMIN/STAFF | approve settles via system-only PAID path with evidence note |
+| POST `/api/admin/refunds` | ADMIN/STAFF | provider API refunds (opay/transfer = dashboard step); full refunds flip order |
+
+Settle rule (four-way match): provider status successful + NGN + amount ≥
+expected + reference match — anything less leaves the order PENDING. Opay
+Cashier create/status paths are env-overridable (`OPAY_*_PATH`) pending
+dashboard confirmation at merchant onboarding.
+
 ## Conventions (enforced, not suggested)
 - Routes: parse → Zod `.strict()` → rate-limit → service. Never import `db/` from
   components; services never trust client prices/ids (S3+ pattern).
