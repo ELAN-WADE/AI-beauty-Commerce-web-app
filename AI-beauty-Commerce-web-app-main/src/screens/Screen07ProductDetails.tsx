@@ -24,6 +24,7 @@ import {
   Check
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { submitReviewApi } from '../lib/owned-api';
 
 export const Screen07ProductDetails: React.FC = () => {
   const {
@@ -126,6 +127,14 @@ export const Screen07ProductDetails: React.FC = () => {
       city: selectedCity,
       skinType: reviewSkinType
     });
+
+    // Live mirror: server decides verified status + moderation (silent when offline).
+    submitReviewApi({
+      productId: selectedProduct.id,
+      rating: reviewRating,
+      title: reviewTitle,
+      comment: reviewComment
+    }).catch(() => {});
 
     setReviewTitle('');
     setReviewComment('');

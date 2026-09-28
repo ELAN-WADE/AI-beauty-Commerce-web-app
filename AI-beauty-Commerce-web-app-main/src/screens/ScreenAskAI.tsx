@@ -28,6 +28,7 @@ import {
 import { useApp } from '../context/AppContext';
 import { useViewport } from '../context/ViewportContext';
 import { products } from '../data/products';
+import { aiChat, isOwnedApiConfigured, type ChatMsg } from '../lib/owned-api';
 import { BrandLogo } from '../components/common/BrandLogo';
 
 export const ScreenAskAI: React.FC = () => {
@@ -42,8 +43,34 @@ export const ScreenAskAI: React.FC = () => {
     activeOrder,
     navigateTo,
     goBack,
-    cartCount
+    cartCount,
+    authUser
   } = useApp();
+
+  // Live thread (owned assistant, authenticated only; mock thread otherwise)
+  const liveMode = isOwnedApiConfigured && !!authUser;
+  const [liveMsgs, setLiveMsgs] = useState<ChatMsg[]>([]);
+  const [liveBusy, setLiveBusy] = useState(false);
+  const liveFeed: ChatMsg[] = liveMode
+    ? liveMsgs.length > 0
+      ? liveMsgs
+      : [{ id: 'live-greeting', sender: 'assistant', text: 'Hello — I am linked to the live catalogue. Ask me about routines, ingredients, or orders.', timestamp: 'Just now' }]
+    : [];
+
+  const sendLive = async (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed || liveBusy) return;
+    setLiveBusy(true);
+    setLiveMsgs((prev) => [...prev, { id: `u-${Date.now()}`, sender: 'user', text: trimmed, timestamp: 'Just now' }]);
+    try {
+      const { assistant } = await aiChat(trimmed);
+      setLiveMsgs((prev) => [...prev, assistant]);
+    } catch {
+      setLiveMsgs((prev) => [...prev, { id: `e-${Date.now()}`, sender: 'assistant', text: 'The assistant is unavailable right now — please try again shortly.', timestamp: 'Just now' }]);
+    } finally {
+      setLiveBusy(false);
+    }
+  };
 
   const [inputVal, setInputVal] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -72,12 +99,16 @@ export const ScreenAskAI: React.FC = () => {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [aiMessages]);
+  }, [aiMessages, liveMsgs, liveBusy]);
 
   const handleSend = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (inputVal && inputVal.trim()) {
-      sendAIMessage(inputVal.trim());
+    if (inputVal.trim()) {
+      if (liveMode) {
+        void sendLive(inputVal.trim());
+      } else {
+        sendAIMessage(inputVal.trim());
+      }
       setInputVal('');
       if (inputRef.current) {
         inputRef.current.style.height = 'auto';
@@ -93,7 +124,11 @@ export const ScreenAskAI: React.FC = () => {
   };
 
   const handlePromptClick = (query: string) => {
-    sendAIMessage(query);
+    if (liveMode) {
+      void sendLive(query);
+    } else {
+      sendAIMessage(query);
+    }
   };
 
   const handleAddToCartWithToast = (product: any) => {
@@ -404,7 +439,7 @@ export const ScreenAskAI: React.FC = () => {
 
           {/* Messages Feed */}
           <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
-            {(aiMessages || []).map((msg) => {
+            {(liveMode ? liveFeed : aiMessages || []).map((msg) => {
               const isUser = msg?.sender === 'user';
               const textContent = msg?.text || (msg as any)?.message || '';
               return (
@@ -500,6 +535,12 @@ export const ScreenAskAI: React.FC = () => {
                 </div>
               );
             })}
+            {liveMode && liveBusy && (
+              <div className="flex items-center gap-2 text-[11px] text-[#9CA3AF] px-1">
+                <span className="w-2 h-2 rounded-full bg-[#D4AF37] animate-pulse" />
+                <span>Concierge is thinking…</span>
+              </div>
+            )}
             <div ref={messagesEndRef} />
           </div>
 

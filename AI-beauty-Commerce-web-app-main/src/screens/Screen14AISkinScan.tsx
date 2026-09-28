@@ -17,6 +17,7 @@ import { useApp } from '../context/AppContext';
 import { BeautyFace3D } from '../components/ai/BeautyFace3D';
 import { SkinInsightsChart } from '../components/ai/SkinInsightsChart';
 import { ProductCard } from '../components/common/ProductCard';
+import { isOwnedApiConfigured, mirrorSkinProfile } from '../lib/owned-api';
 
 type ScanFlowStep = 'intro' | 'capture' | 'processing' | 'results';
 
@@ -122,6 +123,13 @@ export const Screen14AISkinScan: React.FC = () => {
             recommendedProductIds: ['prod-body-01', 'prod-skin-01', 'prod-skin-02'],
             timestamp: new Date().toISOString()
           });
+          // Live mirror: persist the simulated profile server-side (silent for guests).
+          if (isOwnedApiConfigured) {
+            mirrorSkinProfile({
+              skinType: 'combination',
+              concerns: ['Luminous Barrier Guard', 'Cellular Moisture Defense', 'Antioxidant Radiance'],
+            }).catch(() => {});
+          }
         }
         setFlowStep('results');
       }, 2200);

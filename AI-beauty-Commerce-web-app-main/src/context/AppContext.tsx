@@ -34,6 +34,7 @@ import {
   isOwnedApiConfigured,
   mapServerOrder,
   mergeServerCart,
+  mirrorWishlist,
   paymentStatus,
   rememberServerOrder,
   serverCheckout,
@@ -434,11 +435,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const cartCount = cartItems.reduce((count, item) => count + item.quantity, 0);
 
-  // Wishlist
+  // Wishlist (local first; live mirror when the owned backend is configured)
   const toggleWishlist = (productId: string) => {
+    const adding = !wishlist.includes(productId);
     setWishlist((prev) =>
       prev.includes(productId) ? prev.filter((id) => id !== productId) : [...prev, productId]
     );
+    if (isOwnedApiConfigured) {
+      const product = products.find((p) => p.id === productId);
+      mirrorWishlist(productId, product?.sizes?.[0] ?? product?.selectedSize, adding).catch(() => {});
+    }
   };
 
   const isWishlisted = (productId: string) => wishlist.includes(productId);

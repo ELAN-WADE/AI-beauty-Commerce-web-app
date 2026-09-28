@@ -464,3 +464,88 @@ export async function redeemLoyaltyVoucher(points: number): Promise<{ voucher: L
   return apiFetch('/api/me/loyalty', { method: 'POST', body: JSON.stringify({ points }) });
 }
 
+// ---------- AI concierge (authenticated; mock thread otherwise) ----------
+
+export interface ChatMsg {
+  id: string;
+  sender: 'user' | 'assistant';
+  text: string;
+  timestamp: string;
+  recommendedProductIds?: string[];
+}
+
+const CONV_KEY = 'glowly-ai-conv';
+
+function convId(): string | null {
+  try {
+    return localStorage.getItem(CONV_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/** One chat turn against the owned assistant (catalogue-grounded, quota'd). */
+export async function aiChat(content: string): Promise<{ user: ChatMsg; assistant: ChatMsg; provider: string }> {
+  let id = convId();
+  if (!id) {
+    const created = await apiFetch<{ conversation: { id: string } }>('/api/ai/conversations', { method: 'POST', body: JSON.stringify({}) });
+    id = created.conversation.id;
+    try {
+      localStorage.setItem(CONV_KEY, id);
+    } catch {
+      // storage unavailable — conversation simply won't persist
+    }
+  }
+  const res = await apiFetch<{
+    userMessage: { id: string; content: string };
+    assistantMessage: { id: string; content: string };
+    grounded: { slug: string }[];
+    provider: string;
+  }>(`/api/ai/conversations/${encodeURIComponent(id)}/messages`, { method: 'POST', body: JSON.stringify({ content }) });
+  // Dead conversation (deleted server-side): reset once and retry.
+  if (!res?.assistantMessage) throw new ApiError(500, 'chat_failed', 'Assistant is unavailable.');
+  return {
+    user: { id: res.userMessage.id, sender: 'user', text: res.userMessage.content, timestamp: 'Just now' },
+    assistant: {
+      id: res.assistantMessage.id,
+      sender: 'assistant',
+      text: res.assistantMessage.content,
+      timestamp: 'Just now',
+      recommendedProductIds: (res.grounded ?? []).map((g) => g.slug),
+    },
+    provider: res.provider,
+  };
+}
+
+// ---------- Skin profile mirror (fire-and-forget after local scan) ----------
+
+const SKIN_ENUM = ['oily', 'dry', 'combination', 'sensitive', 'normal'] as const;
+
+export async function mirrorSkinProfile(input: { skinType: string; concerns: string[] }): Promise<void> {
+  if (!BASE) return;
+  const skinType = input.skinType.trim().toLowerCase();
+  if (!(SKIN_ENUM as readonly string[]).includes(skinType)) return;
+  await apiFetch('/api/me/skin-profile', {
+    method: 'PUT',
+    body: JSON.stringify({ skinType, concerns: input.concerns.slice(0, 12), notes: '' }),
+  }).catch(() => null);
+}
+
+// ---------- Wishlist mirror (authenticated; silent for guests) ----------
+
+export async function mirrorWishlist(productId: string, size: string | undefined, wishlisted: boolean): Promise<void> {
+  if (!BASE) return;
+  try {
+    const detail = await fetchProductDetail(productId);
+    const variant = detail?.variants.find((v) => v.sizeLabel.toLowerCase() === (size ?? '').toLowerCase()) ?? detail?.variants[0];
+    if (!variant) return;
+    if (wishlisted) {
+      await apiFetch('/api/me/wishlist', { method: 'POST', body: JSON.stringify({ variantId: variant.id }) });
+    } else {
+      await apiFetch(`/api/me/wishlist?variantId=${encodeURIComponent(variant.id)}`, { method: 'DELETE' });
+    }
+  } catch {
+    // 401 guests, network blips — local state remains the source of truth
+  }
+}
+
