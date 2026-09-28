@@ -1,0 +1,74 @@
+# Desla!™ CI — typecheck, build, and gated deploys (proposal §14 acceptance gates)
+name: ci
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  verify:
+    name: typecheck + build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: AI-beauty-Commerce-web-app-main/package-lock.json
+      - name: Install
+        working-directory: AI-beauty-Commerce-web-app-main
+        run: npm ci --no-audit --no-fund
+      - name: Audit (fail on high+)
+        working-directory: AI-beauty-Commerce-web-app-main
+        run: npm audit --audit-level=high
+      - name: Typecheck + production build
+        working-directory: AI-beauty-Commerce-web-app-main
+        run: npm run build
+      - name: Upload dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ github.sha }}
+          path: AI-beauty-Commerce-web-app-main/dist
+          retention-days: 14
+
+  deploy-staging:
+    name: deploy → staging (main only)
+    needs: verify
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist-${{ github.sha }}
+          path: dist
+      # VPS target (Lightsail / QServers per proposal §10). Fill secrets, then uncomment:
+      # - name: rsync dist to staging VPS
+      #   uses: burnett01/rsync-deployments@master
+      #   with:
+      #     switches: -avzr --delete
+      #     path: dist/
+      #     remote_path: /var/www/desla-staging/
+      #     remote_host: ${{ secrets.STAGING_SSH_HOST }}
+      #     remote_user: ${{ secrets.STAGING_SSH_USER }}
+      #     remote_key: ${{ secrets.STAGING_SSH_KEY }}
+
+  deploy-production:
+    name: deploy → production (tags only, manual approval = phase sign-off)
+    needs: verify
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist-${{ github.sha }}
+          path: dist
+      # Same rsync block as staging, pointed at production host + path.
+      # Apply supabase/migrations/*.sql in version order BEFORE switching traffic.
+      - run: echo "Apply pending supabase/migrations to PROD project, then release."

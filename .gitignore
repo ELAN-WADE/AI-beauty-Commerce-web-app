@@ -1,0 +1,37 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+
+# Dependencies
+**/node_modules/
+**/.pnp
+**/.pnp.js
+
+# Builds
+**/dist/
+**/.next/
+**/out/
+**/build/
+**/next-env.d.ts
+*.tsbuildinfo
+
+# Env & secrets — NEVER commit
+.env
+.env.*
+!.env.example
+**/*.pem
+**/*.key
+
+# Logs / caches
+*.log
+npm-debug.log*
+**/.turbo
+**/.vitest-cache
+
+# Docker volumes / local data
+pgdata/
+redisdata/
+minio-data/
+
+# Test artefacts
+coverage/

@@ -1,0 +1,25 @@
+# Production image: standalone Next.js output.
+FROM node:20-alpine AS deps
+WORKDIR /app
+COPY package.json package-lock.json* ./
+RUN npm ci --no-audit --no-fund
+
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+RUN npm run build
+
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+RUN addgroup -S nodejs && adduser -S nextjs -G nodejs
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+# drizzle/ SQL ships with the image so entrypoint can migrate before serving.
+COPY --from=builder --chown=nextjs:nodejs /app/drizzle ./drizzle
+USER nextjs
+EXPOSE 3001
+ENV PORT=3001
+CMD ["node", "server.js"]

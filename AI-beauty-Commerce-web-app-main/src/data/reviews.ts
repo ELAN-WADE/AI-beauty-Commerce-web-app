@@ -1,0 +1,81 @@
+import { ProductReview } from '../types';
+
+export const reviews: ProductReview[] = [
+  {
+    id: 'rev-01',
+    productId: 'des-bo-01',
+    productSku: 'DES-BO-01-100ML',
+    authorName: 'Folake Adeleke',
+    authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+    rating: 5,
+    date: 'September 22, 2026',
+    title: 'The golden radiance is unmatched in Lagos heat!',
+    comment: 'I was hesitant about oil during humid months, but this dry oil absorbs in literally under 30 seconds. Leaves skin glowing like spun gold with zero grease on clothes. Got it from the Lekki hub same day!',
+    verifiedPurchase: true,
+    city: 'Lagos',
+    skinType: 'Combination',
+    photoUrl: 'https://images.unsplash.com/photo-1608248597359-0c679234b4c7?auto=format&fit=crop&w=400&q=80',
+    helpfulCount: 42
+  },
+  {
+    id: 'rev-02',
+    productId: 'des-bo-01',
+    productSku: 'DES-BO-01-100ML',
+    authorName: 'Ibrahim Bello',
+    authorAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
+    rating: 5,
+    date: 'September 18, 2026',
+    title: 'Perfect unisex grooming oil',
+    comment: 'Clean formulation, very subtle woody amber scent that isn’t overpowering. Uses cold-pressed jojoba that calmed my post-shave skin instantly. Highly recommend.',
+    verifiedPurchase: true,
+    city: 'Abuja',
+    skinType: 'Normal',
+    helpfulCount: 28
+  },
+  {
+    id: 'rev-03',
+    productId: 'des-bb-01',
+    productSku: 'DES-BB-01-200ML',
+    authorName: 'Ngozi Okonjo',
+    authorAvatar: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=150&q=80',
+    rating: 5,
+    date: 'September 20, 2026',
+    title: 'Whipped like cloud cream',
+    comment: 'Standard shea butter is usually so thick and grainy, but this Desla formulation is whipped like gelato. My dry elbows and ankles have completely transformed in 10 days.',
+    verifiedPurchase: true,
+    city: 'Port Harcourt',
+    skinType: 'Very Dry',
+    photoUrl: 'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&w=400&q=80',
+    helpfulCount: 35
+  },
+  {
+    id: 'rev-04',
+    productId: 'des-ss-01',
+    productSku: 'DES-SS-01-50ML',
+    authorName: 'Dr. Kelechi Nwosu',
+    authorAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80',
+    rating: 5,
+    date: 'September 15, 2026',
+    title: 'Finally: ZERO white cast on deep melanin skin',
+    comment: 'As someone with deep skin tone, finding high-protection SPF50 that does not leave a purple or chalky film was impossible until Desla. It melts like a hydrating serum. No eye stinging either.',
+    verifiedPurchase: true,
+    city: 'Abuja',
+    skinType: 'Fitzpatrick VI',
+    helpfulCount: 64
+  },
+  {
+    id: 'rev-05',
+    productId: 'des-po-01',
+    productSku: 'DES-PO-01-10ML',
+    authorName: 'Halima Yusuf',
+    authorAvatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80',
+    rating: 5,
+    date: 'September 23, 2026',
+    title: 'Pure intoxicating luxury',
+    comment: 'The amber and vanilla roll-on stayed on my pulse points from 8 AM until 9 PM. Received 4 compliments in the office today alone. Picked up in Wuse 2 Abuja without courier fees.',
+    verifiedPurchase: true,
+    city: 'Abuja',
+    skinType: 'Unisex',
+    helpfulCount: 51
+  }
+];
