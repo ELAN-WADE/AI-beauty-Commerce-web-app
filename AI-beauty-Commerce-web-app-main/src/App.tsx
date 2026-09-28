@@ -35,7 +35,7 @@ import { ScreenCreators } from './screens/ScreenCreators';
 
 export const App: React.FC = () => {
   const { isDesktop } = useViewport();
-  const { currentScreen } = useApp();
+  const { currentScreen, isLiveBackend, livePayment, dismissLivePayment } = useApp();
 
   const renderActiveScreen = () => {
     switch (currentScreen) {
@@ -98,7 +98,7 @@ export const App: React.FC = () => {
     ].includes(currentScreen);
 
   return (
-    <div className="min-h-screen bg-[#FFFFFF] text-[#0F0F10] relative font-body flex flex-col selection:bg-[#D4AF37]/20 selection:text-[#997A2E] overflow-x-hidden">
+    <div className="min-h-screen bg-[#FFFFFF] text-[#0F0F10] relative font-body flex flex-col selection:bg-[#D4AF37]/20 selection:text-[#997A2E] overflow-x-clip">
       {/* Initial Luxury Brand Loading Experience (Delsla Logo reveal) */}
       <InitialBrandLoader />
 
@@ -122,6 +122,26 @@ export const App: React.FC = () => {
       <AIAssistantDrawer />
       <CommunityChatDrawer />
       <LocationSelector />
+
+      {/* Live payment return states (owned backend only; demo flow untouched) */}
+      {isLiveBackend && (livePayment.status === 'verifying' || livePayment.status === 'redirecting') && (
+        <div className="fixed inset-0 z-[100] bg-white/95 backdrop-blur flex flex-col items-center justify-center gap-4 px-8 text-center">
+          <div className="w-10 h-10 rounded-full border-2 border-[#E5E7EB] border-t-[#D4AF37] animate-spin" aria-label="Loading" />
+          <p className="text-sm font-semibold text-[#0F0F10]">{livePayment.message || 'Confirming…'}</p>
+          <p className="text-xs text-[#6B7280]">Do not close this page.</p>
+        </div>
+      )}
+      {isLiveBackend && livePayment.status === 'error' && (
+        <div className="fixed inset-x-4 bottom-24 z-[100] rounded-2xl bg-[#0F0F10] text-white p-4 shadow-float flex items-start gap-3">
+          <p className="flex-1 text-xs leading-relaxed">{livePayment.message}</p>
+          <button
+            onClick={dismissLivePayment}
+            className="shrink-0 px-4 py-2 rounded-full bg-[#D4AF37] text-[#0F0F10] text-xs font-bold active:scale-95 transition-all"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
     </div>
   );
 };

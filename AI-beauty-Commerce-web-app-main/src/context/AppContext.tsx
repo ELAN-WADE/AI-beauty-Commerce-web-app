@@ -22,7 +22,25 @@ import { distributors as initialDistributors, supportedCities } from '../data/di
 import { creators as initialCreators } from '../data/creators';
 import { communityPosts as initialCommunityPosts } from '../data/communityPosts';
 import { reviews as initialReviews } from '../data/reviews';
-import { fetchCatalogFromOwnedApi, isOwnedApiConfigured } from '../lib/owned-api';
+import {
+  ApiError,
+  apiLogin,
+  apiLogout,
+  apiMe,
+  apiRegister,
+  fetchCatalogFromOwnedApi,
+  fetchServerOrder,
+  initPayment,
+  isOwnedApiConfigured,
+  mapServerOrder,
+  mergeServerCart,
+  paymentStatus,
+  serverCheckout,
+  syncCartToServer,
+  type AuthUser,
+  type PayProvider,
+  type ServerOrderView,
+} from '../lib/owned-api';
 
 export interface AIMessage {
   id: string;
@@ -148,6 +166,25 @@ interface AppContextType {
   // Checkout Fulfillment Details
   checkoutAddress: CheckoutAddress;
   setCheckoutAddress: React.Dispatch<React.SetStateAction<CheckoutAddress>>;
+
+  // Owned live backend (no-ops in demo mode; demo flow untouched)
+  authUser: AuthUser | null;
+  authLoading: boolean;
+  login: (email: string, password: string) => Promise<{ success: boolean; message: string }>;
+  register: (email: string, password: string) => Promise<{ success: boolean; message: string }>;
+  logout: () => Promise<void>;
+  isLiveBackend: boolean;
+  livePayment: { status: 'idle' | 'preparing' | 'redirecting' | 'verifying' | 'error'; message: string };
+  dismissLivePayment: () => void;
+  addLocalOrder: (order: Order) => void;
+  prepareLiveCheckout: (provider: PayProvider) => Promise<LiveCheckoutResult>;
+}
+
+export interface LiveCheckoutResult {
+  order: Order;
+  authorizationUrl: string | null;
+  reference: string;
+  bankDetails?: { bankName: string; accountNumber: string; accountName: string };
 }
 
 export interface CheckoutAddress {
@@ -714,6 +751,154 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const dismissCartBanner = () => setIsCartBannerDismissed(true);
 
+  // ---------- Owned live backend (additive; demo flow untouched) ----------
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [authLoading, setAuthLoading] = useState<boolean>(isOwnedApiConfigured);
+  const [livePayment, setLivePayment] = useState<{
+    status: 'idle' | 'preparing' | 'redirecting' | 'verifying' | 'error';
+    message: string;
+  }>({ status: 'idle', message: '' });
+
+  const dismissLivePayment = () => setLivePayment({ status: 'idle', message: '' });
+
+  const addLocalOrder = (order: Order) => {
+    setOrders((prev) => [order, ...prev]);
+    setActiveOrder(order);
+  };
+
+  const login = async (email: string, password: string) => {
+    if (!isOwnedApiConfigured) return { success: false, message: 'Accounts are disabled in demo mode.' };
+    try {
+      await apiLogin(email.trim(), password);
+      const me = await apiMe();
+      setAuthUser(me);
+      if (me) {
+        mergeServerCart().catch(() => {});
+        return { success: true, message: `Welcome back, ${me.email}` };
+      }
+      return { success: false, message: 'Login failed. Please try again.' };
+    } catch (e) {
+      return { success: false, message: e instanceof ApiError ? e.message : 'Login failed.' };
+    }
+  };
+
+  const register = async (email: string, password: string) => {
+    if (!isOwnedApiConfigured) return { success: false, message: 'Accounts are disabled in demo mode.' };
+    try {
+      await apiRegister(email.trim(), password);
+      const me = await apiMe();
+      setAuthUser(me);
+      return { success: true, message: me ? `Welcome to Glowly, ${me.email}` : 'Account created. Please log in.' };
+    } catch (e) {
+      return { success: false, message: e instanceof ApiError ? e.message : 'Registration failed.' };
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await apiLogout();
+    } catch {
+      // Cookie may already be gone; local state still clears.
+    }
+    setAuthUser(null);
+  };
+
+  // Session restore (silent; stays logged out in demo mode).
+  useEffect(() => {
+    if (!isOwnedApiConfigured) return;
+    let cancelled = false;
+    apiMe()
+      .then((me) => {
+        if (!cancelled) setAuthUser(me);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setAuthLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const prepareLiveCheckout = async (provider: PayProvider): Promise<LiveCheckoutResult> => {
+    setLivePayment({ status: 'preparing', message: 'Preparing secure checkout…' });
+    try {
+      if (cartItems.length === 0) throw new Error('Your bag is empty.');
+      await syncCartToServer(cartItems.map((ci) => ({ productId: ci.productId, size: ci.size, quantity: ci.quantity })));
+      const email = checkoutAddress.email || userProfile.email;
+      const { order: view } = await serverCheckout({
+        fullName: checkoutAddress.fullName || userProfile.name,
+        email,
+        phone: checkoutAddress.phone || userProfile.phone,
+        street: checkoutAddress.street,
+        city: checkoutAddress.city || selectedCity,
+        state: checkoutAddress.state,
+        deliveryNotes: checkoutAddress.deliveryNotes,
+      });
+      const init = await initPayment(view.id, provider, email || undefined);
+      const local = mapServerOrder(
+        view,
+        cartItems,
+        provider === 'transfer' ? 'Bank transfer (pending)' : `${provider} (hosted checkout)`
+      );
+      clearCart();
+      if (init.authorizationUrl) {
+        setLivePayment({ status: 'redirecting', message: 'Opening secure payment page…' });
+        window.location.href = init.authorizationUrl;
+      } else {
+        setLivePayment({ status: 'idle', message: '' });
+      }
+      return { order: local, authorizationUrl: init.authorizationUrl, reference: init.reference, bankDetails: init.bankDetails };
+    } catch (e) {
+      const message = e instanceof ApiError || e instanceof Error ? e.message : 'Checkout failed. Please try again.';
+      setLivePayment({ status: 'error', message });
+      throw e;
+    }
+  };
+
+  // Provider return (?pay=reference): verify server-side, mirror locally, confirm.
+  useEffect(() => {
+    if (!isOwnedApiConfigured) return;
+    const ref = new URLSearchParams(window.location.search).get('pay');
+    if (!ref) return;
+    window.history.replaceState({}, '', window.location.pathname);
+    let cancelled = false;
+    (async () => {
+      setLivePayment({ status: 'verifying', message: 'Confirming your payment…' });
+      try {
+        const st = await paymentStatus(ref, checkoutAddress.email || undefined);
+        if (cancelled) return;
+        if (!st.settled) {
+          setLivePayment({ status: 'error', message: 'Payment is not complete yet. If you paid, wait a minute and check Orders.' });
+          return;
+        }
+        const view: ServerOrderView | null = await fetchServerOrder(st.orderId, checkoutAddress.email || undefined);
+        if (cancelled) return;
+        if (!view) {
+          setLivePayment({ status: 'error', message: 'Payment confirmed, but the order could not be loaded. Contact support with reference ' + ref });
+          return;
+        }
+        const local = mapServerOrder(view, cartItems, 'Online payment');
+        if (!cancelled) {
+          setOrders((prev) => [local, ...prev]);
+          setActiveOrder(local);
+          clearCart();
+          setLivePayment({ status: 'idle', message: '' });
+          setPreviousScreens((prev) => [...prev, currentScreen]);
+          setCurrentScreen('order-confirmed');
+          window.scrollTo({ top: 0 });
+        }
+      } catch {
+        if (!cancelled) setLivePayment({ status: 'error', message: 'Could not verify payment. Contact support with reference ' + ref });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // Mount-once return handler: state snapshots below are intentionally mount-time.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <AppContext.Provider
       value={{
@@ -798,7 +983,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         isCartBannerDismissed,
         dismissCartBanner,
         checkoutAddress,
-        setCheckoutAddress
+        setCheckoutAddress,
+        authUser,
+        authLoading,
+        login,
+        register,
+        logout,
+        isLiveBackend: isOwnedApiConfigured,
+        livePayment,
+        dismissLivePayment,
+        addLocalOrder,
+        prepareLiveCheckout
       }}
     >
       {children}

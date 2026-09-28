@@ -34,7 +34,10 @@ export const Screen11Payment: React.FC = () => {
     createOrderFromCart,
     navigateTo,
     goBack,
-    checkoutAddress
+    checkoutAddress,
+    isLiveBackend,
+    prepareLiveCheckout,
+    addLocalOrder
   } = useApp();
 
   const [selectedGateway, setSelectedGateway] = useState<'paystack' | 'flutterwave'>('paystack');
@@ -86,7 +89,27 @@ export const Screen11Payment: React.FC = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handlePay = () => {
+  const handlePay = async () => {
+    // Live path: real server order + hosted provider checkout (or bank details).
+    if (isLiveBackend) {
+      setIsProcessing(true);
+      setProcessingStep('Creating secure order…');
+      try {
+        const provider = paymentMethod === 'transfer' ? 'transfer' : selectedGateway;
+        const result = await prepareLiveCheckout(provider);
+        if (!result.authorizationUrl) {
+          // Bank transfer: order is placed, customer pays manually + claims later.
+          addLocalOrder(result.order);
+          navigateTo('order-confirmed');
+        }
+        // Hosted path: browser redirects; ?pay= return flow confirms on landing.
+      } catch (e) {
+        setIsProcessing(false);
+        setProcessingStep(e instanceof Error ? e.message : 'Payment failed — please try again.');
+      }
+      return;
+    }
+
     setIsProcessing(true);
     const gatewayTitle = selectedGateway === 'paystack' ? 'Paystack' : 'Flutterwave';
 

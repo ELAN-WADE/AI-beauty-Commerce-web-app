@@ -1,12 +1,57 @@
-// Owned-backend catalogue client (Glowly S2). Strangler pattern: when
-// VITE_API_URL is set, the storefront reads the owned Next.js API; otherwise
-// it keeps running on local mocks. Never throws — null means "use fallback".
-import type { Product } from '../types';
-import { products as mockProducts } from '../data/products';
+// Owned-backend client (Glowly S2+). Strangler pattern: when VITE_API_URL is
+// set, the storefront talks to the owned Next.js API; otherwise it keeps
+// running on local mocks. Reads never throw (null = use fallback); writes
+// throw ApiError so callers can show messages.
+import type { CartItem, Order, Product } from '../types';
 
 const BASE = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/+$/, '');
 
 export const isOwnedApiConfigured = Boolean(BASE);
+
+export class ApiError extends Error {
+  constructor(
+    public status: number,
+    public code: string,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+async function apiFetch<T>(path: string, init: RequestInit = {}, sessionId?: string): Promise<T> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json', ...(init.headers as Record<string, string> | undefined) };
+  if (sessionId) headers['X-Session-Id'] = sessionId;
+  const res = await fetch(`${BASE}${path}`, { ...init, headers, credentials: 'include' });
+  const body = (await res.json().catch(() => null)) as { error?: { code?: string; message?: string } } | T;
+  if (!res.ok) {
+    const err = (body as { error?: { code?: string; message?: string } })?.error;
+    throw new ApiError(res.status, err?.code ?? 'request_failed', err?.message ?? `Request failed (${res.status}).`);
+  }
+  return body as T;
+}
+
+/** Guest session id (localStorage). Server carts key off this until login. */
+const SESSION_KEY = 'glowly-session-id';
+export function guestSessionId(): string {
+  try {
+    let id = localStorage.getItem(SESSION_KEY);
+    if (!id) {
+      id = typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `gs-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      localStorage.setItem(SESSION_KEY, id);
+    }
+    return id;
+  } catch {
+    return `gs-${Date.now()}`;
+  }
+}
+
+export function newIdempotencyKey(): string {
+  try {
+    return crypto.randomUUID();
+  } catch {
+    return `ik-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  }
+}
 
 interface OwnedVariant {
   id: string;
@@ -99,6 +144,240 @@ export async function fetchCatalogFromOwnedApi(limit = 100): Promise<Product[] |
   }
 }
 
-export function mockCatalog(): Product[] {
-  return mockProducts;
+// ---------- Auth (cookie session; no tokens in JS) ----------
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  emailVerified: boolean;
+  roles: string[];
+  profile: { displayName: string; phone?: string; avatarUrl?: string } | null;
 }
+
+export async function apiRegister(email: string, password: string): Promise<{ ok: boolean; email: string }> {
+  return apiFetch('/api/auth/register', { method: 'POST', body: JSON.stringify({ email, password }) });
+}
+
+export async function apiLogin(email: string, password: string): Promise<{ ok: boolean }> {
+  return apiFetch('/api/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
+}
+
+export async function apiLogout(): Promise<{ ok: boolean }> {
+  return apiFetch('/api/auth/logout', { method: 'POST' });
+}
+
+export async function apiMe(): Promise<AuthUser | null> {
+  try {
+    return await apiFetch<AuthUser>('/api/auth/me');
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 401) return null;
+    throw e;
+  }
+}
+
+// ---------- Catalogue detail (variant resolution for cart sync) ----------
+
+interface OwnedDetail extends OwnedProduct {
+  attributes: { name: string; value: string }[];
+  ingredients: { name: string; description: string; detail: string }[];
+}
+
+const detailCache = new Map<string, OwnedDetail>();
+
+export async function fetchProductDetail(slug: string): Promise<OwnedDetail | null> {
+  if (!BASE) return null;
+  const cached = detailCache.get(slug.toLowerCase());
+  if (cached) return cached;
+  try {
+    const detail = await apiFetch<OwnedDetail>(`/api/products/${encodeURIComponent(slug.toLowerCase())}`);
+    detailCache.set(slug.toLowerCase(), detail);
+    return detail;
+  } catch {
+    return null;
+  }
+}
+
+export async function resolveVariantId(productId: string, size: string): Promise<string | null> {
+  const detail = await fetchProductDetail(productId);
+  if (!detail || detail.variants.length === 0) return null;
+  const exact = detail.variants.find((v) => v.sizeLabel.toLowerCase() === size.toLowerCase());
+  return (exact ?? detail.variants[0]).id;
+}
+
+// ---------- Server cart ----------
+
+export interface ServerCartLine {
+  id: string;
+  variantId: string;
+  sku: string;
+  sizeLabel: string;
+  productSlug: string;
+  productName: string;
+  unitPriceKobo: number;
+  qty: number;
+  available: number;
+}
+
+export async function syncCartToServer(items: { productId: string; size: string; quantity: number }[]): Promise<void> {  if (!BASE) return;
+  const sessionId = guestSessionId();
+  // Replace server cart with local lines (variant-resolved, server-priced).
+  await apiFetch('/api/cart/items', { method: 'DELETE' }, sessionId).catch(() => null);
+  for (const item of items) {
+    const variantId = await resolveVariantId(item.productId, item.size);
+    if (!variantId) continue; // unknown to server (mock-only product) — skip line
+    await apiFetch('/api/cart/items', { method: 'POST', body: JSON.stringify({ variantId, qty: Math.min(99, item.quantity) }) }, sessionId).catch(() => null);
+  }
+}
+
+/** Fold the guest cart into the user cart after login (best-effort). */
+export async function mergeServerCart(): Promise<void> {
+  if (!BASE) return;
+  await apiFetch('/api/cart/merge', { method: 'POST', body: JSON.stringify({ sessionId: guestSessionId() }) }).catch(() => null);
+}
+
+// ---------- Checkout + payments ----------
+
+export interface CheckoutAddressInput {
+  fullName: string;
+  email: string;
+  phone: string;
+  street: string;
+  city: string;
+  state: string;
+  deliveryNotes?: string;
+}
+
+export interface ServerOrderView {
+  id: string;
+  orderNumber: string;
+  status: string;
+  paymentStatus: string;
+  subtotalKobo: number;
+  deliveryFeeKobo: number;
+  totalKobo: number;
+  items: { variantId: string; productName: string; variantLabel: string; sku: string; unitPriceKobo: number; qty: number; lineTotalKobo: number }[];
+}
+
+export async function serverCheckout(address: CheckoutAddressInput, voucherCode?: string): Promise<{ order: ServerOrderView; replay: boolean }> {
+  const sessionId = guestSessionId();
+  const { fullName, phone, street, city, state, email, deliveryNotes } = address;
+  return apiFetch('/api/checkout', {
+    method: 'POST',
+    headers: { 'Idempotency-Key': newIdempotencyKey() },
+    body: JSON.stringify({
+      sessionId,
+      guestAddress: { fullName, phone, street, city, state, country: 'NG' },
+      guestEmail: email,
+      note: deliveryNotes ?? '',
+      ...(voucherCode ? { voucherCode } : {}),
+    }),
+  }, sessionId);
+}
+
+export type PayProvider = 'flutterwave' | 'paystack' | 'opay' | 'transfer';
+
+export interface InitResult {
+  attemptId: string;
+  reference: string;
+  provider: PayProvider;
+  authorizationUrl: string | null;
+  bankDetails?: { bankName: string; accountNumber: string; accountName: string };
+  replay: boolean;
+}
+
+export async function initPayment(orderId: string, provider: PayProvider, guestEmail?: string): Promise<InitResult> {
+  return apiFetch('/api/payments/init', {
+    method: 'POST',
+    body: JSON.stringify({ orderId, provider, ...(guestEmail ? { guestEmail } : {}) }),
+  }, guestSessionId());
+}
+
+export interface PaymentStatus {
+  reference: string;
+  provider: string;
+  status: string;
+  authorizationUrl: string | null;
+  settled: boolean;
+  orderId: string;
+  orderNumber: string;
+}
+
+export async function paymentStatus(reference: string, guestEmail?: string): Promise<PaymentStatus> {
+  const q = guestEmail ? `?guestEmail=${encodeURIComponent(guestEmail)}` : '';
+  return apiFetch(`/api/payments/status?reference=${encodeURIComponent(reference)}${q ? `&${q.slice(1)}` : ''}`, {}, guestSessionId());
+}
+
+// ---------- Orders (tracking screens) ----------
+
+export async function fetchServerOrder(orderId: string, guestEmail?: string): Promise<ServerOrderView & { history: { toStatus: string; createdAt: string }[]; shippingAddress: { name?: string; street?: string; city?: string; state?: string; phone?: string } } | null> {
+  try {
+    const q = guestEmail ? `?email=${encodeURIComponent(guestEmail)}` : '';
+    return await apiFetch(`/api/orders/${encodeURIComponent(orderId)}${q}`, {}, guestSessionId());
+  } catch {
+    return null;
+  }
+}
+
+/** Map a server order view onto the storefront Order type (tracking UI). */
+export function mapServerOrder(view: ServerOrderView, fallbackItems: CartItem[], paymentMethod: string): Order {
+  const items = view.items.length > 0
+    ? view.items.map((i) => {
+      const local = fallbackItems.find((c) => c.product.name === i.productName);
+      return {
+        productId: i.variantId,
+        productName: i.productName,
+        brand: local?.product.brand ?? 'DESLA!™',
+        size: i.variantLabel,
+        price: Math.round(i.unitPriceKobo / 100),
+        quantity: i.qty,
+        image: local?.product.image ?? '',
+      };
+    })
+    : fallbackItems.map((ci) => ({
+      productId: ci.productId,
+      productName: ci.product.name,
+      brand: ci.product.brand,
+      size: ci.size,
+      price: ci.unitPrice,
+      quantity: ci.quantity,
+      image: ci.product.image,
+    }));
+  const subtotal = Math.round(view.subtotalKobo / 100);
+  const deliveryFee = Math.round(view.deliveryFeeKobo / 100);
+  return {
+    id: view.orderNumber,
+    date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    status: view.status === 'PENDING' ? 'Processing' : view.status === 'DELIVERED' ? 'Delivered' : view.status === 'CANCELLED' ? 'Cancelled' : 'Shipped',
+    items,
+    subtotal,
+    deliveryFee,
+    total: Math.round(view.totalKobo / 100),
+    fulfillmentType: 'local',
+    trackingSteps: [
+      { title: 'Order Confirmed', timestamp: 'Just now', status: 'completed', description: `Order ${view.orderNumber} created` },
+      { title: 'Payment', timestamp: view.paymentStatus === 'PAID' ? 'Confirmed' : 'Pending', status: view.paymentStatus === 'PAID' ? 'completed' : 'current', description: view.paymentStatus === 'PAID' ? 'Payment verified' : 'Awaiting payment confirmation' },
+      { title: 'Out for Delivery', timestamp: 'Upcoming', status: 'upcoming', description: 'Local courier dispatch' },
+      { title: 'Delivered', timestamp: 'Upcoming', status: 'upcoming', description: 'Delivered to your address' },
+    ],
+    shippingAddress: { name: '', street: '', city: '', state: '', phone: '' },
+    paymentMethod,
+  };
+}
+
+// ---------- Reviews / wishlist / loyalty (fire-and-forget mirrors) ----------
+
+export async function submitReviewApi(input: { productId: string; rating: number; title: string; comment: string }): Promise<void> {
+  if (!BASE) return;
+  // productId is the storefront slug; the server resolves slug → uuid.
+  await apiFetch('/api/reviews', { method: 'POST', body: JSON.stringify(input) }).catch(() => null);
+}
+
+export async function fetchLoyalty(): Promise<{ points: number } | null> {
+  if (!BASE) return null;
+  try {
+    return await apiFetch('/api/me/loyalty');
+  } catch {
+    return null;
+  }
+}
+

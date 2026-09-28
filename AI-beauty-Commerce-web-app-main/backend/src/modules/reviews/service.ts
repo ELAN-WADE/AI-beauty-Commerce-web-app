@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, or, sql } from 'drizzle-orm';
 import type { AppDb, Db } from '../../db/client';
 import { Errors } from '../../lib/errors';
 import { products } from '../catalog/schema';
@@ -37,15 +37,26 @@ export async function recomputeAggregate(db: Db, productId: string): Promise<voi
   await db.update(products).set({ reviewsCount: count, rating: avg, updatedAt: new Date() }).where(eq(products.id, productId));
 }
 
+/** Accept a uuid or a storefront slug; rejects inactive products. */
+export async function resolveProductId(db: Db, slugOrId: string): Promise<string> {
+  const rows = await db
+    .select({ id: products.id, isActive: products.isActive })
+    .from(products)
+    .where(or(eq(products.id, slugOrId), eq(products.slug, slugOrId.toLowerCase())))
+    .limit(1);
+  const p = rows[0];
+  if (!p || !p.isActive) throw Errors.notFound('Product not found.');
+  return p.id;
+}
+
 export async function createReview(db: AppDb, input: { userId: string; authorName: string } & CreateReviewInput) {
   return db.transaction(async (tx) => {
-    const p = await tx.select({ id: products.id, isActive: products.isActive }).from(products).where(eq(products.id, input.productId)).limit(1);
-    if (!p[0] || !p[0].isActive) throw Errors.notFound('Product not found.');
-    const { verified, orderId } = await hasVerifiedPurchase(tx, input.userId, input.productId);
+    const productId = await resolveProductId(tx, input.productId);
+    const { verified, orderId } = await hasVerifiedPurchase(tx, input.userId, productId);
     const [review] = await tx
       .insert(reviews)
       .values({
-        productId: input.productId,
+        productId,
         userId: input.userId,
         orderId,
         authorName: input.authorName,
@@ -56,7 +67,7 @@ export async function createReview(db: AppDb, input: { userId: string; authorNam
         status: verified ? 'approved' : 'pending',
       })
       .returning();
-    if (verified) await recomputeAggregate(tx, input.productId);
+    if (verified) await recomputeAggregate(tx, productId);
     return review;
   });
 }
