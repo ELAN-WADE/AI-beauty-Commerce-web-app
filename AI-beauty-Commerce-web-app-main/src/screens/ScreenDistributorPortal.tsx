@@ -126,8 +126,8 @@ export const ScreenDistributorPortal: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#FAF9F6] text-[#0F0F10] pb-24 font-body selection:bg-[#D4AF37]/20 selection:text-[#997A2E]">
-      {/* Top Header */}
-      <header className="sticky top-0 z-30 w-full bg-white/95 backdrop-blur-md border-b border-[#E5E7EB] px-4 lg:px-8 py-3.5 shadow-xs">
+      {/* Top Header (Mobile/Tablet Only — Hidden on Desktop) */}
+      <header className="lg:hidden sticky top-0 z-30 w-full bg-white/95 backdrop-blur-md border-b border-[#E5E7EB] px-4 lg:px-8 py-3.5 shadow-xs">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
@@ -167,6 +167,34 @@ export const ScreenDistributorPortal: React.FC = () => {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 lg:px-8 pt-6 space-y-6">
+        {/* Desktop Header Greeting */}
+        <div className="hidden lg:flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
+          <div>
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
+              Regional Partner Network
+            </span>
+            <h1 className="font-heading font-extrabold text-2xl text-[#0F0F10] tracking-tight">
+              Welcome Back, Authorized Partner
+            </h1>
+            <p className="text-xs text-[#6B7280] mt-0.5">
+              Live city inventory, same-day order routing &amp; Lagos HQ wholesale desk
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FBF5E8] border border-[#D4AF37]/40 text-[#997A2E] text-xs font-mono font-bold">
+              <MapPin size={12} className="text-[#D4AF37]" />
+              <span>{selectedCity} Hub Active</span>
+            </span>
+            <button
+              onClick={() => setActiveTab('wholesale')}
+              className="px-4 py-2 rounded-full bg-[#0F0F10] text-white hover:bg-[#D4AF37] hover:text-[#0F0F10] font-heading font-bold text-xs active-press transition-colors shadow-xs cursor-pointer flex items-center gap-1.5"
+            >
+              <Plus size={14} />
+              <span>Restock Cartons</span>
+            </button>
+          </div>
+        </div>
+
         {/* Navigation Tabs Bar */}
         <div className="flex items-center gap-2 border-b border-[#E5E7EB] pb-3 overflow-x-auto no-scrollbar">
           <button

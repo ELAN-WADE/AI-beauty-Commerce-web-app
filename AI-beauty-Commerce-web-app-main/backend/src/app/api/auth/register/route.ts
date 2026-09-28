@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { getDb } from '@/db/client';
 import { api, clientIp, Errors, readJson } from '@/lib/errors';
 import { checkRateLimit, Limits } from '@/lib/rate-limit';
-import { SESSION_COOKIE, sessionCookieOptions } from '@/lib/cookies';
+import { sessionCookieName, sessionCookieOptions } from '@/lib/cookies';
 import { createSession, register } from '@/modules/auth/service';
 import { registerSchema } from '@/modules/auth/validation';
 
@@ -25,7 +25,7 @@ export const POST = api(async ({ req }) => {
       userAgent: req.headers.get('user-agent') ?? undefined,
     });
     const jar = await cookies();
-    jar.set(SESSION_COOKIE, session.token, sessionCookieOptions(SESSION_TTL_SEC));
+    jar.set(sessionCookieName(), session.token, sessionCookieOptions(SESSION_TTL_SEC));
     // Dev-only escape hatch: MailHog flow arrives in S5; until then the token is
     // echoed so the developer can verify without email. NEVER in staging/prod.
     if (process.env.NODE_ENV === 'development' && result.verificationToken) {

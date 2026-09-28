@@ -143,8 +143,8 @@ export const Screen07ProductDetails: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white text-[#0F0F10] flex flex-col pb-28">
-      {/* Top Header / Breadcrumb Trail */}
-      <div className="sticky top-0 z-30 w-full bg-white/95 backdrop-blur-md border-b border-[#E5E7EB] px-4 lg:px-8 py-3">
+      {/* Top Header / Breadcrumb Trail (Mobile/Tablet Only — Hidden on Desktop to fit 100vh) */}
+      <div className="lg:hidden sticky top-0 z-30 w-full bg-white/95 backdrop-blur-md border-b border-[#E5E7EB] px-4 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2 text-xs text-[#6B7280]">
             <button
@@ -154,11 +154,7 @@ export const Screen07ProductDetails: React.FC = () => {
             >
               <ChevronLeft size={20} strokeWidth={2.2} />
             </button>
-            <span className="hidden sm:inline hover:underline cursor-pointer" onClick={() => navigateTo('home')}>Home</span>
-            <span className="hidden sm:inline text-gray-300">/</span>
-            <span className="hidden sm:inline hover:underline cursor-pointer" onClick={() => navigateTo('catalogue')}>{selectedProduct.category}</span>
-            <span className="hidden sm:inline text-gray-300">/</span>
-            <span className="font-semibold text-[#0F0F10] truncate max-w-[200px] md:max-w-md">{selectedProduct.name}</span>
+            <span className="font-semibold text-[#0F0F10] truncate max-w-[220px]">{selectedProduct.name}</span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -180,81 +176,177 @@ export const Screen07ProductDetails: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Content: Temu-Inspired 2-Column Desktop Grid */}
-      <main className="max-w-7xl mx-auto px-4 lg:px-8 pt-6 space-y-12 flex-1 w-full">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-          {/* LEFT COLUMN: Vertical Thumbnails Strip + Large Main Preview (7 cols) */}
-          <div className="lg:col-span-7 flex flex-col-reverse md:flex-row gap-4 items-start">
-            {/* Vertical Thumbnails (Temu Style) */}
-            <div className="flex md:flex-col gap-2.5 overflow-x-auto md:overflow-y-auto no-scrollbar shrink-0 max-h-[500px]">
-              {images.map((img, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setActiveImageIndex(idx)}
-                  className={`w-16 h-16 md:w-20 md:h-20 rounded-xl overflow-hidden bg-[#F6F5F2] border-2 transition-all shrink-0 cursor-pointer ${
-                    activeImageIndex === idx
-                      ? 'border-[#D4AF37] shadow-sm'
-                      : 'border-[#E5E7EB] opacity-80 hover:opacity-100 hover:border-gray-400'
-                  }`}
-                >
-                  <img src={img} alt={`Thumbnail ${idx}`} className="w-full h-full object-cover" />
-                </button>
-              ))}
-            </div>
-
-            {/* Large Main Hero Image Viewport with Nav Arrows */}
-            <div className="relative flex-1 aspect-[4/5] w-full rounded-2xl overflow-hidden bg-[#F6F5F2] border border-[#E5E7EB] shadow-xs group">
-              <img
-                src={images[activeImageIndex] || selectedProduct.image}
-                alt={selectedProduct.name}
-                className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
-              />
-
-              {/* Prev / Next Arrows */}
-              {images.length > 1 && (
-                <>
+      {/* Main Content: 100vh-Optimized Dual-Grid Desktop Layout */}
+      <main className="max-w-7xl mx-auto px-4 lg:px-8 pt-5 space-y-8 flex-1 w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
+          {/* LEFT COLUMN: Scrollable Media Gallery + Customer Reviews + Collective Buzz (7 cols) */}
+          <div className="lg:col-span-7 space-y-8">
+            {/* Gallery: Thumbnails + Main Viewport (Capped at 460px height to fit initial 100vh viewport) */}
+            <div className="flex flex-col-reverse md:flex-row gap-3.5 items-start">
+              {/* Vertical Thumbnails */}
+              <div className="flex md:flex-col gap-2 overflow-x-auto md:overflow-y-auto no-scrollbar shrink-0 max-h-[460px]">
+                {images.map((img, idx) => (
                   <button
-                    onClick={() => setActiveImageIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1))}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 shadow-md flex items-center justify-center text-[#0F0F10] hover:bg-[#D4AF37] hover:text-[#0F0F10] active-press transition-colors cursor-pointer"
-                    aria-label="Previous image"
+                    key={idx}
+                    onClick={() => setActiveImageIndex(idx)}
+                    className={`w-14 h-14 md:w-16 md:h-16 rounded-xl overflow-hidden bg-[#F6F5F2] border-2 transition-all shrink-0 cursor-pointer ${
+                      activeImageIndex === idx
+                        ? 'border-[#D4AF37] shadow-xs'
+                        : 'border-[#E5E7EB] opacity-75 hover:opacity-100 hover:border-gray-400'
+                    }`}
                   >
-                    <ChevronLeft size={18} />
+                    <img src={img} alt={`Thumbnail ${idx}`} className="w-full h-full object-cover" />
                   </button>
-                  <button
-                    onClick={() => setActiveImageIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0))}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 shadow-md flex items-center justify-center text-[#0F0F10] hover:bg-[#D4AF37] hover:text-[#0F0F10] active-press transition-colors cursor-pointer"
-                    aria-label="Next image"
-                  >
-                    <ChevronRight size={18} />
-                  </button>
-                </>
-              )}
+                ))}
+              </div>
 
-              {/* Badges on Hero Image */}
-              <div className="absolute top-4 left-4 flex flex-col gap-1.5 z-10">
-                <span className="px-3 py-1 rounded-full bg-[#0F0F10]/90 text-white font-mono text-xs font-bold shadow-xs">
-                  {selectedProduct.sku}
-                </span>
-                {discountPct > 0 && (
-                  <span className="px-3 py-1 rounded-full bg-[#D4AF37] text-[#0F0F10] font-mono text-xs font-black shadow-xs">
-                    {discountPct}% OFF
-                  </span>
+              {/* Main Hero Image Viewport (Square / 460px max height to prevent page elongation) */}
+              <div className="relative flex-1 aspect-square max-h-[460px] w-full rounded-2xl overflow-hidden bg-[#F6F5F2] border border-[#E5E7EB] shadow-xs group flex items-center justify-center">
+                <img
+                  src={images[activeImageIndex] || selectedProduct.image}
+                  alt={selectedProduct.name}
+                  className="w-full h-full object-cover object-center transition-transform duration-300 group-hover:scale-102"
+                />
+
+                {/* Prev / Next Arrows */}
+                {images.length > 1 && (
+                  <>
+                    <button
+                      onClick={() => setActiveImageIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1))}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 shadow-md flex items-center justify-center text-[#0F0F10] hover:bg-[#D4AF37] hover:text-[#0F0F10] active:scale-95 transition-all cursor-pointer"
+                      aria-label="Previous image"
+                    >
+                      <ChevronLeft size={16} />
+                    </button>
+                    <button
+                      onClick={() => setActiveImageIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0))}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 shadow-md flex items-center justify-center text-[#0F0F10] hover:bg-[#D4AF37] hover:text-[#0F0F10] active:scale-95 transition-all cursor-pointer"
+                      aria-label="Next image"
+                    >
+                      <ChevronRight size={16} />
+                    </button>
+                  </>
                 )}
+
+                {/* Badges on Hero Image */}
+                <div className="absolute top-3 left-3 flex flex-col gap-1 z-10">
+                  <span className="px-2.5 py-0.5 rounded-full bg-[#0F0F10]/90 text-white font-mono text-[11px] font-bold shadow-xs">
+                    {selectedProduct.sku}
+                  </span>
+                  {discountPct > 0 && (
+                    <span className="px-2.5 py-0.5 rounded-full bg-[#D4AF37] text-[#0F0F10] font-mono text-[11px] font-black shadow-xs">
+                      {discountPct}% OFF
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
+
+            {/* VERIFIED CUSTOMER REVIEWS (Embedded in Left Scrollable Column) */}
+            <section className="pt-6 border-t border-[#E5E7EB] space-y-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-heading font-extrabold text-lg text-[#0F0F10]">
+                      Verified Customer Reviews
+                    </h3>
+                    <span className="px-2 py-0.5 rounded-full bg-[#F3EEE3] text-[#0F0F10] border border-[#E5E7EB] text-[10.5px] font-bold">
+                      NAFDAC Verified
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#6B7280] mt-0.5">
+                    Real feedback from verified buyers across Lagos, Abuja, and Port Harcourt.
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => setIsReviewModalOpen(true)}
+                  className="px-4 py-2 rounded-full bg-[#0F0F10] hover:bg-[#D4AF37] text-white hover:text-[#0F0F10] text-xs font-heading font-bold active-press transition-colors cursor-pointer shrink-0"
+                >
+                  Write Review
+                </button>
+              </div>
+
+              {/* Reviews Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                {productReviews.map((rev) => (
+                  <div key={rev.id} className="p-4 rounded-2xl bg-white border border-[#E5E7EB] shadow-xs space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <img src={rev.authorAvatar} alt={rev.authorName} className="w-7 h-7 rounded-full object-cover" />
+                        <div>
+                          <span className="font-bold text-xs text-[#0F0F10] block">{rev.authorName}</span>
+                          <span className="text-[10px] text-[#263127] font-semibold">• Verified ({rev.city})</span>
+                        </div>
+                      </div>
+                      <div className="flex text-[#D4AF37]">
+                        {[...Array(rev.rating)].map((_, i) => (
+                          <Star key={i} size={11} fill="currentColor" strokeWidth={0} />
+                        ))}
+                      </div>
+                    </div>
+
+                    <h4 className="font-heading font-bold text-xs text-[#0F0F10]">{rev.title}</h4>
+                    <p className="text-xs text-[#6B7280] leading-relaxed">{rev.comment}</p>
+
+                    {rev.skinType && (
+                      <span className="inline-block text-[10px] font-mono text-[#997A2E] bg-[#FBF5E8] px-2 py-0.5 rounded-full">
+                        Skin Type: {rev.skinType}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* DESLA COLLECTIVE BUZZ STREAM (Embedded in Left Scrollable Column) */}
+            {communityBuzzPosts.length > 0 && (
+              <section className="pt-6 border-t border-[#E5E7EB] space-y-3.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <MessageSquare size={16} className="text-[#D4AF37]" />
+                    <h4 className="font-heading font-bold text-base text-[#0F0F10]">
+                      Desla Collective Buzz ({selectedProduct.hashtag})
+                    </h4>
+                  </div>
+                  <button
+                    onClick={() => navigateTo('community')}
+                    className="text-xs font-bold text-[#997A2E] hover:underline"
+                  >
+                    View All Posts →
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  {communityBuzzPosts.map((post) => (
+                    <div key={post.id} className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] space-y-2">
+                      <div className="flex items-center gap-2">
+                        <img src={post.authorAvatar} alt={post.authorName} className="w-7 h-7 rounded-full object-cover" />
+                        <div>
+                          <span className="font-bold text-xs text-[#0F0F10] block">{post.authorName}</span>
+                          <span className="text-[10px] text-[#6B7280]">{post.authorRole}</span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-[#4B5563] leading-relaxed line-clamp-2">{post.content}</p>
+                      <span className="text-[11px] font-mono font-bold text-[#997A2E] block">{post.taggedProductHashtag || selectedProduct.hashtag}</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
           </div>
 
-          {/* RIGHT COLUMN: Commerce, Sourcing & Swatches (5 cols) */}
-          <div className="lg:col-span-5 space-y-6">
-            {/* Top Commercial Badges (Temu PDP Inspired) */}
-            <div className="space-y-2">
+          {/* RIGHT COLUMN: Static/Sticky Buy-Box Panel (5 cols — lg:sticky lg:top-24) */}
+          <div className="lg:col-span-5 space-y-5 lg:sticky lg:top-24">
+            {/* Top Commercial Badges */}
+            <div className="space-y-1.5">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#F3EEE3] border border-[#E5E7EB] text-[#0F0F10] text-xs font-bold">
-                  <CheckCircle2 size={13} className="text-[#997A2E]" />
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#F3EEE3] border border-[#E5E7EB] text-[#0F0F10] text-[11px] font-bold">
+                  <CheckCircle2 size={12} className="text-[#997A2E]" />
                   Free Local Shipping in {selectedCity}
                 </span>
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#FBF5E8] border border-[#D4AF37]/40 text-[#997A2E] text-xs font-bold">
-                  <Award size={13} className="text-[#D4AF37]" />
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#FBF5E8] border border-[#D4AF37]/40 text-[#997A2E] text-[11px] font-bold">
+                  <Award size={12} className="text-[#D4AF37]" />
                   #1 Best-Seller in {selectedProduct.category}
                 </span>
               </div>
@@ -265,136 +357,136 @@ export const Screen07ProductDetails: React.FC = () => {
               </h1>
 
               {/* Social Proof & Rating Strip */}
-              <div className="flex items-center gap-3 text-xs pt-0.5 text-[#6B7280]">
+              <div className="flex items-center gap-2 text-xs text-[#6B7280]">
                 <div className="flex items-center gap-1 text-[#D4AF37]">
                   <div className="flex">
                     {[...Array(5)].map((_, i) => (
-                      <Star key={i} size={14} fill="currentColor" strokeWidth={0} />
+                      <Star key={i} size={13} fill="currentColor" strokeWidth={0} />
                     ))}
                   </div>
                   <span className="font-bold text-[#0F0F10] ml-1">{selectedProduct.rating}</span>
                 </div>
                 <span>•</span>
-                <span className="underline cursor-pointer">{productReviews.length + 482} verified reviews</span>
+                <span>{productReviews.length + 482} verified reviews</span>
                 <span>•</span>
                 <span className="font-semibold text-[#0F0F10]">2.4K+ sold</span>
               </div>
             </div>
 
-            {/* Price & Savings Block (Temu PDP Style) */}
-            <div className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] space-y-2">
+            {/* Price & Savings Block */}
+            <div className="p-3.5 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] space-y-1.5">
               <div className="flex items-baseline gap-3">
-                <span className="font-price font-semibold text-3xl text-[#FB7701]">
+                <span className="font-price font-semibold text-2xl sm:text-3xl text-[#FB7701]">
                   {formatNaira(selectedProduct.price)}
                 </span>
                 {selectedProduct.originalPrice && selectedProduct.originalPrice > selectedProduct.price && (
-                  <span className="font-price text-base text-[#9CA3AF] line-through">
+                  <span className="font-price text-sm text-[#9CA3AF] line-through">
                     {formatNaira(selectedProduct.originalPrice)}
                   </span>
                 )}
                 {discountPct > 0 && (
-                  <span className="px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 text-xs font-bold">
+                  <span className="px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 text-[11px] font-bold">
                     Save {discountPct}%
                   </span>
                 )}
               </div>
 
               <div className="flex items-center gap-1.5 text-xs text-amber-800 font-medium">
-                <Flame size={14} className="text-amber-600 fill-amber-500" />
-                <span>Almost Sold Out: High order volume in {selectedCity} today</span>
+                <Flame size={13} className="text-amber-600 fill-amber-500" />
+                <span>High order volume in {selectedCity} today</span>
               </div>
             </div>
 
             {/* LOCAL CITY DISTRIBUTOR SOURCING SELECTOR */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-[#0F0F10] block">
                 Fulfillment Route:
               </label>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2.5">
                 {/* Option 1: Local City Hub */}
                 <div
                   onClick={() => setFulfillmentMethod('local')}
-                  className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all ${
+                  className={`p-3 rounded-xl border-2 cursor-pointer transition-all ${
                     fulfillmentMethod === 'local'
                       ? 'border-[#D4AF37] bg-[#FBF5E8]/60 shadow-xs'
                       : 'border-[#E5E7EB] bg-white hover:border-gray-300'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center justify-between mb-0.5">
                     <span className="text-xs font-bold text-[#0F0F10] flex items-center gap-1">
-                      <MapPin size={13} className="text-[#D4AF37]" />
-                      <span>{selectedCity} Local Hub</span>
+                      <MapPin size={12} className="text-[#D4AF37]" />
+                      <span>{selectedCity} Hub</span>
                     </span>
-                    <span className="text-[10px] font-mono font-bold text-[#0F0F10] bg-[#F3EEE3] px-2 py-0.5 rounded">
-                      SAVE ₦3,500
+                    <span className="text-[9px] font-mono font-bold text-[#0F0F10] bg-[#F3EEE3] px-1.5 py-0.5 rounded">
+                      SAVE ₦3.5K
                     </span>
                   </div>
-                  <p className="text-[11px] text-[#6B7280] leading-snug">
-                    Same-day pickup or bike dispatch via authorized {selectedCity} partner.
+                  <p className="text-[10.5px] text-[#6B7280] leading-tight">
+                    Same-day pickup / bike dispatch.
                   </p>
                 </div>
 
                 {/* Option 2: Lagos Central HQ */}
                 <div
                   onClick={() => setFulfillmentMethod('lagos')}
-                  className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all ${
+                  className={`p-3 rounded-xl border-2 cursor-pointer transition-all ${
                     fulfillmentMethod === 'lagos'
                       ? 'border-[#D4AF37] bg-[#FBF5E8]/60 shadow-xs'
                       : 'border-[#E5E7EB] bg-white hover:border-gray-300'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center justify-between mb-0.5">
                     <span className="text-xs font-bold text-[#0F0F10] flex items-center gap-1">
-                      <Truck size={13} className="text-[#6B7280]" />
-                      <span>Lagos Central HQ</span>
+                      <Truck size={12} className="text-[#6B7280]" />
+                      <span>Lagos HQ</span>
                     </span>
                     <span className="text-[10px] text-[#6B7280]">2-4 Days</span>
                   </div>
-                  <p className="text-[11px] text-[#6B7280] leading-snug">
-                    Dispatched from Victoria Island laboratory with clinical seals.
+                  <p className="text-[10.5px] text-[#6B7280] leading-tight">
+                    VI laboratory batch dispatch.
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* VARIANT & SIZE PHOTO SWATCHES (Temu Mattress Color Swatches Style) */}
-            <div className="space-y-2.5">
+            {/* VARIANT & SIZE PHOTO SWATCHES */}
+            <div className="space-y-2">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-bold text-[#0F0F10]">
-                  Formulation Size: <strong className="text-[#997A2E]">{selectedSize}</strong>
+                  Size: <strong className="text-[#997A2E]">{selectedSize}</strong>
                 </span>
                 <span className="text-[#6B7280] text-[11px]">Clinical Dosage</span>
               </div>
 
               {/* Photo Swatch Cards Grid */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2.5">
                 {selectedProduct.sizes.map((size) => {
                   const isSelected = selectedSize === size;
                   return (
                     <div
                       key={size}
                       onClick={() => setSelectedSize(size)}
-                      className={`p-2.5 rounded-xl border-2 flex items-center gap-2.5 cursor-pointer transition-all ${
+                      className={`p-2 rounded-xl border-2 flex items-center gap-2 cursor-pointer transition-all ${
                         isSelected
                           ? 'border-[#D4AF37] bg-[#FBF5E8] shadow-xs'
                           : 'border-[#E5E7EB] bg-white hover:border-gray-300'
                       }`}
                     >
-                      <div className="w-12 h-12 rounded-lg bg-[#F6F5F2] overflow-hidden shrink-0">
+                      <div className="w-10 h-10 rounded-lg bg-[#F6F5F2] overflow-hidden shrink-0">
                         <img src={selectedProduct.image} alt={size} className="w-full h-full object-cover" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <span className="text-xs font-bold text-[#0F0F10] block truncate">
                           {size}
                         </span>
-                        <span className="text-[11px] font-mono text-[#6B7280] block">
+                        <span className="text-[10.5px] font-mono text-[#6B7280] block">
                           {formatNaira(selectedProduct.price)}
                         </span>
                       </div>
                       {isSelected && (
                         <div className="w-4 h-4 rounded-full bg-[#D4AF37] text-[#0F0F10] flex items-center justify-center shrink-0">
-                          <Check size={11} strokeWidth={3} />
+                          <Check size={10} strokeWidth={3} />
                         </div>
                       )}
                     </div>
@@ -404,18 +496,18 @@ export const Screen07ProductDetails: React.FC = () => {
             </div>
 
             {/* QUANTITY & PRIMARY ACTION BUTTONS */}
-            <div className="space-y-3 pt-2">
-              <div className="flex items-center gap-3">
+            <div className="space-y-2.5 pt-1">
+              <div className="flex items-center gap-2.5">
                 {/* Quantity Stepper */}
-                <div className="flex items-center rounded-full border border-[#E5E7EB] bg-[#F8F9FA] px-3 py-2">
+                <div className="flex items-center rounded-full border border-[#E5E7EB] bg-[#F8F9FA] px-3 py-1.5">
                   <button
                     onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                     className="p-1 rounded-full hover:bg-white text-[#0F0F10] active-press transition-colors cursor-pointer"
                     aria-label="Decrease quantity"
                   >
-                    <Minus size={14} />
+                    <Minus size={13} />
                   </button>
-                  <span className="w-10 text-center font-mono font-bold text-sm text-[#0F0F10]">
+                  <span className="w-8 text-center font-mono font-bold text-xs text-[#0F0F10]">
                     {quantity}
                   </span>
                   <button
@@ -423,14 +515,14 @@ export const Screen07ProductDetails: React.FC = () => {
                     className="p-1 rounded-full hover:bg-white text-[#0F0F10] active-press transition-colors cursor-pointer"
                     aria-label="Increase quantity"
                   >
-                    <Plus size={14} />
+                    <Plus size={13} />
                   </button>
                 </div>
 
                 {/* Primary Add to Bag CTA */}
                 <button
                   onClick={handleAddToCart}
-                  className="flex-1 py-3.5 px-6 rounded-full bg-[#0F0F10] hover:bg-[#1F1D22] text-white font-heading font-extrabold text-sm tracking-wide shadow-md flex items-center justify-center gap-2 active-press transition-all cursor-pointer"
+                  className="flex-1 py-3 px-5 rounded-full bg-[#0F0F10] hover:bg-[#1F1D22] text-white font-heading font-extrabold text-xs sm:text-sm tracking-wide shadow-md flex items-center justify-center gap-2 active-press transition-all cursor-pointer"
                 >
                   {justAdded ? (
                     <>
@@ -439,7 +531,7 @@ export const Screen07ProductDetails: React.FC = () => {
                     </>
                   ) : (
                     <>
-                      <ShoppingBag size={17} strokeWidth={2.2} className="text-[#D4AF37]" />
+                      <ShoppingBag size={16} strokeWidth={2.2} className="text-[#D4AF37]" />
                       <span>Add to Bag • {formatNaira(selectedProduct.price * quantity)}</span>
                     </>
                   )}
@@ -452,59 +544,59 @@ export const Screen07ProductDetails: React.FC = () => {
                   href={`https://wa.me/${primaryPartner.phone.replace(/[^0-9]/g, '')}?text=Hello%20${encodeURIComponent(primaryPartner.name)},%20I%20am%20ordering%20${encodeURIComponent(selectedProduct.name)}%20(${selectedSize})%20in%20${selectedCity}.`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full py-3 px-4 rounded-full bg-[#25D366]/10 hover:bg-[#25D366]/20 border border-[#25D366]/30 text-emerald-900 font-heading font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                  className="w-full py-2.5 px-3 rounded-full bg-[#25D366]/10 hover:bg-[#25D366]/20 border border-[#25D366]/30 text-emerald-900 font-heading font-bold text-[11px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                 >
-                  <Store size={15} className="text-emerald-700" />
-                  <span>Order via WhatsApp from {primaryPartner.name} ({selectedCity})</span>
+                  <Store size={14} className="text-emerald-700" />
+                  <span>WhatsApp Pickup from {primaryPartner.name} ({selectedCity})</span>
                 </a>
               )}
             </div>
 
             {/* ACCORDIONS: INCI Transparency & Routine Guide */}
-            <div className="border-t border-[#E5E7EB] pt-4 divide-y divide-[#E5E7EB] text-xs">
+            <div className="border-t border-[#E5E7EB] pt-3 divide-y divide-[#E5E7EB] text-xs">
               {/* Accordion 1: What It Does */}
-              <div className="py-3">
+              <div className="py-2.5">
                 <button
                   onClick={() => toggleAccordion('what-it-does')}
                   className="w-full flex items-center justify-between font-bold text-[#0F0F10] text-left cursor-pointer"
                 >
                   <span>What It Does &amp; Clinical Benefits</span>
                   <ChevronDown
-                    size={16}
+                    size={15}
                     className={`transition-transform duration-200 ${
                       openAccordion === 'what-it-does' ? 'rotate-180 text-[#D4AF37]' : ''
                     }`}
                   />
                 </button>
                 {openAccordion === 'what-it-does' && (
-                  <p className="mt-2 text-[#6B7280] leading-relaxed">
+                  <p className="mt-2 text-[#6B7280] leading-relaxed text-[11.5px]">
                     {selectedProduct.description}
                   </p>
                 )}
               </div>
 
               {/* Accordion 2: INCI Ingredients */}
-              <div className="py-3">
+              <div className="py-2.5">
                 <button
                   onClick={() => toggleAccordion('ingredients')}
                   className="w-full flex items-center justify-between font-bold text-[#0F0F10] text-left cursor-pointer"
                 >
                   <span>INCI Clinical Ingredients Transparency</span>
                   <ChevronDown
-                    size={16}
+                    size={15}
                     className={`transition-transform duration-200 ${
                       openAccordion === 'ingredients' ? 'rotate-180 text-[#D4AF37]' : ''
                     }`}
                   />
                 </button>
                 {openAccordion === 'ingredients' && (
-                  <div className="mt-2 space-y-2 text-[#6B7280]">
+                  <div className="mt-2 space-y-1.5 text-[#6B7280] text-[11.5px]">
                     <p className="leading-relaxed">
                       Safe-conscious formulations formulated without harsh sulfates, artificial endocrine disruptors, or bleaching agents:
                     </p>
-                    <div className="flex flex-wrap gap-1.5 pt-1">
+                    <div className="flex flex-wrap gap-1 pt-1">
                       {selectedProduct.keyIngredients?.map((ing, idx: number) => (
-                        <span key={idx} className="px-2.5 py-0.5 rounded-full bg-[#F6F5F2] text-[#0F0F10] text-[11px] font-medium border border-[#E5E7EB]">
+                        <span key={idx} className="px-2 py-0.5 rounded-full bg-[#F6F5F2] text-[#0F0F10] text-[10.5px] font-medium border border-[#E5E7EB]">
                           {ing.name}{ing.percentage ? ` (${ing.percentage})` : ''}
                         </span>
                       ))}
@@ -515,99 +607,6 @@ export const Screen07ProductDetails: React.FC = () => {
             </div>
           </div>
         </div>
-
-        {/* VERIFIED CUSTOMER REVIEWS & LIVE COMMUNITY BUZZ STREAM */}
-        <section className="pt-10 border-t border-[#E5E7EB] space-y-8">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-heading font-extrabold text-xl text-[#0F0F10]">
-                  Verified Customer Reviews
-                </h3>
-                <span className="px-2.5 py-0.5 rounded-full bg-[#F3EEE3] text-[#0F0F10] border border-[#E5E7EB] text-xs font-bold">
-                  NAFDAC Verified
-                </span>
-              </div>
-              <p className="text-xs text-[#6B7280] mt-0.5">
-                Real feedback from verified buyers across Lagos, Abuja, and Port Harcourt.
-              </p>
-            </div>
-
-            <button
-              onClick={() => setIsReviewModalOpen(true)}
-              className="px-5 py-2.5 rounded-full bg-[#0F0F10] hover:bg-[#D4AF37] text-white hover:text-[#0F0F10] text-xs font-heading font-bold active-press transition-colors cursor-pointer"
-            >
-              Write a Review + Photo
-            </button>
-          </div>
-
-          {/* Reviews Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {productReviews.map((rev) => (
-              <div key={rev.id} className="p-4 rounded-2xl bg-white border border-[#E5E7EB] shadow-xs space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <img src={rev.authorAvatar} alt={rev.authorName} className="w-8 h-8 rounded-full object-cover" />
-                    <div>
-                      <span className="font-bold text-xs text-[#0F0F10] block">{rev.authorName}</span>
-                      <span className="text-[10px] text-[#263127] font-semibold">• Verified Buyer ({rev.city})</span>
-                    </div>
-                  </div>
-                  <div className="flex text-[#D4AF37]">
-                    {[...Array(rev.rating)].map((_, i) => (
-                      <Star key={i} size={12} fill="currentColor" strokeWidth={0} />
-                    ))}
-                  </div>
-                </div>
-
-                <h4 className="font-heading font-bold text-xs text-[#0F0F10]">{rev.title}</h4>
-                <p className="text-xs text-[#6B7280] leading-relaxed">{rev.comment}</p>
-
-                {rev.skinType && (
-                  <span className="inline-block text-[10px] font-mono text-[#997A2E] bg-[#FBF5E8] px-2 py-0.5 rounded-full">
-                    Skin Type: {rev.skinType}
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* Community Buzz Stream (#Hashtag Video Proof) */}
-          {communityBuzzPosts.length > 0 && (
-            <div className="pt-8 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <MessageSquare size={16} className="text-[#D4AF37]" />
-                  <h4 className="font-heading font-bold text-base text-[#0F0F10]">
-                    Desla Collective Buzz ({selectedProduct.hashtag})
-                  </h4>
-                </div>
-                <button
-                  onClick={() => navigateTo('community')}
-                  className="text-xs font-bold text-[#997A2E] hover:underline"
-                >
-                  View All Social Posts →
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {communityBuzzPosts.map((post) => (
-                  <div key={post.id} className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] space-y-2">
-                    <div className="flex items-center gap-2">
-                      <img src={post.authorAvatar} alt={post.authorName} className="w-7 h-7 rounded-full object-cover" />
-                      <div>
-                        <span className="font-bold text-xs text-[#0F0F10] block">{post.authorName}</span>
-                        <span className="text-[10px] text-[#6B7280]">{post.authorRole}</span>
-                      </div>
-                    </div>
-                    <p className="text-xs text-[#4B5563] leading-relaxed line-clamp-2">{post.content}</p>
-                    <span className="text-[11px] font-mono font-bold text-[#997A2E] block">{post.taggedProductHashtag || selectedProduct.hashtag}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </section>
       </main>
 
       {/* Review Submission Modal */}

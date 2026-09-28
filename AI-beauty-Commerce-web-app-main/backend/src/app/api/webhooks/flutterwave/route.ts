@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/db/client';
-import { clientIp, Errors } from '@/lib/errors';
+import { clientIp, Errors, readRawBody } from '@/lib/errors';
 import { checkRateLimit, Limits } from '@/lib/rate-limit';
 import { verifyFlutterwaveWebhook } from '@/lib/providers';
 import { recordEvent, settleAttempt } from '@/modules/payments/service';
@@ -22,7 +22,7 @@ export async function POST(req: Request) {
   const rl = checkRateLimit(`webhook:${clientIp(req)}`, Limits.webhook);
   if (!rl.allowed) return respond({ error: { code: 'rate_limited', message: 'Slow down.', request_id: requestId, retryable: true } }, 429);
 
-  const rawBody = await req.text();
+  const rawBody = await readRawBody(req);
   const headers: Record<string, string | undefined> = {};
   req.headers.forEach((v, k) => {
     headers[k.toLowerCase()] = v;

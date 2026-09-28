@@ -9,6 +9,7 @@ interface Bucket {
 }
 
 const buckets = new Map<string, Bucket>();
+let callsSinceSweep = 0;
 
 export interface LimitSpec {
   limit: number;
@@ -32,6 +33,12 @@ export function checkRateLimit(
   spec: LimitSpec,
   now = Date.now(),
 ): { allowed: boolean; retryAfterMs: number } {
+  // Opportunistic memory hygiene: sweep every ~1k checks (worker sweeps too).
+  callsSinceSweep += 1;
+  if (callsSinceSweep >= 1024) {
+    callsSinceSweep = 0;
+    sweepRateLimits(now);
+  }
   const b = buckets.get(key);
   if (!b || now >= b.resetAt) {
     buckets.set(key, { tokens: spec.limit - 1, resetAt: now + spec.windowMs });

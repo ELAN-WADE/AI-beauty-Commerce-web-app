@@ -69,7 +69,7 @@ export async function createPost(db: AppDb, userId: string, author: { name: stri
 
 export async function togglePostLike(db: AppDb, userId: string, postId: string) {
   return db.transaction(async (tx) => {
-    const rows = await tx.select().from(communityPosts).where(eq(communityPosts.id, postId)).limit(1);
+    const rows = await tx.select().from(communityPosts).where(eq(communityPosts.id, postId)).for('update').limit(1);
     const post = rows[0];
     if (!post || !post.visible) throw Errors.notFound('Post not found.');
     const voted = await tx.select().from(postLikes).where(and(eq(postLikes.postId, postId), eq(postLikes.userId, userId))).limit(1);

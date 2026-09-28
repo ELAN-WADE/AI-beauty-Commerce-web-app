@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/db/client';
-import { clientIp, Errors } from '@/lib/errors';
+import { clientIp, Errors, readRawBody } from '@/lib/errors';
 import { checkRateLimit, Limits } from '@/lib/rate-limit';
 import { verifyPaystackWebhook } from '@/lib/providers';
 import { recordEvent, settleAttempt } from '@/modules/payments/service';
@@ -17,7 +17,7 @@ export async function POST(req: Request) {
   const rl = checkRateLimit(`webhook:${clientIp(req)}`, Limits.webhook);
   if (!rl.allowed) return respond({ error: { code: 'rate_limited', message: 'Slow down.', request_id: requestId, retryable: true } }, 429);
 
-  const rawBody = await req.text();
+  const rawBody = await readRawBody(req);
   if (!verifyPaystackWebhook(rawBody, req.headers.get('x-paystack-signature') ?? undefined, process.env.PAYSTACK_SECRET_KEY)) {
     return respond({ error: { code: 'bad_signature', message: 'Rejected.', request_id: requestId, retryable: false } }, 401);
   }

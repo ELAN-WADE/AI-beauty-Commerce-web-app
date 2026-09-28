@@ -2,7 +2,7 @@ import { cookies } from 'next/headers';
 import type { AppDb } from '../../db/client';
 import { Errors } from '../../lib/errors';
 import { hasAnyRole } from '../../lib/authz';
-import { SESSION_COOKIE } from '../../lib/cookies';
+import { sessionCookieName } from '../../lib/cookies';
 import { getSessionUser } from './service';
 
 export interface AuthContext {
@@ -16,7 +16,7 @@ export interface AuthContext {
 /** Resolve the caller from the session cookie. Throws 401 when absent/invalid. */
 export async function requireAuth(db: AppDb): Promise<AuthContext> {
   const jar = await cookies();
-  const raw = jar.get(SESSION_COOKIE)?.value;
+  const raw = jar.get(sessionCookieName())?.value;
   const session = await getSessionUser(db, raw);
   if (!session) throw Errors.unauthorized();
   return {

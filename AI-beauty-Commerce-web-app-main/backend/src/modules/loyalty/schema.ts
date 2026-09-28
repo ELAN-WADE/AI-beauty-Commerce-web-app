@@ -16,14 +16,18 @@ import { orders } from '../orders/schema';
 const timestamptz = (name: string) => timestamp(name, { withTimezone: true, mode: 'date' });
 
 /** One loyalty account per user; balance is authoritative here (never derived). */
-export const loyaltyAccounts = pgTable('loyalty_accounts', {
-  userId: uuid('user_id')
-    .primaryKey()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  points: integer('points').notNull().default(0),
-  createdAt: timestamptz('created_at').notNull().defaultNow(),
-  updatedAt: timestamptz('updated_at').notNull().defaultNow(),
-});
+export const loyaltyAccounts = pgTable(
+  'loyalty_accounts',
+  {
+    userId: uuid('user_id')
+      .primaryKey()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    points: integer('points').notNull().default(0),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+    updatedAt: timestamptz('updated_at').notNull().defaultNow(),
+  },
+  () => [check('loyalty_balance_nonnegative', sql`"points" >= 0`)],
+);
 
 /**
  * Append-only ledger. UNIQUE(account, ref_type, ref_id) makes earn-on-payment

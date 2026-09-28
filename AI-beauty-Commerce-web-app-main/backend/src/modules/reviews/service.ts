@@ -85,7 +85,7 @@ export async function listApprovedBySlug(db: Db, slug: string, limit = 20) {
 
 export async function toggleHelpful(db: AppDb, userId: string, reviewId: string) {
   return db.transaction(async (tx) => {
-    const rows = await tx.select().from(reviews).where(eq(reviews.id, reviewId)).limit(1);
+    const rows = await tx.select().from(reviews).where(eq(reviews.id, reviewId)).for('update').limit(1);
     const review = rows[0];
     if (!review || review.status !== 'approved') throw Errors.notFound('Review not found.');
     const voted = await tx.select().from(reviewHelpful).where(and(eq(reviewHelpful.reviewId, reviewId), eq(reviewHelpful.userId, userId))).limit(1);

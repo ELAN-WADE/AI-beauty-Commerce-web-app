@@ -77,8 +77,8 @@ export const Screen17Account: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#FAF9F6] text-[#0F0F10] pb-28 font-body selection:bg-[#D4AF37]/20 selection:text-[#997A2E]">
-      {/* Top Page Header Banner */}
-      <div className="border-b border-[#E5E7EB] bg-white py-6 px-4 lg:px-8 shadow-xs">
+      {/* Top Page Header Banner (Mobile/Tablet Only — Hidden on Desktop where DesktopNav is sticky) */}
+      <div className="lg:hidden border-b border-[#E5E7EB] bg-white py-6 px-4 lg:px-8 shadow-xs">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div>
             <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
@@ -167,196 +167,9 @@ export const Screen17Account: React.FC = () => {
             )}
           </section>
         )}
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* LEFT COLUMN: CUSTOMER ACTIVITY & INTELLIGENCE (8 Columns) */}
-          <div className="lg:col-span-8 space-y-8">
-            {/* 1. Active Orders & Sourcing Tracker */}
-            <section className="p-6 rounded-2xl bg-white border border-[#E5E7EB] shadow-xs space-y-5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E5E7EB] pb-4">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-[#FBF5E8] flex items-center justify-center text-[#997A2E]">
-                    <Truck size={18} />
-                  </div>
-                  <div>
-                    <h2 className="font-heading font-extrabold text-base text-[#0F0F10]">
-                      Active Orders &amp; Regional Sourcing Tracker
-                    </h2>
-                    <span className="text-xs text-[#6B7280]">
-                      Local city partner fulfillment dispatch
-                    </span>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => navigateTo('orders')}
-                  className="text-xs font-heading font-bold text-[#997A2E] hover:underline flex items-center gap-1 cursor-pointer self-start sm:self-auto"
-                >
-                  <span>View All Orders ({orders.length})</span>
-                  <ArrowRight size={13} />
-                </button>
-              </div>
-
-              {/* Live Active Delivery Status Card */}
-              <div className="p-5 rounded-2xl bg-[#FAF9F6] border border-[#D4AF37]/35 space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
-                    <span className="font-mono font-bold text-xs text-[#0F0F10]">
-                      Order #DES-98214 — Out for Delivery ({selectedCity} Hub)
-                    </span>
-                  </div>
-                  <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-[11px] font-mono font-bold border border-emerald-200 self-start sm:self-auto">
-                    ETA: 15–20 mins • PIN: 4821
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-xs">
-                  <div className="p-3 rounded-xl bg-white border border-[#E5E7EB]">
-                    <span className="text-[10px] text-[#6B7280] uppercase tracking-wider block">Assigned Dispatch</span>
-                    <span className="font-heading font-bold text-[#0F0F10] block mt-0.5">Emeka (Bike Rider)</span>
-                    <span className="text-[11px] text-[#6B7280]">2.4 km from your address</span>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-white border border-[#E5E7EB]">
-                    <span className="text-[10px] text-[#6B7280] uppercase tracking-wider block">Formulations En Route</span>
-                    <span className="font-heading font-bold text-[#0F0F10] block mt-0.5">2 Items</span>
-                    <span className="text-[11px] text-[#6B7280]">Radiant Oil &amp; Shea Butter</span>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-white border border-[#E5E7EB]">
-                    <span className="text-[10px] text-[#6B7280] uppercase tracking-wider block">Sourcing Facility</span>
-                    <span className="font-heading font-bold text-[#0F0F10] block mt-0.5">{selectedCity} Hub Central</span>
-                    <span className="text-[11px] text-emerald-700 font-semibold">₦1,500 local fee (Saved ₦4,500)</span>
-                  </div>
-                </div>
-
-                {/* Progress track line */}
-                <div className="space-y-1.5 pt-1">
-                  <div className="w-full bg-[#E5E7EB] h-2 rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-[#D4AF37] to-[#997A2E] rounded-full w-4/5 transition-all duration-500" />
-                  </div>
-                  <div className="flex justify-between text-[10px] font-mono text-[#6B7280]">
-                    <span>Laboratory Packed</span>
-                    <span>Hub Sorted</span>
-                    <span className="text-[#0F0F10] font-bold">Courier En Route (80%)</span>
-                    <span>Delivered</span>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* 2. Saved Formulations (Wishlist) */}
-            <section className="p-6 rounded-2xl bg-white border border-[#E5E7EB] shadow-xs space-y-5">
-              <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-4">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-[#FBF5E8] flex items-center justify-center text-[#997A2E]">
-                    <Heart size={18} />
-                  </div>
-                  <div>
-                    <h2 className="font-heading font-extrabold text-base text-[#0F0F10]">
-                      Saved Formulations (Wishlist)
-                    </h2>
-                    <span className="text-xs text-[#6B7280]">
-                      {wishlist.length} favorited items curated in your beauty portfolio
-                    </span>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => navigateTo('catalogue')}
-                  className="text-xs font-heading font-bold text-[#997A2E] hover:underline flex items-center gap-1 cursor-pointer"
-                >
-                  <span>Explore All</span>
-                  <ArrowRight size={13} />
-                </button>
-              </div>
-
-              {/* 5-item quick grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
-                {displayWishlist.map((prod) => (
-                  <ProductCard key={prod.id} product={prod} />
-                ))}
-              </div>
-            </section>
-
-            {/* 3. Clinical AI Skin Recommendations */}
-            <section className="p-6 rounded-2xl bg-white border border-[#E5E7EB] shadow-xs space-y-4">
-              <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-4">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-[#FBF5E8] flex items-center justify-center text-[#997A2E]">
-                    <Sparkles size={18} />
-                  </div>
-                  <div>
-                    <h2 className="font-heading font-extrabold text-base text-[#0F0F10]">
-                      Clinical AI Skin Telemetry &amp; Routine
-                    </h2>
-                    <span className="text-xs text-[#6B7280]">
-                      Optical barrier diagnostics for melanin-rich African skin
-                    </span>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => navigateTo('ai-scan')}
-                  className="px-3.5 py-1.5 rounded-full bg-[#0F0F10] text-white hover:bg-[#D4AF37] hover:text-[#0F0F10] font-heading font-bold text-xs active:scale-[0.97] transition-all cursor-pointer shadow-xs"
-                >
-                  {skinProfile ? 'Re-scan Skin' : 'Start 60s Scan'}
-                </button>
-              </div>
-
-              <div className="p-5 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] flex flex-col md:flex-row items-center justify-between gap-5">
-                <div className="space-y-2">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-[#E5E7EB] text-xs font-mono font-bold text-[#0F0F10]">
-                    <ShieldCheck size={14} className="text-[#D4AF37]" />
-                    <span>Barrier Health Index: {skinProfile?.overallScore || 86}% Optimal</span>
-                  </div>
-                  <h3 className="font-heading font-extrabold text-base text-[#0F0F10]">
-                    Melanin-Barrier Peptide Toner &amp; Sun Defense SPF50+
-                  </h3>
-                  <p className="text-xs text-[#6B7280] leading-relaxed max-w-xl">
-                    {skinProfile?.analysisSummary ||
-                      'Clinical evaluation confirms resilient melanin-rich epidermal structure with localized moisture trans-evaporation in the T-zone. Botanical humectants and broad-spectrum sunscreen are prioritized.'}
-                  </p>
-                </div>
-
-                <button
-                  onClick={() => navigateTo('ai-scan')}
-                  className="px-5 py-3 rounded-full bg-white border border-[#D4AF37] hover:bg-[#FBF5E8] text-[#997A2E] font-heading font-bold text-xs whitespace-nowrap active:scale-[0.97] transition-all cursor-pointer shadow-xs shrink-0"
-                >
-                  View Full Diagnosis
-                </button>
-              </div>
-            </section>
-
-            {/* 4. Recently Viewed Formulations Carousel */}
-            <section className="p-6 rounded-2xl bg-white border border-[#E5E7EB] shadow-xs space-y-4">
-              <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-[#F6F5F2] flex items-center justify-center text-[#0F0F10]">
-                    <Clock size={18} />
-                  </div>
-                  <div>
-                    <h2 className="font-heading font-extrabold text-base text-[#0F0F10]">
-                      Recently Viewed Formulations
-                    </h2>
-                    <span className="text-xs text-[#6B7280]">
-                      Safe-conscious items you inspected recently
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4 overflow-x-auto no-scrollbar pb-2">
-                {recentFormulations.map((prod) => (
-                  <div key={prod.id} className="w-48 shrink-0">
-                    <ProductCard product={prod} variant="rail" />
-                  </div>
-                ))}
-              </div>
-            </section>
-          </div>
-
-          {/* RIGHT COLUMN: USER PROFILE & SETTINGS (4 Columns) */}
+          {/* LEFT COLUMN: USER PROFILE & SETTINGS (4 Columns — Sticky on Desktop) */}
           <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-24">
             {/* User Profile Card */}
             <div className="p-6 rounded-2xl bg-white border border-[#E5E7EB] shadow-xs space-y-4 text-center">
@@ -480,6 +293,194 @@ export const Screen17Account: React.FC = () => {
                 </button>
               </div>
             </div>
+          </div>
+
+          {/* RIGHT COLUMN: CUSTOMER ACTIVITY & INTELLIGENCE (8 Columns) */}
+          <div className="lg:col-span-8 space-y-8">
+            {/* 1. Active Orders & Regional Sourcing Tracker */}
+            <section className="p-6 rounded-2xl bg-white border border-[#E5E7EB] shadow-xs space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E5E7EB] pb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-[#FBF5E8] flex items-center justify-center text-[#997A2E]">
+                    <Truck size={18} />
+                  </div>
+                  <div>
+                    <h2 className="font-heading font-extrabold text-base text-[#0F0F10]">
+                      Active Orders &amp; Regional Sourcing Tracker
+                    </h2>
+                    <span className="text-xs text-[#6B7280]">
+                      Local city partner fulfillment dispatch
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => navigateTo('orders')}
+                  className="text-xs font-heading font-bold text-[#997A2E] hover:underline flex items-center gap-1 cursor-pointer self-start sm:self-auto"
+                >
+                  <span>View All Orders ({orders.length})</span>
+                  <ArrowRight size={13} />
+                </button>
+              </div>
+
+              {/* Live Active Delivery Status Card */}
+              <div className="p-5 rounded-2xl bg-[#FAF9F6] border border-[#D4AF37]/35 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+                    <span className="font-mono font-bold text-xs text-[#0F0F10]">
+                      Order #DES-98214 — Out for Delivery ({selectedCity} Hub)
+                    </span>
+                  </div>
+                  <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-[11px] font-mono font-bold border border-emerald-200 self-start sm:self-auto">
+                    ETA: 15–20 mins • PIN: 4821
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-xs">
+                  <div className="p-3 rounded-xl bg-white border border-[#E5E7EB]">
+                    <span className="text-[10px] text-[#6B7280] uppercase tracking-wider block">Assigned Dispatch</span>
+                    <span className="font-heading font-bold text-[#0F0F10] block mt-0.5">Emeka (Bike Rider)</span>
+                    <span className="text-[11px] text-[#6B7280]">2.4 km from your address</span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-white border border-[#E5E7EB]">
+                    <span className="text-[10px] text-[#6B7280] uppercase tracking-wider block">Formulations En Route</span>
+                    <span className="font-heading font-bold text-[#0F0F10] block mt-0.5">2 Items</span>
+                    <span className="text-[11px] text-[#6B7280]">Radiant Oil &amp; Shea Butter</span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-white border border-[#E5E7EB]">
+                    <span className="text-[10px] text-[#6B7280] uppercase tracking-wider block">Sourcing Facility</span>
+                    <span className="font-heading font-bold text-[#0F0F10] block mt-0.5">{selectedCity} Hub Central</span>
+                    <span className="text-[11px] text-emerald-700 font-semibold">₦1,500 local fee (Saved ₦4,500)</span>
+                  </div>
+                </div>
+
+                {/* Progress track line */}
+                <div className="space-y-1.5 pt-1">
+                  <div className="w-full bg-[#E5E7EB] h-2 rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-[#D4AF37] to-[#997A2E] rounded-full w-4/5 transition-all duration-500" />
+                  </div>
+                  <div className="flex justify-between text-[10px] font-mono text-[#6B7280]">
+                    <span>Laboratory Packed</span>
+                    <span>Hub Sorted</span>
+                    <span className="text-[#0F0F10] font-bold">Courier En Route (80%)</span>
+                    <span>Delivered</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* 2. Recently Viewed Formulations Carousel */}
+            <section className="p-6 rounded-2xl bg-white border border-[#E5E7EB] shadow-xs space-y-4">
+              <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-[#F6F5F2] flex items-center justify-center text-[#0F0F10]">
+                    <Clock size={18} />
+                  </div>
+                  <div>
+                    <h2 className="font-heading font-extrabold text-base text-[#0F0F10]">
+                      Recently Viewed Formulations
+                    </h2>
+                    <span className="text-xs text-[#6B7280]">
+                      Safe-conscious items you inspected recently
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4 overflow-x-auto no-scrollbar pb-2">
+                {recentFormulations.map((prod) => (
+                  <div key={prod.id} className="w-48 shrink-0">
+                    <ProductCard product={prod} variant="rail" />
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* 3. Clinical AI Skin Telemetry & Routine */}
+            <section className="p-6 rounded-2xl bg-white border border-[#E5E7EB] shadow-xs space-y-4">
+              <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-[#FBF5E8] flex items-center justify-center text-[#997A2E]">
+                    <Sparkles size={18} />
+                  </div>
+                  <div>
+                    <h2 className="font-heading font-extrabold text-base text-[#0F0F10]">
+                      Clinical AI Skin Telemetry &amp; Routine
+                    </h2>
+                    <span className="text-xs text-[#6B7280]">
+                      Optical barrier diagnostics for melanin-rich African skin
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => navigateTo('ai-scan')}
+                  className="px-3.5 py-1.5 rounded-full bg-[#0F0F10] text-white hover:bg-[#D4AF37] hover:text-[#0F0F10] font-heading font-bold text-xs active:scale-[0.97] transition-all cursor-pointer shadow-xs"
+                >
+                  {skinProfile ? 'Re-scan Skin' : 'Start 60s Scan'}
+                </button>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] flex flex-col md:flex-row items-center justify-between gap-5">
+                <div className="space-y-2">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-[#E5E7EB] text-xs font-mono font-bold text-[#0F0F10]">
+                    <ShieldCheck size={14} className="text-[#D4AF37]" />
+                    <span>Barrier Health Index: {skinProfile?.overallScore || 86}% Optimal</span>
+                  </div>
+                  <h3 className="font-heading font-extrabold text-base text-[#0F0F10]">
+                    Melanin-Barrier Peptide Toner &amp; Sun Defense SPF50+
+                  </h3>
+                  <p className="text-xs text-[#6B7280] leading-relaxed max-w-xl">
+                    {skinProfile?.analysisSummary ||
+                      'Clinical evaluation confirms resilient melanin-rich epidermal structure with localized moisture trans-evaporation in the T-zone. Botanical humectants and broad-spectrum sunscreen are prioritized.'}
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => navigateTo('ai-scan')}
+                  className="px-5 py-3 rounded-full bg-white border border-[#D4AF37] hover:bg-[#FBF5E8] text-[#997A2E] font-heading font-bold text-xs whitespace-nowrap active:scale-[0.97] transition-all cursor-pointer shadow-xs shrink-0"
+                >
+                  View Full Diagnosis
+                </button>
+              </div>
+            </section>
+
+            {/* 4. Saved Formulations (Wishlist) */}
+            <section className="p-6 rounded-2xl bg-white border border-[#E5E7EB] shadow-xs space-y-5">
+              <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-[#FBF5E8] flex items-center justify-center text-[#997A2E]">
+                    <Heart size={18} />
+                  </div>
+                  <div>
+                    <h2 className="font-heading font-extrabold text-base text-[#0F0F10]">
+                      Saved Formulations (Wishlist)
+                    </h2>
+                    <span className="text-xs text-[#6B7280]">
+                      {wishlist.length} favorited items curated in your beauty portfolio
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => navigateTo('catalogue')}
+                  className="text-xs font-heading font-bold text-[#997A2E] hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  <span>Explore All</span>
+                  <ArrowRight size={13} />
+                </button>
+              </div>
+
+              {/* 5-item quick grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+                {displayWishlist.map((prod) => (
+                  <ProductCard key={prod.id} product={prod} />
+                ))}
+              </div>
+            </section>
           </div>
         </div>
       </main>

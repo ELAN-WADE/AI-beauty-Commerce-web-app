@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import type { AppDb, Db } from '../../db/client';
 import { Errors } from '../../lib/errors';
 import { loyaltyAccounts, loyaltyTxns, loyaltyVouchers } from './schema';
@@ -42,7 +42,8 @@ export async function earnForOrder(db: Db, input: { userId: string; orderId: str
     .onConflictDoNothing()
     .returning({ id: loyaltyTxns.id });
   if (!txn) return { credited: false, points };
-  await db.update(loyaltyAccounts).set({ points: account.points + points, updatedAt: new Date() }).where(eq(loyaltyAccounts.userId, input.userId));
+  // Atomic increment (no read-then-write: concurrent webhooks can't lose updates).
+  await db.update(loyaltyAccounts).set({ points: sql`${loyaltyAccounts.points} + ${points}`, updatedAt: new Date() }).where(eq(loyaltyAccounts.userId, input.userId));
   return { credited: true, points };
 }
 
@@ -58,7 +59,15 @@ export async function redeemToVoucher(db: AppDb, userId: string, points: number)
       .values({ code, userId, amountKobo, minSpendKobo: amountKobo })
       .returning();
     await tx.insert(loyaltyTxns).values({ accountId: userId, points: -points, type: 'redeem', refType: 'voucher', refId: voucher.id, note: `Redeemed ${points}pts → ${code}` });
-    await tx.update(loyaltyAccounts).set({ points: account.points - points, updatedAt: new Date() }).where(eq(loyaltyAccounts.userId, userId));
+    // Atomic decrement; the DB CHECK (points >= 0) is the backstop — map it to 422.
+    try {
+      await tx.update(loyaltyAccounts).set({ points: sql`${loyaltyAccounts.points} - ${points}`, updatedAt: new Date() }).where(eq(loyaltyAccounts.userId, userId));
+    } catch (err) {
+      if (err instanceof Error && 'code' in err && (err as { code: string }).code === '23514') {
+        throw Errors.badRequest('Insufficient points.');
+      }
+      throw err;
+    }
     return voucher;
   });
 }
@@ -96,7 +105,15 @@ export async function adjustPoints(db: AppDb, adminId: string, input: { userId: 
     const account = await getOrCreateAccount(tx, input.userId);
     if (account.points + input.points < 0) throw Errors.badRequest('Adjustment would drive the balance negative.');
     await tx.insert(loyaltyTxns).values({ accountId: input.userId, points: input.points, type: 'adjust', refType: 'admin', refId: adminId, note: input.note.slice(0, 300) });
-    await tx.update(loyaltyAccounts).set({ points: account.points + input.points, updatedAt: new Date() }).where(eq(loyaltyAccounts.userId, input.userId));
-    return { points: account.points + input.points };
+    try {
+      await tx.update(loyaltyAccounts).set({ points: sql`${loyaltyAccounts.points} + ${input.points}`, updatedAt: new Date() }).where(eq(loyaltyAccounts.userId, input.userId));
+    } catch (err) {
+      if (err instanceof Error && 'code' in err && (err as { code: string }).code === '23514') {
+        throw Errors.badRequest('Adjustment would drive the balance negative.');
+      }
+      throw err;
+    }
+    const after = await tx.select({ points: loyaltyAccounts.points }).from(loyaltyAccounts).where(eq(loyaltyAccounts.userId, input.userId)).limit(1);
+    return { points: after[0]?.points ?? 0 };
   });
 }

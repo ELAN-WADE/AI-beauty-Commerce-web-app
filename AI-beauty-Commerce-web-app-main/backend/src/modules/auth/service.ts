@@ -80,6 +80,8 @@ export async function register(db: AppDb, input: { email: string; password: stri
   const email = normalizeEmail(input.email);
   const existing = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
   if (existing.length > 0) {
+    // Timing equalization: burn one scrypt so existing-vs-new is indistinguishable.
+    await hashPassword(newRawToken(16));
     return { created: false as const, email, verificationToken: null as string | null };
   }
   const passwordHash = await hashPassword(input.password);

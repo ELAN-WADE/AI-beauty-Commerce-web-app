@@ -14,6 +14,7 @@ import {
 import { users } from '../auth/schema';
 import { getOrderView, transitionOrder } from '../orders/service';
 import { orders } from '../orders/schema';
+import { audit } from '../audit/service';
 import { commitReservation } from '../inventory/service';
 import { reservations } from '../inventory/schema';
 import { earnForOrder } from '../loyalty/service';
@@ -398,19 +399,27 @@ export async function createRefund(
   input: { paymentId: string; amountKobo: number; reason: string; adminId: string; fetchFn?: FetchFn },
 ) {
   const fetchFn = input.fetchFn ?? fetch;
-  const rows = await db.select({ payment: payments, order: orders }).from(payments).innerJoin(orders, eq(payments.orderId, orders.id)).where(eq(payments.id, input.paymentId)).limit(1);
-  const row = rows[0];
-  if (!row) throw Errors.notFound('Payment not found.');
-  const done = await db.select({ amountKobo: refunds.amountKobo }).from(refunds).where(and(eq(refunds.paymentId, row.payment.id), eq(refunds.status, 'success')));
-  const refunded = done.reduce((s, r) => s + r.amountKobo, 0);
-  if (refunded + input.amountKobo > row.payment.amountKobo) {
-    throw Errors.badRequest('Refund exceeds the paid amount.');
-  }
-  const [refund] = await db.insert(refunds).values({ paymentId: row.payment.id, amountKobo: input.amountKobo, reason: input.reason }).returning({ id: refunds.id });
+  // Phase 1 (short tx): lock the payment row, re-check the cumulative cap,
+  // insert the pending refund. No network I/O inside the transaction.
+  const locked = await db.transaction(async (tx) => {
+    const pay = await tx.select().from(payments).where(eq(payments.id, input.paymentId)).for('update').limit(1);
+    const payment = pay[0];
+    if (!payment) throw Errors.notFound('Payment not found.');
+    const done = await tx.select({ amountKobo: refunds.amountKobo }).from(refunds).where(and(eq(refunds.paymentId, payment.id), eq(refunds.status, 'success')));
+    const refunded = done.reduce((s, r) => s + r.amountKobo, 0);
+    if (refunded + input.amountKobo > payment.amountKobo) {
+      throw Errors.badRequest('Refund exceeds the paid amount.');
+    }
+    const [refund] = await tx.insert(refunds).values({ paymentId: payment.id, amountKobo: input.amountKobo, reason: input.reason }).returning({ id: refunds.id });
+    return { payment, refundId: refund.id };
+  });
+  const { payment, refundId } = locked;
+  const orderRows = await db.select().from(orders).where(eq(orders.id, payment.orderId)).limit(1);
+  const order = orderRows[0];
 
   try {
-    if (row.payment.provider === 'flutterwave') {
-      const attempt = await db.select({ providerRef: paymentAttempts.providerRef }).from(paymentAttempts).where(eq(paymentAttempts.reference, row.payment.reference)).limit(1);
+    if (payment.provider === 'flutterwave') {
+      const attempt = await db.select({ providerRef: paymentAttempts.providerRef }).from(paymentAttempts).where(eq(paymentAttempts.reference, payment.reference)).limit(1);
       const txId = attempt[0]?.providerRef;
       if (!txId) throw new ProviderError('Missing Flutterwave transaction id', false);
       const data = (await (async () => {
@@ -430,15 +439,15 @@ export async function createRefund(
         }
       })());
       if (data?.status !== 'success') throw new ProviderError('Flutterwave refused the refund', false);
-      await db.update(refunds).set({ status: 'success', providerRef: String(data?.data?.id ?? '') }).where(eq(refunds.id, refund.id));
-    } else if (row.payment.provider === 'paystack') {
+      await finalizeRefund(db, refundId, String(data?.data?.id ?? ''), input, payment, order);
+    } else if (payment.provider === 'paystack') {
       const ctrl = new AbortController();
       const t = setTimeout(() => ctrl.abort(), 8000);
       try {
         const res = await fetchFn(`${process.env.PAYSTACK_BASE_URL ?? 'https://api.paystack.co'}/refund`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${requiredEnv('PAYSTACK_SECRET_KEY')}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ transaction: row.payment.reference, amount: input.amountKobo }),
+          body: JSON.stringify({ transaction: payment.reference, amount: input.amountKobo }),
           signal: ctrl.signal,
         });
         if (!res.ok) throw new ProviderError(`Paystack refund HTTP ${res.status}`, res.status >= 500);
@@ -447,21 +456,44 @@ export async function createRefund(
       } finally {
         clearTimeout(t);
       }
-      await db.update(refunds).set({ status: 'success' }).where(eq(refunds.id, refund.id));
+      await finalizeRefund(db, refundId, null, input, payment, order);
     } else {
       // opay refund path + manual transfers: dashboard step (documented, S5 admin UI).
-      await db.update(refunds).set({ status: 'pending' }).where(eq(refunds.id, refund.id));
-      return { refundId: refund.id, status: 'pending' as const, note: 'Complete on the provider dashboard, then mark success.' };
+      await db.update(refunds).set({ status: 'pending' }).where(eq(refunds.id, refundId));
+      return { refundId, status: 'pending' as const, note: 'Complete on the provider dashboard, then mark success.' };
     }
   } catch (err) {
-    await db.update(refunds).set({ status: 'failed' }).where(eq(refunds.id, refund.id));
+    await db.update(refunds).set({ status: 'failed' }).where(eq(refunds.id, refundId));
     if (err instanceof ProviderError) throw Errors.badRequest(`Refund failed: ${err.message}`);
     throw err;
   }
+  return { refundId, status: 'success' as const };
+}
 
-  // Full refunds flip the order (partial refunds leave fulfilment intact).
-  if (refunded + input.amountKobo >= row.payment.amountKobo && ['PAID', 'FULFILLING', 'SHIPPED', 'DELIVERED'].includes(row.order.status)) {
-    await transitionOrder(db, row.order.id, 'REFUNDED', { actor: 'admin', actorId: input.adminId, note: `refund ${refund.id}` });
-  }
-  return { refundId: refund.id, status: 'success' as const };
+/**
+ * Phase 2 (short tx): re-sum successes INCLUDING this refund (catches a race
+ * the phase-1 check missed — money already moved, so fail loudly with audit
+ * instead of silently over-refunding), then flip the order on full refunds.
+ */
+async function finalizeRefund(
+  db: AppDb,
+  refundId: string,
+  providerRef: string | null,
+  input: { amountKobo: number; adminId: string },
+  payment: typeof payments.$inferSelect,
+  order: typeof orders.$inferSelect | undefined,
+) {
+  await db.transaction(async (tx) => {
+    const done = await tx.select({ amountKobo: refunds.amountKobo }).from(refunds).where(and(eq(refunds.paymentId, payment.id), eq(refunds.status, 'success'))).for('update');
+    const total = done.reduce((s, r) => s + r.amountKobo, 0) + input.amountKobo;
+    if (total > payment.amountKobo) {
+      await tx.update(refunds).set({ status: 'failed' }).where(eq(refunds.id, refundId));
+      await audit(tx, { actorType: 'system', action: 'refund.over_limit', entityType: 'payment', entityId: payment.id, after: { refundId, total, paid: payment.amountKobo } });
+      throw Errors.badRequest('Refund would exceed the paid amount (concurrent refund detected). Reconcile at the provider.');
+    }
+    await tx.update(refunds).set({ status: 'success', ...(providerRef ? { providerRef } : {}) }).where(eq(refunds.id, refundId));
+    if (order && total >= payment.amountKobo && ['PAID', 'FULFILLING', 'SHIPPED', 'DELIVERED'].includes(order.status)) {
+      await transitionOrder(tx, order.id, 'REFUNDED', { actor: 'admin', actorId: input.adminId, note: `refund ${refundId}` });
+    }
+  });
 }

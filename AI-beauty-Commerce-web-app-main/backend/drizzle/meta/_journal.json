@@ -57,6 +57,13 @@
       "when": 1790632254067,
       "tag": "0007_icy_adam_warlock",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790636411854,
+      "tag": "0008_burly_shinko_yamashiro",
+      "breakpoints": true
     }
   ]
 }

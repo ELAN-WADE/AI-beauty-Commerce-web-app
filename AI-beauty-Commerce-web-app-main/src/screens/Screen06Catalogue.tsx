@@ -111,29 +111,7 @@ export const Screen06Catalogue: React.FC = () => {
         </div>
       )}
 
-      <main className="max-w-7xl mx-auto px-4 lg:px-8 pt-6 space-y-5">
-        {/* Desktop Editorial Page Header (Only rendered in desktop viewports) */}
-        {isDesktop && (
-          <div className="flex items-end justify-between border-b border-[#E5E7EB] pb-5">
-            <div>
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E] block mb-1">
-                Haute Apothecary &amp; Lifestyle Catalogue
-              </span>
-              <h1 className="font-heading font-extrabold text-3xl text-[#0F0F10] tracking-tight">
-                {getCategoryTitle()}
-              </h1>
-              <p className="text-xs text-[#6B7280] mt-1">
-                Showing {filtered.length} authentic formulations stocked and fulfilled locally in {selectedCity}.
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="px-3.5 py-1.5 rounded-full bg-[#FAF9F6] border border-[#E5E7EB] text-xs font-mono font-bold text-[#0F0F10]">
-                {filtered.length} SKUs Listed
-              </span>
-            </div>
-          </div>
-        )}
-
+      <main className="max-w-7xl mx-auto px-4 lg:px-8 pt-5 space-y-4">
         {/* City Fulfillment Callout */}
         <div className="flex items-center justify-between p-4 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] text-xs text-[#6B7280] shadow-xs">
           <div className="flex items-center gap-2 truncate">
@@ -150,35 +128,42 @@ export const Screen06Catalogue: React.FC = () => {
           </button>
         </div>
 
-        {/* Category Filter Pills (Horizontal Scroller) */}
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
-          {categoryPills.map((pill) => {
-            const isActive = selectedCategory.toLowerCase() === pill.value.toLowerCase();
-            return (
-              <button
-                key={pill.value}
-                onClick={() => setSelectedCategory(pill.value)}
-                className={`px-4 py-2 rounded-full text-xs font-heading font-bold whitespace-nowrap transition-all active:scale-[0.97] cursor-pointer ${
-                  isActive
-                    ? 'bg-[#0F0F10] text-white shadow-sm'
-                    : 'bg-[#F6F5F2] hover:bg-gray-200 text-[#4B5563] border border-[#E5E7EB]'
-                }`}
-              >
-                {pill.label}
-              </button>
-            );
-          })}
-        </div>
+        {/* Category Filter Pills (Mobile / Tablet Only — Hidden on Desktop to maintain clean catalogue layout) */}
+        {!isDesktop && (
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+            {categoryPills.map((pill) => {
+              const isActive = selectedCategory.toLowerCase() === pill.value.toLowerCase();
+              return (
+                <button
+                  key={pill.value}
+                  onClick={() => setSelectedCategory(pill.value)}
+                  className={`px-4 py-2 rounded-full text-xs font-heading font-bold whitespace-nowrap transition-all active:scale-[0.97] cursor-pointer ${
+                    isActive
+                      ? 'bg-[#0F0F10] text-white shadow-sm'
+                      : 'bg-[#F6F5F2] hover:bg-gray-200 text-[#4B5563] border border-[#E5E7EB]'
+                  }`}
+                >
+                  {pill.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* Filter and Sort Toolbar */}
         <div className="flex items-center justify-between gap-2 py-1">
-          <button
-            onClick={() => setIsFilterSheetOpen(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-[#E5E7EB] text-xs font-heading font-bold text-[#0F0F10] hover:bg-[#FAF9F6] active:scale-[0.97] transition-all shadow-xs cursor-pointer"
-          >
-            <SlidersHorizontal size={14} className="text-[#D4AF37]" />
-            <span>Filters</span>
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsFilterSheetOpen(true)}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-[#E5E7EB] text-xs font-heading font-bold text-[#0F0F10] hover:bg-[#FAF9F6] active:scale-[0.97] transition-all shadow-xs cursor-pointer"
+            >
+              <SlidersHorizontal size={14} className="text-[#D4AF37]" />
+              <span>Filters</span>
+            </button>
+            <span className="hidden sm:inline text-xs text-[#6B7280]">
+              Showing <strong className="text-[#0F0F10]">{filtered.length}</strong> authentic formulations
+            </span>
+          </div>
 
           {/* Quick Sort Dropdown */}
           <div className="flex items-center gap-2 text-xs text-[#6B7280]">

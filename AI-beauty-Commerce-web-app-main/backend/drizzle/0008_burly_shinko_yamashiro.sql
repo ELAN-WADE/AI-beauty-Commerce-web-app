@@ -1,0 +1,1 @@
+ALTER TABLE "loyalty_accounts" ADD CONSTRAINT "loyalty_balance_nonnegative" CHECK ("points" >= 0);

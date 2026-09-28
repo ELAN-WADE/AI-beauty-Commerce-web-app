@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/db/client';
-import { clientIp } from '@/lib/errors';
+import { clientIp, readRawBody } from '@/lib/errors';
 import { checkRateLimit, Limits } from '@/lib/rate-limit';
 import { verifyOpayCallback } from '@/lib/providers';
 import { recordEvent, settleAttempt } from '@/modules/payments/service';
@@ -23,7 +23,7 @@ export async function POST(req: Request) {
   const rl = checkRateLimit(`webhook:${clientIp(req)}`, Limits.webhook);
   if (!rl.allowed) return respond({ error: { code: 'rate_limited', message: 'Slow down.', request_id: requestId, retryable: true } }, 429);
 
-  const rawBody = await req.text();
+  const rawBody = await readRawBody(req);
   const signature =
     req.headers.get('opay-signature') ?? req.headers.get('signature') ?? req.headers.get('x-opay-sign') ?? undefined;
   if (!verifyOpayCallback(rawBody, signature, process.env.OPAY_SECRET_KEY)) {

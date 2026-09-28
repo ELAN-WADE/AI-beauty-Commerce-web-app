@@ -54,6 +54,7 @@ export function api<TRoute = unknown>(
   return async (req: Request, route?: TRoute): Promise<NextResponse> => {
     const requestId = req.headers.get('x-request-id') ?? crypto.randomUUID();
     try {
+      enforceOrigin(req);
       const res = await handler({ requestId, req, route });
       res.headers.set('x-request-id', requestId);
       return res;
@@ -111,4 +112,42 @@ export function clientIp(req: Request): string {
   const fwd = req.headers.get('x-forwarded-for');
   const ip = fwd?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
   return ip.slice(0, 64);
+}
+
+const MUTATING_METHODS = new Set(['POST', 'PATCH', 'PUT', 'DELETE']);
+
+/**
+ * CSRF origin check (§18): browsers always send Origin on mutating fetches.
+ * Present-but-foreign → 403. Absent (curl, server-to-server, native apps) →
+ * allowed; SameSite=Lax cookies + session auth still apply. Hand-rolled
+ * webhook routes skip this (signature auth instead) — they must call it NEVER.
+ */
+export function enforceOrigin(req: Request): void {
+  if (!MUTATING_METHODS.has(req.method)) return;
+  const origin = req.headers.get('origin');
+  if (!origin) return;
+  const allowlist = [
+    process.env.APP_URL,
+    process.env.FRONTEND_URL,
+    ...(process.env.ALLOWED_ORIGINS ?? '').split(',').map((s) => s.trim()).filter(Boolean),
+  ].filter(Boolean) as string[];
+  if (allowlist.length === 0) return; // unconfigured (dev): SameSite is the backstop
+  const norm = (u: string) => {
+    try {
+      return new URL(u).origin;
+    } catch {
+      return '';
+    }
+  };
+  const ok = allowlist.some((a) => norm(a) !== '' && norm(a) === norm(origin));
+  if (!ok) throw new ApiError(403, 'forbidden_origin', 'Cross-origin requests are not allowed.', false);
+}
+
+/** Raw body with a size cap (webhooks bypass readJson — §10 API4). */
+export async function readRawBody(req: Request, maxBytes = 262_144): Promise<string> {
+  const text = await req.text();
+  if (text.length > maxBytes) {
+    throw new ApiError(413, 'payload_too_large', 'Request body too large.', false);
+  }
+  return text;
 }

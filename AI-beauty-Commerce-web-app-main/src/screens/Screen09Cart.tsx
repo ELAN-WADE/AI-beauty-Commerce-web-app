@@ -356,9 +356,15 @@ export const Screen09Cart: React.FC = () => {
                 </label>
               </div>
             </div>
+          </div>
 
+          {/* RIGHT COLUMN: Static/Sticky Order Summary, Checkout & "Complete Your Routine" (5 cols — lg:sticky lg:top-24) */}
+          <div className="lg:col-span-5 space-y-4 lg:sticky lg:top-24">
             {/* Price Breakdown */}
-            <div className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] shadow-xs space-y-2 text-xs">
+            <div className="p-5 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] shadow-xs space-y-2.5 text-xs">
+              <h3 className="font-heading font-extrabold text-sm text-[#0F0F10] pb-2 border-b border-[#E5E7EB]">
+                Order Summary
+              </h3>
               <div className="flex justify-between text-[#6B7280]">
                 <span>Formulations Subtotal</span>
                 <span className="font-mono font-medium text-[#0F0F10]">{formatNaira(cartSubtotal)}</span>
@@ -370,55 +376,54 @@ export const Screen09Cart: React.FC = () => {
                 </div>
               )}
               <div className="flex justify-between text-[#6B7280]">
-                <span>Delivery Fee ({fulfillmentOption === 'local' ? selectedCity : 'Lagos HQ'})</span>
+                <span>Delivery ({fulfillmentOption === 'local' ? `${selectedCity} Hub` : 'Lagos HQ'})</span>
                 <span className="font-mono font-medium text-[#0F0F10]">{formatNaira(activeDeliveryFee)}</span>
               </div>
-              <div className="pt-2 border-t border-[#E5E7EB] flex justify-between items-center text-sm font-bold text-[#0F0F10]">
+              <div className="pt-2.5 border-t border-[#E5E7EB] flex justify-between items-center text-sm font-bold text-[#0F0F10]">
                 <span>Total Payable</span>
-                <span className="font-price font-semibold text-[17px] leading-[20px] text-[#FB7701]">{formatNaira(finalTotal)}</span>
+                <span className="font-price font-semibold text-lg sm:text-xl leading-none text-[#FB7701]">{formatNaira(finalTotal)}</span>
               </div>
+
+              {/* Primary Checkout Button */}
+              <button
+                onClick={() => navigateTo('checkout')}
+                className="w-full mt-2 py-3.5 px-6 rounded-full bg-[#0F0F10] hover:bg-[#1F1D22] text-white font-heading font-bold text-xs sm:text-sm shadow-md flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer"
+              >
+                <span>Proceed to Checkout</span>
+                <ArrowRight size={16} />
+              </button>
             </div>
 
-            <button
-              onClick={() => navigateTo('checkout')}
-              className="w-full py-4 rounded-full bg-[#0F0F10] hover:bg-[#1F1D22] text-white font-heading font-semibold text-sm shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer"
-            >
-              <span>Proceed to Checkout</span>
-              <ArrowRight size={16} />
-            </button>
-          </div>
-
-          {/* RIGHT COLUMN: "Complete Your Routine" Synergistic Cross-Sell (5 cols) */}
-          <div className="lg:col-span-5 space-y-4">
-            <div className="p-5 rounded-2xl bg-white border border-[#E5E7EB] shadow-xs space-y-4">
+            {/* "Complete Your Routine" Synergistic Cross-Sell */}
+            <div className="p-4 rounded-2xl bg-white border border-[#E5E7EB] shadow-xs space-y-3">
               <div className="flex items-center gap-2">
-                <Sparkles size={16} className="text-[#D4AF37]" />
-                <h3 className="font-heading font-bold text-sm text-[#0F0F10]">
+                <Sparkles size={15} className="text-[#D4AF37]" />
+                <h4 className="font-heading font-bold text-xs text-[#0F0F10]">
                   Complete Your Routine
-                </h3>
+                </h4>
               </div>
-              <p className="text-xs text-[#6B7280] leading-relaxed">
-                Formulations crafted to work synergistically with your selected items for optimal skin barrier glow:
+              <p className="text-[11px] text-[#6B7280] leading-relaxed">
+                Formulations crafted to work synergistically for optimal skin barrier glow:
               </p>
 
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {routineCrossSell.map((product) => (
                   <div
                     key={product.id}
-                    className="p-3 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] flex items-center gap-3 shadow-xs"
+                    className="p-2.5 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] flex items-center gap-3 shadow-xs"
                   >
                     <img
                       src={product.image}
                       alt={product.name}
-                      className="w-14 h-14 rounded-lg object-cover bg-[#F6F5F2] shrink-0 border border-[#E5E7EB]"
+                      className="w-12 h-12 rounded-lg object-cover bg-[#F6F5F2] shrink-0 border border-[#E5E7EB]"
                     />
                     <div className="flex-1 min-w-0">
-                      <span className="text-[9.5px] font-mono text-[#997A2E] font-bold uppercase block truncate">
+                      <span className="text-[9px] font-mono text-[#997A2E] font-bold uppercase block truncate">
                         {product.category}
                       </span>
-                      <h4 className="font-heading font-bold text-xs text-[#0F0F10] truncate">
+                      <h5 className="font-heading font-bold text-xs text-[#0F0F10] truncate">
                         {product.name}
-                      </h4>
+                      </h5>
                       <div className="flex items-center gap-2 mt-0.5">
                         <span className="font-mono font-bold text-xs text-[#0F0F10]">
                           {formatNaira(product.price)}
@@ -433,7 +438,7 @@ export const Screen09Cart: React.FC = () => {
 
                     <button
                       onClick={() => addToCart(product, product.sizes?.[0] || 'Standard', 1)}
-                      className="px-3 py-1.5 rounded-lg bg-[#0F0F10] hover:bg-[#D4AF37] hover:text-[#0F0F10] text-white font-bold text-[11px] active:scale-95 transition-all shrink-0 cursor-pointer shadow-xs"
+                      className="px-2.5 py-1 rounded-lg bg-[#0F0F10] hover:bg-[#D4AF37] hover:text-[#0F0F10] text-white font-bold text-[10.5px] active:scale-95 transition-all shrink-0 cursor-pointer shadow-xs"
                     >
                       + Add
                     </button>
@@ -443,15 +448,15 @@ export const Screen09Cart: React.FC = () => {
             </div>
 
             {/* Clinical Guarantees Card */}
-            <div className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] shadow-xs space-y-2.5 text-xs text-[#6B7280]">
+            <div className="p-3.5 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] shadow-xs space-y-2 text-xs text-[#6B7280]">
               <div className="flex items-center gap-2 font-bold text-[#0F0F10]">
-                <ShieldCheck size={16} className="text-[#D4AF37]" />
-                <span>Desla!™ Sourcing Guarantee</span>
+                <ShieldCheck size={15} className="text-[#D4AF37]" />
+                <span className="text-xs">Desla!™ Sourcing Guarantee</span>
               </div>
-              <ul className="space-y-1.5 text-[11px] leading-relaxed">
-                <li>• 100% NAFDAC compliant safe-conscious active ingredients.</li>
-                <li>• Sealed batch codes with anti-counterfeit authenticity verification.</li>
-                <li>• Instant WhatsApp order dispatch updates from your local city hub.</li>
+              <ul className="space-y-1 text-[11px] leading-relaxed">
+                <li>• 100% NAFDAC compliant active ingredients.</li>
+                <li>• Sealed batch codes with anti-counterfeit authenticity.</li>
+                <li>• Instant WhatsApp order dispatch from local city hub.</li>
               </ul>
             </div>
           </div>

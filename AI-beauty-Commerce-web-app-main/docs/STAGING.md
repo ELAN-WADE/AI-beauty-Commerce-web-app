@@ -55,6 +55,28 @@ curl localhost:3001/api/health          # {"ok":true}
 curl localhost:3001/api/ready           # {"ok":true,"db":"up"}
 ```
 
+### Edge security (nginx — the outer wall, complements app controls)
+
+```nginx
+limit_req_zone $binary_remote_addr zone=auth:10m rate=10r/m;
+limit_req_zone $binary_remote_addr zone=webhook:10m rate=60r/m;
+limit_req_zone $binary_remote_addr zone=api:10m rate=120r/m;
+
+server {
+  listen 443 ssl;  # + HSTS below; port 80 only redirects to 443
+  add_header Strict-Transport-Security "max-age=63072000; includeSubDomains" always;
+  add_header X-Content-Type-Options nosniff always;
+  add_header X-Frame-Options DENY always;
+  add_header Referrer-Policy strict-origin-when-cross-origin always;
+  client_max_body_size 1m;   # mirrors the app's 1 MB cap
+
+  location /api/auth/    { limit_req zone=auth burst=5 nodelay; proxy_pass http://127.0.0.1:3001; }
+  location /api/webhooks/ { limit_req zone=webhook burst=10 nodelay; proxy_pass http://127.0.0.1:3001; }
+  location /api/         { limit_req zone=api burst=40 nodelay; proxy_pass http://127.0.0.1:3001; }
+  location /             { root /var/www/glowly-storefront; try_files $uri /index.html; }
+}
+```
+
 ## 6. Smoke suite (curl — every stage must pass before sign-off)
 
 1. `POST /api/auth/register` → 201 (+cookie) → `GET /api/auth/me` → roles `[CUSTOMER]`

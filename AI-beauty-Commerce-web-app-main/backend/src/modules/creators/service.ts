@@ -109,12 +109,13 @@ export async function recordAttributedSale(db: Db, promoCode: string | null, ord
   const creator = rows[0];
   if (!creator || !creator.verified) return;
   const commission = Math.round((orderTotalKobo * creator.commissionRate) / 100);
+  // Atomic increments: concurrent settlements can't lose sales.
   await db
     .update(creators)
     .set({
-      totalSalesKobo: creator.totalSalesKobo + orderTotalKobo,
-      commissionEarnedKobo: creator.commissionEarnedKobo + commission,
-      ordersCount: creator.ordersCount + 1,
+      totalSalesKobo: sql`${creators.totalSalesKobo} + ${orderTotalKobo}`,
+      commissionEarnedKobo: sql`${creators.commissionEarnedKobo} + ${commission}`,
+      ordersCount: sql`${creators.ordersCount} + 1`,
       updatedAt: new Date(),
     })
     .where(eq(creators.id, creator.id));
