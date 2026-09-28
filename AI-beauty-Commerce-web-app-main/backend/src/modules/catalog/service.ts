@@ -199,7 +199,8 @@ async function pageFromRows(
   return { items, nextCursor: hasMore && lastRow ? encodeCursor(cursorOf(lastRow)) : null };
 }
 
-async function hydrate(
+/** Product graph hydration (variants + images + live availability). Shared with recommendations. */
+export async function hydrate(
   db: AppDb,
   prods: (typeof products.$inferSelect)[],
   meta: { brandName: string; brandSlug: string; catName: string; catSlug: string }[],

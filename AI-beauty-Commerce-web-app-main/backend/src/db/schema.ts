@@ -10,3 +10,5 @@ export * from '../modules/reviews/schema';
 export * from '../modules/loyalty/schema';
 export * from '../modules/shipping/schema';
 export * from '../modules/notifications/schema';
+export * from '../modules/skin/schema';
+export * from '../modules/ai/schema';

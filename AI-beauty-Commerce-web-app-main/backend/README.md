@@ -104,6 +104,21 @@ atomically. Notifications use a transactional outbox (`order.created`,
 `order.paid`, `shipment.update`); a worker claims batches with SKIP LOCKED
 (sender integration = the one remaining step, no API changes needed).
 
+## AI skin + assistant (S6 — mock by default, Gemini when keyed)
+
+| Endpoint | Access | Notes |
+|---|---|---|
+| GET/PUT `/api/me/skin-profile` | auth | type, concerns, notes |
+| POST `/api/skin-analyses` | auth | consent literal + version required; returns presigned PUT (private bucket) |
+| POST `/api/skin-analyses/[id]/complete` | auth | HEAD + magic-byte verify → provider → Zod-validated result + profile refresh |
+| GET `/api/skin-analyses[/[id]]` | auth | owner-only; 5-min signed view URL on complete |
+| GET `/api/recommendations?analysisId=` | auth | DB-grounded, in-stock only, with reasons |
+| GET/POST `/api/ai/conversations`, GET/POST `…/[id]/messages` | auth | 20/day quota; catalogue-grounded, length-capped replies |
+
+Rules: consent recorded (versioned) or no analysis; generated storage keys
+(no user filenames); images private with 30-day purge (S7 sweeper); AI output
+is validated data, never a decision; every response labels its provider.
+
 ## Conventions (enforced, not suggested)
 - Routes: parse → Zod `.strict()` → rate-limit → service. Never import `db/` from
   components; services never trust client prices/ids (S3+ pattern).
