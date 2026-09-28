@@ -132,6 +132,21 @@ Permission bundles live in migration `0006` (STAFF keeps prior catalog access,
 SUPPORT is read-only, grants are SUPER_ADMIN-only). Audit rows are append-only
 by construction — no update/delete path exists.
 
+## Partner ecosystem (S8 — distributors, creators, community)
+
+| Endpoint | Access | Notes |
+|---|---|---|
+| GET `/api/distributors`, `/api/distributors/[id]`, `/api/distributors/stock` | public | verified-only directory; city-scoped "in stock near you" |
+| POST `/api/distributors` (apply) | optional auth | partnership application queue |
+| GET `/api/creators`, `?code=` validate, POST click | public | promo-code directory; discount info only; best-effort clicks |
+| POST `/api/creators` (apply) | optional auth | affiliate applications |
+| GET/POST `/api/community/posts`, POST `…/[id]/like` | public / auth | server-derived Verified Buyer badges; toggle likes |
+| GET/POST `/api/community/chat` | public / auth | channel chat, spam-throttled |
+| Admin applications + stock + community moderation | named perms | approvals mint distributor/creator rows; audit-trailed |
+| Checkout `creatorCode` | any | server-validated affiliate discount persisted on the order; sales + commission accrue on PAID |
+
+Seed: `npm run db:seed:partners` ports the storefront mocks (idempotent).
+
 ## Conventions (enforced, not suggested)
 - Routes: parse → Zod `.strict()` → rate-limit → service. Never import `db/` from
   components; services never trust client prices/ids (S3+ pattern).

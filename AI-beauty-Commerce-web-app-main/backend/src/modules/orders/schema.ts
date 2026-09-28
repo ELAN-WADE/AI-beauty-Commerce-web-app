@@ -31,6 +31,9 @@ export const orders = pgTable(
     status: text('status').notNull().default('PENDING'),
     paymentStatus: text('payment_status').notNull().default('UNPAID'),
     subtotalKobo: integer('subtotal_kobo').notNull().default(0),
+    // S5 loyalty voucher + S8 affiliate discounts (both server-validated).
+    discountKobo: integer('discount_kobo').notNull().default(0),
+    creatorCode: text('creator_code'),
     // S3: delivery priced by S5 shipping module (0 until then — documented).
     deliveryFeeKobo: integer('delivery_fee_kobo').notNull().default(0),
     totalKobo: integer('total_kobo').notNull().default(0),
@@ -46,7 +49,7 @@ export const orders = pgTable(
     index('orders_status_time_idx').on(t.status, t.createdAt),
     check('order_status_allowed', sql`"status" IN ('PENDING','PAID','FULFILLING','SHIPPED','DELIVERED','CANCELLED','REFUNDED')`),
     check('payment_status_allowed', sql`"payment_status" IN ('UNPAID','PAID','FAILED','REFUNDED')`),
-    check('order_totals_nonnegative', sql`"subtotal_kobo" >= 0 AND "delivery_fee_kobo" >= 0 AND "total_kobo" >= 0`),
+    check('order_totals_nonnegative', sql`"subtotal_kobo" >= 0 AND "delivery_fee_kobo" >= 0 AND "total_kobo" >= 0 AND "discount_kobo" >= 0`),
   ],
 );
 

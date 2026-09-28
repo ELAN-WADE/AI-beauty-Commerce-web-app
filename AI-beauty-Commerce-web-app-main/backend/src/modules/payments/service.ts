@@ -17,6 +17,7 @@ import { orders } from '../orders/schema';
 import { commitReservation } from '../inventory/service';
 import { reservations } from '../inventory/schema';
 import { earnForOrder } from '../loyalty/service';
+import { recordAttributedSale } from '../creators/service';
 import { enqueueNotification } from '../notifications/service';
 import {
   paymentAttempts,
@@ -279,6 +280,9 @@ export async function settleAttempt(
     if (paid[0]?.userId) {
       await earnForOrder(tx, { userId: paid[0].userId, orderId: attempt.orderId, totalKobo: attempt.amountKobo });
     }
+    if (paid[0]) {
+      await recordAttributedSale(tx, paid[0].creatorCode, paid[0].totalKobo);
+    }
     await enqueueNotification(tx, {
       userId: paid[0]?.userId ?? null,
       channel: 'email',
@@ -375,6 +379,7 @@ export async function confirmClaim(
     if (order.userId) {
       await earnForOrder(tx, { userId: order.userId, orderId: order.id, totalKobo: order.totalKobo });
     }
+    await recordAttributedSale(tx, order.creatorCode, order.totalKobo);
     await enqueueNotification(tx, {
       userId: order.userId,
       channel: 'email',

@@ -9,6 +9,7 @@ import { productVariants, products } from '../catalog/schema';
 import { releaseReservation, reserveStock } from '../inventory/service';
 import { reservations } from '../inventory/schema';
 import { consumeVoucher } from '../loyalty/service';
+import { creatorDiscountKobo, validateCode } from '../creators/service';
 import { feeFor } from '../shipping/service';
 import { enqueueNotification } from '../notifications/service';
 import { cartItems, carts } from '../cart/schema';
@@ -227,6 +228,19 @@ export async function checkout(
       state: typeof shippingAddress.state === 'string' ? shippingAddress.state : '',
     });
 
+    // Affiliate code (if supplied): validated BEFORE the order exists.
+    let creatorCode: string | null = null;
+    let creatorDiscount = 0;
+    if (params.input.creatorCode) {
+      try {
+        const creator = await validateCode(tx, params.input.creatorCode);
+        creatorCode = creator.promoCode;
+        creatorDiscount = creatorDiscountKobo(subtotalKobo, creator.discountPercent);
+      } catch {
+        throw Errors.badRequest('Invalid creator code.');
+      }
+    }
+
     const [order] = await tx
       .insert(orders)
       .values({
@@ -237,7 +251,9 @@ export async function checkout(
         paymentStatus: 'UNPAID',
         subtotalKobo,
         deliveryFeeKobo,
-        totalKobo: subtotalKobo + deliveryFeeKobo,
+        discountKobo: creatorDiscount,
+        creatorCode,
+        totalKobo: Math.max(0, subtotalKobo + deliveryFeeKobo - creatorDiscount),
         shippingAddress,
         note: params.input.note,
         idempotencyKey: params.idempotencyKey,
@@ -245,7 +261,7 @@ export async function checkout(
       .returning({ id: orders.id });
 
     // Loyalty voucher (if supplied): validated + consumed atomically here.
-    let discountKobo = 0;
+    let discountKobo = creatorDiscount;
     if (params.input.voucherCode) {
       const consumed = await consumeVoucher(tx, {
         userId: params.userId,
@@ -253,10 +269,10 @@ export async function checkout(
         subtotalKobo,
         orderId: order.id,
       });
-      discountKobo = consumed.discountKobo;
+      discountKobo += consumed.discountKobo;
       await tx
         .update(orders)
-        .set({ totalKobo: subtotalKobo + deliveryFeeKobo - discountKobo })
+        .set({ discountKobo, totalKobo: Math.max(0, subtotalKobo + deliveryFeeKobo - discountKobo) })
         .where(eq(orders.id, order.id));
     }
     await tx.insert(orderItems).values(

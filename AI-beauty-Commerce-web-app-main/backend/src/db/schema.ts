@@ -13,3 +13,6 @@ export * from '../modules/notifications/schema';
 export * from '../modules/skin/schema';
 export * from '../modules/ai/schema';
 export * from '../modules/audit/schema';
+export * from '../modules/distributors/schema';
+export * from '../modules/creators/schema';
+export * from '../modules/community/schema';
