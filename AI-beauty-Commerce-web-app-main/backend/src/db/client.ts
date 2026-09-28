@@ -4,6 +4,12 @@ import * as schema from './schema';
 
 export type AppDb = PostgresJsDatabase<typeof schema>;
 
+/** Transaction handle type (for services that accept db OR tx). */
+export type DbTx = Parameters<Parameters<AppDb['transaction']>[0]>[0];
+
+/** Anything that can run queries: root client or an open transaction. */
+export type Db = AppDb | DbTx;
+
 let pg: ReturnType<typeof postgres> | null = null;
 let db: AppDb | null = null;
 

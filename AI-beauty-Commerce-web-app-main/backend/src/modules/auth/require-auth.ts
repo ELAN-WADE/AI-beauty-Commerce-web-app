@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import type { AppDb } from '../../db/client';
 import { Errors } from '../../lib/errors';
+import { hasAnyRole } from '../../lib/authz';
 import { SESSION_COOKIE } from '../../lib/cookies';
 import { getSessionUser } from './service';
 
@@ -29,7 +30,7 @@ export async function requireAuth(db: AppDb): Promise<AuthContext> {
 
 /** Role gate for admin/staff routes (BFLA defence, §8 API5). */
 export function requireRole(ctx: AuthContext, ...roles: string[]): void {
-  if (!roles.some((r) => ctx.roles.includes(r))) throw Errors.forbidden();
+  if (!hasAnyRole(ctx.roles, ...roles)) throw Errors.forbidden();
 }
 
 /** Read-only variant for routes that behave differently when logged in. */

@@ -40,8 +40,22 @@ npm run dev  # :3001; frontend proxies /api/* here (same-origin cookies)
 Sessions: scrypt-hashed passwords, SHA-256 token hashes, HttpOnly + Lax cookies
 (Secure in prod), 5-fail lockout, reset revokes all sessions.
 
-## Conventions (enforced, not suggested)
+## Catalog + inventory (S2)
 
+| Endpoint | Access | Notes |
+|---|---|---|
+| GET `/api/products?q=&category=&brand=&sort=&inStock=&limit=&cursor=` | public | keyset pages, cost-capped; prices in kobo |
+| GET `/api/products/[slug]` | public | full detail: variants + availability + attributes + ingredients |
+| GET `/api/categories`, GET `/api/brands` | public | |
+| POST `/api/admin/products|brands|categories`, PATCH `/api/admin/products/[id]` | ADMIN/STAFF | strict Zod; variants carry SKUs |
+| GET/POST `/api/admin/inventory` | ADMIN/STAFF/INVENTORY_MANAGER | ledger read + adjustment (movement-logged) |
+
+Inventory strategy: `available = on_hand - reserved`, row-locked reservations
+with TTL (`reserveStock`), sweeper `releaseExpired` (S5 worker), CHECKs as backstop.
+Seed: `npm run db:seed:catalog` ports the Vite mocks (idempotent; stock seeded once).
+Storefront reads this API when `VITE_API_URL` is set, mocks otherwise.
+
+## Conventions (enforced, not suggested)
 - Routes: parse → Zod `.strict()` → rate-limit → service. Never import `db/` from
   components; services never trust client prices/ids (S3+ pattern).
 - Errors: `api()` wrapper; unexpected → generic 500 + server log. No stacks/SQL to clients.

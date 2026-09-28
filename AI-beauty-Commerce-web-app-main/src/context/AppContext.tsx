@@ -22,6 +22,7 @@ import { distributors as initialDistributors, supportedCities } from '../data/di
 import { creators as initialCreators } from '../data/creators';
 import { communityPosts as initialCommunityPosts } from '../data/communityPosts';
 import { reviews as initialReviews } from '../data/reviews';
+import { fetchCatalogFromOwnedApi, isOwnedApiConfigured } from '../lib/owned-api';
 
 export interface AIMessage {
   id: string;
@@ -166,9 +167,30 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [currentScreen, setCurrentScreen] = useState<ScreenId>('home');
   const [previousScreens, setPreviousScreens] = useState<ScreenId[]>([]);
 
-  // Products
-  const [products] = useState<Product[]>(sampleProducts);
+  // Products (mock-first paint; upgraded from owned API when VITE_API_URL is set)
+  const [products, setProducts] = useState<Product[]>(sampleProducts);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(sampleProducts[0]);
+
+  useEffect(() => {
+    if (!isOwnedApiConfigured) return;
+    let cancelled = false;
+    fetchCatalogFromOwnedApi()
+      .then((live) => {
+        if (!live || cancelled || live.length === 0) return;
+        setProducts(live);
+        setSelectedProduct((prev) => {
+          if (!prev) return live[0] ?? null;
+          return live.find((p) => p.id === prev.id) ?? live[0] ?? prev;
+        });
+        console.info(`[glowly] catalogue live: ${live.length} products from owned API`);
+      })
+      .catch(() => {
+        // Silent: mocks stay. Live path is verified at staging (§S2).
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState<string>('');

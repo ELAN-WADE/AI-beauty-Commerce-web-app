@@ -23,6 +23,8 @@ export const Limits = {
   checkoutInit: { limit: 10, windowMs: 60_000 },
   webhook: { limit: 60, windowMs: 60_000 },
   ai: { limit: 20, windowMs: 24 * 60 * 60_000 },
+  catalog: { limit: 120, windowMs: 60_000 },
+  admin: { limit: 60, windowMs: 60_000 },
 } satisfies Record<string, LimitSpec>;
 
 export function checkRateLimit(
