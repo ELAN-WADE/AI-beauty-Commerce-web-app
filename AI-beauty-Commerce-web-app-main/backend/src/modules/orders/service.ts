@@ -8,6 +8,9 @@ import { addresses } from '../users/schema';
 import { productVariants, products } from '../catalog/schema';
 import { releaseReservation, reserveStock } from '../inventory/service';
 import { reservations } from '../inventory/schema';
+import { consumeVoucher } from '../loyalty/service';
+import { feeFor } from '../shipping/service';
+import { enqueueNotification } from '../notifications/service';
 import { cartItems, carts } from '../cart/schema';
 import { resolveCart } from '../cart/service';
 import { orderItems, orderStatusHistory, orders } from './schema';
@@ -219,8 +222,10 @@ export async function checkout(
 
     // AUTHORITATIVE pricing from variant rows (never client input).
     const subtotalKobo = lines.reduce((s, l) => s + l.variant.priceKobo * l.item.qty, 0);
-    const deliveryFeeKobo = 0; // S5 shipping module prices delivery.
-    const totalKobo = subtotalKobo + deliveryFeeKobo;
+    const { feeKobo: deliveryFeeKobo } = await feeFor(tx, {
+      city: typeof shippingAddress.city === 'string' ? shippingAddress.city : '',
+      state: typeof shippingAddress.state === 'string' ? shippingAddress.state : '',
+    });
 
     const [order] = await tx
       .insert(orders)
@@ -232,12 +237,28 @@ export async function checkout(
         paymentStatus: 'UNPAID',
         subtotalKobo,
         deliveryFeeKobo,
-        totalKobo,
+        totalKobo: subtotalKobo + deliveryFeeKobo,
         shippingAddress,
         note: params.input.note,
         idempotencyKey: params.idempotencyKey,
       })
       .returning({ id: orders.id });
+
+    // Loyalty voucher (if supplied): validated + consumed atomically here.
+    let discountKobo = 0;
+    if (params.input.voucherCode) {
+      const consumed = await consumeVoucher(tx, {
+        userId: params.userId,
+        code: params.input.voucherCode,
+        subtotalKobo,
+        orderId: order.id,
+      });
+      discountKobo = consumed.discountKobo;
+      await tx
+        .update(orders)
+        .set({ totalKobo: subtotalKobo + deliveryFeeKobo - discountKobo })
+        .where(eq(orders.id, order.id));
+    }
     await tx.insert(orderItems).values(
       lines.map((l) => ({
         orderId: order.id,
@@ -263,6 +284,12 @@ export async function checkout(
       await reserveStock(tx, { variantId: l.variant.id, qty: l.item.qty, refType: 'order', refId: order.id, ttlMinutes: 30 });
     }
     await tx.delete(cartItems).where(eq(cartItems.cartId, cart.id));
+    await enqueueNotification(tx, {
+      userId: params.userId ?? null,
+      channel: 'email',
+      template: 'order.created',
+      payload: { orderId: order.id, guestEmail: params.userId ? null : email, totalKobo: subtotalKobo + deliveryFeeKobo - discountKobo },
+    });
     return { order: await getOrderView(tx, order.id), replay: false };
   });
 }

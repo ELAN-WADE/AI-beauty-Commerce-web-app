@@ -32,6 +32,7 @@ export const checkoutSchema = z
     addressId: uuid.optional(),
     guestAddress: addressBody.optional(),
     guestEmail: email.optional(),
+    voucherCode: z.string().trim().min(1).max(32).optional(),
     note: z.string().trim().max(500).default(''),
   })
   .strict()

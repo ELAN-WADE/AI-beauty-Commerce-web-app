@@ -88,6 +88,22 @@ expected + reference match — anything less leaves the order PENDING. Opay
 Cashier create/status paths are env-overridable (`OPAY_*_PATH`) pending
 dashboard confirmation at merchant onboarding.
 
+## Growth (S5 — reviews, loyalty, shipping, notifications)
+
+| Endpoint | Access | Notes |
+|---|---|---|
+| POST `/api/reviews`, GET `/api/products/[slug]/reviews`, POST `/api/reviews/[id]/helpful` | auth / public / auth | verified badges are server-computed; aggregates recomputed in-tx |
+| GET `/api/admin/reviews`, PATCH `/api/admin/reviews/[id]` | ADMIN/STAFF | moderation; aggregates follow the decision |
+| GET `/api/me/loyalty`, POST `/api/me/loyalty/redeem` | auth | 1pt/₦100 on PAID (idempotent), fixed voucher tiers |
+| POST `/api/admin/loyalty/adjust` | ADMIN/STAFF | balance can never go negative |
+| POST `/api/admin/shipments`, POST `…/[id]/events` | ADMIN/STAFF | scans auto-advance the order via the guarded machine |
+| GET `/api/orders/[id]/shipment` | owner / guest-email | tracking + events |
+
+Checkout now prices zone delivery fees and consumes loyalty vouchers
+atomically. Notifications use a transactional outbox (`order.created`,
+`order.paid`, `shipment.update`); a worker claims batches with SKIP LOCKED
+(sender integration = the one remaining step, no API changes needed).
+
 ## Conventions (enforced, not suggested)
 - Routes: parse → Zod `.strict()` → rate-limit → service. Never import `db/` from
   components; services never trust client prices/ids (S3+ pattern).

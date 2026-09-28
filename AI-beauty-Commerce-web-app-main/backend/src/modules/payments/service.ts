@@ -16,6 +16,8 @@ import { getOrderView, transitionOrder } from '../orders/service';
 import { orders } from '../orders/schema';
 import { commitReservation } from '../inventory/service';
 import { reservations } from '../inventory/schema';
+import { earnForOrder } from '../loyalty/service';
+import { enqueueNotification } from '../notifications/service';
 import {
   paymentAttempts,
   paymentEvents,
@@ -272,6 +274,17 @@ export async function settleAttempt(
     const active = await tx.select({ id: reservations.id }).from(reservations).where(and(eq(reservations.refType, 'order'), eq(reservations.refId, attempt.orderId), eq(reservations.status, 'active')));
     for (const r of active) await commitReservation(tx, r.id);
     await tx.update(paymentAttempts).set({ status: 'success' }).where(eq(paymentAttempts.id, attempt.id));
+    // Post-payment side effects (same tx: loyalty + notification never lost).
+    const paid = await tx.select().from(orders).where(eq(orders.id, attempt.orderId)).limit(1);
+    if (paid[0]?.userId) {
+      await earnForOrder(tx, { userId: paid[0].userId, orderId: attempt.orderId, totalKobo: attempt.amountKobo });
+    }
+    await enqueueNotification(tx, {
+      userId: paid[0]?.userId ?? null,
+      channel: 'email',
+      template: 'order.paid',
+      payload: { orderId: attempt.orderId, orderNumber: paid[0]?.orderNumber, provider: attempt.provider, guestEmail: paid[0]?.guestEmail },
+    });
     return { settled: true, replay: false, orderId: attempt.orderId };
   });
 }
@@ -359,6 +372,15 @@ export async function confirmClaim(
     await transitionOrder(tx, order.id, 'PAID', { actor: 'system', note: `manual-transfer confirmed by admin:${input.adminId} claim:${claim.id} ${input.note}`.slice(0, 500) });
     const active = await tx.select({ id: reservations.id }).from(reservations).where(and(eq(reservations.refType, 'order'), eq(reservations.refId, order.id), eq(reservations.status, 'active')));
     for (const r of active) await commitReservation(tx, r.id);
+    if (order.userId) {
+      await earnForOrder(tx, { userId: order.userId, orderId: order.id, totalKobo: order.totalKobo });
+    }
+    await enqueueNotification(tx, {
+      userId: order.userId,
+      channel: 'email',
+      template: 'order.paid',
+      payload: { orderId: order.id, orderNumber: order.orderNumber, provider: 'transfer', guestEmail: order.guestEmail },
+    });
     await tx.update(transferClaims).set({ status: 'confirmed', reviewedBy: input.adminId, reviewNote: input.note, updatedAt: new Date() }).where(eq(transferClaims.id, claim.id));
     return { claimId: claim.id, status: 'confirmed' as const, order: await getOrderView(tx, order.id) };
   });
