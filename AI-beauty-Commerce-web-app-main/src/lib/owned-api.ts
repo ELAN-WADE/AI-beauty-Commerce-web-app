@@ -381,3 +381,86 @@ export async function fetchLoyalty(): Promise<{ points: number } | null> {
   }
 }
 
+// ---------- Transfer claims (manual bank-transfer proof) ----------
+
+export interface TransferClaimInput {
+  orderId: string; // server uuid (see orderUuid helpers below)
+  guestEmail?: string;
+  senderName: string;
+  amountKobo: number;
+  bankName?: string;
+  narration?: string;
+  transferDate?: string;
+}
+
+export async function submitTransferClaim(input: TransferClaimInput): Promise<{ claim: { id: string; status: string } }> {
+  return apiFetch('/api/payments/transfer-claim', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  }, guestSessionId());
+}
+
+/** orderNumber (local) ↔ server uuid mapping for claim/tracking continuity. */
+const ORDER_MAP_KEY = 'glowly-order-uuids';
+
+function readOrderMap(): Record<string, string> {
+  try {
+    return JSON.parse(localStorage.getItem(ORDER_MAP_KEY) ?? '{}') as Record<string, string>;
+  } catch {
+    return {};
+  }
+}
+
+export function rememberServerOrder(orderNumber: string, serverUuid: string): void {
+  try {
+    const map = readOrderMap();
+    map[orderNumber] = serverUuid;
+    localStorage.setItem(ORDER_MAP_KEY, JSON.stringify(map));
+  } catch {
+    // storage unavailable — claim flow degrades gracefully
+  }
+}
+
+export function serverOrderUuid(orderNumber: string): string | null {
+  try {
+    return readOrderMap()[orderNumber] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// ---------- Loyalty (full view + redeem) ----------
+
+export interface LoyaltyVoucher {
+  code: string;
+  amountKobo: number;
+  status: string;
+}
+
+export interface LoyaltyActivity {
+  id?: string;
+  title: string;
+  points: number;
+  date?: string;
+}
+
+export interface LoyaltyView {
+  points: number;
+  vouchers: LoyaltyVoucher[];
+  activity: LoyaltyActivity[];
+  tiers: { points: number; amountKobo: number }[];
+}
+
+export async function fetchLoyaltyView(): Promise<LoyaltyView | null> {
+  if (!BASE) return null;
+  try {
+    return await apiFetch<LoyaltyView>('/api/me/loyalty');
+  } catch {
+    return null;
+  }
+}
+
+export async function redeemLoyaltyVoucher(points: number): Promise<{ voucher: LoyaltyVoucher }> {
+  return apiFetch('/api/me/loyalty', { method: 'POST', body: JSON.stringify({ points }) });
+}
+

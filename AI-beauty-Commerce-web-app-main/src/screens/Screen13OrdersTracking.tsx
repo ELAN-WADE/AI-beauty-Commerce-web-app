@@ -16,11 +16,86 @@ import {
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Header } from '../components/common/Header';
+import { serverOrderUuid, submitTransferClaim } from '../lib/owned-api';
+import type { Order } from '../types';
+
+const TransferClaimCard: React.FC<{ order: Order; email: string }> = ({ order, email }) => {
+  const uuid = serverOrderUuid(order.id);
+  const [senderName, setSenderName] = useState('');
+  const [bankName, setBankName] = useState('');
+  const [narration, setNarration] = useState('');
+  const [transferDate, setTransferDate] = useState('');
+  const [message, setMessage] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
+
+  if (!uuid) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!senderName.trim()) {
+      setMessage('Enter the sender account name.');
+      return;
+    }
+    setBusy(true);
+    setMessage('');
+    try {
+      await submitTransferClaim({
+        orderId: uuid,
+        guestEmail: email || undefined,
+        senderName: senderName.trim(),
+        amountKobo: Math.round(order.total * 100),
+        bankName: bankName.trim(),
+        narration: narration.trim(),
+        transferDate: transferDate.trim(),
+      });
+      setDone(true);
+      setMessage('Proof submitted. We confirm transfers within a few hours.');
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'Submission failed.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (done) {
+    return (
+      <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800">
+        Transfer proof submitted for order #{order.id}. Confirmation follows shortly.
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="p-5 rounded-2xl bg-white border border-[#D4AF37]/40 shadow-xs space-y-3">
+      <div>
+        <h3 className="font-heading font-bold text-sm text-[#0F0F10]">Submit transfer proof — #{order.id}</h3>
+        <p className="text-[11px] text-[#6B7280] mt-0.5">
+          Paid ₦{order.total.toLocaleString('en-NG')} by direct transfer? Send the details for confirmation.
+        </p>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+        <input value={senderName} onChange={(e) => setSenderName(e.target.value)} placeholder="Sender account name" className="px-3.5 py-2.5 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] text-xs outline-none focus:border-[#D4AF37]/60" />
+        <input value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="Bank (e.g. GTBank)" className="px-3.5 py-2.5 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] text-xs outline-none focus:border-[#D4AF37]/60" />
+        <input value={narration} onChange={(e) => setNarration(e.target.value)} placeholder="Transfer reference / narration" className="px-3.5 py-2.5 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] text-xs outline-none focus:border-[#D4AF37]/60" />
+        <input value={transferDate} onChange={(e) => setTransferDate(e.target.value)} placeholder="Date (e.g. 28 Sep 2026)" className="px-3.5 py-2.5 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] text-xs outline-none focus:border-[#D4AF37]/60" />
+      </div>
+      {message && <p className="text-[11px] text-[#6B7280]">{message}</p>}
+      <button type="submit" disabled={busy} className="px-5 py-2.5 rounded-full bg-[#0F0F10] text-[#D4AF37] text-xs font-bold active:scale-95 transition-all cursor-pointer disabled:opacity-60">
+        {busy ? 'Submitting…' : 'Submit proof'}
+      </button>
+    </form>
+  );
+};
 
 export const Screen13OrdersTracking: React.FC = () => {
-  const { orders, activeOrder, setActiveOrder, selectedCity, openAIAssistant, navigateTo } = useApp();
+  const { orders, activeOrder, setActiveOrder, selectedCity, openAIAssistant, navigateTo, isLiveBackend, authUser, checkoutAddress } = useApp();
   const [selectedFilter, setSelectedFilter] = useState<'All' | 'Processing' | 'Shipped' | 'Delivered'>('All');
   const [currentTrackingId, setCurrentTrackingId] = useState<string>(activeOrder?.id || 'DES-98214');
+
+  const transferPendingOrders = isLiveBackend
+    ? orders.filter((o) => o.paymentMethod?.startsWith('Bank transfer') && serverOrderUuid(o.id))
+    : [];
 
   const formatNaira = (amt: number) => '₦' + amt.toLocaleString('en-NG');
 
@@ -40,6 +115,10 @@ export const Screen13OrdersTracking: React.FC = () => {
       </div>
 
       <main className="max-w-7xl mx-auto px-4 lg:px-8 pt-6 space-y-6">
+        {/* Pending bank-transfer proofs (owned backend only) */}
+        {transferPendingOrders.map((o) => (
+          <TransferClaimCard key={o.id} order={o} email={authUser?.email ?? checkoutAddress.email ?? ''} />
+        ))}
         {/* Desktop Screen Title */}
         <div className="hidden lg:flex items-center justify-between pb-4 border-b border-[#E5E7EB]">
           <div>

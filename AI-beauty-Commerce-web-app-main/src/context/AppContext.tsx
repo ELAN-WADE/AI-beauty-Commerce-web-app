@@ -35,6 +35,7 @@ import {
   mapServerOrder,
   mergeServerCart,
   paymentStatus,
+  rememberServerOrder,
   serverCheckout,
   syncCartToServer,
   type AuthUser,
@@ -182,6 +183,7 @@ interface AppContextType {
 
 export interface LiveCheckoutResult {
   order: Order;
+  serverOrderId: string | null;
   authorizationUrl: string | null;
   reference: string;
   bankDetails?: { bankName: string; accountNumber: string; accountName: string };
@@ -841,6 +843,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         cartItems,
         provider === 'transfer' ? 'Bank transfer (pending)' : `${provider} (hosted checkout)`
       );
+      rememberServerOrder(local.id, view.id);
       clearCart();
       if (init.authorizationUrl) {
         setLivePayment({ status: 'redirecting', message: 'Opening secure payment page…' });
@@ -848,7 +851,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       } else {
         setLivePayment({ status: 'idle', message: '' });
       }
-      return { order: local, authorizationUrl: init.authorizationUrl, reference: init.reference, bankDetails: init.bankDetails };
+      return { order: local, serverOrderId: view.id, authorizationUrl: init.authorizationUrl, reference: init.reference, bankDetails: init.bankDetails };
     } catch (e) {
       const message = e instanceof ApiError || e instanceof Error ? e.message : 'Checkout failed. Please try again.';
       setLivePayment({ status: 'error', message });
@@ -880,6 +883,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }
         const local = mapServerOrder(view, cartItems, 'Online payment');
         if (!cancelled) {
+          rememberServerOrder(local.id, view.id);
           setOrders((prev) => [local, ...prev]);
           setActiveOrder(local);
           clearCart();

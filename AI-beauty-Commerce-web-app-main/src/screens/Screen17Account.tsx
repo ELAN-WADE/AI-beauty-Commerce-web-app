@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   User,
   Package,
@@ -33,8 +33,40 @@ export const Screen17Account: React.FC = () => {
     setIsLocationModalOpen,
     skinProfile,
     viewProductDetails,
-    addToCart
+    addToCart,
+    isLiveBackend,
+    authUser,
+    authLoading,
+    login,
+    register,
+    logout
   } = useApp();
+
+  // Live auth form state (owned backend only; demo mode hides this panel)
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authMessage, setAuthMessage] = useState('');
+  const [authBusy, setAuthBusy] = useState(false);
+
+  const handleAuthSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!authEmail.trim() || !authPassword) {
+      setAuthMessage('Enter your email and password.');
+      return;
+    }
+    setAuthBusy(true);
+    setAuthMessage('');
+    try {
+      const res = authMode === 'login' ? await login(authEmail, authPassword) : await register(authEmail, authPassword);
+      setAuthMessage(res.message);
+      if (res.success) {
+        setAuthPassword('');
+      }
+    } finally {
+      setAuthBusy(false);
+    }
+  };
 
   // Wishlist products
   const wishlistedProducts = products.filter((p) => wishlist.includes(p.id));
@@ -69,6 +101,72 @@ export const Screen17Account: React.FC = () => {
 
       {/* Main Fluid 2-Column Responsive Dashboard Grid */}
       <main className="max-w-7xl mx-auto px-4 lg:px-8 py-8">
+        {/* Live account access (owned backend only; hidden in demo mode) */}
+        {isLiveBackend && (
+          <section aria-label="Account Access" className="mb-8 p-6 rounded-2xl bg-[#0F0F10] text-white border border-[#D4AF37]/30 shadow-xs">
+            {authLoading ? (
+              <p className="text-xs text-[#A19B96]">Checking session…</p>
+            ) : authUser ? (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#D4AF37]">
+                    Signed In
+                  </span>
+                  <p className="font-heading font-bold text-base mt-0.5">{authUser.email}</p>
+                  <p className="text-[11px] text-[#A19B96] mt-0.5">
+                    {authUser.emailVerified ? 'Email verified' : 'Email unverified — check your inbox'} • {authUser.roles.join(', ') || 'CUSTOMER'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => logout()}
+                  className="px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/15 border border-white/15 text-xs font-bold active:scale-95 transition-all cursor-pointer self-start sm:self-auto"
+                >
+                  Sign Out
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleAuthSubmit} className="space-y-3 max-w-md">
+                <div className="flex items-center gap-2">
+                  {(['login', 'register'] as const).map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => { setAuthMode(m); setAuthMessage(''); }}
+                      className={`px-4 py-1.5 rounded-full text-xs font-bold capitalize transition-all cursor-pointer ${authMode === m ? 'bg-[#D4AF37] text-[#0F0F10]' : 'bg-white/10 text-white hover:bg-white/15'}`}
+                    >
+                      {m === 'login' ? 'Sign In' : 'Create Account'}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="email"
+                  required
+                  placeholder="Email address"
+                  value={authEmail}
+                  onChange={(e) => setAuthEmail(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl bg-white/10 border border-white/15 text-sm placeholder:text-[#A19B96] outline-none focus:border-[#D4AF37]/60"
+                />
+                <input
+                  type="password"
+                  required
+                  minLength={8}
+                  placeholder="Password (min 8 characters)"
+                  value={authPassword}
+                  onChange={(e) => setAuthPassword(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl bg-white/10 border border-white/15 text-sm placeholder:text-[#A19B96] outline-none focus:border-[#D4AF37]/60"
+                />
+                {authMessage && <p className="text-[11px] text-[#F6E7C1]">{authMessage}</p>}
+                <button
+                  type="submit"
+                  disabled={authBusy}
+                  className="px-6 py-2.5 rounded-full bg-[#D4AF37] text-[#0F0F10] text-xs font-bold hover:bg-[#C29B2D] active:scale-95 transition-all cursor-pointer disabled:opacity-60"
+                >
+                  {authBusy ? 'Please wait…' : authMode === 'login' ? 'Sign In' : 'Create Account'}
+                </button>
+              </form>
+            )}
+          </section>
+        )}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* LEFT COLUMN: CUSTOMER ACTIVITY & INTELLIGENCE (8 Columns) */}
           <div className="lg:col-span-8 space-y-8">

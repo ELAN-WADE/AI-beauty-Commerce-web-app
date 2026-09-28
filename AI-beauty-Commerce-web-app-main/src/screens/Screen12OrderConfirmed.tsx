@@ -82,6 +82,21 @@ export const Screen12OrderConfirmed: React.FC = () => {
           </div>
         </div>
 
+        {/* Bank-transfer next step (live orders placed without hosted checkout) */}
+        {activeOrder?.paymentMethod?.startsWith('Bank transfer') && (
+          <div className="p-4 rounded-2xl bg-[#FBF5E8] border border-[#D4AF37]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <span className="text-[#0F0F10]">
+              Complete your transfer, then submit proof under <strong>Orders → Track</strong> for confirmation.
+            </span>
+            <button
+              onClick={() => navigateTo('orders')}
+              className="shrink-0 px-5 py-2.5 rounded-full bg-[#0F0F10] text-[#D4AF37] font-bold active:scale-95 transition-all cursor-pointer"
+            >
+              Submit proof
+            </button>
+          </div>
+        )}
+
         {/* Courier Dispatch & Delivery Timeline */}
         <div className="p-6 rounded-3xl bg-white border border-[#E5E7EB] shadow-xs space-y-4 text-xs">
           <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">

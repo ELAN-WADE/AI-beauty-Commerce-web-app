@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Sparkles,
   Award,
@@ -14,9 +14,45 @@ import {
 import { useApp } from '../context/AppContext';
 import { Header } from '../components/common/Header';
 
+import { fetchLoyaltyView, redeemLoyaltyVoucher, type LoyaltyView } from '../lib/owned-api';
+
 export const Screen16Rewards: React.FC = () => {
-  const { userProfile, vouchers, pointsActivity, redeemVoucher } = useApp();
+  const { userProfile, vouchers, pointsActivity, redeemVoucher, isLiveBackend, authUser } = useApp();
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+
+  // Live loyalty (owned backend, authenticated only; mocks otherwise)
+  const [liveView, setLiveView] = useState<LoyaltyView | null>(null);
+  const [liveMessage, setLiveMessage] = useState('');
+  const [redeeming, setRedeeming] = useState<number | null>(null);
+
+  const refreshLive = async () => {
+    const view = await fetchLoyaltyView();
+    if (view) setLiveView(view);
+  };
+
+  useEffect(() => {
+    if (isLiveBackend && authUser) {
+      refreshLive().catch(() => {});
+    } else {
+      setLiveView(null);
+    }
+  }, [isLiveBackend, authUser]);
+
+  const handleLiveRedeem = async (points: number) => {
+    setRedeeming(points);
+    setLiveMessage('');
+    try {
+      const { voucher } = await redeemLoyaltyVoucher(points);
+      setLiveMessage(`Voucher ${voucher.code} issued — use it at checkout.`);
+      await refreshLive();
+    } catch (e) {
+      setLiveMessage(e instanceof Error ? e.message : 'Redeem failed.');
+    } finally {
+      setRedeeming(null);
+    }
+  };
+
+  const displayPoints = liveView?.points ?? userProfile.points;
 
   const handleCopy = (code: string) => {
     navigator.clipboard.writeText(code);
@@ -58,7 +94,7 @@ export const Screen16Rewards: React.FC = () => {
                 Available Rewards Balance
               </span>
               <p className="font-heading font-extrabold text-3xl text-[#1E1B1D] leading-none mt-0.5">
-                {userProfile.points.toLocaleString()}{' '}
+                {displayPoints.toLocaleString()}{' '}
                 <span className="text-sm font-bold uppercase tracking-wider">Points</span>
               </p>
             </div>
@@ -79,7 +115,58 @@ export const Screen16Rewards: React.FC = () => {
           </div>
         </section>
 
-        {/* Redeemable Vouchers Section */}
+        {/* Live loyalty ledger (owned backend, authenticated only) */}
+        {liveView && (
+          <section aria-label="Live Loyalty" className="p-4 rounded-card bg-white border border-[#D4AF37]/40 space-y-3">
+            <h4 className="font-heading font-bold text-xs uppercase tracking-wider text-[#0F0F10]">
+              Live Points Ledger
+            </h4>
+            <div className="space-y-2">
+              {liveView.tiers.map((t) => (
+                <div key={t.points} className="flex items-center justify-between text-xs py-1.5 border-b border-glowly-border/40 last:border-0">
+                  <span className="text-glowly-muted">
+                    <strong className="text-glowly-charcoal font-mono">{t.points} pts</strong> → ₦{(t.amountKobo / 100).toLocaleString('en-NG')} voucher
+                  </span>
+                  <button
+                    onClick={() => handleLiveRedeem(t.points)}
+                    disabled={redeeming !== null || displayPoints < t.points}
+                    className="px-3.5 py-1.5 rounded-btn text-xs font-bold bg-[#0F0F10] text-[#D4AF37] active:scale-95 transition-all cursor-pointer disabled:opacity-40"
+                  >
+                    {redeeming === t.points ? 'Issuing…' : 'Redeem'}
+                  </button>
+                </div>
+              ))}
+            </div>
+            {liveView.vouchers.length > 0 && (
+              <div className="space-y-1.5 pt-1">
+                {liveView.vouchers.filter((v) => v.status === 'active').map((v) => (
+                  <div key={v.code} className="flex items-center justify-between text-xs font-mono font-bold text-emerald-700">
+                    <span>Code: {v.code} — ₦{(v.amountKobo / 100).toLocaleString('en-NG')} off</span>
+                    <button onClick={() => handleCopy(v.code)} className="p-0.5 hover:text-emerald-900 cursor-pointer" aria-label="Copy voucher code">
+                      <Copy size={12} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {liveMessage && <p className="text-[11px] text-glowly-muted">{liveMessage}</p>}
+            {liveView.activity.length > 0 && (
+              <div className="space-y-2 pt-1">
+                {liveView.activity.map((act, idx) => (
+                  <div key={act.id ?? idx} className="p-3 rounded-xl bg-white border border-glowly-border flex items-center justify-between text-xs">
+                    <span className="font-semibold text-glowly-charcoal text-xs">{act.title}</span>
+                    <span className={`font-mono font-bold text-xs ${act.points > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                      {act.points > 0 ? `+${act.points}` : act.points} pts
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Redeemable Vouchers Section (mock catalogue; hidden when live) */}
+        {!liveView && (
         <section aria-label="Redeemable Vouchers">
           <div className="flex items-center justify-between mb-3">
             <div>
@@ -155,6 +242,7 @@ export const Screen16Rewards: React.FC = () => {
             })}
           </div>
         </section>
+        )}
 
         {/* How to Earn Points Guide */}
         <section aria-label="Earning Rules" className="p-4 rounded-card bg-white border border-glowly-border space-y-2.5 text-xs">
@@ -177,7 +265,8 @@ export const Screen16Rewards: React.FC = () => {
           </div>
         </section>
 
-        {/* Points History Ledger */}
+        {/* Points History Ledger (mock; hidden when live) */}
+        {!liveView && (
         <section aria-label="Activity History">
           <h4 className="font-heading font-bold text-xs uppercase tracking-wider text-glowly-charcoal mb-2.5">
             Points Ledger & Activity
@@ -205,6 +294,7 @@ export const Screen16Rewards: React.FC = () => {
             ))}
           </div>
         </section>
+        )}
       </main>
     </div>
   );
