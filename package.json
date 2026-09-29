@@ -1,0 +1,13 @@
+{
+  "name": "glowly-beauty-root",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "npm --prefix AI-beauty-Commerce-web-app-main run dev",
+    "build": "npm --prefix AI-beauty-Commerce-web-app-main run build",
+    "preview": "npm --prefix AI-beauty-Commerce-web-app-main run preview"
+  },
+  "dependencies": {
+    "vite": "^6.1.1"
+  }
+}

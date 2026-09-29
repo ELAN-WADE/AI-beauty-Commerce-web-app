@@ -1,0 +1,12 @@
+{
+  "buildCommand": "cd AI-beauty-Commerce-web-app-main && npm install --include=dev && npm run build",
+  "outputDirectory": "AI-beauty-Commerce-web-app-main/dist",
+  "installCommand": "cd AI-beauty-Commerce-web-app-main && npm install --include=dev",
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
