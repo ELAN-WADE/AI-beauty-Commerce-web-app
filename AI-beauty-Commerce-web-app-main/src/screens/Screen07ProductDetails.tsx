@@ -399,32 +399,42 @@ export const Screen07ProductDetails: React.FC = () => {
                 </span>
               </div>
 
-              {/* Product Title */}
-              <h1 className="font-heading font-semibold text-2xl lg:text-3xl text-[#0F0F10] tracking-tight leading-tight">
+              {/* Product Title — Exact User Spec */}
+              <h1
+                className="font-heading font-semibold text-2xl lg:text-3xl text-[#0F0F10] tracking-tight leading-tight text-[20px] lg:text-[20px]"
+                style={{ fontSize: '20px' }}
+              >
                 {selectedProduct.name}
               </h1>
 
-              {/* Social Proof & Rating Strip */}
+              {/* Social Proof & Rating Strip — Exact User Spec */}
               <div className="flex items-center gap-2 text-xs text-[#6B7280]">
                 <div className="flex items-center gap-1 text-[#D4AF37]">
                   <div className="flex">
                     {[...Array(5)].map((_, i) => (
-                      <Star key={i} size={13} fill="currentColor" strokeWidth={0} />
+                      <Star key={i} size={12} fill="currentColor" strokeWidth={0} />
                     ))}
                   </div>
-                  <span className="font-bold text-[#0F0F10] ml-1">{selectedProduct.rating}</span>
+                  <span className="font-bold text-[#0F0F10] ml-1 text-[11px]">{selectedProduct.rating}</span>
                 </div>
                 <span>•</span>
-                <span>{shownReviews.length + 482} verified reviews</span>
+                <span className="text-[10px] text-[#6B7280]" style={{ fontSize: '10px' }}>
+                  {shownReviews.length + 482} verified reviews
+                </span>
                 <span>•</span>
-                <span className="font-semibold text-[#0F0F10]">2.4K+ sold</span>
+                <span className="font-semibold text-[#0F0F10] text-[10px]" style={{ fontSize: '10px' }}>
+                  2.4K+ sold
+                </span>
               </div>
             </div>
 
-            {/* Price & Savings Block */}
+            {/* Price & Savings Block — Exact User Spec */}
             <div className="p-3.5 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] space-y-1.5">
               <div className="flex items-baseline gap-3">
-                <span className="font-price font-semibold text-2xl sm:text-3xl text-[#FB7701]">
+                <span
+                  className="font-price font-semibold text-2xl sm:text-3xl text-[#FB7701] text-[25px] sm:text-[25px]"
+                  style={{ fontSize: '25px' }}
+                >
                   {formatNaira(selectedProduct.price)}
                 </span>
                 {selectedProduct.originalPrice && selectedProduct.originalPrice > selectedProduct.price && (
@@ -441,7 +451,9 @@ export const Screen07ProductDetails: React.FC = () => {
 
               <div className="flex items-center gap-1.5 text-xs text-amber-800 font-medium">
                 <Flame size={13} className="text-amber-600 fill-amber-500" />
-                <span>High order volume in {selectedCity} today</span>
+                <span className="text-[12px] text-amber-800" style={{ fontSize: '12px' }}>
+                  High order volume in {selectedCity} today
+                </span>
               </div>
             </div>
 

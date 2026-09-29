@@ -296,42 +296,42 @@ export const Screen18DesktopHome: React.FC = () => {
                 </svg>
               </div>
 
-              {/* Floating Card 01 — Upper Left (Obsidian dark minimalist surface, NO border, matching reference 99%) */}
-              <div className="absolute top-[4%] sm:top-[5%] left-[1%] sm:left-[2%] bg-[#0F1117] text-white p-3.5 sm:p-4 rounded-2xl shadow-2xl shadow-black/25 z-20 transition-all duration-300 hover:scale-[1.02]">
-                <span className="font-digit font-semibold text-2xl sm:text-3xl leading-none text-white block">
+              {/* Floating Card 01 — Upper Left (Obsidian dark minimalist surface, tight refined padding) */}
+              <div className="absolute top-[4%] sm:top-[5%] left-[1%] sm:left-[2%] bg-[#0F1117] text-white px-3 py-2.5 sm:px-3.5 sm:py-3 rounded-xl sm:rounded-2xl shadow-xl shadow-black/25 z-20 transition-all duration-300 hover:scale-[1.02]">
+                <span className="font-heading font-bold text-xl sm:text-[22px] leading-tight text-white block tracking-tight">
                   {activeSlide.card1.stat}
                 </span>
-                <p className="text-[10px] sm:text-xs text-gray-300 font-normal leading-snug mt-1.5 max-w-[130px] sm:max-w-[150px]">
+                <p className="text-[10px] sm:text-[11px] text-gray-300 font-normal leading-snug mt-1 max-w-[115px] sm:max-w-[130px]">
                   {activeSlide.card1.label}
                 </p>
               </div>
 
-              {/* Floating Card 02 — Lower Left (Crisp white minimalist surface, NO border, matching reference 2.5M) */}
-              <div className="absolute bottom-[6%] sm:bottom-[7%] left-[0%] sm:left-[1%] bg-white text-[#0F0F10] p-3 sm:p-3.5 rounded-2xl shadow-xl shadow-black/8 z-20 transition-all duration-300 hover:scale-[1.02]">
-                <span className="font-digit font-semibold text-2xl sm:text-3xl leading-none text-[#0F1123] block">
+              {/* Floating Card 02 — Lower Left (Crisp white minimalist surface, tight refined padding) */}
+              <div className="absolute bottom-[6%] sm:bottom-[7%] left-[0%] sm:left-[1%] bg-white text-[#0F0F10] px-3 py-2.5 sm:px-3.5 sm:py-3 rounded-xl sm:rounded-2xl shadow-lg shadow-black/8 z-20 transition-all duration-300 hover:scale-[1.02]">
+                <span className="font-heading font-bold text-xl sm:text-[22px] leading-tight text-[#0F1123] block tracking-tight">
                   {activeSlide.card2.stat}
                 </span>
-                <p className="text-[10px] sm:text-xs text-[#6B7280] font-normal leading-snug mt-1 max-w-[120px] sm:max-w-[135px]">
+                <p className="text-[10px] sm:text-[11px] text-[#6B7280] font-normal leading-snug mt-0.5 max-w-[110px] sm:max-w-[125px]">
                   {activeSlide.card2.label}
                 </p>
               </div>
 
-              {/* Floating Card 03 — Upper Right (Crisp white minimalist surface, NO border, matching reference 4.8) */}
-              <div className="absolute top-[8%] sm:top-[10%] right-[1%] sm:right-[2%] bg-white text-[#0F0F10] p-3 sm:p-3.5 rounded-2xl shadow-xl shadow-black/8 z-20 transition-all duration-300 hover:scale-[1.02]">
+              {/* Floating Card 03 — Upper Right (Crisp white minimalist surface, tight refined padding) */}
+              <div className="absolute top-[8%] sm:top-[10%] right-[1%] sm:right-[2%] bg-white text-[#0F0F10] px-3 py-2.5 sm:px-3.5 sm:py-3 rounded-xl sm:rounded-2xl shadow-lg shadow-black/8 z-20 transition-all duration-300 hover:scale-[1.02]">
                 <div className="flex items-center gap-1.5">
-                  <span className="font-digit font-semibold text-2xl sm:text-3xl leading-none text-[#0F1123]">
+                  <span className="font-heading font-bold text-xl sm:text-[22px] leading-tight text-[#0F1123] tracking-tight">
                     {activeSlide.card3.rating}
                   </span>
                   <div className="w-5 h-5 rounded-full bg-[#111315] text-[#D4AF37] flex items-center justify-center text-[10px]">
                     <Star size={10} fill="currentColor" />
                   </div>
                 </div>
-                <p className="text-[10px] sm:text-xs text-[#6B7280] font-normal leading-snug mt-1 max-w-[115px] sm:max-w-[130px]">
+                <p className="text-[10px] sm:text-[11px] text-[#6B7280] font-normal leading-snug mt-0.5 max-w-[105px] sm:max-w-[120px]">
                   {activeSlide.card3.label}
                 </p>
                 <button
                   onClick={() => navigateTo(activeSlide.card3.actionRoute as any)}
-                  className="mt-2 text-[10px] sm:text-[11px] font-semibold text-[#0F0F10] hover:text-[#997A2E] flex items-center gap-1 cursor-pointer transition-colors active:scale-95"
+                  className="mt-1.5 text-[10px] sm:text-[11px] font-semibold text-[#0F0F10] hover:text-[#997A2E] flex items-center gap-1 cursor-pointer transition-colors active:scale-95"
                 >
                   <span>{activeSlide.card3.actionText}</span>
                   <ArrowRight size={10} />
@@ -542,11 +542,11 @@ export const Screen18DesktopHome: React.FC = () => {
         {/* SECTION 2.5: ASK DESLA!™ AI CONCIERGE & LIVE TRACKING PORTAL BANNER */}
         <section className="py-8 bg-white">
           <div className="max-w-7xl mx-auto px-6">
-            <div className="p-6 md:p-8 rounded-3xl bg-[#0F0F10] text-white border border-white/10 shadow-xl flex flex-col lg:flex-row items-center justify-between gap-6 relative overflow-hidden">
+            <div className="p-6 md:p-8 rounded-3xl bg-[#0F0F10] text-white border border-[#D4AF37]/30 shadow-xl flex flex-col lg:flex-row items-center justify-between gap-6 relative overflow-hidden">
               <div className="space-y-3 max-w-xl z-10">
-                <div className="inline-flex items-center gap-2 text-[#FB7701] text-xs font-mono font-bold tracking-wider">
-                  <span className="w-2 h-2 rounded-full bg-[#FB7701] animate-pulse" />
-                  <span>24/7 ChatGPT-Powered Beauty Concierge</span>
+                <div className="inline-flex items-center gap-2 text-[#D4AF37] text-xs font-mono font-bold tracking-wider">
+                  <span className="w-2 h-2 rounded-full bg-[#D4AF37] animate-pulse" />
+                  <span>24/7 AI-Powered Beauty Concierge</span>
                 </div>
                 <h3 className="font-heading font-extrabold text-2xl md:text-3xl text-white tracking-tight">
                   Have Questions or Need to Track an Order?
@@ -555,13 +555,13 @@ export const Screen18DesktopHome: React.FC = () => {
                   Connect instantly with our dedicated AI concierge. Get instant live courier tracking on order <strong>#DES-829104</strong>, personalized clinical recommendations for hyperpigmentation, or check NAFDAC batch seals.
                 </p>
 
-                {/* Quick 1-tap query links — MINIMALIST (No excess backgrounds) */}
+                {/* Quick 1-tap query links — MINIMALIST with #D4AF37 Accent */}
                 <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pt-1 text-xs text-gray-300">
                   <button
                     onClick={() => navigateTo('ask-ai')}
-                    className="hover:text-[#FB7701] flex items-center gap-1.5 transition-colors cursor-pointer group"
+                    className="hover:text-[#D4AF37] flex items-center gap-1.5 transition-colors cursor-pointer group"
                   >
-                    <Package size={13} className="text-[#FB7701] group-hover:scale-110 transition-transform" />
+                    <Package size={13} className="text-[#D4AF37] group-hover:scale-110 transition-transform" />
                     <span className="underline-offset-4 group-hover:underline">Track Package #DES-829104</span>
                   </button>
 
@@ -569,9 +569,9 @@ export const Screen18DesktopHome: React.FC = () => {
 
                   <button
                     onClick={() => navigateTo('ask-ai')}
-                    className="hover:text-[#FB7701] flex items-center gap-1.5 transition-colors cursor-pointer group"
+                    className="hover:text-[#D4AF37] flex items-center gap-1.5 transition-colors cursor-pointer group"
                   >
-                    <Sparkles size={13} className="text-[#FB7701] group-hover:scale-110 transition-transform" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#D4AF37] group-hover:scale-125 transition-transform" />
                     <span className="underline-offset-4 group-hover:underline">Hyperpigmentation Routine</span>
                   </button>
 
@@ -579,9 +579,9 @@ export const Screen18DesktopHome: React.FC = () => {
 
                   <button
                     onClick={() => navigateTo('ask-ai')}
-                    className="hover:text-[#FB7701] flex items-center gap-1.5 transition-colors cursor-pointer group"
+                    className="hover:text-[#D4AF37] flex items-center gap-1.5 transition-colors cursor-pointer group"
                   >
-                    <ShieldCheck size={13} className="text-[#FB7701] group-hover:scale-110 transition-transform" />
+                    <ShieldCheck size={13} className="text-[#D4AF37] group-hover:scale-110 transition-transform" />
                     <span className="underline-offset-4 group-hover:underline">NAFDAC Authenticity</span>
                   </button>
                 </div>
@@ -591,10 +591,9 @@ export const Screen18DesktopHome: React.FC = () => {
               <div className="shrink-0 z-10 w-full sm:w-auto">
                 <button
                   onClick={() => navigateTo('ask-ai')}
-                  className="w-full sm:w-auto px-7 py-3.5 rounded-full bg-[#FB7701] hover:bg-[#e06b01] text-white font-heading font-extrabold text-sm shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2.5 cursor-pointer group"
+                  className="w-full sm:w-auto px-7 py-3.5 rounded-full bg-[#D4AF37] hover:bg-[#C29B2D] text-[#0F0F10] font-heading font-extrabold text-sm shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2.5 cursor-pointer group"
                 >
-                  <Sparkles size={16} className="text-white" />
-                  <span>Open Ask Desla!™ AI (ChatGPT)</span>
+                  <span>Open Ask Desla!™ AI</span>
                   <ArrowRight size={15} className="group-hover:translate-x-1 transition-transform" />
                 </button>
               </div>
