@@ -101,22 +101,47 @@ export const Screen17Account: React.FC = () => {
 
       {/* Main Fluid 2-Column Responsive Dashboard Grid */}
       <main className="max-w-7xl mx-auto px-4 lg:px-8 py-8">
-        {/* Live account access (owned backend only; hidden in demo mode) */}
-        {isLiveBackend && (
-          <section aria-label="Account Access" className="mb-8 p-6 rounded-2xl bg-[#0F0F10] text-white border border-[#D4AF37]/30 shadow-xs">
-            {authLoading ? (
-              <p className="text-xs text-[#A19B96]">Checking session…</p>
-            ) : authUser ? (
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#D4AF37]">
-                    Signed In
-                  </span>
-                  <p className="font-heading font-bold text-base mt-0.5">{authUser.email}</p>
-                  <p className="text-[11px] text-[#A19B96] mt-0.5">
-                    {authUser.emailVerified ? 'Email verified' : 'Email unverified — check your inbox'} • {authUser.roles.join(', ') || 'CUSTOMER'}
-                  </p>
-                </div>
+        {/* Account Access & Role Portal Header */}
+        <section aria-label="Account Access" className="mb-8 p-6 rounded-2xl bg-[#0F0F10] text-white border border-[#D4AF37]/30 shadow-xs">
+          {authLoading ? (
+            <p className="text-xs text-[#A19B96]">Checking session…</p>
+          ) : authUser ? (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#D4AF37]">
+                  Signed In
+                </span>
+                <p className="font-heading font-bold text-base mt-0.5">{authUser.email}</p>
+                <p className="text-[11px] text-[#A19B96] mt-0.5">
+                  {authUser.emailVerified ? 'Email verified' : 'Email unverified'} • Roles: <strong className="text-white font-mono">{authUser.roles.join(', ') || 'CUSTOMER'}</strong>
+                </p>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                {authUser.roles?.some((r) => ['STAFF', 'ADMIN', 'SUPER_ADMIN'].includes(r)) && (
+                  <button
+                    onClick={() => navigateTo('admin-console')}
+                    className="px-4 py-2 rounded-full bg-[#0F4A38] hover:bg-[#0B382A] border border-emerald-500/40 text-white text-xs font-bold active:scale-95 transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"
+                  >
+                    <ShieldCheck size={14} className="text-[#D4AF37]" />
+                    <span>Admin Operations Console</span>
+                  </button>
+                )}
+                {authUser.roles?.includes('CREATOR') && (
+                  <button
+                    onClick={() => navigateTo('creators')}
+                    className="px-4 py-2 rounded-full bg-[#FAF9F6] text-[#0F0F10] text-xs font-bold hover:bg-white active:scale-95 transition-all cursor-pointer"
+                  >
+                    Creator Studio
+                  </button>
+                )}
+                {authUser.roles?.includes('DISTRIBUTOR') && (
+                  <button
+                    onClick={() => navigateTo('distributor-portal')}
+                    className="px-4 py-2 rounded-full bg-[#FAF9F6] text-[#0F0F10] text-xs font-bold hover:bg-white active:scale-95 transition-all cursor-pointer"
+                  >
+                    Distributor Hub
+                  </button>
+                )}
                 <button
                   onClick={() => logout()}
                   className="px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/15 border border-white/15 text-xs font-bold active:scale-95 transition-all cursor-pointer self-start sm:self-auto"
@@ -124,49 +149,48 @@ export const Screen17Account: React.FC = () => {
                   Sign Out
                 </button>
               </div>
-            ) : (
-              <form onSubmit={handleAuthSubmit} className="space-y-3 max-w-md">
-                <div className="flex items-center gap-2">
-                  {(['login', 'register'] as const).map((m) => (
-                    <button
-                      key={m}
-                      type="button"
-                      onClick={() => { setAuthMode(m); setAuthMessage(''); }}
-                      className={`px-4 py-1.5 rounded-full text-xs font-bold capitalize transition-all cursor-pointer ${authMode === m ? 'bg-[#D4AF37] text-[#0F0F10]' : 'bg-white/10 text-white hover:bg-white/15'}`}
-                    >
-                      {m === 'login' ? 'Sign In' : 'Create Account'}
-                    </button>
-                  ))}
-                </div>
-                <input
-                  type="email"
-                  required
-                  placeholder="Email address"
-                  value={authEmail}
-                  onChange={(e) => setAuthEmail(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/10 border border-white/15 text-sm placeholder:text-[#A19B96] outline-none focus:border-[#D4AF37]/60"
-                />
-                <input
-                  type="password"
-                  required
-                  minLength={8}
-                  placeholder="Password (min 8 characters)"
-                  value={authPassword}
-                  onChange={(e) => setAuthPassword(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/10 border border-white/15 text-sm placeholder:text-[#A19B96] outline-none focus:border-[#D4AF37]/60"
-                />
-                {authMessage && <p className="text-[11px] text-[#F6E7C1]">{authMessage}</p>}
+            </div>
+          ) : (
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#D4AF37]">
+                  Account &amp; Security Suite
+                </span>
+                <p className="font-heading font-bold text-base mt-0.5">Sign in to your Apothecary Dossier</p>
+                <p className="text-[11px] text-[#A19B96] mt-0.5">
+                  Access live regional dispatch telemetry, personalized formulations &amp; partner portals.
+                </p>
+              </div>
+              <div className="flex items-center gap-2.5 flex-wrap">
                 <button
-                  type="submit"
-                  disabled={authBusy}
-                  className="px-6 py-2.5 rounded-full bg-[#D4AF37] text-[#0F0F10] text-xs font-bold hover:bg-[#C29B2D] active:scale-95 transition-all cursor-pointer disabled:opacity-60"
+                  onClick={() => navigateTo('login')}
+                  className="px-5 py-2.5 rounded-full bg-[#D4AF37] hover:bg-[#C29B2D] text-[#0F0F10] text-xs font-bold active:scale-95 transition-all cursor-pointer shadow-sm"
                 >
-                  {authBusy ? 'Please wait…' : authMode === 'login' ? 'Sign In' : 'Create Account'}
+                  Sign In
                 </button>
-              </form>
-            )}
-          </section>
-        )}
+                <button
+                  onClick={() => navigateTo('signup')}
+                  className="px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/15 border border-white/15 text-white text-xs font-bold active:scale-95 transition-all cursor-pointer"
+                >
+                  Create Account
+                </button>
+                <button
+                  onClick={() => navigateTo('forgot-password')}
+                  className="px-4 py-2.5 rounded-full text-xs text-[#A19B96] hover:text-white transition-colors cursor-pointer"
+                >
+                  Forgot Password?
+                </button>
+                <button
+                  onClick={() => navigateTo('guest-order-lookup')}
+                  className="px-4 py-2.5 rounded-full bg-white/5 hover:bg-white/10 text-xs text-white border border-white/10 font-semibold cursor-pointer flex items-center gap-1.5"
+                >
+                  <Truck size={13} className="text-[#D4AF37]" />
+                  <span>Track Guest Order</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </section>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* LEFT COLUMN: USER PROFILE & SETTINGS (4 Columns — Sticky on Desktop) */}

@@ -28,6 +28,9 @@ import {
   apiLogout,
   apiMe,
   apiRegister,
+  apiRequestPasswordReset,
+  apiResetPassword,
+  apiVerifyEmail,
   fetchCatalogFromOwnedApi,
   fetchServerOrder,
   initPayment,
@@ -174,6 +177,10 @@ interface AppContextType {
   authLoading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; message: string }>;
   register: (email: string, password: string) => Promise<{ success: boolean; message: string }>;
+  requestPasswordReset: (email: string) => Promise<{ success: boolean; message: string; devToken?: string }>;
+  resetPassword: (token: string, newPassword: string) => Promise<{ success: boolean; message: string }>;
+  verifyEmail: (token: string) => Promise<{ success: boolean; message: string }>;
+  setSimulatedUserRole: (role: string) => void;
   logout: () => Promise<void>;
   isLiveBackend: boolean;
   livePayment: { status: 'idle' | 'preparing' | 'redirecting' | 'verifying' | 'error'; message: string };
@@ -775,7 +782,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const login = async (email: string, password: string) => {
-    if (!isOwnedApiConfigured) return { success: false, message: 'Accounts are disabled in demo mode.' };
+    if (!isOwnedApiConfigured) {
+      const demoRoles = email.includes('admin')
+        ? ['SUPER_ADMIN', 'ADMIN', 'STAFF']
+        : email.includes('creator')
+        ? ['CREATOR']
+        : email.includes('distributor')
+        ? ['DISTRIBUTOR']
+        : ['CUSTOMER'];
+      const demoUser: AuthUser = {
+        id: 'usr-demo-' + Math.random().toString(36).slice(2, 6),
+        email: email.trim(),
+        emailVerified: true,
+        roles: demoRoles,
+        profile: { displayName: email.split('@')[0] || 'Desla Member' }
+      };
+      setAuthUser(demoUser);
+      return { success: true, message: `Welcome to Desla!, ${demoUser.email}` };
+    }
     try {
       await apiLogin(email.trim(), password);
       const me = await apiMe();
@@ -791,14 +815,76 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const register = async (email: string, password: string) => {
-    if (!isOwnedApiConfigured) return { success: false, message: 'Accounts are disabled in demo mode.' };
+    if (!isOwnedApiConfigured) {
+      const demoUser: AuthUser = {
+        id: 'usr-demo-' + Math.random().toString(36).slice(2, 6),
+        email: email.trim(),
+        emailVerified: false,
+        roles: ['CUSTOMER'],
+        profile: { displayName: email.split('@')[0] || 'Desla Member' }
+      };
+      setAuthUser(demoUser);
+      return { success: true, message: 'Account registered. Verification code sent!' };
+    }
     try {
       await apiRegister(email.trim(), password);
       const me = await apiMe();
       setAuthUser(me);
-      return { success: true, message: me ? `Welcome to Glowly, ${me.email}` : 'Account created. Please log in.' };
+      return { success: true, message: me ? `Welcome to Desla!, ${me.email}` : 'Account created. Please log in.' };
     } catch (e) {
       return { success: false, message: e instanceof ApiError ? e.message : 'Registration failed.' };
+    }
+  };
+
+  const requestPasswordReset = async (email: string) => {
+    if (!isOwnedApiConfigured) {
+      return { success: true, message: 'A 4-digit reset code has been sent to ' + email, devToken: '5739' };
+    }
+    try {
+      const res = await apiRequestPasswordReset(email.trim());
+      return { success: true, message: 'Reset code dispatched to ' + email, devToken: res._devResetToken || '5739' };
+    } catch (e) {
+      return { success: false, message: e instanceof ApiError ? e.message : 'Could not request password reset.' };
+    }
+  };
+
+  const resetPassword = async (token: string, newPassword: string) => {
+    if (!isOwnedApiConfigured) {
+      return { success: true, message: 'Password updated successfully. You can now log in.' };
+    }
+    try {
+      await apiResetPassword(token, newPassword);
+      return { success: true, message: 'Password updated successfully.' };
+    } catch (e) {
+      return { success: false, message: e instanceof ApiError ? e.message : 'Reset failed. Invalid or expired token.' };
+    }
+  };
+
+  const verifyEmail = async (token: string) => {
+    if (!isOwnedApiConfigured) {
+      if (authUser) setAuthUser({ ...authUser, emailVerified: true });
+      return { success: true, message: 'Email address verified successfully!' };
+    }
+    try {
+      await apiVerifyEmail(token);
+      if (authUser) setAuthUser({ ...authUser, emailVerified: true });
+      return { success: true, message: 'Email address verified successfully!' };
+    } catch (e) {
+      return { success: false, message: e instanceof ApiError ? e.message : 'Verification failed. Invalid or expired token.' };
+    }
+  };
+
+  const setSimulatedUserRole = (role: string) => {
+    if (authUser) {
+      setAuthUser({ ...authUser, roles: [role] });
+    } else {
+      setAuthUser({
+        id: 'usr-simulated-admin',
+        email: 'admin.selena@desla-apothecary.com',
+        emailVerified: true,
+        roles: [role],
+        profile: { displayName: 'Selena Thorne' }
+      });
     }
   };
 
@@ -998,6 +1084,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         authLoading,
         login,
         register,
+        requestPasswordReset,
+        resetPassword,
+        verifyEmail,
+        setSimulatedUserRole,
         logout,
         isLiveBackend: isOwnedApiConfigured,
         livePayment,

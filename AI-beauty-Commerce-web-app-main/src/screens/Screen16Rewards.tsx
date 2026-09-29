@@ -62,7 +62,10 @@ export const Screen16Rewards: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#FCFAF9] pb-28">
-      <Header title="Beauty Rewards Club" />
+      {/* Mobile Top Header */}
+      <div className="lg:hidden">
+        <Header title="Beauty Rewards Club" />
+      </div>
 
       <main className="max-w-md mx-auto px-4 pt-3 space-y-5">
         {/* Luxury Gold Membership Card */}

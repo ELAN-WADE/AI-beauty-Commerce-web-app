@@ -78,7 +78,6 @@ export const AIFloatingButton: React.FC = () => {
           <span className="font-heading font-extrabold text-xs text-[#0F0F10] tracking-tight">
             Ask Desla<span className="text-[#D4AF37]">!™</span> AI
           </span>
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse ml-2 shrink-0" />
         </div>
       </button>
     </div>

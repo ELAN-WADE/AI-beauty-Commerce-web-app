@@ -119,23 +119,6 @@ export const Screen13OrdersTracking: React.FC = () => {
         {transferPendingOrders.map((o) => (
           <TransferClaimCard key={o.id} order={o} email={authUser?.email ?? checkoutAddress.email ?? ''} />
         ))}
-        {/* Desktop Screen Title */}
-        <div className="hidden lg:flex items-center justify-between pb-4 border-b border-[#E5E7EB]">
-          <div>
-            <span className="text-xs font-mono font-bold text-[#997A2E] uppercase tracking-wider">
-              Real-Time Sourcing Intelligence
-            </span>
-            <h1 className="font-heading font-extrabold text-2xl text-[#0F0F10]">
-              Order Tracking &amp; Delivery Route
-            </h1>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-[#6B7280]">Tracking Order:</span>
-            <span className="px-3 py-1 rounded-full bg-[#FAF9F6] border border-[#E5E7EB] font-mono font-bold text-xs text-[#0F0F10]">
-              #{currentTrackingId}
-            </span>
-          </div>
-        </div>
 
         {/* TWO-GRID TRACK ORDER SYSTEM (Requested in User Audio) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">

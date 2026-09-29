@@ -213,14 +213,14 @@ export const Screen07ProductDetails: React.FC = () => {
                   <>
                     <button
                       onClick={() => setActiveImageIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1))}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 shadow-md flex items-center justify-center text-[#0F0F10] hover:bg-[#D4AF37] hover:text-[#0F0F10] active:scale-95 transition-all cursor-pointer"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 shadow-md flex items-center justify-center text-[#0F0F10] hover:bg-[#D4AF37] hover:text-[#0F0F10] active:scale-95 transition-all cursor-pointer z-10"
                       aria-label="Previous image"
                     >
                       <ChevronLeft size={16} />
                     </button>
                     <button
                       onClick={() => setActiveImageIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0))}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 shadow-md flex items-center justify-center text-[#0F0F10] hover:bg-[#D4AF37] hover:text-[#0F0F10] active:scale-95 transition-all cursor-pointer"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 shadow-md flex items-center justify-center text-[#0F0F10] hover:bg-[#D4AF37] hover:text-[#0F0F10] active:scale-95 transition-all cursor-pointer z-10"
                       aria-label="Next image"
                     >
                       <ChevronRight size={16} />

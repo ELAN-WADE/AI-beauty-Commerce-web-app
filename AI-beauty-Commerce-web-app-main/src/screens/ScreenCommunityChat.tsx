@@ -105,8 +105,8 @@ export const ScreenCommunityChat: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white text-[#0F0F10] pb-28 font-body selection:bg-[#D4AF37]/20 selection:text-[#997A2E]">
-      {/* Top Header without green radio dot */}
-      <div className="sticky top-0 z-30 w-full bg-white/95 backdrop-blur-md border-b border-[#E5E7EB] px-4 lg:px-8 py-3.5">
+      {/* Top Header (Mobile/Tablet Only — Hidden on Desktop) */}
+      <div className="lg:hidden sticky top-0 z-30 w-full bg-white/95 backdrop-blur-md border-b border-[#E5E7EB] px-4 lg:px-8 py-3.5">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
@@ -238,37 +238,48 @@ export const ScreenCommunityChat: React.FC = () => {
 
           {/* CENTER COLUMN: Feed, Reels & Live Chat (6 cols) */}
           <div className="lg:col-span-6 space-y-5">
-            {/* Navigation Tabs (Solid Gold, no gradients) */}
-            <div className="flex items-center gap-2 border-b border-[#E5E7EB] pb-3">
+            {/* Navigation Tabs Bar with Desktop Share Routine CTA */}
+            <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-3 gap-2">
+              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+                <button
+                  onClick={() => setActiveTab('feed')}
+                  className={`px-4 py-2 rounded-full text-xs font-heading font-semibold active:scale-95 transition-all cursor-pointer whitespace-nowrap ${
+                    activeTab === 'feed'
+                      ? 'bg-[#0F0F10] text-white font-bold shadow-xs'
+                      : 'bg-[#F3EEE3] text-[#0F0F10] hover:bg-[#EAE4D7]'
+                  }`}
+                >
+                  Community Feed ({communityPosts.length})
+                </button>
+                <button
+                  onClick={() => setActiveTab('transformations')}
+                  className={`px-4 py-2 rounded-full text-xs font-heading font-semibold active:scale-95 transition-all cursor-pointer whitespace-nowrap ${
+                    activeTab === 'transformations'
+                      ? 'bg-[#0F0F10] text-white font-bold shadow-xs'
+                      : 'bg-[#F3EEE3] text-[#0F0F10] hover:bg-[#EAE4D7]'
+                  }`}
+                >
+                  Video Reels &amp; Results
+                </button>
+                <button
+                  onClick={() => setActiveTab('chat')}
+                  className={`px-4 py-2 rounded-full text-xs font-heading font-semibold active:scale-95 transition-all cursor-pointer whitespace-nowrap ${
+                    activeTab === 'chat'
+                      ? 'bg-[#0F0F10] text-white font-bold shadow-xs'
+                      : 'bg-[#F3EEE3] text-[#0F0F10] hover:bg-[#EAE4D7]'
+                  }`}
+                >
+                  Live Consultations
+                </button>
+              </div>
+
+              {/* Desktop Share Routine Button */}
               <button
-                onClick={() => setActiveTab('feed')}
-                className={`px-4 py-2 rounded-full text-xs font-heading font-semibold active:scale-95 transition-all cursor-pointer ${
-                  activeTab === 'feed'
-                    ? 'bg-[#0F0F10] text-white font-bold shadow-xs'
-                    : 'bg-[#F3EEE3] text-[#0F0F10] hover:bg-[#EAE4D7]'
-                }`}
+                onClick={() => setIsCreateModalOpen(true)}
+                className="hidden lg:inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#0F0F10] hover:bg-[#D4AF37] hover:text-[#0F0F10] text-white font-heading font-bold text-xs shadow-xs active:scale-95 transition-all cursor-pointer whitespace-nowrap shrink-0"
               >
-                Community Feed ({communityPosts.length})
-              </button>
-              <button
-                onClick={() => setActiveTab('transformations')}
-                className={`px-4 py-2 rounded-full text-xs font-heading font-semibold active:scale-95 transition-all cursor-pointer ${
-                  activeTab === 'transformations'
-                    ? 'bg-[#0F0F10] text-white font-bold shadow-xs'
-                    : 'bg-[#F3EEE3] text-[#0F0F10] hover:bg-[#EAE4D7]'
-                }`}
-              >
-                Video Reels &amp; Results
-              </button>
-              <button
-                onClick={() => setActiveTab('chat')}
-                className={`px-4 py-2 rounded-full text-xs font-heading font-semibold active:scale-95 transition-all cursor-pointer ${
-                  activeTab === 'chat'
-                    ? 'bg-[#0F0F10] text-white font-bold shadow-xs'
-                    : 'bg-[#F3EEE3] text-[#0F0F10] hover:bg-[#EAE4D7]'
-                }`}
-              >
-                Live Consultations
+                <Plus size={14} strokeWidth={3} />
+                <span>Share Routine</span>
               </button>
             </div>
 

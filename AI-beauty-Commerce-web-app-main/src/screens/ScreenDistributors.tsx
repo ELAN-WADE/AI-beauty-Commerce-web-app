@@ -44,8 +44,8 @@ export const ScreenDistributors: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white text-[#0F0F10] pb-24">
-      {/* Top Header */}
-      <div className="sticky top-0 z-30 w-full bg-white/95 backdrop-blur-md border-b border-[#E5E7EB] px-4 lg:px-8 py-3.5">
+      {/* Top Header (Mobile/Tablet Only — Hidden on Desktop) */}
+      <div className="lg:hidden sticky top-0 z-30 w-full bg-white/95 backdrop-blur-md border-b border-[#E5E7EB] px-4 lg:px-8 py-3.5">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
@@ -58,7 +58,7 @@ export const ScreenDistributors: React.FC = () => {
             <div>
               <div className="flex items-center gap-2">
                 <Store size={18} className="text-[#D4AF37]" />
-                <h1 className="font-heading font-extrabold text-lg lg:text-xl text-[#0F0F10] tracking-tight">
+                <h1 className="font-heading font-extrabold text-lg text-[#0F0F10] tracking-tight">
                   Verified Local Distributors
                 </h1>
               </div>
@@ -93,21 +93,31 @@ export const ScreenDistributors: React.FC = () => {
               </p>
             </div>
 
-            {/* City Tabs */}
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
-              {supportedCities.map((item) => (
-                <button
-                  key={item.city}
-                  onClick={() => setSelectedCity(item.city)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap active-press transition-all ${
-                    selectedCity.toLowerCase() === item.city.toLowerCase()
-                      ? 'bg-[#D4AF37] text-[#0F0F10] font-bold shadow-xs'
-                      : 'bg-[#F6F5F2] text-[#6B7280] hover:text-[#0F0F10] border border-[#E5E7EB]'
-                  }`}
-                >
-                  {item.city}
-                </button>
-              ))}
+            <div className="flex items-center gap-3">
+              {/* City Tabs */}
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
+                {supportedCities.map((item) => (
+                  <button
+                    key={item.city}
+                    onClick={() => setSelectedCity(item.city)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap active-press transition-all ${
+                      selectedCity.toLowerCase() === item.city.toLowerCase()
+                        ? 'bg-[#D4AF37] text-[#0F0F10] font-bold shadow-xs'
+                        : 'bg-[#F6F5F2] text-[#6B7280] hover:text-[#0F0F10] border border-[#E5E7EB]'
+                    }`}
+                  >
+                    {item.city}
+                  </button>
+                ))}
+              </div>
+
+              {/* Become a Partner CTA (Desktop) */}
+              <button
+                onClick={() => navigateTo('distributor-portal')}
+                className="hidden lg:inline-flex px-4 py-2 rounded-full bg-[#0F0F10] text-white hover:bg-[#D4AF37] hover:text-[#0F0F10] font-heading font-extrabold text-xs active:scale-[0.97] transition-all cursor-pointer shadow-xs whitespace-nowrap shrink-0"
+              >
+                Become a Partner
+              </button>
             </div>
           </div>
 

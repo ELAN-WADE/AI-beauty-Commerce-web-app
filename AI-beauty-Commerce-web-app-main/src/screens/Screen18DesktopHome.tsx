@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   Sparkles,
   ArrowRight,
@@ -20,7 +20,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Droplet,
-  Heart
+  Heart,
+  X
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { DesktopNav } from '../components/common/DesktopNav';
@@ -38,12 +39,103 @@ export const Screen18DesktopHome: React.FC = () => {
     viewProductDetails
   } = useApp();
 
+  const [isFlagshipModalOpen, setIsFlagshipModalOpen] = useState(false);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [isHeroPaused, setIsHeroPaused] = useState(false);
   const categoryScrollRef = useRef<HTMLDivElement>(null);
   const localDistributors = getDistributorsForCity(selectedCity);
   const bestsellers = products.filter((p) => p.isBestseller).slice(0, 5);
   const bodyCareProducts = products.filter((p) => p.category === 'Body Care').slice(0, 5);
   const fragranceProducts = products.filter((p) => p.category === 'Fragrance').slice(0, 5);
   const makeupProducts = products.filter((p) => p.category === 'Makeup').slice(0, 5);
+
+  // Rotating Word in Single Straight-Line Headline
+  const rotatingWords = [
+    { text: 'Beauty', color: 'text-[#D4AF37]' },
+    { text: 'Trends', color: 'text-[#FB7701]' },
+    { text: 'Intentions', color: 'text-[#16A34A]' },
+    { text: 'Hype', color: 'text-[#997A2E]' }
+  ];
+  const [wordIndex, setWordIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setWordIndex((prev) => (prev + 1) % rotatingWords.length);
+    }, 2800);
+    return () => clearInterval(interval);
+  }, [rotatingWords.length]);
+
+  // 3-Slide Dynamic Crossfading Slideshow Definitions
+  const heroSlides = [
+    {
+      id: 'routine',
+      image: '/hero_slide_1.jpg',
+      tag: 'Safe-Conscious Routine',
+      card1: {
+        stat: '99.4%',
+        label: 'Melanin barrier lipid retention',
+      },
+      card2: {
+        stat: 'pH 5.5',
+        label: 'Biocompatible Shea & Niacinamide',
+      },
+      card3: {
+        rating: '4.9',
+        label: '3,200+ clinical routine scans',
+        actionText: 'Start 30s Scan',
+        actionRoute: 'ai-scan',
+      },
+    },
+    {
+      id: 'distributor',
+      image: '/hero_slide_2.jpg',
+      tag: 'Regional Distributor Network',
+      card1: {
+        stat: '14 Hubs',
+        label: 'Lagos · Abuja · Accra · PH',
+      },
+      card2: {
+        stat: '38% Net',
+        label: 'Wholesale B2B NAFDAC tier',
+      },
+      card3: {
+        rating: '100%',
+        label: 'Same-day city hub dispatch',
+        actionText: 'Apply as Partner',
+        actionRoute: 'distributor-portal',
+      },
+    },
+    {
+      id: 'creator',
+      image: '/hero_slide_3.jpg',
+      tag: 'Creator & MUA Collective',
+      card1: {
+        stat: '15% Net',
+        label: 'Seasonal PR gifting press box',
+      },
+      card2: {
+        stat: '12h Sillage',
+        label: 'Cold-pressed extrait oils',
+      },
+      card3: {
+        rating: '850+',
+        label: 'Testing melanin swatch kits',
+        actionText: 'Claim Creator Kit',
+        actionRoute: 'creators',
+      },
+    },
+  ];
+
+  // Auto-slide effect (5.5s interval, paused on hover)
+  useEffect(() => {
+    if (isHeroPaused) return;
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
+    }, 5500);
+    return () => clearInterval(interval);
+  }, [isHeroPaused, heroSlides.length]);
+
+  const activeSlide = heroSlides[currentSlide];
 
   // 2-Row Temu-Style Circular Categories Definition
   const circularCategoriesRow1 = [
@@ -64,6 +156,8 @@ export const Screen18DesktopHome: React.FC = () => {
     { name: 'Lifestyle & Wellness', slug: 'lifestyle', count: 'Essential', img: 'https://images.unsplash.com/photo-1616683693504-3ea7e9ad6fec?auto=format&fit=crop&w=240&q=80' },
   ];
 
+  const allCircularCategories = [...circularCategoriesRow1, ...circularCategoriesRow2];
+
   const handleCategorySelect = (slug: string) => {
     setSelectedCategory(slug);
     navigateTo('catalogue');
@@ -80,148 +174,10 @@ export const Screen18DesktopHome: React.FC = () => {
     <div className="min-h-screen bg-white text-[#0F0F10] flex flex-col font-body selection:bg-[#D4AF37]/20 selection:text-[#997A2E]">
       {/* Main Storefront Body */}
       <main className="flex-1">
-        {/* REFINED EDITORIAL HERO COMPOSITION (Faithful 1:1 Art-Directed Composition for Desla) */}
-        <section className="relative w-full bg-[#EDEAE4] py-8 sm:py-10 px-4 sm:px-6 lg:px-8 border-b border-[#E2DFD8]">
-          {/* Large Floating White Hero Container (Refined Width, Rounded-44px, Soft Shadow) */}
-          <div className="w-full max-w-5xl mx-auto rounded-[36px] sm:rounded-[44px] bg-white shadow-[0_20px_50px_-15px_rgba(0,0,0,0.06)] border border-black/[0.03] px-6 sm:px-10 lg:px-12 pt-8 sm:pt-10 pb-10 sm:pb-12 relative">
-            
-            {/* 1. Eyebrow: Quiet, Centered, Rounded Pill */}
-            <div className="flex justify-center mb-3">
-              <span className="border border-gray-200/90 bg-white px-3.5 py-1 rounded-full text-[11px] font-semibold text-[#997A2E] tracking-wider uppercase shadow-2xs">
-                Safe-Conscious Apothecary
-              </span>
-            </div>
-
-            {/* 2. Headline: Authentic Desla Philosophy, Display Size, Semibold 600, Tight Leading */}
-            <h1 className="font-heading font-semibold text-3xl sm:text-4xl md:text-5xl lg:text-[48px] text-[#0F0F10] tracking-[-0.03em] leading-[1.12] max-w-3xl mx-auto text-center mb-3.5">
-              Health Before Beauty. Intention Before Trend.
-            </h1>
-
-            {/* 3. Supporting Copy: Constrained Width, Centered, Moderate Line Height */}
-            <p className="text-xs sm:text-sm text-[#6B7280] leading-relaxed max-w-xl mx-auto text-center mb-8 md:mb-10">
-              Safe-conscious skincare, whipped shea butters, and extrait perfume oils engineered for melanin-rich African skin. Formulated with clinical science and fulfilled locally in your city.
-            </p>
-
-            {/* 4. Central Asymmetric Photographic Composition & Floating Information Cards */}
-            <div className="relative w-full max-w-[880px] mx-auto select-none">
-              {/* Asymmetric Masked Photograph (stepped contour matching reference) */}
-              <div className="relative w-full">
-                <svg
-                  viewBox="0 0 960 480"
-                  className="w-full h-auto block select-none drop-shadow-[0_12px_32px_rgba(0,0,0,0.06)] overflow-visible"
-                >
-                  <defs>
-                    <clipPath id="hero-asymmetric-silhouette">
-                      <path d="M 280 16 H 740 A 32 32 0 0 1 772 48 V 160 A 24 24 0 0 0 796 184 H 840 A 28 28 0 0 1 868 212 V 320 A 32 32 0 0 1 836 352 H 760 A 24 24 0 0 0 736 328 H 530 A 28 28 0 0 0 502 356 V 432 A 32 32 0 0 1 470 464 H 120 A 32 32 0 0 1 88 432 V 220 A 28 28 0 0 1 116 192 H 220 A 28 28 0 0 0 248 164 V 48 A 32 32 0 0 1 280 16 Z" />
-                    </clipPath>
-                  </defs>
-                  <image
-                    href="/hero_editorial.jpg"
-                    x="0"
-                    y="0"
-                    width="960"
-                    height="480"
-                    preserveAspectRatio="xMidYMid slice"
-                    clipPath="url(#hero-asymmetric-silhouette)"
-                  />
-                </svg>
-              </div>
-
-              {/* Floating Card 01 — Upper Left (Columns 2 → 4, Obsidian dark surface, shifted cleanly to side) */}
-              <div className="absolute top-[5%] sm:top-[6%] left-[0%] sm:left-[2%] bg-[#111315] text-white p-3.5 sm:p-4 rounded-[18px] sm:rounded-[22px] shadow-2xl shadow-black/25 border border-white/10 z-20 transition-transform hover:scale-[1.02] duration-300">
-                <span className="font-digit font-semibold text-2xl sm:text-[32px] leading-none text-white block">
-                  99%
-                </span>
-                <p className="text-[10px] sm:text-xs text-gray-300 font-normal leading-snug mt-1.5 sm:mt-2 max-w-[125px] sm:max-w-[155px]">
-                  Barrier Purity for safe-conscious clinical protection
-                </p>
-              </div>
-
-              {/* Floating Card 02 — Lower Left (Columns 1 → 3, White surface, lower and further left) */}
-              <div className="absolute bottom-[8%] sm:bottom-[10%] left-[-2%] sm:left-[0%] bg-white px-3.5 py-2.5 sm:px-4 sm:py-3.5 rounded-[16px] sm:rounded-[20px] shadow-xl shadow-black/8 border border-gray-100/90 z-20 transition-transform hover:scale-[1.02] duration-300">
-                <span className="font-digit font-semibold text-2xl sm:text-[30px] leading-none text-[#0F1123] block">
-                  25,000+
-                </span>
-                <p className="text-[10px] sm:text-xs text-[#6B7280] font-normal leading-snug mt-1 sm:mt-1.5 max-w-[110px] sm:max-w-[130px]">
-                  Formulations delivered locally in Lagos &amp; Abuja
-                </p>
-              </div>
-
-              {/* Floating Card 03 — Upper Right (Columns 10 → 12, White surface, clinical rating badge) */}
-              <div className="absolute top-[15%] sm:top-[18%] right-[0%] sm:right-[2%] bg-white px-3.5 py-2.5 sm:px-4 sm:py-3.5 rounded-[16px] sm:rounded-[20px] shadow-xl shadow-black/8 border border-gray-100/90 z-20 transition-transform hover:scale-[1.02] duration-300">
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  <span className="font-digit font-semibold text-2xl sm:text-[30px] leading-none text-[#0F1123]">
-                    4.8
-                  </span>
-                  <div className="w-4.5 h-4.5 sm:w-5 sm:h-5 rounded-full bg-[#111315] text-white flex items-center justify-center text-[9px] sm:text-[10px]">
-                    <Star size={10} fill="currentColor" />
-                  </div>
-                </div>
-                <p className="text-[10px] sm:text-xs text-[#6B7280] font-normal leading-snug mt-1 sm:mt-1.5 max-w-[95px] sm:max-w-[115px]">
-                  Average clinical rating (2,400+ reviews)
-                </p>
-              </div>
-
-              {/* Floating Card 04 — Lower Right Context Card (Columns 7 → 11, Editorial categories in notch) */}
-              <div className="absolute bottom-[6%] sm:bottom-[8%] right-[2%] sm:right-[5%] z-20 flex flex-col gap-1.5 sm:gap-2">
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  <button
-                    onClick={() => handleCategorySelect('body-care')}
-                    className="px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold text-[#1F2937] hover:bg-gray-100/90 transition-colors cursor-pointer"
-                  >
-                    Whipped Shea
-                  </button>
-                  <button
-                    onClick={() => handleCategorySelect('body-care')}
-                    className="px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold text-[#1F2937] hover:bg-gray-100/90 transition-colors cursor-pointer"
-                  >
-                    Radiant Glow Oils
-                  </button>
-                  <button
-                    onClick={() => handleCategorySelect('fragrance')}
-                    className="px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold text-[#1F2937] hover:bg-gray-100/90 transition-colors cursor-pointer"
-                  >
-                    Extrait de Parfum
-                  </button>
-                </div>
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  <button
-                    onClick={() => handleCategorySelect('makeup')}
-                    className="px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold text-[#1F2937] hover:bg-gray-100/90 transition-colors cursor-pointer"
-                  >
-                    Velvet Lip Glazes
-                  </button>
-                  <button
-                    onClick={() => handleCategorySelect('skincare')}
-                    className="px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold text-[#1F2937] hover:bg-gray-100/90 transition-colors cursor-pointer"
-                  >
-                    Clean Actives
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* 5. Primary Centered CTA Beneath the Visual Composition */}
-            <div className="flex justify-center mt-7 sm:mt-9">
-              <button
-                onClick={() => {
-                  setSelectedCategory('All');
-                  navigateTo('catalogue');
-                }}
-                className="bg-[#0F0F10] hover:bg-[#D4AF37] text-white hover:text-[#0F0F10] px-8 py-3 rounded-full text-xs sm:text-sm font-semibold shadow-md flex items-center gap-2 active:scale-[0.98] transition-all cursor-pointer"
-              >
-                <span>Explore Formulations</span>
-                <ArrowRight size={14} />
-              </button>
-            </div>
-
-          </div>
-        </section>
-
-        {/* REFINED 1-ROW HORIZONTAL SWIPEABLE CATEGORY RAIL */}
-        <section className="py-8 bg-white border-b border-[#E5E7EB]">
-          <div className="max-w-7xl mx-auto px-6">
-            <div className="flex items-center justify-between mb-4">
+        {/* 1. REFINED CONTINUOUS MARQUEE CATEGORY RAIL (Positioned at TOP immediately beneath DesktopNav) */}
+        <section className="py-5 bg-white border-b border-[#E5E7EB] overflow-hidden">
+          <div className="max-w-7xl mx-auto px-6 mb-3">
+            <div className="flex items-center justify-between">
               <div>
                 <h2 className="font-heading font-semibold text-lg text-[#0F0F10]">
                   Explore Desla!™ Taxonomy
@@ -248,31 +204,34 @@ export const Screen18DesktopHome: React.FC = () => {
                 </button>
               </div>
             </div>
+          </div>
 
-            {/* Single Continuous Row of Circular Category Icons with Swipe / Scroll */}
-            <div
-              ref={categoryScrollRef}
-              className="flex items-center gap-4 overflow-x-auto no-scrollbar pb-2 scroll-smooth"
-            >
-              {[...circularCategoriesRow1, ...circularCategoriesRow2].map((cat) => (
+          {/* Seamless Infinite Continuous Marquee Rail with Left & Right Gradient Masks */}
+          <div
+            ref={categoryScrollRef}
+            className="relative w-full overflow-hidden"
+          >
+            {/* Edge subtle gradient masks */}
+            <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-12 sm:w-20 bg-gradient-to-r from-white to-transparent z-10" />
+            <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 sm:w-20 bg-gradient-to-l from-white to-transparent z-10" />
+
+            <div className="animate-marquee-smooth flex items-center gap-6 sm:gap-8 py-2 px-4">
+              {[...allCircularCategories, ...allCircularCategories].map((cat, idx) => (
                 <div
-                  key={cat.name}
+                  key={`${cat.name}-${idx}`}
                   onClick={() => handleCategorySelect(cat.slug)}
-                  className="flex flex-col items-center justify-between group cursor-pointer w-28 sm:w-32 h-[140px] sm:h-[146px] p-3 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] hover:border-[#D4AF37] hover:shadow-sm transition-all duration-200 text-center shrink-0 active:scale-[0.97]"
+                  className="flex flex-col items-center group cursor-pointer w-24 sm:w-28 shrink-0 active:scale-[0.97]"
                 >
-                  <div className="w-14 sm:w-16 h-14 sm:h-16 rounded-full overflow-hidden p-0.5 border-2 border-transparent group-hover:border-[#D4AF37] transition-all duration-200 bg-[#F6F5F2] shrink-0">
+                  <div className="w-20 h-20 sm:w-22 sm:h-22 rounded-full overflow-hidden p-0.5 border border-[#E5E7EB] group-hover:border-[#D4AF37] group-hover:shadow-md transition-all duration-300 bg-[#F6F5F2] shrink-0 shadow-xs">
                     <img
                       src={cat.img}
                       alt={cat.name}
-                      className="w-full h-full object-cover rounded-full group-hover:scale-105 transition-transform duration-300"
+                      className="w-full h-full object-cover rounded-full group-hover:scale-108 transition-transform duration-300"
                       loading="lazy"
                     />
                   </div>
-                  <span className="text-xs font-heading font-semibold text-[#0F0F10] group-hover:text-[#997A2E] transition-colors leading-tight line-clamp-2 mt-1">
+                  <span className="text-xs font-heading font-semibold text-[#0F0F10] group-hover:text-[#997A2E] transition-colors leading-tight text-center mt-2.5 line-clamp-2 px-1">
                     {cat.name}
-                  </span>
-                  <span className="text-[10px] text-[#6B7280] font-mono">
-                    {cat.count}
                   </span>
                 </div>
               ))}
@@ -280,8 +239,188 @@ export const Screen18DesktopHome: React.FC = () => {
           </div>
         </section>
 
+        {/* 2. REFINED EDITORIAL HERO COMPOSITION (Directly Underneath Taxonomy Rail) */}
+        <section className="relative w-full bg-[#EDEAE4] pt-4 sm:pt-6 pb-10 sm:pb-12 px-4 sm:px-6 lg:px-8 border-b border-[#E2DFD8]">
+          <div className="w-full max-w-5xl mx-auto relative">
+            {/* Single Straight-Line Animated Editorial Headline */}
+            <div className="text-center py-2 sm:py-3 mb-2 sm:mb-4 select-none">
+              <h1 className="font-heading font-semibold text-lg sm:text-xl md:text-2xl text-[#0F0F10] tracking-tight inline-flex items-center justify-center gap-1.5 flex-wrap">
+                <span>Health Before</span>
+                <span
+                  key={wordIndex}
+                  className={`font-semibold inline-block transition-all duration-500 ease-out animate-in fade-in slide-in-from-bottom-1 ${rotatingWords[wordIndex].color}`}
+                >
+                  {rotatingWords[wordIndex].text}.
+                </span>
+                <span className="text-[#0F0F10]/25 mx-1 hidden sm:inline">•</span>
+                <span className="text-[#4B5563] font-normal text-base sm:text-lg">
+                  Intention Before Trend.
+                </span>
+              </h1>
+            </div>
+
+            {/* Central Asymmetric Photographic Composition & Floating Information Cards (Aligned to Reference Design) */}
+            <div
+              className="relative w-full max-w-[880px] mx-auto select-none"
+              onMouseEnter={() => setIsHeroPaused(true)}
+              onMouseLeave={() => setIsHeroPaused(false)}
+            >
+              {/* Asymmetric Masked Photograph (stepped contour matching reference) */}
+              <div className="relative w-full">
+                <svg
+                  viewBox="0 0 960 480"
+                  className="w-full h-auto block select-none drop-shadow-[0_12px_32px_rgba(0,0,0,0.06)] overflow-visible"
+                >
+                  <defs>
+                    <clipPath id="hero-asymmetric-silhouette">
+                      <path d="M 280 16 H 740 A 32 32 0 0 1 772 48 V 160 A 24 24 0 0 0 796 184 H 840 A 28 28 0 0 1 868 212 V 320 A 32 32 0 0 1 836 352 H 760 A 24 24 0 0 0 736 328 H 530 A 28 28 0 0 0 502 356 V 432 A 32 32 0 0 1 470 464 H 120 A 32 32 0 0 1 88 432 V 220 A 28 28 0 0 1 116 192 H 220 A 28 28 0 0 0 248 164 V 48 A 32 32 0 0 1 280 16 Z" />
+                    </clipPath>
+                  </defs>
+                  {heroSlides.map((slide, idx) => (
+                    <image
+                      key={slide.id}
+                      href={slide.image}
+                      x="0"
+                      y="0"
+                      width="960"
+                      height="480"
+                      preserveAspectRatio="xMidYMid slice"
+                      clipPath="url(#hero-asymmetric-silhouette)"
+                      style={{
+                        opacity: currentSlide === idx ? 1 : 0,
+                        transition: 'opacity 700ms cubic-bezier(0.77, 0, 0.175, 1)',
+                        pointerEvents: currentSlide === idx ? 'auto' : 'none'
+                      }}
+                    />
+                  ))}
+                </svg>
+              </div>
+
+              {/* Floating Card 01 — Upper Left (Obsidian dark minimalist surface, NO border, matching reference 99%) */}
+              <div className="absolute top-[4%] sm:top-[5%] left-[1%] sm:left-[2%] bg-[#0F1117] text-white p-3.5 sm:p-4 rounded-2xl shadow-2xl shadow-black/25 z-20 transition-all duration-300 hover:scale-[1.02]">
+                <span className="font-digit font-semibold text-2xl sm:text-3xl leading-none text-white block">
+                  {activeSlide.card1.stat}
+                </span>
+                <p className="text-[10px] sm:text-xs text-gray-300 font-normal leading-snug mt-1.5 max-w-[130px] sm:max-w-[150px]">
+                  {activeSlide.card1.label}
+                </p>
+              </div>
+
+              {/* Floating Card 02 — Lower Left (Crisp white minimalist surface, NO border, matching reference 2.5M) */}
+              <div className="absolute bottom-[6%] sm:bottom-[7%] left-[0%] sm:left-[1%] bg-white text-[#0F0F10] p-3 sm:p-3.5 rounded-2xl shadow-xl shadow-black/8 z-20 transition-all duration-300 hover:scale-[1.02]">
+                <span className="font-digit font-semibold text-2xl sm:text-3xl leading-none text-[#0F1123] block">
+                  {activeSlide.card2.stat}
+                </span>
+                <p className="text-[10px] sm:text-xs text-[#6B7280] font-normal leading-snug mt-1 max-w-[120px] sm:max-w-[135px]">
+                  {activeSlide.card2.label}
+                </p>
+              </div>
+
+              {/* Floating Card 03 — Upper Right (Crisp white minimalist surface, NO border, matching reference 4.8) */}
+              <div className="absolute top-[8%] sm:top-[10%] right-[1%] sm:right-[2%] bg-white text-[#0F0F10] p-3 sm:p-3.5 rounded-2xl shadow-xl shadow-black/8 z-20 transition-all duration-300 hover:scale-[1.02]">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-digit font-semibold text-2xl sm:text-3xl leading-none text-[#0F1123]">
+                    {activeSlide.card3.rating}
+                  </span>
+                  <div className="w-5 h-5 rounded-full bg-[#111315] text-[#D4AF37] flex items-center justify-center text-[10px]">
+                    <Star size={10} fill="currentColor" />
+                  </div>
+                </div>
+                <p className="text-[10px] sm:text-xs text-[#6B7280] font-normal leading-snug mt-1 max-w-[115px] sm:max-w-[130px]">
+                  {activeSlide.card3.label}
+                </p>
+                <button
+                  onClick={() => navigateTo(activeSlide.card3.actionRoute as any)}
+                  className="mt-2 text-[10px] sm:text-[11px] font-semibold text-[#0F0F10] hover:text-[#997A2E] flex items-center gap-1 cursor-pointer transition-colors active:scale-95"
+                >
+                  <span>{activeSlide.card3.actionText}</span>
+                  <ArrowRight size={10} />
+                </button>
+              </div>
+
+              {/* Floating Card 04 — Lower Right Notch Category Links (Two clean rows of bare text links, matching reference) */}
+              <div className="absolute bottom-[6%] sm:bottom-[7%] right-[2%] sm:right-[4%] z-20 flex flex-col gap-2 select-none">
+                <div className="flex items-center gap-2.5 sm:gap-3.5 text-xs sm:text-[13px] font-medium text-[#2D2A26]">
+                  <button
+                    onClick={() => handleCategorySelect('body-care')}
+                    className="hover:text-[#997A2E] transition-colors cursor-pointer"
+                  >
+                    Whipped Shea
+                  </button>
+                  <span className="text-[#2D2A26]/30 text-[10px]">•</span>
+                  <button
+                    onClick={() => handleCategorySelect('body-care')}
+                    className="hover:text-[#997A2E] transition-colors cursor-pointer"
+                  >
+                    Radiant Glow Oils
+                  </button>
+                  <span className="text-[#2D2A26]/30 text-[10px]">•</span>
+                  <button
+                    onClick={() => handleCategorySelect('fragrance')}
+                    className="hover:text-[#997A2E] transition-colors cursor-pointer"
+                  >
+                    Extrait Parfums
+                  </button>
+                </div>
+                <div className="flex items-center gap-2.5 sm:gap-3.5 text-xs sm:text-[13px] font-medium text-[#2D2A26]">
+                  <button
+                    onClick={() => handleCategorySelect('makeup')}
+                    className="hover:text-[#997A2E] transition-colors cursor-pointer"
+                  >
+                    Velvet Lip Glazes
+                  </button>
+                  <span className="text-[#2D2A26]/30 text-[10px]">•</span>
+                  <button
+                    onClick={() => handleCategorySelect('skincare')}
+                    className="hover:text-[#997A2E] transition-colors cursor-pointer"
+                  >
+                    Clean Actives
+                  </button>
+                  <span className="text-[#2D2A26]/30 text-[10px]">•</span>
+                  <button
+                    onClick={() => setIsFlagshipModalOpen(true)}
+                    className="font-semibold text-[#997A2E] hover:text-[#D4AF37] transition-colors cursor-pointer"
+                  >
+                    Flagship Formulations
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Slide Navigation Controls & Minimalist Indicators */}
+            <div className="flex items-center justify-center gap-2 mt-5">
+              {heroSlides.map((slide, idx) => {
+                const isActive = currentSlide === idx;
+                return (
+                  <button
+                    key={slide.id}
+                    onClick={() => setCurrentSlide(idx)}
+                    aria-label={`Go to slide ${idx + 1}: ${slide.tag}`}
+                    className={`h-2 transition-all duration-300 rounded-full cursor-pointer ${
+                      isActive
+                        ? 'w-6 bg-[#FB7701]'
+                        : 'w-2 bg-[#0F0F10]/20 hover:bg-[#0F0F10]/40'
+                    }`}
+                  />
+                );
+              })}
+            </div>
+
+            {/* Primary Centered CTA Beneath the Visual Composition */}
+            <div className="flex justify-center mt-4 sm:mt-5">
+              <button
+                onClick={() => setIsFlagshipModalOpen(true)}
+                className="bg-[#0F0F10] hover:bg-[#D4AF37] text-white hover:text-[#0F0F10] px-8 py-3.5 rounded-full text-xs sm:text-sm font-semibold shadow-md flex items-center gap-2 active:scale-[0.98] transition-all cursor-pointer group"
+              >
+                <span>Explore Formulations</span>
+                <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+              </button>
+            </div>
+          </div>
+        </section>
+
         {/* TEMU-INSPIRED FILTER & SORT PILL RAIL */}
-        <section className="py-3 bg-[#FAF9F6] border-b border-[#E5E7EB] sticky top-[118px] z-20">
+        <section className="py-3 bg-[#FAF9F6] border-b border-[#E5E7EB]">
           <div className="max-w-7xl mx-auto px-6 flex items-center justify-between overflow-x-auto no-scrollbar gap-3 text-xs">
             <div className="flex items-center gap-2">
               <span className="font-bold text-[#0F0F10] shrink-0 mr-1 flex items-center gap-1">
@@ -403,13 +542,10 @@ export const Screen18DesktopHome: React.FC = () => {
         {/* SECTION 2.5: ASK DESLA!™ AI CONCIERGE & LIVE TRACKING PORTAL BANNER */}
         <section className="py-8 bg-white">
           <div className="max-w-7xl mx-auto px-6">
-            <div className="p-6 md:p-8 rounded-3xl bg-gradient-to-r from-[#0F0F10] via-[#1A1817] to-[#0F0F10] text-white border-2 border-[#D4AF37]/50 shadow-xl flex flex-col lg:flex-row items-center justify-between gap-6 relative overflow-hidden">
-              {/* Background ambient glow */}
-              <div className="absolute top-0 right-0 w-96 h-96 bg-[radial-gradient(circle,rgba(212,175,55,0.15)_0%,transparent_70%)] pointer-events-none" />
-
+            <div className="p-6 md:p-8 rounded-3xl bg-[#0F0F10] text-white border border-white/10 shadow-xl flex flex-col lg:flex-row items-center justify-between gap-6 relative overflow-hidden">
               <div className="space-y-3 max-w-xl z-10">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-[#D4AF37]/40 text-[#D4AF37] text-xs font-mono font-bold">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <div className="inline-flex items-center gap-2 text-[#FB7701] text-xs font-mono font-bold tracking-wider">
+                  <span className="w-2 h-2 rounded-full bg-[#FB7701] animate-pulse" />
                   <span>24/7 ChatGPT-Powered Beauty Concierge</span>
                 </div>
                 <h3 className="font-heading font-extrabold text-2xl md:text-3xl text-white tracking-tight">
@@ -419,28 +555,34 @@ export const Screen18DesktopHome: React.FC = () => {
                   Connect instantly with our dedicated AI concierge. Get instant live courier tracking on order <strong>#DES-829104</strong>, personalized clinical recommendations for hyperpigmentation, or check NAFDAC batch seals.
                 </p>
 
-                {/* Quick 1-tap query pills */}
-                <div className="flex flex-wrap items-center gap-2 pt-1">
+                {/* Quick 1-tap query links — MINIMALIST (No excess backgrounds) */}
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pt-1 text-xs text-gray-300">
                   <button
                     onClick={() => navigateTo('ask-ai')}
-                    className="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-xs text-gray-200 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer"
+                    className="hover:text-[#FB7701] flex items-center gap-1.5 transition-colors cursor-pointer group"
                   >
-                    <Package size={13} className="text-[#D4AF37]" />
-                    <span>Track Package #DES-829104</span>
+                    <Package size={13} className="text-[#FB7701] group-hover:scale-110 transition-transform" />
+                    <span className="underline-offset-4 group-hover:underline">Track Package #DES-829104</span>
                   </button>
+
+                  <span className="text-white/20 hidden sm:inline">•</span>
+
                   <button
                     onClick={() => navigateTo('ask-ai')}
-                    className="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-xs text-gray-200 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer"
+                    className="hover:text-[#FB7701] flex items-center gap-1.5 transition-colors cursor-pointer group"
                   >
-                    <Sparkles size={13} className="text-[#D4AF37]" />
-                    <span>Hyperpigmentation Routine</span>
+                    <Sparkles size={13} className="text-[#FB7701] group-hover:scale-110 transition-transform" />
+                    <span className="underline-offset-4 group-hover:underline">Hyperpigmentation Routine</span>
                   </button>
+
+                  <span className="text-white/20 hidden sm:inline">•</span>
+
                   <button
                     onClick={() => navigateTo('ask-ai')}
-                    className="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-xs text-gray-200 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer"
+                    className="hover:text-[#FB7701] flex items-center gap-1.5 transition-colors cursor-pointer group"
                   >
-                    <ShieldCheck size={13} className="text-[#D4AF37]" />
-                    <span>NAFDAC Authenticity</span>
+                    <ShieldCheck size={13} className="text-[#FB7701] group-hover:scale-110 transition-transform" />
+                    <span className="underline-offset-4 group-hover:underline">NAFDAC Authenticity</span>
                   </button>
                 </div>
               </div>
@@ -449,9 +591,9 @@ export const Screen18DesktopHome: React.FC = () => {
               <div className="shrink-0 z-10 w-full sm:w-auto">
                 <button
                   onClick={() => navigateTo('ask-ai')}
-                  className="w-full sm:w-auto px-7 py-3.5 rounded-full bg-[#D4AF37] hover:bg-[#F6E7C1] text-[#0F0F10] font-heading font-extrabold text-sm shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2.5 cursor-pointer group"
+                  className="w-full sm:w-auto px-7 py-3.5 rounded-full bg-[#FB7701] hover:bg-[#e06b01] text-white font-heading font-extrabold text-sm shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2.5 cursor-pointer group"
                 >
-                  <Sparkles size={16} className="text-[#0F0F10]" />
+                  <Sparkles size={16} className="text-white" />
                   <span>Open Ask Desla!™ AI (ChatGPT)</span>
                   <ArrowRight size={15} className="group-hover:translate-x-1 transition-transform" />
                 </button>
@@ -460,64 +602,75 @@ export const Screen18DesktopHome: React.FC = () => {
           </div>
         </section>
 
-        {/* SECTION 3: FLAGSHIP BODY CARE COLLECTION (4-Column Grid) */}
-        <section className="py-12 bg-white">
-          <div className="max-w-7xl mx-auto px-6">
-            <div className="flex items-end justify-between mb-6">
-              <div>
-                <span className="text-xs font-bold text-[#997A2E] uppercase tracking-wider block mb-1">
-                  Flagship Formulations
-                </span>
-                <h2 className="font-heading font-extrabold text-2xl text-[#0F0F10] tracking-tight">
-                  Whipped Butters &amp; Radiant Glow Oils
-                </h2>
-              </div>
-              <button
-                onClick={() => handleCategorySelect('body-care')}
-                className="text-xs font-bold text-[#997A2E] hover:underline flex items-center gap-1 cursor-pointer"
-              >
-                <span>Shop Body Care ({bodyCareProducts.length})</span>
-                <ArrowRight size={13} />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 lg:gap-5">
-              {bodyCareProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* SECTION 4: HAUTE PARFUMERIE & LIP GLAZES (5-Column Grid) */}
-        <section className="py-12 bg-[#FAF9F6] border-t border-[#E5E7EB]">
-          <div className="max-w-7xl mx-auto px-6">
-            <div className="flex items-end justify-between mb-6">
-              <div>
-                <span className="text-xs font-bold text-[#997A2E] uppercase tracking-wider block mb-1">
-                  Artisanal Luxury
-                </span>
-                <h2 className="font-heading font-extrabold text-2xl text-[#0F0F10] tracking-tight">
-                  Extrait de Parfum &amp; Lips
-                </h2>
-              </div>
-              <button
-                onClick={() => handleCategorySelect('fragrance')}
-                className="text-xs font-bold text-[#997A2E] hover:underline flex items-center gap-1 cursor-pointer"
-              >
-                <span>Shop Fragrances</span>
-                <ArrowRight size={13} />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 lg:gap-5">
-              {fragranceProducts.concat(makeupProducts).slice(0, 5).map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
-          </div>
-        </section>
       </main>
+
+      {/* FLAGSHIP FORMULATIONS & ARTISANAL LUXURY MODAL */}
+      {isFlagshipModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
+          {/* Backdrop with smooth blur */}
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity cursor-pointer"
+            onClick={() => setIsFlagshipModalOpen(false)}
+            aria-label="Close modal backdrop"
+          />
+
+          {/* Dialog Container */}
+          <div className="relative z-10 w-full max-w-4xl bg-white rounded-3xl shadow-2xl border border-[#D4AF37]/40 flex flex-col max-h-[85vh] overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="p-5 sm:p-6 border-b border-[#E5E7EB] bg-[#FAF9F6] flex items-start justify-between gap-4">
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FBF5E8] border border-[#D4AF37]/40 text-[#997A2E] text-[11px] font-bold uppercase tracking-wider mb-2">
+                  <Sparkles size={12} className="text-[#D4AF37]" />
+                  <span>Flagship Formulations &amp; Artisanal Luxury</span>
+                </div>
+                <h3 className="font-heading font-extrabold text-xl sm:text-2xl text-[#0F0F10] tracking-tight">
+                  Whipped Butters, Radiant Glow Oils &amp; Extrait de Parfum
+                </h3>
+                <p className="text-xs text-[#6B7280] mt-1">
+                  Clinical science engineered for melanin-rich African skin • Local stock ready for same-day dispatch in {selectedCity}
+                </p>
+              </div>
+
+              <button
+                onClick={() => setIsFlagshipModalOpen(false)}
+                className="w-9 h-9 rounded-full bg-white hover:bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-500 hover:text-black transition-colors cursor-pointer shrink-0"
+                aria-label="Close modal"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Content Grid */}
+            <div className="flex-1 overflow-y-auto p-5 sm:p-6 bg-white">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                {[...bodyCareProducts, ...fragranceProducts, ...makeupProducts].slice(0, 8).map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 sm:p-5 border-t border-[#E5E7EB] bg-[#FAF9F6] flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-xs text-[#6B7280]">
+                <ShieldCheck size={15} className="text-emerald-600 shrink-0" />
+                <span>100% NAFDAC certified authentic batch formulations</span>
+              </div>
+
+              <button
+                onClick={() => {
+                  setIsFlagshipModalOpen(false);
+                  setSelectedCategory('All');
+                  navigateTo('catalogue');
+                }}
+                className="w-full sm:w-auto px-6 py-2.5 rounded-full bg-[#0F0F10] hover:bg-[#D4AF37] text-white hover:text-[#0F0F10] font-heading font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>Explore Full Catalogue</span>
+                <ArrowRight size={13} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* LUXURY WHITE FOOTER */}
       <footer className="bg-white border-t border-[#E5E7EB] pt-14 pb-8 text-[#6B7280] text-xs">

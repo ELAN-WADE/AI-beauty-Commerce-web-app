@@ -31,6 +31,11 @@
     --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
   }
 
+  html,
+  body {
+    overflow-x: clip;
+  }
+
   body {
     font-family: miui, system-ui, -apple-system, BlinkMacSystemFont, ".SFNSText-Regular", Helvetica, Arial, sans-serif;
     color: #0F0F10;
@@ -40,7 +45,6 @@
     text-rendering: optimizeLegibility;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11', 'ss01', 'tnum';
     font-variant-numeric: tabular-nums;
-    overflow-x: hidden;
     line-height: 1.45;
   }
 
@@ -199,6 +203,27 @@
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* Infinite Smooth Continuous Marquee for Taxonomy Rail */
+@keyframes marqueeHorizontal {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.animate-marquee-smooth {
+  display: flex;
+  width: max-content;
+  animation: marqueeHorizontal 38s linear infinite;
+  will-change: transform;
+}
+
+.animate-marquee-smooth:hover {
+  animation-play-state: paused;
 }
 
 /* ========================================================

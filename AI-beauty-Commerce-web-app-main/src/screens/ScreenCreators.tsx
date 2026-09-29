@@ -63,8 +63,8 @@ export const ScreenCreators: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white text-[#0F0F10] pb-24">
-      {/* Top Header */}
-      <div className="sticky top-0 z-30 w-full bg-white/95 backdrop-blur-md border-b border-[#E5E7EB] px-4 lg:px-8 py-3.5">
+      {/* Top Header (Mobile/Tablet Only — Hidden on Desktop) */}
+      <div className="lg:hidden sticky top-0 z-30 w-full bg-white/95 backdrop-blur-md border-b border-[#E5E7EB] px-4 lg:px-8 py-3.5">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button

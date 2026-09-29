@@ -28,7 +28,8 @@ export const DesktopNav: React.FC = () => {
     setSearchQuery,
     setSelectedCategory,
     selectedCity,
-    setIsLocationModalOpen
+    setIsLocationModalOpen,
+    authUser
   } = useApp();
 
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -50,7 +51,7 @@ export const DesktopNav: React.FC = () => {
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full shadow-xs">
+    <header className="sticky top-0 z-40 w-full shadow-xs bg-white">
       {/* 1. TOP BLACK UTILITY RIBBON */}
       <div className="bg-[#0F0F10] text-[#E5E7EB] py-1.5 px-6 text-xs border-b border-black/40">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -75,8 +76,16 @@ export const DesktopNav: React.FC = () => {
             </span>
           </div>
 
-          {/* Right: Authenticity & Concierge */}
-          <div className="flex items-center gap-4 text-[11px]">
+          {/* Right: Authenticity, Track Order & Concierge */}
+          <div className="flex items-center gap-3.5 text-[11px]">
+            <button
+              onClick={() => navigateTo('guest-order-lookup')}
+              className="hover:text-[#D4AF37] text-gray-200 transition-colors cursor-pointer flex items-center gap-1 font-semibold"
+            >
+              <Truck size={12} className="text-[#D4AF37]" />
+              <span>Track Order</span>
+            </button>
+            <span className="text-white/20">|</span>
             <span className="hidden sm:inline font-price font-semibold text-[#FB7701]">
               100% NAFDAC Authentic
             </span>
@@ -179,6 +188,18 @@ export const DesktopNav: React.FC = () => {
               <span>Collective</span>
             </button>
 
+            {/* Admin Console Pill */}
+            {(authUser?.roles?.some((r) => ['STAFF', 'ADMIN', 'SUPER_ADMIN'].includes(r)) || !authUser) && (
+              <button
+                onClick={() => navigateTo('admin-console')}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#0F4A38] hover:bg-[#0B382A] text-white font-heading font-bold text-xs shadow-xs border border-emerald-500/30 active:scale-95 transition-all cursor-pointer"
+                title="Open Desla!™ Operations Admin Console"
+              >
+                <ShieldCheck size={14} className="text-[#D4AF37]" />
+                <span>Admin Console</span>
+              </button>
+            )}
+
             {/* Black Pill: Cart Bag with Gold Count Badge */}
             <button
               onClick={() => navigateTo('cart')}
@@ -196,17 +217,21 @@ export const DesktopNav: React.FC = () => {
               </span>
             </button>
 
-            {/* Account Profile Avatar */}
+            {/* Account Profile Avatar / Sign In */}
             <button
-              onClick={() => navigateTo('account')}
-              className="p-0.5 rounded-full border-2 border-white/80 hover:border-white active:scale-95 transition-all cursor-pointer shadow-xs"
+              onClick={() => navigateTo(authUser ? 'account' : 'login')}
+              className="p-0.5 rounded-full border-2 border-white/80 hover:border-white active:scale-95 transition-all cursor-pointer shadow-xs relative"
               aria-label="Account"
+              title={authUser ? `Signed in as ${authUser.email}` : 'Sign In'}
             >
               <img
-                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80"
+                src={authUser?.profile?.avatarUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80"}
                 alt="Profile"
                 className="w-7 h-7 rounded-full object-cover"
               />
+              {authUser && (
+                <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-500 ring-1 ring-white" />
+              )}
             </button>
           </div>
         </div>

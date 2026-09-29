@@ -2,7 +2,7 @@
 // set, the storefront talks to the owned Next.js API; otherwise it keeps
 // running on local mocks. Reads never throw (null = use fallback); writes
 // throw ApiError so callers can show messages.
-import type { CartItem, Order, Product } from '../types';
+import type { CartItem, Order, Product, AdminOrder, AdminTransferClaim, AdminAuditLog, AdminInventoryItem } from '../types';
 
 const BASE = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/+$/, '');
 
@@ -173,6 +173,18 @@ export async function apiMe(): Promise<AuthUser | null> {
     if (e instanceof ApiError && e.status === 401) return null;
     throw e;
   }
+}
+
+export async function apiRequestPasswordReset(email: string): Promise<{ ok: boolean; _devResetToken?: string }> {
+  return apiFetch('/api/auth/request-password-reset', { method: 'POST', body: JSON.stringify({ email }) });
+}
+
+export async function apiResetPassword(token: string, newPassword: string): Promise<{ ok: boolean }> {
+  return apiFetch('/api/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, newPassword }) });
+}
+
+export async function apiVerifyEmail(token: string): Promise<{ ok: boolean }> {
+  return apiFetch('/api/auth/verify-email', { method: 'POST', body: JSON.stringify({ token }) });
 }
 
 // ---------- Catalogue detail (variant resolution for cart sync) ----------
@@ -546,6 +558,69 @@ export async function mirrorWishlist(productId: string, size: string | undefined
     }
   } catch {
     // 401 guests, network blips — local state remains the source of truth
+  }
+}
+
+// ---------- Admin Console Operations (STAFF / ADMIN / SUPER_ADMIN) ----------
+
+export async function fetchAdminOrders(status?: string, limit = 50): Promise<{ orders: AdminOrder[] } | null> {
+  if (!BASE) return null;
+  try {
+    const url = new URL(`${BASE}/api/admin/orders`);
+    if (status) url.searchParams.set('status', status);
+    url.searchParams.set('limit', String(limit));
+    const res = await apiFetch<{ orders: AdminOrder[] }>(url.pathname + url.search);
+    return res;
+  } catch (e) {
+    if (e instanceof ApiError && (e.status === 401 || e.status === 403)) return null;
+    throw e;
+  }
+}
+
+export async function updateAdminOrderStatus(orderId: string, status: string): Promise<{ ok: boolean; order?: unknown }> {
+  return apiFetch(`/api/admin/orders/${encodeURIComponent(orderId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+}
+
+export async function fetchAdminTransferClaims(status?: 'pending' | 'confirmed' | 'rejected'): Promise<{ claims: AdminTransferClaim[] } | null> {
+  if (!BASE) return null;
+  try {
+    const url = new URL(`${BASE}/api/admin/transfer-claims`);
+    if (status) url.searchParams.set('status', status);
+    return await apiFetch<{ claims: AdminTransferClaim[] }>(url.pathname + url.search);
+  } catch (e) {
+    if (e instanceof ApiError && (e.status === 401 || e.status === 403)) return null;
+    throw e;
+  }
+}
+
+export async function confirmAdminTransferClaim(claimId: string, approve: boolean, note?: string): Promise<{ ok: boolean }> {
+  return apiFetch('/api/admin/transfer-claims/confirm', {
+    method: 'POST',
+    body: JSON.stringify({ claimId, approve, note }),
+  });
+}
+
+export async function fetchAdminAudits(limit = 20): Promise<{ audit: AdminAuditLog[] } | null> {
+  if (!BASE) return null;
+  try {
+    return await apiFetch<{ audit: AdminAuditLog[] }>(`/api/admin/audit?limit=${limit}`);
+  } catch (e) {
+    if (e instanceof ApiError && (e.status === 401 || e.status === 403)) return null;
+    throw e;
+  }
+}
+
+export async function fetchAdminInventory(variantId?: string): Promise<any | null> {
+  if (!BASE) return null;
+  try {
+    const url = variantId ? `/api/admin/inventory?variantId=${encodeURIComponent(variantId)}` : `/api/admin/inventory`;
+    return await apiFetch(url);
+  } catch (e) {
+    if (e instanceof ApiError && (e.status === 401 || e.status === 403)) return null;
+    throw e;
   }
 }
 

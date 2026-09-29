@@ -280,6 +280,60 @@ export interface ProductReview {
   helpfulCount: number;
 }
 
+export interface AdminOrder {
+  id: string;
+  orderNumber: string;
+  createdAt: string;
+  status: 'PENDING' | 'PAID' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
+  paymentStatus: 'UNPAID' | 'PAID' | 'REFUNDED';
+  totalKobo: number;
+  totalNgn: number;
+  customerEmail: string;
+  customerName?: string;
+  customerCity?: string;
+  itemsCount: number;
+  fulfillmentType: 'local' | 'central';
+}
+
+export interface AdminTransferClaim {
+  id: string;
+  orderId: string;
+  orderNumber: string;
+  senderName: string;
+  bankName: string;
+  amountKobo: number;
+  amountNgn: number;
+  narration?: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  createdAt: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+}
+
+export interface AdminInventoryItem {
+  id: string;
+  sku: string;
+  productName: string;
+  category: string;
+  centralStock: number;
+  lagosHub: number;
+  abujaHub: number;
+  phHub: number;
+  kanoHub: number;
+  lowStockThreshold: number;
+  isLowStock: boolean;
+}
+
+export interface AdminAuditLog {
+  id: string;
+  timestamp: string;
+  action: string;
+  actor: string;
+  role: string;
+  details: string;
+  ipAddress?: string;
+}
+
 export type ScreenId =
   | 'splash'
   | 'onboarding'
@@ -301,4 +355,14 @@ export type ScreenId =
   | 'community'
   | 'distributors'
   | 'distributor-portal'
-  | 'creators';
+  | 'creators'
+  | 'admin-console'
+  | 'login'
+  | 'signup'
+  | 'forgot-password'
+  | 'reset-password'
+  | 'verify-email'
+  | 'guest-order-lookup'
+  | 'creator-dashboard'
+  | 'distributor-dashboard';
+

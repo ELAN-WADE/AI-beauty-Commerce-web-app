@@ -32,6 +32,10 @@ import { ScreenCommunityChat } from './screens/ScreenCommunityChat';
 import { ScreenDistributors } from './screens/ScreenDistributors';
 import { ScreenDistributorPortal } from './screens/ScreenDistributorPortal';
 import { ScreenCreators } from './screens/ScreenCreators';
+import { ScreenAdminConsole } from './screens/ScreenAdminConsole';
+import { ScreenAuthSuite } from './screens/ScreenAuthSuite';
+import { ScreenGuestOrderLookup } from './screens/ScreenGuestOrderLookup';
+import { RequireRole } from './components/auth/RequireRole';
 
 export const App: React.FC = () => {
   const { isDesktop } = useViewport();
@@ -77,15 +81,74 @@ export const App: React.FC = () => {
       case 'distributors':
         return <ScreenDistributors />;
       case 'distributor-portal':
-        return <ScreenDistributorPortal />;
+        return (
+          <RequireRole
+            allowedRoles={['DISTRIBUTOR', 'STAFF', 'ADMIN', 'SUPER_ADMIN']}
+            title="Distributor City Hub"
+            description="Manage your regional city hub inventory, customer order pickups, and restock requests."
+          >
+            <ScreenDistributorPortal />
+          </RequireRole>
+        );
       case 'creators':
-        return <ScreenCreators />;
+        return (
+          <RequireRole
+            allowedRoles={['CREATOR', 'STAFF', 'ADMIN', 'SUPER_ADMIN']}
+            title="Creator Affiliate Studio"
+            description="Access your VIP commission ledger, promo code performance, and seasonal PR box dispatch tracking."
+          >
+            <ScreenCreators />
+          </RequireRole>
+        );
+      case 'admin-console':
+        return (
+          <RequireRole
+            allowedRoles={['STAFF', 'ADMIN', 'SUPER_ADMIN']}
+            title="Desla!™ Operations Admin Console"
+            description="Manage clinical batch authenticity seals, courier dispatch queues, manual bank transfer claims, and inventory across city hubs."
+          >
+            <ScreenAdminConsole />
+          </RequireRole>
+        );
+      case 'login':
+        return <ScreenAuthSuite initialMode="login" />;
+      case 'signup':
+        return <ScreenAuthSuite initialMode="signup" />;
+      case 'forgot-password':
+        return <ScreenAuthSuite initialMode="forgot-password" />;
+      case 'reset-password':
+        return <ScreenAuthSuite initialMode="reset-password" />;
+      case 'verify-email':
+        return <ScreenAuthSuite initialMode="verify-email" />;
+      case 'guest-order-lookup':
+        return <ScreenGuestOrderLookup />;
+      case 'creator-dashboard':
+        return (
+          <RequireRole
+            allowedRoles={['CREATOR', 'STAFF', 'ADMIN', 'SUPER_ADMIN']}
+            title="Creator Affiliate Studio"
+          >
+            <ScreenCreators />
+          </RequireRole>
+        );
+      case 'distributor-dashboard':
+        return (
+          <RequireRole
+            allowedRoles={['DISTRIBUTOR', 'STAFF', 'ADMIN', 'SUPER_ADMIN']}
+            title="Distributor City Hub"
+          >
+            <ScreenDistributorPortal />
+          </RequireRole>
+        );
       default:
         return isDesktop ? <Screen18DesktopHome /> : <Screen03Home />;
     }
   };
 
-  const isImmersiveScreen = ['splash', 'ask-ai'].includes(currentScreen);
+  const isImmersiveScreen = ['splash', 'ask-ai', 'admin-console'].includes(currentScreen);
+  // Admin console is a separate operational surface (own shell, own chrome).
+  // It lives here for easy access now; later it moves to its own path/host.
+  const isAdminScreen = currentScreen === 'admin-console';
   const showBottomNav =
     !isDesktop &&
     ![
@@ -94,7 +157,14 @@ export const App: React.FC = () => {
       'payment',
       'order-confirmed',
       'desktop-home',
-      'ask-ai'
+      'ask-ai',
+      'admin-console',
+      'login',
+      'signup',
+      'forgot-password',
+      'reset-password',
+      'verify-email',
+      'guest-order-lookup'
     ].includes(currentScreen);
 
   return (
@@ -102,8 +172,8 @@ export const App: React.FC = () => {
       {/* Initial Luxury Brand Loading Experience (Delsla Logo reveal) */}
       <InitialBrandLoader />
 
-      {/* Global Desktop Navigation Bar on Desktop Screens */}
-      {isDesktop && !isImmersiveScreen && <DesktopNav />}
+      {/* Global Desktop Navigation Bar on Desktop Screens (storefront only) */}
+      {isDesktop && !isImmersiveScreen && !isAdminScreen && <DesktopNav />}
 
       {/* Main Responsive Storefront Viewport */}
       <main className="flex-1 w-full relative">
@@ -113,15 +183,19 @@ export const App: React.FC = () => {
       {/* Mobile Edge-to-Edge Sticky Bottom Navigation */}
       {showBottomNav && <BottomNav />}
 
-      {/* Persistent Global Floating AI Assistant Concierge Button */}
-      <AIFloatingButton />
+      {/* Persistent Global Floating AI Assistant Concierge Button (storefront only) */}
+      {!isAdminScreen && <AIFloatingButton />}
 
-      {/* Global Sheets, Drawers & Modals */}
-      <AddToCartSheet />
-      <FilterSortSheet />
-      <AIAssistantDrawer />
-      <CommunityChatDrawer />
-      <LocationSelector />
+      {/* Global Sheets, Drawers & Modals (storefront only) */}
+      {!isAdminScreen && (
+        <>
+          <AddToCartSheet />
+          <FilterSortSheet />
+          <AIAssistantDrawer />
+          <CommunityChatDrawer />
+          <LocationSelector />
+        </>
+      )}
 
       {/* Live payment return states (owned backend only; demo flow untouched) */}
       {isLiveBackend && (livePayment.status === 'verifying' || livePayment.status === 'redirecting') && (
