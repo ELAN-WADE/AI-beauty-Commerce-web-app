@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { getDb } from '../db/client';
+import { captureError } from '../lib/observe';
 import { runAllTasks } from './tasks';
 
 /**
@@ -28,12 +29,16 @@ async function main() {
   process.on('SIGINT', stop);
   process.on('SIGTERM', stop);
   for (;;) {
-    await pass().catch((err) => console.error(JSON.stringify({ level: 'error', scope: 'worker', err: String(err) })));
+    await pass().catch((err) => {
+      console.error(JSON.stringify({ level: 'error', scope: 'worker', err: String(err) }));
+      captureError(err, { scope: 'worker' });
+    });
     await new Promise((r) => setTimeout(r, intervalMs));
   }
 }
 
 main().catch((err) => {
   console.error(err);
+  captureError(err, { scope: 'worker-boot' });
   process.exit(1);
 });

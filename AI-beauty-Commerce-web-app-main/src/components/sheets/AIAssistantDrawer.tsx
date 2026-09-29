@@ -62,18 +62,18 @@ export const AIAssistantDrawer: React.FC = () => {
         {/* Assistant Header */}
         <div className="px-5 py-4 border-b border-[#E5E7EB] flex items-center justify-between bg-white shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#FAF9F6] border border-[#D4AF37]/40 text-[#D4AF37] flex items-center justify-center shadow-xs shrink-0">
-              <Sparkles size={18} strokeWidth={2.2} />
+            <div className="w-8 h-8 rounded-xl bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center font-heading font-black text-xs shadow-xs shrink-0">
+              D!
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <h3 className="font-heading font-semibold text-sm text-[#0F0F10]">
+                <h3 className="font-heading font-bold text-sm text-[#0F0F10]">
                   Desla<span className="text-[#D4AF37]">!™</span> AI Concierge
                 </h3>
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="w-2 h-2 rounded-full bg-emerald-500" title="System Online" />
               </div>
               <p className="text-[10px] text-[#6B7280]">
-                Melanin-Rich Clinical Skincare &amp; Apothecary
+                Clinical Formulations, Regimens &amp; Courier Telemetry
               </p>
             </div>
           </div>

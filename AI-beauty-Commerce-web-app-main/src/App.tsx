@@ -10,6 +10,7 @@ import { FilterSortSheet } from './components/sheets/FilterSortSheet';
 import { AIAssistantDrawer } from './components/sheets/AIAssistantDrawer';
 import { CommunityChatDrawer } from './components/community/CommunityChatDrawer';
 import { InitialBrandLoader } from './components/common/InitialBrandLoader';
+import { OfflineStatusBanner } from './components/common/OfflineStatusBanner';
 
 // Screens
 import { Screen01Splash } from './screens/Screen01Splash';
@@ -169,6 +170,9 @@ export const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#FFFFFF] text-[#0F0F10] relative font-body flex flex-col selection:bg-[#D4AF37]/20 selection:text-[#997A2E] overflow-x-clip">
+      {/* Offline Status Awareness & Reconnection Toast */}
+      <OfflineStatusBanner />
+
       {/* Initial Luxury Brand Loading Experience (Delsla Logo reveal) */}
       <InitialBrandLoader />
 

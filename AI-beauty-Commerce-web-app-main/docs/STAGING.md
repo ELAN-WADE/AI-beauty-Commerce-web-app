@@ -107,3 +107,19 @@ New Postgres (PITR on), fresh secrets, `APP_URL/FRONTEND_URL` → prod domain,
 provider LIVE keys + live webhook URLs re-registered, `npm run db:migrate`
 before traffic switch, nightly `pg_dump` → object storage + quarterly restore
 drill. Keep the hardcoded demo card in `Screen11Payment` — delete it now.
+
+## 9. Third-party activation checklist
+
+| Integration | Status in repo | To activate |
+|---|---|---|
+| Paystack / Flutterwave / Opay | Built + tested (mock HTTP) | Test keys → smoke suite §6 → live keys + webhook URLs |
+| Termii SMS/WhatsApp | Built + tested; log-falls-back when unset | `TERMII_API_KEY` (+sender ID); flip a template's outbox channel to `sms`/`whatsapp` |
+| Sentry errors | Zero-dep reporter both apps, no-op without DSN | Create project → `SENTRY_DSN` / `VITE_SENTRY_DSN` → confirm first event + alert rule |
+| Gemini AI | Seam built, mock default | `GEMINI_API_KEY` → verify analysis + chat responses + billing alert |
+| Newsletter (Resend/Brevo) | **Not built** | Needs subscribers table + double opt-in + campaign worker (next build) |
+| GIG Logistics API | Manual shipments only | Business account → request API access → implement provider seam |
+| DHL / FedEx / UPS | Out of scope until international volume | Business account + developer program when justified |
+| Cloudflare | No code needed | DNS → proxy on → WAF managed rules → Turnstile on auth (replaces need for CAPTCHA code) |
+| Meta/TikTok pixels | **Not built** | IDs → pixel loader + ViewContent/AddToCart/Purchase events (next build) |
+| FIRS e-invoicing | **Not built** | Confirm VAT status with accountant; if liable, invoice API becomes a compliance build |
+| Google OAuth login | **Not built** | Cloud console client → callback route → link to users (friction reducer, optional) |

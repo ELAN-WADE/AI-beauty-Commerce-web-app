@@ -82,7 +82,7 @@ export const ScreenAskAI: React.FC = () => {
 
   const quickPrompts = [
     { label: 'Track My Package', icon: Package, query: `Where is my package #${activeTrackingId}?` },
-    { label: 'Hyperpigmentation Routine', icon: Sparkles, query: 'Recommend a targeted clinical routine for hyperpigmentation on melanin skin' },
+    { label: 'Hyperpigmentation Routine', icon: CheckCircle2, query: 'Recommend a targeted clinical routine for hyperpigmentation on melanin skin' },
     { label: 'Whipped Shea vs 24K Oil', icon: Flame, query: 'Which body butter or oil is best for 24-hour dry skin hydration?' },
     { label: 'NAFDAC Authenticity', icon: ShieldCheck, query: 'How does Desla verify 100% NAFDAC authentic batch formulation?' },
     { label: 'Payment Gateways', icon: HelpCircle, query: 'What payment methods are supported on Paystack and Flutterwave?' },
@@ -249,20 +249,20 @@ export const ScreenAskAI: React.FC = () => {
               {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
 
-            {/* Brand Logo & Concierge Title */}
+            {/* Brand Monogram & Minimalist Concierge Title */}
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-full bg-[#FAF9F6] border border-[#D4AF37]/50 text-[#D4AF37] flex items-center justify-center shadow-xs">
-                <Sparkles size={16} strokeWidth={2.4} />
+              <div className="w-8 h-8 rounded-xl bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center font-heading font-black text-xs shadow-xs shrink-0">
+                D!
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <h1 className="font-heading font-extrabold text-sm sm:text-base text-[#0F0F10]">
+                  <h1 className="font-heading font-bold text-sm sm:text-base text-[#0F0F10]">
                     Desla<span className="text-[#D4AF37]">!™</span> AI Concierge
                   </h1>
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" title="System Online" />
                 </div>
                 <p className="text-[10px] text-[#6B7280]">
-                  Melanin Skincare, Formulation Advice &amp; Package Tracking
+                  Clinical Formulations, Regimens &amp; Courier Telemetry
                 </p>
               </div>
             </div>
@@ -370,7 +370,7 @@ export const ScreenAskAI: React.FC = () => {
                     {item.category === 'tracking' ? (
                       <Package size={14} className="text-[#997A2E] shrink-0" />
                     ) : item.category === 'skincare' ? (
-                      <Sparkles size={14} className="text-[#D4AF37] shrink-0" />
+                      <ShieldCheck size={14} className="text-[#D4AF37] shrink-0" />
                     ) : (
                       <Clock size={14} className="text-gray-400 shrink-0" />
                     )}
@@ -449,18 +449,18 @@ export const ScreenAskAI: React.FC = () => {
                     isUser ? 'ml-auto flex-row-reverse' : 'mr-auto'
                   }`}
                 >
-                  {/* Avatar Icon */}
+                  {/* Minimalist Avatar Icon */}
                   <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-xs ${
+                    className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 shadow-xs ${
                       isUser
                         ? 'bg-[#0F0F10] text-[#D4AF37]'
-                        : 'bg-[#FAF9F6] border border-[#D4AF37]/50 text-[#D4AF37]'
+                        : 'bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/30'
                     }`}
                   >
                     {isUser ? (
-                      <span className="text-xs font-bold font-mono">YOU</span>
+                      <span className="text-[10px] font-bold font-mono">YOU</span>
                     ) : (
-                      <Sparkles size={16} strokeWidth={2.4} />
+                      <span className="text-[10px] font-heading font-black">D!</span>
                     )}
                   </div>
 

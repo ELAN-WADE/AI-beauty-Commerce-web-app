@@ -9,7 +9,9 @@ import { claimBatch, enqueueNotification, markFailed, markSent } from '../module
 import { notificationOutbox } from '../modules/notifications/schema';
 import { getOrderView } from '../modules/orders/service';
 import { skinAnalyses } from '../modules/skin/schema';
+import { profiles } from '../modules/users/schema';
 import { s3, scansBucket } from '../lib/storage';
+import { isTermiiConfigured, smsCartAbandoned, smsOrderPaid, smsShipmentUpdate, termiiConfig, termiiSend } from '../lib/termii';
 import {
   getEmailSender,
   renderCartAbandoned,
@@ -31,6 +33,24 @@ async function resolveEmail(db: AppDb, userId: string | null, guestEmail?: strin
   return u[0]?.email ?? null;
 }
 
+async function resolvePhone(db: AppDb, userId: string | null, payload: Record<string, unknown>, orderId?: string): Promise<string | null> {
+  if (typeof payload.guestPhone === 'string' && payload.guestPhone) return payload.guestPhone;
+  if (userId) {
+    const p = await db.select({ phone: profiles.phone }).from(profiles).where(eq(profiles.userId, userId)).limit(1);
+    if (p[0]?.phone) return p[0].phone;
+  }
+  if (orderId) {
+    try {
+      const view = await getOrderView(db, orderId);
+      const phone = (view.shippingAddress as { phone?: string } | null)?.phone;
+      if (phone) return phone;
+    } catch {
+      // order gone — no phone available
+    }
+  }
+  return null;
+}
+
 /** Send due outbox rows (order/shipment/cart templates). */
 export async function processOutbox(db: AppDb): Promise<TaskResult> {
   const sender = getEmailSender();
@@ -40,6 +60,43 @@ export async function processOutbox(db: AppDb): Promise<TaskResult> {
   for (const row of rows) {
     try {
       const payload = row.payload as Record<string, unknown>;
+      if (row.channel === 'sms' || row.channel === 'whatsapp') {
+        // Termii path (Nigeria-first): phone resolution, short templates.
+        if (!isTermiiConfigured()) {
+          await markFailed(db, row.id);
+          failed += 1;
+          continue;
+        }
+        const orderId = typeof payload.orderId === 'string' ? payload.orderId : undefined;
+        const phone = await resolvePhone(db, row.userId, payload, orderId);
+        if (!phone) {
+          await markFailed(db, row.id);
+          failed += 1;
+          continue;
+        }
+        let text = '';
+        if (row.template === 'order.paid' && orderId) {
+          const view = await getOrderView(db, orderId);
+          text = smsOrderPaid(view.orderNumber, view.totalKobo);
+        } else if (row.template === 'shipment.update') {
+          text = smsShipmentUpdate(String(payload.orderNumber ?? ''), String(payload.status ?? ''), String(payload.trackingRef ?? ''));
+        } else if (row.template === 'cart.abandoned' && typeof payload.cartId === 'string') {
+          const view = await getCartView(db, payload.cartId);
+          if (view.lines.length === 0) {
+            await markSent(db, row.id);
+            continue;
+          }
+          text = smsCartAbandoned(view.subtotalKobo / 100);
+        } else {
+          await markFailed(db, row.id); // no short template — dead-letter, never blind-retry
+          failed += 1;
+          continue;
+        }
+        await termiiSend(fetch, termiiConfig(), { to: phone, text, channel: row.channel === 'whatsapp' ? 'whatsapp' : 'generic' });
+        await markSent(db, row.id);
+        sent += 1;
+        continue;
+      }
       const to = await resolveEmail(db, row.userId, payload.guestEmail as string | undefined);
       if (!to) {
         await markFailed(db, row.id);
