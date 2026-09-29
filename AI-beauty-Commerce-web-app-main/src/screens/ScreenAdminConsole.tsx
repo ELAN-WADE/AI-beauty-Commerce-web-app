@@ -38,6 +38,8 @@ import {
   fetchAdminTransferClaims,
   confirmAdminTransferClaim,
   fetchAdminAudits,
+  fetchInventoryOverview,
+  adjustStockApi,
   isOwnedApiConfigured
 } from '../lib/owned-api';
 
@@ -262,6 +264,36 @@ export const ScreenAdminConsole: React.FC = () => {
   // Data provenance: mock literals until the live backend answers (honest badge in header).
   const [dataSource, setDataSource] = useState<'live' | 'preview'>('preview');
 
+  // Live central stock (owned backend inventory overview, flattened per variant).
+  const [liveInventory, setLiveInventory] = useState<{ sku: string; productName: string; variantId: string; available: number }[] | null>(null);
+  const [adjustInputs, setAdjustInputs] = useState<Record<string, string>>({});
+  const [adjustingSku, setAdjustingSku] = useState<string | null>(null);
+  const [adjustMessage, setAdjustMessage] = useState('');
+
+  const flattenOverview = (items: { slug: string; name: string; variants: { id: string; sku: string; sizeLabel: string; available: number }[] }[]) =>
+    items.flatMap((p) => p.variants.map((v) => ({ sku: v.sku, productName: `${p.name} (${v.sizeLabel})`, variantId: v.id, available: v.available })));
+
+  const handleStockAdjust = async (variantId: string, sku: string) => {
+    const delta = Number.parseInt(adjustInputs[sku] ?? '', 10);
+    if (!Number.isFinite(delta) || delta === 0) {
+      setAdjustMessage('Enter a non-zero quantity (use a negative number to deduct).');
+      return;
+    }
+    setAdjustingSku(sku);
+    setAdjustMessage('');
+    try {
+      await adjustStockApi(variantId, delta, 'console adjustment');
+      const items = await fetchInventoryOverview();
+      if (items) setLiveInventory(flattenOverview(items));
+      setAdjustInputs((prev) => ({ ...prev, [sku]: '' }));
+      setAdjustMessage(`Stock updated for ${sku}.`);
+    } catch {
+      setAdjustMessage('Adjustment failed (staff permission required).');
+    } finally {
+      setAdjustingSku(null);
+    }
+  };
+
   // Fetch real admin data if backend is live
   useEffect(() => {
     if (!isOwnedApiConfigured) return;
@@ -287,6 +319,15 @@ export const ScreenAdminConsole: React.FC = () => {
       .then((res) => {
         if (res?.audit && res.audit.length > 0) {
           setAuditLogs(res.audit);
+          setDataSource('live');
+        }
+      })
+      .catch(() => {});
+
+    fetchInventoryOverview()
+      .then((items) => {
+        if (items && items.length > 0) {
+          setLiveInventory(flattenOverview(items));
           setDataSource('live');
         }
       })
@@ -700,6 +741,46 @@ export const ScreenAdminConsole: React.FC = () => {
                 </span>
               </div>
 
+              {liveInventory ? (
+                <div className="space-y-3">
+                  {liveInventory.map((row) => (
+                    <div key={row.sku} className="p-3 rounded-2xl bg-white/60 border border-white/80">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <span className="text-[10px] font-mono text-[#9CA3AF] font-bold">{row.sku}</span>
+                          <h4 className="text-xs font-bold text-[#0F0F10] leading-snug">{row.productName}</h4>
+                        </div>
+                        {row.available < 20 ? (
+                          <span className="shrink-0 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold">Low stock</span>
+                        ) : (
+                          <span className="shrink-0 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold">Optimal</span>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between mt-2 pt-2 border-t border-[#E5E7EB]/60 text-[11px]">
+                        <span className="font-mono">Available: <strong className="text-[#0F0F10]">{row.available}</strong></span>
+                        <span className="flex items-center gap-1.5">
+                          <input
+                            value={adjustInputs[row.sku] ?? ''}
+                            onChange={(e) => setAdjustInputs((prev) => ({ ...prev, [row.sku]: e.target.value }))}
+                            placeholder="±qty"
+                            inputMode="numeric"
+                            aria-label={`Adjust stock for ${row.sku}`}
+                            className="w-16 px-2 py-1 rounded-lg bg-white border border-[#E5E7EB] font-mono text-[11px] outline-none focus:border-[#D4AF37]"
+                          />
+                          <button
+                            onClick={() => handleStockAdjust(row.variantId, row.sku)}
+                            disabled={adjustingSku === row.sku}
+                            className="px-2.5 py-1 rounded-lg bg-[#0F0F10] text-white text-[10px] font-bold active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                          >
+                            {adjustingSku === row.sku ? '…' : 'Adjust'}
+                          </button>
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                  {adjustMessage && <p className="text-[11px] text-[#6B7280]">{adjustMessage}</p>}
+                </div>
+              ) : (
               <div className="space-y-3">
                 {inventoryItems.map((item) => (
                   <div key={item.id} className="p-3 rounded-2xl bg-white/60 border border-white/80 hover:bg-white transition-colors">
@@ -742,6 +823,7 @@ export const ScreenAdminConsole: React.FC = () => {
                   </div>
                 ))}
               </div>
+              )}
             </div>
           </div>
 

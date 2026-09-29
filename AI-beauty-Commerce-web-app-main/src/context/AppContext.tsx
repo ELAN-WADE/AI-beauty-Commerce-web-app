@@ -41,6 +41,16 @@ import {
   paymentStatus,
   rememberServerOrder,
   serverCheckout,
+  fetchDistributors,
+  fetchCreators,
+  fetchCommunityPosts,
+  fetchCommunityChat,
+  createCommunityPostApi,
+  likeCommunityPostApi,
+  sendCommunityChatApi,
+  submitDistributorApplication,
+  submitCreatorApplication,
+  validateCreatorCodeLive,
   syncCartToServer,
   type AuthUser,
   type PayProvider,
@@ -150,7 +160,7 @@ interface AppContextType {
   activeCreatorCode: string | null;
   creatorDiscountPercent: number;
   appliedCreator: Creator | null;
-  applyCreatorCode: (code: string) => { success: boolean; message: string };
+  applyCreatorCode: (code: string) => Promise<{ success: boolean; message: string }>;
   registerCreator: (data: Omit<Creator, 'id' | 'totalSalesNgn' | 'commissionEarnedNgn' | 'clicks' | 'ordersCount' | 'verified'>) => void;
 
   // NEW: Social Community Feed Posts
@@ -171,6 +181,8 @@ interface AppContextType {
   // Checkout Fulfillment Details
   checkoutAddress: CheckoutAddress;
   setCheckoutAddress: React.Dispatch<React.SetStateAction<CheckoutAddress>>;
+  voucherCode: string;
+  setVoucherCode: (code: string) => void;
 
   // Owned live backend (no-ops in demo mode; demo flow untouched)
   authUser: AuthUser | null;
@@ -234,6 +246,35 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       .catch(() => {
         // Silent: mocks stay. Live path is verified at staging (§S2).
       });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Ecosystem hydration (distributors, creators, community — same pattern).
+  useEffect(() => {
+    if (!isOwnedApiConfigured) return;
+    let cancelled = false;
+    fetchDistributors()
+      .then((live) => {
+        if (!cancelled && live && live.length > 0) setDistributorsList(live);
+      })
+      .catch(() => {});
+    fetchCreators()
+      .then((live) => {
+        if (!cancelled && live && live.length > 0) setCreatorsList(live);
+      })
+      .catch(() => {});
+    fetchCommunityPosts()
+      .then((live) => {
+        if (!cancelled && live && live.length > 0) setCommunityPostsList(live);
+      })
+      .catch(() => {});
+    fetchCommunityChat('routine')
+      .then((live) => {
+        if (!cancelled && live && live.length > 0) setCommunityMessages(live);
+      })
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -329,11 +370,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // NEW: Social Community Posts Feed
   const [communityPostsList, setCommunityPostsList] = useState<CommunityPost[]>(initialCommunityPosts);
-
   // NEW: Customer Reviews Store
   const [reviewsList, setReviewsList] = useState<ProductReview[]>(initialReviews);
 
   const [isCartBannerDismissed, setIsCartBannerDismissed] = useState(false);
+
+  // Loyalty voucher applied at checkout (server-validated; empty = none).
+  const [voucherCode, setVoucherCode] = useState<string>('');
 
   // Navigation handlers
   const navigateTo = (screen: ScreenId, stateData?: any) => {
@@ -570,6 +613,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       channel: activeCommunityChannel === 'all' ? 'routine' : activeCommunityChannel
     };
     setCommunityMessages((prev) => [...prev, newMsg]);
+    // Live mirror: channel chat server-side (silent when offline/unauthenticated).
+    sendCommunityChatApi(newMsg.channel, text).catch(() => {});
   };
 
   const likeCommunityMessage = (messageId: string) => {
@@ -678,11 +723,34 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       reviewsCount: 1
     };
     setDistributorsList((prev) => [newDist, ...prev]);
+    // Live mirror: partnership application (silent when offline).
+    submitDistributorApplication({
+      name: data.name,
+      businessName: data.businessName,
+      city: data.city,
+      state: data.state,
+      address: data.address,
+      phone: data.phone,
+      whatsapp: data.whatsapp
+    }).catch(() => {});
   };
 
   // Creator & Affiliate Handlers
-  const applyCreatorCode = (code: string) => {
+  const applyCreatorCode = async (code: string) => {
     const normalized = code.trim().toUpperCase();
+    if (isOwnedApiConfigured) {
+      try {
+        const live = await validateCreatorCodeLive(normalized);
+        setActiveCreatorCode(normalized);
+        setCreatorDiscountPercent(live.discountPercent);
+        return {
+          success: true,
+          message: `Applied ${live.name}'s Creator Code: ${live.discountPercent}% Off Total Order!`
+        };
+      } catch {
+        // Fall through to the local list (demo codes, offline backend).
+      }
+    }
     const found = creatorsList.find((c) => c.promoCode === normalized);
     if (found) {
       setActiveCreatorCode(found.promoCode);
@@ -708,6 +776,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       verified: true
     };
     setCreatorsList((prev) => [newCreator, ...prev]);
+    // Live mirror: affiliate application (silent when offline).
+    submitCreatorApplication({ name: data.name, handle: data.handle, platform: data.platform, niche: data.niche }).catch(() => {});
   };
 
   // Community Posts Handlers
@@ -725,6 +795,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         return post;
       })
     );
+    // Live mirror: toggle like server-side (silent 404s for mock-only ids).
+    likeCommunityPostApi(postId).catch(() => {});
   };
 
   const createCommunityPost = (
@@ -739,6 +811,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       likedByMe: true
     };
     setCommunityPostsList((prev) => [newPost, ...prev]);
+    // Live mirror: persist server-side (silent when offline/unauthenticated).
+    createCommunityPostApi({
+      content: post.content,
+      taggedProductId: post.taggedProductId,
+      taggedProductHashtag: post.taggedProductHashtag
+    }).catch(() => {});
   };
 
   const getPostsForProduct = (productId: string, hashtag?: string) => {
@@ -920,15 +998,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       if (cartItems.length === 0) throw new Error('Your bag is empty.');
       await syncCartToServer(cartItems.map((ci) => ({ productId: ci.productId, size: ci.size, quantity: ci.quantity })));
       const email = checkoutAddress.email || userProfile.email;
-      const { order: view } = await serverCheckout({
-        fullName: checkoutAddress.fullName || userProfile.name,
-        email,
-        phone: checkoutAddress.phone || userProfile.phone,
-        street: checkoutAddress.street,
-        city: checkoutAddress.city || selectedCity,
-        state: checkoutAddress.state,
-        deliveryNotes: checkoutAddress.deliveryNotes,
-      });
+      const { order: view } = await serverCheckout(
+        {
+          fullName: checkoutAddress.fullName || userProfile.name,
+          email,
+          phone: checkoutAddress.phone || userProfile.phone,
+          street: checkoutAddress.street,
+          city: checkoutAddress.city || selectedCity,
+          state: checkoutAddress.state,
+          deliveryNotes: checkoutAddress.deliveryNotes,
+        },
+        voucherCode.trim() || undefined,
+        activeCreatorCode || undefined
+      );
       const init = await initPayment(view.id, provider, email || undefined);
       const local = mapServerOrder(
         view,
@@ -1080,6 +1162,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         dismissCartBanner,
         checkoutAddress,
         setCheckoutAddress,
+        voucherCode,
+        setVoucherCode,
         authUser,
         authLoading,
         login,

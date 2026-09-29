@@ -274,7 +274,7 @@ export const ScreenAskAI: React.FC = () => {
               className="px-3.5 py-1.5 rounded-full bg-[#0F0F10] text-[#D4AF37] text-xs font-semibold shadow-xs flex items-center gap-1.5"
             >
               <MessageSquare size={13} />
-              <span>Ask AI (ChatGPT)</span>
+              <span>Ask AI Concierge</span>
             </button>
             <button
               onClick={() => navigateTo('ai-scan')}

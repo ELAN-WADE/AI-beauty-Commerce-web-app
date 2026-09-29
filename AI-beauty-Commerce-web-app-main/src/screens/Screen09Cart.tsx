@@ -35,24 +35,36 @@ export const Screen09Cart: React.FC = () => {
     applyCreatorCode,
     selectedCity,
     setIsLocationModalOpen,
-    addToCart
+    addToCart,
+    isLiveBackend,
+    voucherCode,
+    setVoucherCode
   } = useApp();
 
   const [promoInput, setPromoInput] = useState('');
   const [promoMessage, setPromoMessage] = useState<{ text: string; success: boolean } | null>(null);
+  const [voucherInput, setVoucherInput] = useState(voucherCode);
+  const [voucherMessage, setVoucherMessage] = useState('');
   const [fulfillmentOption, setFulfillmentOption] = useState<'local' | 'lagos'>('local');
 
   const formatNaira = (amt: number) => '₦' + amt.toLocaleString('en-NG');
 
-  const handleApplyCode = (e: React.FormEvent) => {
+  const handleApplyCode = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!promoInput.trim()) return;
-    const res = applyCreatorCode(promoInput.trim());
+    const res = await applyCreatorCode(promoInput.trim());
     if (res.success) {
-      setPromoMessage({ text: `Code ${promoInput.toUpperCase()} applied! 10% discount activated.`, success: true });
+      setPromoMessage({ text: res.message, success: true });
     } else {
       setPromoMessage({ text: 'Invalid or expired creator code. Try AMARA10 or TIWA10.', success: false });
     }
+  };
+
+  const handleApplyVoucher = (e: React.FormEvent) => {
+    e.preventDefault();
+    const code = voucherInput.trim().toUpperCase();
+    setVoucherCode(code);
+    setVoucherMessage(code ? `Voucher ${code} will be validated at secure checkout.` : '');
   };
 
   const discountAmount = appliedCreator ? Math.round(cartSubtotal * 0.1) : 0;
@@ -304,6 +316,37 @@ export const Screen09Cart: React.FC = () => {
                 <p className={`text-[11px] font-medium ${promoMessage.success ? 'text-emerald-700' : 'text-rose-600'}`}>
                   {promoMessage.text}
                 </p>
+              )}
+            </div>
+
+            {/* Loyalty Voucher Input (server-validated at checkout) */}
+            <div className="p-4 rounded-2xl bg-white border border-[#E5E7EB] shadow-xs space-y-2.5">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-[#0F0F10]">
+                <Tag size={14} className="text-[#D4AF37]" />
+                <span>Loyalty Voucher Code</span>
+                {voucherCode && (
+                  <span className="ml-auto px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-mono font-bold">
+                    {voucherCode}
+                  </span>
+                )}
+              </div>
+              <form onSubmit={handleApplyVoucher} className="flex gap-2">
+                <input
+                  type="text"
+                  value={voucherInput}
+                  onChange={(e) => setVoucherInput(e.target.value)}
+                  placeholder="e.g. GLW-AB12CD"
+                  className="flex-1 px-4 py-2 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] text-xs text-[#0F0F10] uppercase font-mono tracking-wider focus:outline-none focus:border-[#D4AF37]"
+                />
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-[#0F0F10] text-white font-bold text-xs hover:bg-[#1F1D22] active:scale-95 transition-all cursor-pointer"
+                >
+                  Apply
+                </button>
+              </form>
+              {voucherMessage && (
+                <p className="text-[11px] font-medium text-emerald-700">{voucherMessage}</p>
               )}
             </div>
 

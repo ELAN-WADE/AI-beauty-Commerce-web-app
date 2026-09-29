@@ -1,0 +1,20 @@
+import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import { getDb } from '@/db/client';
+import { api, clientIp, Errors } from '@/lib/errors';
+import { checkRateLimit, Limits } from '@/lib/rate-limit';
+import { requirePerm } from '@/lib/admin';
+import { listUsers } from '@/modules/users/service';
+
+const querySchema = z.object({
+  limit: z.coerce.number().int().min(1).default(50).transform((v) => Math.min(v, 100)),
+});
+
+export const GET = api(async ({ req }) => {
+  const rl = checkRateLimit(`admin:${clientIp(req)}`, Limits.admin);
+  if (!rl.allowed) throw Errors.rateLimited(60);
+  const db = getDb();
+  await requirePerm(db, 'users:read:all');
+  const q = querySchema.parse(Object.fromEntries(new URL(req.url).searchParams));
+  return NextResponse.json({ users: await listUsers(db, q.limit) });
+});

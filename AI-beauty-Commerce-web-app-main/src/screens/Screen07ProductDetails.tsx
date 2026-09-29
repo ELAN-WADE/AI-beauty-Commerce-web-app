@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Star,
   Heart,
@@ -21,10 +21,13 @@ import {
   Store,
   Truck,
   Flame,
-  Check
+  Check,
+  ArrowRight
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { submitReviewApi } from '../lib/owned-api';
+import { ProductCard } from '../components/common/ProductCard';
+import { isOwnedApiConfigured, fetchProductReviewsApi, fetchStockNearCity, resolveVariantId, submitReviewApi } from '../lib/owned-api';
+import type { ProductReview } from '../types';
 
 export const Screen07ProductDetails: React.FC = () => {
   const {
@@ -34,6 +37,7 @@ export const Screen07ProductDetails: React.FC = () => {
     toggleWishlist,
     navigateTo,
     products,
+    setSelectedCategory,
     viewProductDetails,
     goBack,
     selectedCity,
@@ -57,6 +61,37 @@ export const Screen07ProductDetails: React.FC = () => {
   const [reviewComment, setReviewComment] = useState('');
   const [reviewSkinType, setReviewSkinType] = useState('Combination Skin');
   const [justAdded, setJustAdded] = useState(false);
+  const [liveReviews, setLiveReviews] = useState<ProductReview[] | null>(null);
+  const [liveStock, setLiveStock] = useState<{ units: number; partners: number } | null>(null);
+
+  // Live reads (owned backend): approved reviews + city stock for this variant.
+  // Mounted above the null guard so hook order stays stable across renders.
+  const selectedProductId = selectedProduct?.id;
+  const selectedProductSizes = selectedProduct?.sizes?.join('|');
+  useEffect(() => {
+    if (!isOwnedApiConfigured || !selectedProductId) return;
+    let cancelled = false;
+    fetchProductReviewsApi(selectedProductId)
+      .then((live) => {
+        if (!cancelled && live && live.length > 0) setLiveReviews(live);
+      })
+      .catch(() => {});
+    const firstSize = (selectedProductSizes ?? '').split('|')[0] || 'Standard';
+    resolveVariantId(selectedProductId, firstSize)
+      .then((variantId) => {
+        if (!variantId || cancelled) return null;
+        return fetchStockNearCity(variantId, selectedCity);
+      })
+      .then((stock) => {
+        if (!cancelled && stock && stock.length > 0) {
+          setLiveStock({ units: stock.reduce((s, r) => s + r.quantity, 0), partners: stock.length });
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedProductId, selectedProductSizes, selectedCity]);
 
   if (!selectedProduct) {
     return (
@@ -105,11 +140,24 @@ export const Screen07ProductDetails: React.FC = () => {
   // Reviews & Community Posts
   const productReviews = getReviewsForProduct(selectedProduct.id);
   const communityBuzzPosts = getPostsForProduct(selectedProduct.id, selectedProduct.hashtag);
+  const shownReviews = liveReviews ?? productReviews;
 
   // Discount calculation
   const discountPct = selectedProduct.originalPrice && selectedProduct.originalPrice > selectedProduct.price
     ? Math.round(((selectedProduct.originalPrice - selectedProduct.price) / selectedProduct.originalPrice) * 100)
     : selectedProduct.discountPercentage || 0;
+
+  // Filter other formulations (excluding current product), prioritizing matching category or bestsellers
+  const otherProducts = React.useMemo(() => {
+    if (!selectedProduct) return products.slice(0, 4);
+    const sameCategory = products.filter(
+      (p) => p.id !== selectedProduct.id && p.category === selectedProduct.category
+    );
+    const otherCategories = products.filter(
+      (p) => p.id !== selectedProduct.id && p.category !== selectedProduct.category
+    );
+    return [...sameCategory, ...otherCategories].slice(0, 8);
+  }, [products, selectedProduct]);
 
   const handleSubmitReview = (e: React.FormEvent) => {
     e.preventDefault();
@@ -269,7 +317,7 @@ export const Screen07ProductDetails: React.FC = () => {
 
               {/* Reviews Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                {productReviews.map((rev) => (
+                {shownReviews.map((rev) => (
                   <div key={rev.id} className="p-4 rounded-2xl bg-white border border-[#E5E7EB] shadow-xs space-y-2.5">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -367,7 +415,7 @@ export const Screen07ProductDetails: React.FC = () => {
                   <span className="font-bold text-[#0F0F10] ml-1">{selectedProduct.rating}</span>
                 </div>
                 <span>•</span>
-                <span>{productReviews.length + 482} verified reviews</span>
+                <span>{shownReviews.length + 482} verified reviews</span>
                 <span>•</span>
                 <span className="font-semibold text-[#0F0F10]">2.4K+ sold</span>
               </div>
@@ -539,6 +587,11 @@ export const Screen07ProductDetails: React.FC = () => {
               </div>
 
               {/* Direct WhatsApp Local Sourcing CTA */}
+              {liveStock && (
+                <p className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-3 py-1.5 text-center">
+                  Live stock: {liveStock.units} units across {liveStock.partners} verified {liveStock.partners === 1 ? 'partner' : 'partners'} in {selectedCity}
+                </p>
+              )}
               {primaryPartner && (
                 <a
                   href={`https://wa.me/${primaryPartner.phone.replace(/[^0-9]/g, '')}?text=Hello%20${encodeURIComponent(primaryPartner.name)},%20I%20am%20ordering%20${encodeURIComponent(selectedProduct.name)}%20(${selectedSize})%20in%20${selectedCity}.`}
@@ -607,6 +660,46 @@ export const Screen07ProductDetails: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* EXPLORE OTHER FORMULATIONS & ROUTINE PAIRINGS */}
+        {otherProducts.length > 0 && (
+          <section className="mt-12 pt-10 border-t border-[#E5E7EB]">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#D4AF37]" />
+                  <h3 className="font-heading font-extrabold text-xl sm:text-2xl text-[#0F0F10] tracking-tight">
+                    Explore Other Formulations
+                  </h3>
+                  <span className="px-2.5 py-0.5 rounded-full bg-[#FBF5E8] border border-[#D4AF37]/30 text-[#997A2E] text-[10.5px] font-bold">
+                    Recommended Pairings
+                  </span>
+                </div>
+                <p className="text-xs text-[#6B7280] mt-1">
+                  Clinical biocompatible routine pairings &amp; African apothecary bestsellers fulfilled locally in {selectedCity}
+                </p>
+              </div>
+
+              <button
+                onClick={() => {
+                  setSelectedCategory('All');
+                  navigateTo('catalogue');
+                }}
+                className="text-xs font-heading font-bold text-[#0F0F10] hover:text-[#997A2E] flex items-center gap-1.5 group cursor-pointer"
+              >
+                <span>View Full Catalogue</span>
+                <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
+              </button>
+            </div>
+
+            {/* Responsive Product Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
+              {otherProducts.map((prod) => (
+                <ProductCard key={prod.id} product={prod} />
+              ))}
+            </div>
+          </section>
+        )}
       </main>
 
       {/* Review Submission Modal */}

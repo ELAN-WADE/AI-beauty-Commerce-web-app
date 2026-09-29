@@ -76,20 +76,12 @@ export const DesktopNav: React.FC = () => {
             </span>
           </div>
 
-          {/* Right: Authenticity, Track Order & Concierge */}
+          {/* Right: Authenticity & Concierge */}
           <div className="flex items-center gap-3.5 text-[11px]">
-            <button
-              onClick={() => navigateTo('guest-order-lookup')}
-              className="hover:text-[#D4AF37] text-gray-200 transition-colors cursor-pointer flex items-center gap-1 font-semibold"
-            >
-              <Truck size={12} className="text-[#D4AF37]" />
-              <span>Track Order</span>
-            </button>
-            <span className="text-white/20">|</span>
-            <span className="hidden sm:inline font-price font-semibold text-[#FB7701]">
+            <span className="font-price font-semibold text-[#FB7701]">
               100% NAFDAC Authentic
             </span>
-            <span className="text-white/20 hidden sm:inline">|</span>
+            <span className="text-white/20">|</span>
             <a
               href="https://wa.me/2348148120642"
               target="_blank"

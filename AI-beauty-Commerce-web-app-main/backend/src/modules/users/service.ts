@@ -1,8 +1,35 @@
-import { and, eq } from 'drizzle-orm';
-import type { AppDb } from '../../db/client';
+import { and, desc, eq } from 'drizzle-orm';
+import type { AppDb, Db } from '../../db/client';
 import { Errors } from '../../lib/errors';
+import { userRoles, users } from '../auth/schema';
 import { addresses, profiles } from './schema';
 import type { CreateAddressInput } from './validation';
+
+/** Admin user directory (users:read:all): identity + roles + profile name. */
+export async function listUsers(db: Db, limit = 50) {
+  const lim = Math.min(100, Math.max(1, limit));
+  const rows = await db
+    .select({ user: users, profile: profiles })
+    .from(users)
+    .leftJoin(profiles, eq(profiles.userId, users.id))
+    .orderBy(desc(users.createdAt))
+    .limit(lim);
+  const roles = await db.select().from(userRoles);
+  const byUser = new Map<string, string[]>();
+  for (const r of roles) {
+    const list = byUser.get(r.userId) ?? [];
+    list.push(r.roleId);
+    byUser.set(r.userId, list);
+  }
+  return rows.map((r) => ({
+    id: r.user.id,
+    email: r.user.email,
+    emailVerified: r.user.emailVerifiedAt !== null,
+    displayName: r.profile?.displayName ?? '',
+    roles: byUser.get(r.user.id) ?? ['CUSTOMER'],
+    createdAt: r.user.createdAt,
+  }));
+}
 
 export async function getProfile(db: AppDb, userId: string) {
   const rows = await db.select().from(profiles).where(eq(profiles.userId, userId)).limit(1);

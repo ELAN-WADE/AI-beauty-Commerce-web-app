@@ -270,7 +270,11 @@ export interface ServerOrderView {
   items: { variantId: string; productName: string; variantLabel: string; sku: string; unitPriceKobo: number; qty: number; lineTotalKobo: number }[];
 }
 
-export async function serverCheckout(address: CheckoutAddressInput, voucherCode?: string): Promise<{ order: ServerOrderView; replay: boolean }> {
+export async function serverCheckout(
+  address: CheckoutAddressInput,
+  voucherCode?: string,
+  creatorCode?: string,
+): Promise<{ order: ServerOrderView; replay: boolean }> {
   const sessionId = guestSessionId();
   const { fullName, phone, street, city, state, email, deliveryNotes } = address;
   return apiFetch('/api/checkout', {
@@ -282,6 +286,7 @@ export async function serverCheckout(address: CheckoutAddressInput, voucherCode?
       guestEmail: email,
       note: deliveryNotes ?? '',
       ...(voucherCode ? { voucherCode } : {}),
+      ...(creatorCode ? { creatorCode } : {}),
     }),
   }, sessionId);
 }
@@ -613,11 +618,338 @@ export async function fetchAdminAudits(limit = 20): Promise<{ audit: AdminAuditL
   }
 }
 
-export async function fetchAdminInventory(variantId?: string): Promise<any | null> {
+// ---------- Distributors (directory + city stock + applications) ----------
+
+import type { Distributor } from '../types';
+
+interface OwnedDistributor {
+  id: string;
+  name: string;
+  business_name: string;
+  city: string;
+  state: string;
+  address: string;
+  phone: string;
+  whatsapp: string;
+  verified: boolean;
+  tier: 'Bronze' | 'Silver' | 'Gold';
+  is_online_only: boolean;
+  pickup_available: boolean;
+  operating_hours: string;
+  rating: number | string;
+  reviews_count: number;
+}
+
+function mapDistributor(d: OwnedDistributor): Distributor {
+  return {
+    id: d.id,
+    name: d.name,
+    businessName: d.business_name,
+    city: d.city,
+    state: d.state,
+    address: d.address,
+    phone: d.phone,
+    whatsapp: d.whatsapp,
+    verified: d.verified,
+    tier: d.tier,
+    isOnlineOnly: d.is_online_only,
+    pickupAvailable: d.pickup_available,
+    operatingHours: d.operating_hours,
+    rating: Number(d.rating),
+    reviewsCount: d.reviews_count,
+    stockedSkus: [],
+  };
+}
+
+export async function fetchDistributors(city?: string): Promise<Distributor[] | null> {
   if (!BASE) return null;
   try {
-    const url = variantId ? `/api/admin/inventory?variantId=${encodeURIComponent(variantId)}` : `/api/admin/inventory`;
-    return await apiFetch(url);
+    const q = city ? `?city=${encodeURIComponent(city)}` : '';
+    const body = await apiFetch<{ distributors: OwnedDistributor[] }>(`/api/distributors${q}`);
+    return body.distributors.map(mapDistributor);
+  } catch {
+    return null;
+  }
+}
+
+export interface CityStock {
+  distributorId: string;
+  name: string;
+  businessName: string;
+  city: string;
+  address: string;
+  phone: string;
+  pickupAvailable: boolean;
+  quantity: number;
+}
+
+export async function fetchStockNearCity(variantId: string, city: string): Promise<CityStock[] | null> {
+  if (!BASE) return null;
+  try {
+    const body = await apiFetch<{ stock: CityStock[] }>(
+      `/api/distributors/stock?variantId=${encodeURIComponent(variantId)}&city=${encodeURIComponent(city)}`
+    );
+    return body.stock;
+  } catch {
+    return null;
+  }
+}
+
+export async function submitDistributorApplication(input: {
+  name: string;
+  businessName?: string;
+  city: string;
+  state?: string;
+  address: string;
+  phone: string;
+  whatsapp?: string;
+}): Promise<void> {
+  if (!BASE) return;
+  await apiFetch('/api/distributors', { method: 'POST', body: JSON.stringify(input) }).catch(() => null);
+}
+
+// ---------- Creators (directory, validation, applications) ----------
+
+import type { Creator, CommunityPost, CommunityMessage, ProductReview } from '../types';
+
+interface OwnedCreator {
+  name: string;
+  handle: string;
+  platform: 'Instagram' | 'TikTok' | 'YouTube';
+  niche: string;
+  avatarUrl: string;
+  promoCode: string;
+  discountPercent: number;
+}
+
+function mapCreator(c: OwnedCreator, index: number): Creator {
+  return {
+    id: c.promoCode,
+    name: c.name,
+    handle: c.handle,
+    platform: c.platform,
+    niche: c.niche,
+    avatar: c.avatarUrl,
+    promoCode: c.promoCode,
+    discountPercent: c.discountPercent,
+    commissionRate: 0,
+    totalSalesNgn: 0,
+    commissionEarnedNgn: 0,
+    clicks: 0,
+    ordersCount: index,
+    verified: true,
+  };
+}
+
+export async function fetchCreators(): Promise<Creator[] | null> {
+  if (!BASE) return null;
+  try {
+    const body = await apiFetch<{ creators: OwnedCreator[] }>('/api/creators');
+    return body.creators.map(mapCreator);
+  } catch {
+    return null;
+  }
+}
+
+export async function validateCreatorCodeLive(code: string): Promise<{ success: boolean; discountPercent: number; name: string }> {
+  const body = await apiFetch<{ name: string; promoCode: string; discountPercent: number }>(
+    `/api/creators?code=${encodeURIComponent(code.trim())}`
+  );
+  return { success: true, discountPercent: body.discountPercent, name: body.name };
+}
+
+export async function submitCreatorApplication(input: { name: string; handle?: string; platform?: string; niche?: string }): Promise<void> {
+  if (!BASE) return;
+  await apiFetch('/api/creators', { method: 'POST', body: JSON.stringify({ ...input, code: input.name }) }).catch(() => null);
+}
+
+// ---------- Community (posts, likes, chat) ----------
+
+interface OwnedPost {
+  id: string;
+  author_name: string;
+  author_handle: string;
+  author_avatar: string;
+  author_role: string;
+  skin_type?: string;
+  content: string;
+  media_type?: 'image' | 'video';
+  media_url?: string;
+  tagged_product_id?: string;
+  tagged_product_hashtag?: string;
+  likes_count: number;
+  comments_count: number;
+  created_at: string;
+}
+
+function mapPost(p: OwnedPost): CommunityPost {
+  return {
+    id: p.id,
+    authorName: p.author_name,
+    authorHandle: p.author_handle,
+    authorAvatar: p.author_avatar,
+    authorRole: p.author_role,
+    skinType: p.skin_type,
+    timestamp: p.created_at,
+    content: p.content,
+    mediaType: p.media_type,
+    mediaUrl: p.media_url,
+    taggedProductId: p.tagged_product_id,
+    taggedProductHashtag: p.tagged_product_hashtag,
+    likesCount: p.likes_count,
+    commentsCount: p.comments_count,
+    likedByMe: false,
+  } as unknown as CommunityPost;
+}
+
+export async function fetchCommunityPosts(): Promise<CommunityPost[] | null> {
+  if (!BASE) return null;
+  try {
+    const body = await apiFetch<{ posts: OwnedPost[] }>('/api/community/posts?limit=50');
+    return body.posts.map(mapPost);
+  } catch {
+    return null;
+  }
+}
+
+export async function createCommunityPostApi(input: {
+  content: string;
+  taggedProductId?: string;
+  taggedProductHashtag?: string;
+}): Promise<void> {
+  if (!BASE) return;
+  await apiFetch('/api/community/posts', { method: 'POST', body: JSON.stringify(input) }).catch(() => null);
+}
+
+export async function likeCommunityPostApi(postId: string): Promise<void> {
+  if (!BASE) return;
+  await apiFetch(`/api/community/posts/${encodeURIComponent(postId)}/like`, { method: 'POST' }).catch(() => null);
+}
+
+interface OwnedChatMessage {
+  id: string;
+  sender_name: string;
+  sender_avatar: string;
+  channel: string;
+  message: string;
+  likes: number;
+  created_at: string;
+}
+
+function mapChatMessage(m: OwnedChatMessage): CommunityMessage {
+  return { id: m.id, senderName: m.sender_name, senderAvatar: m.sender_avatar, time: m.created_at, message: m.message, likes: m.likes, channel: m.channel };
+}
+
+export async function fetchCommunityChat(channel = 'routine'): Promise<CommunityMessage[] | null> {
+  if (!BASE) return null;
+  try {
+    const body = await apiFetch<{ messages: OwnedChatMessage[] }>(`/api/community/chat?channel=${encodeURIComponent(channel)}&limit=50`);
+    return body.messages.map(mapChatMessage);
+  } catch {
+    return null;
+  }
+}
+
+export async function sendCommunityChatApi(channel: string, message: string): Promise<void> {
+  if (!BASE) return;
+  await apiFetch('/api/community/chat', { method: 'POST', body: JSON.stringify({ channel, message }) }).catch(() => null);
+}
+
+// ---------- Reviews (approved list per product) ----------
+
+interface OwnedReview {
+  id: string;
+  product_id: string;
+  product_sku?: string;
+  author_name: string;
+  author_avatar?: string;
+  rating: number;
+  title: string;
+  comment: string;
+  verified_purchase: boolean;
+  city?: string;
+  skin_type?: string;
+  photo_url?: string;
+  helpful_count: number;
+  created_at: string;
+}
+
+function timeAgo(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  if (!Number.isFinite(ms) || ms < 0) return 'Just now';
+  const mins = Math.floor(ms / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+export async function fetchProductReviewsApi(productSlug: string): Promise<ProductReview[] | null> {
+  if (!BASE) return null;
+  try {
+    const body = await apiFetch<{ reviews: OwnedReview[] }>(`/api/products/${encodeURIComponent(productSlug)}/reviews?limit=20`);
+    return body.reviews.map((r) => ({
+      id: r.id,
+      productId: productSlug,
+      productSku: r.product_sku,
+      authorName: r.author_name,
+      authorAvatar: r.author_avatar,
+      rating: r.rating,
+      date: timeAgo(r.created_at),
+      title: r.title,
+      comment: r.comment,
+      verifiedPurchase: r.verified_purchase,
+      city: r.city,
+      skinType: r.skin_type,
+      photoUrl: r.photo_url,
+      helpfulCount: r.helpful_count,
+    }));
+  } catch {
+    return null;
+  }
+}
+
+// ---------- Admin reads (console tabs) ----------
+
+export interface InventoryOverviewRow {
+  slug: string;
+  name: string;
+  variants: { id: string; sku: string; sizeLabel: string; priceKobo: number; available: number }[];
+  totalAvailable: number;
+}
+
+export async function fetchInventoryOverview(): Promise<InventoryOverviewRow[] | null> {
+  if (!BASE) return null;
+  try {
+    const body = await apiFetch<{ items: InventoryOverviewRow[] }>('/api/admin/inventory/overview?limit=100');
+    return body.items;
+  } catch (e) {
+    if (e instanceof ApiError && (e.status === 401 || e.status === 403)) return null;
+    throw e;
+  }
+}
+
+export async function adjustStockApi(variantId: string, delta: number, reason: string): Promise<void> {
+  await apiFetch('/api/admin/inventory', { method: 'POST', body: JSON.stringify({ variantId, delta, reason }) });
+}
+
+export interface AdminUserRow {
+  id: string;
+  email: string;
+  emailVerified: boolean;
+  displayName: string;
+  roles: string[];
+  createdAt: string;
+}
+
+export async function fetchAdminUsers(): Promise<AdminUserRow[] | null> {
+  if (!BASE) return null;
+  try {
+    const body = await apiFetch<{ users: AdminUserRow[] }>('/api/admin/users?limit=100');
+    return body.users;
   } catch (e) {
     if (e instanceof ApiError && (e.status === 401 || e.status === 403)) return null;
     throw e;

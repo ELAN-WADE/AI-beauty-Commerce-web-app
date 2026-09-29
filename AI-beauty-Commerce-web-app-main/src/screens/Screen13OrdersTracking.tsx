@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Package,
   Truck,
@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Header } from '../components/common/Header';
-import { serverOrderUuid, submitTransferClaim } from '../lib/owned-api';
+import { fetchServerOrder, isOwnedApiConfigured, serverOrderUuid, submitTransferClaim } from '../lib/owned-api';
 import type { Order } from '../types';
 
 const TransferClaimCard: React.FC<{ order: Order; email: string }> = ({ order, email }) => {
@@ -97,6 +97,28 @@ export const Screen13OrdersTracking: React.FC = () => {
     ? orders.filter((o) => o.paymentMethod?.startsWith('Bank transfer') && serverOrderUuid(o.id))
     : [];
 
+  // Live server status for mapped orders (owned backend; hidden when unavailable).
+  const [liveStatus, setLiveStatus] = useState<{ orderNumber: string; status: string; paymentStatus: string; total: number } | null>(null);
+
+  useEffect(() => {
+    if (!isOwnedApiConfigured) return;
+    const target = activeOrder ?? orders[0];
+    if (!target) return;
+    const uuid = serverOrderUuid(target.id);
+    if (!uuid) return;
+    let cancelled = false;
+    fetchServerOrder(uuid, authUser?.email ?? checkoutAddress.email ?? undefined)
+      .then((view) => {
+        if (!cancelled && view) {
+          setLiveStatus({ orderNumber: view.orderNumber, status: view.status, paymentStatus: view.paymentStatus, total: Math.round(view.totalKobo / 100) });
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [activeOrder?.id]);
+
   const formatNaira = (amt: number) => '₦' + amt.toLocaleString('en-NG');
 
   const trackingSteps = [
@@ -115,6 +137,16 @@ export const Screen13OrdersTracking: React.FC = () => {
       </div>
 
       <main className="max-w-7xl mx-auto px-4 lg:px-8 pt-6 space-y-6">
+        {/* Live server status (owned backend; hidden when unavailable) */}
+        {liveStatus && (
+          <div className="p-4 rounded-2xl bg-[#0F0F10] text-white flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+            <span>
+              Order <strong className="font-mono text-[#D4AF37]">#{liveStatus.orderNumber}</strong>
+              {' '}• {liveStatus.status} • {liveStatus.paymentStatus === 'PAID' ? 'Payment verified' : 'Payment pending'}
+            </span>
+            <span className="font-price font-bold text-[#D4AF37]">₦{liveStatus.total.toLocaleString('en-NG')}</span>
+          </div>
+        )}
         {/* Pending bank-transfer proofs (owned backend only) */}
         {transferPendingOrders.map((o) => (
           <TransferClaimCard key={o.id} order={o} email={authUser?.email ?? checkoutAddress.email ?? ''} />
