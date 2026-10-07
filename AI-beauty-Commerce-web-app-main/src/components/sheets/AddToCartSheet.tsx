@@ -90,7 +90,7 @@ export const AddToCartSheet: React.FC = () => {
             </div>
           </div>
           <div className="text-right shrink-0">
-            <span className="font-price font-semibold text-sm text-[#FB7701] block">
+            <span className="font-price font-bold text-sm text-[#0F0F10] block">
               {formatNaira(lastAddedCartItem.unitPrice * lastAddedCartItem.quantity)}
             </span>
           </div>
@@ -101,7 +101,7 @@ export const AddToCartSheet: React.FC = () => {
           <span className="text-[#6B7280]">
             Bag Total ({cartCount} {cartCount === 1 ? 'item' : 'items'}):
           </span>
-          <span className="font-price font-semibold text-sm text-[#FB7701]">
+          <span className="font-price font-bold text-sm text-[#0F0F10]">
             {formatNaira(cartSubtotal)}
           </span>
         </div>

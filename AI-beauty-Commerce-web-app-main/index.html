@@ -3,10 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%2309090B'/><text x='50' y='65' font-family='serif' font-size='42' font-weight='bold' fill='%23D4AF37' text-anchor='middle'>D!</text></svg>" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
     <title>Desla!™ — Haute Dermatologie, Beauty & Lifestyle</title>
     <meta name="description" content="Desla!™ Unisex cosmetics, body care, haute parfumerie and lifestyle. Health before beauty. Intention before trend." />
-    <meta name="theme-color" content="#0F0F10" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#FFFFFF" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0F0F10" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Desla!™" />
     <meta property="og:title" content="Desla!™ — Haute Dermatologie, Beauty & Lifestyle" />
@@ -21,6 +22,29 @@
   </head>
   <body class="bg-[#FFFFFF] text-[#0F0F10] antialiased selection:bg-[#D4AF37]/20 selection:text-[#997A2E]">
     <div id="root"></div>
+    <script>
+      window.addEventListener('error', function(e) {
+        var box = document.getElementById('runtime-error-box');
+        if (!box) {
+          box = document.createElement('div');
+          box.id = 'runtime-error-box';
+          box.style.cssText = 'position:fixed;bottom:20px;left:20px;right:20px;background:#991B1B;color:#FFF;padding:16px;border-radius:12px;z-index:999999;font-family:monospace;font-size:12px;box-shadow:0 10px 25px rgba(0,0,0,0.3);';
+          document.body.appendChild(box);
+        }
+        box.innerHTML = '<strong>Frontend Error:</strong> ' + (e.message || e) + '<br><small>' + (e.filename || '') + ':' + (e.lineno || '') + '</small>';
+      });
+      window.addEventListener('unhandledrejection', function(e) {
+        var box = document.getElementById('runtime-error-box');
+        if (!box) {
+          box = document.createElement('div');
+          box.id = 'runtime-error-box';
+          box.style.cssText = 'position:fixed;bottom:20px;left:20px;right:20px;background:#991B1B;color:#FFF;padding:16px;border-radius:12px;z-index:999999;font-family:monospace;font-size:12px;box-shadow:0 10px 25px rgba(0,0,0,0.3);';
+          document.body.appendChild(box);
+        }
+        var msg = e.reason ? (e.reason.message || e.reason) : 'Unknown promise rejection';
+        box.innerHTML = '<strong>Unhandled Rejection:</strong> ' + msg;
+      });
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

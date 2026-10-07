@@ -31,9 +31,28 @@
     --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
   }
 
+  html {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+  }
+
   html,
   body {
     overflow-x: clip;
+  }
+
+  input,
+  textarea,
+  select {
+    font-size: 16px; /* Prevents unwanted iOS Safari viewport auto-zoom */
+  }
+
+  button,
+  a,
+  [role="button"] {
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
   }
 
   body {
@@ -269,5 +288,28 @@ b, strong,
   font-style: normal !important;
   font-weight: 600 !important;
   font-variant-numeric: tabular-nums !important;
+}
+
+/* ========================================================
+   DESLA!™ LUXURY GLASSMORPHISM & ORGANIC MINIMALISM
+======================================================== */
+.desla-glass-luxury {
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 8px 32px rgba(212, 175, 55, 0.07), 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.desla-glass-dark {
+  background: rgba(15, 15, 16, 0.82);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4), 0 0 24px rgba(212, 175, 55, 0.12);
+}
+
+.desla-hand-drawn-border {
+  border-radius: 255px 15px 225px 15px/15px 225px 15px 255px;
 }
 

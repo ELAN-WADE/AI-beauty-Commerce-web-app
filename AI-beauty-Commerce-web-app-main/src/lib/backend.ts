@@ -1,3 +1,6 @@
+// DEPRECATED PROTOTYPE PATH — frozen for local mocks only.
+// Production source of truth is backend/ (owned Next.js + Drizzle API via VITE_API_URL).
+// Do not add new features here; keep mock fallback, fix bugs in backend/src/modules/*.
 // Desla!™ Backend — unified API surface (Supabase + Redis, mock fallback).
 // UI code should call these helpers instead of importing src/data/*.ts directly.
 // Strategy per call: Redis cache → Supabase → local mock. Never throws for reads.

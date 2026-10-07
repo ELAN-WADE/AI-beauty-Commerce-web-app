@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useCallback, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import {
   Product,
   CartItem,
@@ -22,6 +22,7 @@ import { distributors as initialDistributors, supportedCities } from '../data/di
 import { creators as initialCreators } from '../data/creators';
 import { communityPosts as initialCommunityPosts } from '../data/communityPosts';
 import { reviews as initialReviews } from '../data/reviews';
+import { routingKey, type CheckoutFulfilment } from '../lib/fulfilment';
 import {
   ApiError,
   apiLogin,
@@ -38,6 +39,11 @@ import {
   mapServerOrder,
   mergeServerCart,
   mirrorWishlist,
+  newIdempotencyKey,
+  newGuestOrderToken,
+  rememberGuestOrderToken,
+  guestOrderToken,
+  paymentTokenFor,
   paymentStatus,
   rememberServerOrder,
   serverCheckout,
@@ -48,6 +54,9 @@ import {
   createCommunityPostApi,
   likeCommunityPostApi,
   sendCommunityChatApi,
+  storeReferralFromUrl,
+  storedReferralCode,
+  clearReferralCode,
   submitDistributorApplication,
   submitCreatorApplication,
   validateCreatorCodeLive,
@@ -153,7 +162,7 @@ interface AppContextType {
   setIsLocationModalOpen: (open: boolean) => void;
   distributors: Distributor[];
   getDistributorsForCity: (city: string) => Distributor[];
-  registerDistributor: (data: Omit<Distributor, 'id' | 'verified' | 'rating' | 'reviewsCount'>) => void;
+  registerDistributor: typeof submitDistributorApplication;
 
   // NEW: Creator & Influencer Hub
   creators: Creator[];
@@ -161,7 +170,7 @@ interface AppContextType {
   creatorDiscountPercent: number;
   appliedCreator: Creator | null;
   applyCreatorCode: (code: string) => Promise<{ success: boolean; message: string }>;
-  registerCreator: (data: Omit<Creator, 'id' | 'totalSalesNgn' | 'commissionEarnedNgn' | 'clicks' | 'ordersCount' | 'verified'>) => void;
+  registerCreator: typeof submitCreatorApplication;
 
   // NEW: Social Community Feed Posts
   communityPosts: CommunityPost[];
@@ -181,6 +190,10 @@ interface AppContextType {
   // Checkout Fulfillment Details
   checkoutAddress: CheckoutAddress;
   setCheckoutAddress: React.Dispatch<React.SetStateAction<CheckoutAddress>>;
+  checkoutFulfilment: CheckoutFulfilment | null;
+  setCheckoutFulfilment: React.Dispatch<React.SetStateAction<CheckoutFulfilment | null>>;
+  preferredDistributor: Distributor | null;
+  setPreferredDistributor: React.Dispatch<React.SetStateAction<Distributor | null>>;
   voucherCode: string;
   setVoucherCode: (code: string) => void;
 
@@ -188,15 +201,21 @@ interface AppContextType {
   authUser: AuthUser | null;
   authLoading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; message: string }>;
-  register: (email: string, password: string) => Promise<{ success: boolean; message: string }>;
+  register: (email: string, password: string) => Promise<{ success: boolean; message: string; devToken?: string }>;
   requestPasswordReset: (email: string) => Promise<{ success: boolean; message: string; devToken?: string }>;
   resetPassword: (token: string, newPassword: string) => Promise<{ success: boolean; message: string }>;
   verifyEmail: (token: string) => Promise<{ success: boolean; message: string }>;
   setSimulatedUserRole: (role: string) => void;
+  loginAsDemoRole: (role: 'CUSTOMER' | 'CREATOR' | 'DISTRIBUTOR' | 'SUPER_ADMIN') => void;
+  previewRole: string | null;
+  isPreviewMode: boolean;
+  enterPreviewRole: (role: string) => void;
+  exitPreviewRole: () => void;
   logout: () => Promise<void>;
   isLiveBackend: boolean;
   livePayment: { status: 'idle' | 'preparing' | 'redirecting' | 'verifying' | 'error'; message: string };
   dismissLivePayment: () => void;
+  reverifyPayment: (reference: string) => Promise<boolean>;
   addLocalOrder: (order: Order) => void;
   prepareLiveCheckout: (provider: PayProvider) => Promise<LiveCheckoutResult>;
 }
@@ -222,9 +241,27 @@ export interface CheckoutAddress {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // Navigation State
-  const [currentScreen, setCurrentScreen] = useState<ScreenId>('home');
+  // Navigation State with URL deep linking (?screen=..., #..., or pathname)
+  const [currentScreen, setCurrentScreen] = useState<ScreenId>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const queryScreen = params.get('screen') as ScreenId;
+      if (queryScreen) return queryScreen;
+
+      const hash = window.location.hash.replace('#', '') as ScreenId;
+      if (hash) return hash;
+
+      const path = window.location.pathname.replace(/^\//, '');
+      if (path === 'verify-email') return 'verify-email';
+      if (path === 'reset-password') return 'reset-password';
+      if (path === 'creators' || path === 'creator-studio') return 'creators';
+      if (path === 'distributor-portal' || path === 'distributors') return 'distributor-portal';
+      if (path === 'admin-console') return 'admin-console';
+    }
+    return 'home';
+  });
   const [previousScreens, setPreviousScreens] = useState<ScreenId[]>([]);
+  const liveCheckoutAttempt = useRef<{ fingerprint: string; key: string; guestToken: string; orderId?: string } | null>(null);
 
   // Products (mock-first paint; upgraded from owned API when VITE_API_URL is set)
   const [products, setProducts] = useState<Product[]>(sampleProducts);
@@ -257,12 +294,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     let cancelled = false;
     fetchDistributors()
       .then((live) => {
-        if (!cancelled && live && live.length > 0) setDistributorsList(live);
+        if (!cancelled && live) setDistributorsList(live);
       })
       .catch(() => {});
     fetchCreators()
       .then((live) => {
-        if (!cancelled && live && live.length > 0) setCreatorsList(live);
+        if (!cancelled && live) setCreatorsList(live);
       })
       .catch(() => {});
     fetchCommunityPosts()
@@ -290,6 +327,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Location / City State (Default to Abuja as highlighted in user brief)
   const [selectedCity, setSelectedCity] = useState<string>('Abuja');
   const [isLocationModalOpen, setIsLocationModalOpen] = useState<boolean>(false);
+  const [preferredDistributor, setPreferredDistributor] = useState<Distributor | null>(null);
+  const [checkoutFulfilment, setCheckoutFulfilment] = useState<CheckoutFulfilment | null>(null);
 
   // Cart
   const [cartItems, setCartItems] = useState<CartItem[]>([
@@ -360,12 +399,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [unreadCommunityCount, setUnreadCommunityCount] = useState(3);
 
   // NEW: Distributors Store
-  const [distributorsList, setDistributorsList] = useState<Distributor[]>(initialDistributors);
+  const [distributorsList, setDistributorsList] = useState<Distributor[]>(isOwnedApiConfigured ? [] : initialDistributors);
 
   // NEW: Creators & Affiliates Store
-  const [creatorsList, setCreatorsList] = useState<Creator[]>(initialCreators);
-  const [activeCreatorCode, setActiveCreatorCode] = useState<string | null>('AMARA10');
-  const [creatorDiscountPercent, setCreatorDiscountPercent] = useState<number>(10);
+  const [creatorsList, setCreatorsList] = useState<Creator[]>(isOwnedApiConfigured ? [] : initialCreators);
+  const [activeCreatorCode, setActiveCreatorCode] = useState<string | null>(null);
+  const [creatorDiscountPercent, setCreatorDiscountPercent] = useState<number>(0);
   const appliedCreator = creatorsList.find((c) => c.promoCode === activeCreatorCode) || null;
 
   // NEW: Social Community Posts Feed
@@ -378,11 +417,28 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Loyalty voucher applied at checkout (server-validated; empty = none).
   const [voucherCode, setVoucherCode] = useState<string>('');
 
-  // Navigation handlers
+  // Creator referral (?ref=CODE): capture once, reuse at checkout, clear after order.
+  const [referralCode, setReferralCode] = useState<string | null>(null);
+  useEffect(() => {
+    try {
+      const captured = storeReferralFromUrl();
+      setReferralCode(captured ?? storedReferralCode());
+    } catch { /* non-browser safe */ }
+  }, []);
+
+  // Navigation handlers with browser URL synchronization
   const navigateTo = (screen: ScreenId, stateData?: any) => {
     setPreviousScreens((prev) => [...prev, currentScreen]);
     setCurrentScreen(screen);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    try {
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        url.searchParams.set('screen', screen);
+        window.history.pushState({ screen }, '', url.toString());
+      }
+    } catch { /* ignore non-browser context */ }
 
     if (screen === 'catalogue' && stateData?.category) {
       setSelectedCategory(stateData.category);
@@ -397,11 +453,42 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const prev = previousScreens[previousScreens.length - 1];
       setPreviousScreens((prevList) => prevList.slice(0, -1));
       setCurrentScreen(prev);
+      try {
+        if (typeof window !== 'undefined') {
+          const url = new URL(window.location.href);
+          url.searchParams.set('screen', prev);
+          window.history.pushState({ screen: prev }, '', url.toString());
+        }
+      } catch { /* ignore */ }
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       setCurrentScreen('home');
+      try {
+        if (typeof window !== 'undefined') {
+          const url = new URL(window.location.href);
+          url.searchParams.delete('screen');
+          window.history.pushState({ screen: 'home' }, '', url.toString());
+        }
+      } catch { /* ignore */ }
     }
   };
+
+  // Sync browser back/forward buttons with currentScreen
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handlePopState = (e: PopStateEvent) => {
+      const stateScreen = e.state?.screen;
+      if (stateScreen) {
+        setCurrentScreen(stateScreen);
+      } else {
+        const params = new URLSearchParams(window.location.search);
+        const queryScreen = (params.get('screen') as ScreenId) || 'home';
+        setCurrentScreen(queryScreen);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   const viewProductDetails = (product: Product) => {
     setSelectedProduct(product);
@@ -471,7 +558,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // Delivery fee: Local delivery in selected city (₦1,500) vs Lagos interstate (₦5,000). Free over ₦50,000.
   const isEligibleForFreeShipping = cartSubtotal >= 50000;
-  const cartDeliveryFee = isEligibleForFreeShipping
+  const cartDeliveryFee = isOwnedApiConfigured ? (checkoutFulfilment?.feeKobo ?? 0) / 100 : isEligibleForFreeShipping
     ? 0
     : selectedCity === 'Lagos'
     ? 1000
@@ -712,28 +799,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return distributorsList.filter((d) => d.city.toLowerCase() === city.toLowerCase());
   };
 
-  const registerDistributor = (
-    data: Omit<Distributor, 'id' | 'verified' | 'rating' | 'reviewsCount'>
-  ) => {
-    const newDist: Distributor = {
-      ...data,
-      id: `dist-${Date.now()}`,
-      verified: true,
-      rating: 5.0,
-      reviewsCount: 1
-    };
-    setDistributorsList((prev) => [newDist, ...prev]);
-    // Live mirror: partnership application (silent when offline).
-    submitDistributorApplication({
-      name: data.name,
-      businessName: data.businessName,
-      city: data.city,
-      state: data.state,
-      address: data.address,
-      phone: data.phone,
-      whatsapp: data.whatsapp
-    }).catch(() => {});
-  };
+  const registerDistributor = submitDistributorApplication;
 
   // Creator & Affiliate Handlers
   const applyCreatorCode = async (code: string) => {
@@ -747,8 +813,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           success: true,
           message: `Applied ${live.name}'s Creator Code: ${live.discountPercent}% Off Total Order!`
         };
-      } catch {
-        // Fall through to the local list (demo codes, offline backend).
+      } catch (e) {
+        return { success: false, message: e instanceof Error ? e.message : 'Could not validate this creator code.' };
       }
     }
     const found = creatorsList.find((c) => c.promoCode === normalized);
@@ -763,22 +829,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return { success: false, message: 'Invalid or expired Creator Promo Code.' };
   };
 
-  const registerCreator = (
-    data: Omit<Creator, 'id' | 'totalSalesNgn' | 'commissionEarnedNgn' | 'clicks' | 'ordersCount' | 'verified'>
-  ) => {
-    const newCreator: Creator = {
-      ...data,
-      id: `creator-${Date.now()}`,
-      totalSalesNgn: 0,
-      commissionEarnedNgn: 0,
-      clicks: 1,
-      ordersCount: 0,
-      verified: true
-    };
-    setCreatorsList((prev) => [newCreator, ...prev]);
-    // Live mirror: affiliate application (silent when offline).
-    submitCreatorApplication({ name: data.name, handle: data.handle, platform: data.platform, niche: data.niche }).catch(() => {});
-  };
+  const registerCreator = submitCreatorApplication;
 
   // Community Posts Handlers
   const likeCommunityPost = (postId: string) => {
@@ -905,10 +956,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return { success: true, message: 'Account registered. Verification code sent!' };
     }
     try {
-      await apiRegister(email.trim(), password);
-      const me = await apiMe();
-      setAuthUser(me);
-      return { success: true, message: me ? `Welcome to Desla!, ${me.email}` : 'Account created. Please log in.' };
+      const res = await apiRegister(email.trim(), password);
+      setAuthUser(null);
+      return { success: true, message: 'Check your inbox for a verification link. Already registered? Sign in or resend verification.', devToken: import.meta.env.DEV ? res._devVerificationToken : undefined };
     } catch (e) {
       return { success: false, message: e instanceof ApiError ? e.message : 'Registration failed.' };
     }
@@ -920,7 +970,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
     try {
       const res = await apiRequestPasswordReset(email.trim());
-      return { success: true, message: 'Reset code dispatched to ' + email, devToken: res._devResetToken || '5739' };
+      return { success: true, message: 'If an account exists for this email, a password-reset link will arrive shortly.', devToken: import.meta.env.DEV ? res._devResetToken : undefined };
     } catch (e) {
       return { success: false, message: e instanceof ApiError ? e.message : 'Could not request password reset.' };
     }
@@ -945,14 +995,43 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
     try {
       await apiVerifyEmail(token);
-      if (authUser) setAuthUser({ ...authUser, emailVerified: true });
-      return { success: true, message: 'Email address verified successfully!' };
+      setAuthUser(null);
+      return { success: true, message: 'Email verified. Sign in with your password to continue.' };
     } catch (e) {
       return { success: false, message: e instanceof ApiError ? e.message : 'Verification failed. Invalid or expired token.' };
     }
   };
 
+  // Preview role: frontend-only mock access to dashboards (creator/distributor/
+  // admin). Never creates a session and never authorizes backend calls —
+  // live APIs still enforce the real cookie session via requirePerm().
+  const [previewRole, setPreviewRole] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem('glowly-preview-role');
+    } catch {
+      return null;
+    }
+  });
+  const isPreviewMode = previewRole !== null;
+  const enterPreviewRole = (role: string) => {
+    try {
+      localStorage.setItem('glowly-preview-role', role);
+    } catch { /* storage unavailable — preview lasts for this tab only */ }
+    setPreviewRole(role);
+  };
+  const exitPreviewRole = () => {
+    try {
+      localStorage.removeItem('glowly-preview-role');
+    } catch { /* ignore */ }
+    setPreviewRole(null);
+  };
+
   const setSimulatedUserRole = (role: string) => {
+    if (isOwnedApiConfigured) {
+      // Live backend: do NOT fake a session. Enter frontend-only preview instead.
+      enterPreviewRole(role);
+      return;
+    }
     if (authUser) {
       setAuthUser({ ...authUser, roles: [role] });
     } else {
@@ -966,6 +1045,25 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
+  const loginAsDemoRole = (role: 'CUSTOMER' | 'CREATOR' | 'DISTRIBUTOR' | 'SUPER_ADMIN') => {
+    const roleProfiles: Record<string, { email: string; name: string }> = {
+      CUSTOMER: { email: 'amina.bello@example.com', name: 'Amina Bello (Customer)' },
+      CREATOR: { email: 'zara.okon@creator.desla.com', name: 'Zara Okon (Creator & MUA)' },
+      DISTRIBUTOR: { email: 'amaka.chioma@distributor.desla.com', name: 'Amaka Chioma (Abuja Hub)' },
+      SUPER_ADMIN: { email: 'admin.selena@desla.com', name: 'Selena Thorne (Admin)' }
+    };
+    const prof = roleProfiles[role] || roleProfiles.CUSTOMER;
+    const demoUser: AuthUser = {
+      id: `usr-demo-${role.toLowerCase()}-${Math.random().toString(36).slice(2, 6)}`,
+      email: prof.email,
+      emailVerified: true,
+      roles: [role],
+      profile: { displayName: prof.name }
+    };
+    setAuthUser(demoUser);
+    enterPreviewRole(role);
+  };
+
   const logout = async () => {
     try {
       await apiLogout();
@@ -973,6 +1071,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       // Cookie may already be gone; local state still clears.
     }
     setAuthUser(null);
+    exitPreviewRole();
   };
 
   // Session restore (silent; stays logged out in demo mode).
@@ -996,9 +1095,28 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setLivePayment({ status: 'preparing', message: 'Preparing secure checkout…' });
     try {
       if (cartItems.length === 0) throw new Error('Your bag is empty.');
-      await syncCartToServer(cartItems.map((ci) => ({ productId: ci.productId, size: ci.size, quantity: ci.quantity })));
       const email = checkoutAddress.email || userProfile.email;
-      const { order: view } = await serverCheckout(
+      const creatorCode = activeCreatorCode || referralCode || undefined;
+       const fulfilment = checkoutFulfilment;
+       if (!fulfilment || fulfilment.routingKey !== routingKey(cartItems, checkoutAddress.city || selectedCity, checkoutAddress.state, fulfilment.method)) throw new Error('Review delivery or pickup options again before payment.');
+      const fingerprint = JSON.stringify({
+        cart: cartItems.map((item) => [item.productId, item.size, item.quantity]),
+        address: checkoutAddress,
+        fulfilment,
+        voucherCode: voucherCode.trim(),
+        creatorCode,
+      });
+       if (liveCheckoutAttempt.current?.fingerprint !== fingerprint) {
+         let stored: typeof liveCheckoutAttempt.current = null;
+         try { stored = JSON.parse(sessionStorage.getItem('glowly-active-checkout') ?? 'null'); } catch { /* ignore */ }
+         liveCheckoutAttempt.current = stored?.fingerprint === fingerprint ? stored : { fingerprint, key: newIdempotencyKey(), guestToken: newGuestOrderToken() };
+         try { sessionStorage.setItem('glowly-active-checkout', JSON.stringify(liveCheckoutAttempt.current)); } catch { /* ignore */ }
+      }
+       const operationKey = liveCheckoutAttempt.current.key;
+       if (!liveCheckoutAttempt.current.orderId) await syncCartToServer(cartItems.map((ci) => ({ productId: ci.productId, size: ci.size, quantity: ci.quantity })));
+       const view = liveCheckoutAttempt.current.orderId
+         ? await fetchServerOrder(liveCheckoutAttempt.current.orderId, liveCheckoutAttempt.current.guestToken)
+         : (await serverCheckout(
         {
           fullName: checkoutAddress.fullName || userProfile.name,
           email,
@@ -1009,16 +1127,30 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           deliveryNotes: checkoutAddress.deliveryNotes,
         },
         voucherCode.trim() || undefined,
-        activeCreatorCode || undefined
-      );
-      const init = await initPayment(view.id, provider, email || undefined);
+        creatorCode,
+        fulfilment,
+         `${operationKey}:checkout`,
+         liveCheckoutAttempt.current.guestToken,
+       )).order;
+       if (!view) throw new Error('Unable to restore checkout. Please contact support with your order number.');
+       liveCheckoutAttempt.current.orderId = view.id;
+       try { sessionStorage.setItem('glowly-active-checkout', JSON.stringify(liveCheckoutAttempt.current)); } catch { /* ignore */ }
+       rememberGuestOrderToken(view.id, view.orderNumber, liveCheckoutAttempt.current.guestToken);
+      try { clearReferralCode(); setReferralCode(null); } catch { /* ignore */ }
+       const init = await initPayment(view.id, provider, email || undefined, `${operationKey}:payment:${provider}`);
+       try { localStorage.setItem(`glowly-payment-token:${init.reference}`, liveCheckoutAttempt.current.guestToken); } catch { /* storage unavailable */ }
       const local = mapServerOrder(
         view,
         cartItems,
         provider === 'transfer' ? 'Bank transfer (pending)' : `${provider} (hosted checkout)`
       );
       rememberServerOrder(local.id, view.id);
-      clearCart();
+      try {
+        if (email) localStorage.setItem('glowly-guest-email', email);
+        localStorage.setItem('glowly-last-reference', init.reference);
+      } catch { /* storage unavailable — return flow falls back to typed email */ }
+       clearCart();
+       try { sessionStorage.removeItem('glowly-active-checkout'); } catch { /* ignore */ }
       if (init.authorizationUrl) {
         setLivePayment({ status: 'redirecting', message: 'Opening secure payment page…' });
         window.location.href = init.authorizationUrl;
@@ -1034,46 +1166,78 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   // Provider return (?pay=reference): verify server-side, mirror locally, confirm.
+  // Exposed as reverifyPayment so the payment screen can resume a pending
+  // reference after reloads, closed provider tabs, or cleared navigation state.
+  const verifyPaymentReturn = useCallback(async (
+    ref: string,
+    opts?: { pending?: boolean; orderNumber?: string | null; retries?: number },
+  ): Promise<boolean> => {
+    setLivePayment({ status: 'verifying', message: 'Confirming your payment…' });
+    try {
+      const st = await paymentStatus(ref);
+      if (!st.settled) {
+        // Webhooks/worker may land seconds after the redirect: retry briefly
+        // when the backend flagged the return pending before giving up.
+        if (opts?.pending && (opts?.retries ?? 0) < 3) {
+          await new Promise((r) => setTimeout(r, 4000));
+          return verifyPaymentReturn(ref, { ...opts, retries: (opts?.retries ?? 0) + 1 });
+        }
+        const orderHint = opts?.orderNumber ?? (st.orderNumber || undefined);
+        setLivePayment({ status: 'error', message: `Payment is not complete yet${orderHint ? ` (order ${orderHint})` : ''}. If you paid, wait a minute and check Orders.` });
+        return false;
+      }
+      // Guest capability: payment-attempt token first, remembered order token
+      // second, session cookie last (logged-in shoppers need none of these).
+      const token = paymentTokenFor(ref) ?? guestOrderToken(st.orderId) ?? undefined;
+      const view: ServerOrderView | null = await fetchServerOrder(st.orderId, token);
+      if (!view) {
+        const orderHint = opts?.orderNumber ?? st.orderNumber;
+        setLivePayment({ status: 'error', message: `Payment confirmed${orderHint ? ` for order ${orderHint}` : ''}, but the order could not be loaded. Contact support with reference ${ref}.` });
+        return false;
+      }
+      const local = mapServerOrder(view, cartItems, 'Online payment');
+      rememberServerOrder(local.id, view.id);
+      setOrders((prev) => [local, ...prev]);
+      setActiveOrder(local);
+      clearCart();
+      setLivePayment({ status: 'idle', message: '' });
+      setPreviousScreens((prev) => [...prev, currentScreen]);
+      setCurrentScreen('order-confirmed');
+      window.scrollTo({ top: 0 });
+      return true;
+    } catch {
+      const orderHint = opts?.orderNumber ? ` (order ${opts.orderNumber})` : '';
+      setLivePayment({ status: 'error', message: `Could not verify payment${orderHint}. Contact support with reference ${ref}.` });
+      return false;
+    }
+    // State snapshots are intentionally call-time; the mount effect below
+    // pins the landing-page snapshot, the resume button uses fresh state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cartItems, currentScreen]);
+
   useEffect(() => {
     if (!isOwnedApiConfigured) return;
-    const ref = new URLSearchParams(window.location.search).get('pay');
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('pay');
+    const payError = params.get('pay_error');
+    if (payError && !ref) {
+      setLivePayment({ status: 'error', message: 'Payment return was incomplete. Check Orders or try again.' });
+      window.history.replaceState({}, '', window.location.pathname);
+      return;
+    }
     if (!ref) return;
+    const pending = params.get('pending') === '1';
+    const orderNumber = params.get('order');
     window.history.replaceState({}, '', window.location.pathname);
     let cancelled = false;
     (async () => {
-      setLivePayment({ status: 'verifying', message: 'Confirming your payment…' });
-      try {
-        const st = await paymentStatus(ref, checkoutAddress.email || undefined);
-        if (cancelled) return;
-        if (!st.settled) {
-          setLivePayment({ status: 'error', message: 'Payment is not complete yet. If you paid, wait a minute and check Orders.' });
-          return;
-        }
-        const view: ServerOrderView | null = await fetchServerOrder(st.orderId, checkoutAddress.email || undefined);
-        if (cancelled) return;
-        if (!view) {
-          setLivePayment({ status: 'error', message: 'Payment confirmed, but the order could not be loaded. Contact support with reference ' + ref });
-          return;
-        }
-        const local = mapServerOrder(view, cartItems, 'Online payment');
-        if (!cancelled) {
-          rememberServerOrder(local.id, view.id);
-          setOrders((prev) => [local, ...prev]);
-          setActiveOrder(local);
-          clearCart();
-          setLivePayment({ status: 'idle', message: '' });
-          setPreviousScreens((prev) => [...prev, currentScreen]);
-          setCurrentScreen('order-confirmed');
-          window.scrollTo({ top: 0 });
-        }
-      } catch {
-        if (!cancelled) setLivePayment({ status: 'error', message: 'Could not verify payment. Contact support with reference ' + ref });
-      }
+      if (cancelled) return;
+      await verifyPaymentReturn(ref, { pending, orderNumber });
     })();
     return () => {
       cancelled = true;
     };
-    // Mount-once return handler: state snapshots below are intentionally mount-time.
+    // Mount-once return handler.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1162,6 +1326,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         dismissCartBanner,
         checkoutAddress,
         setCheckoutAddress,
+        checkoutFulfilment,
+        setCheckoutFulfilment,
+        preferredDistributor,
+        setPreferredDistributor,
         voucherCode,
         setVoucherCode,
         authUser,
@@ -1172,10 +1340,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         resetPassword,
         verifyEmail,
         setSimulatedUserRole,
+        loginAsDemoRole,
+        previewRole,
+        isPreviewMode,
+        enterPreviewRole,
+        exitPreviewRole,
         logout,
         isLiveBackend: isOwnedApiConfigured,
         livePayment,
         dismissLivePayment,
+        reverifyPayment: (reference: string) => verifyPaymentReturn(reference),
         addLocalOrder,
         prepareLiveCheckout
       }}

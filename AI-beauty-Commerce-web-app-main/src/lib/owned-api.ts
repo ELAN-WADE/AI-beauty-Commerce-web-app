@@ -7,6 +7,7 @@ import type { CartItem, Order, Product, AdminOrder, AdminTransferClaim, AdminAud
 const BASE = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/+$/, '');
 
 export const isOwnedApiConfigured = Boolean(BASE);
+if (import.meta.env.PROD && !BASE) throw new Error('Production storefront requires VITE_API_URL.');
 
 export class ApiError extends Error {
   constructor(
@@ -32,6 +33,28 @@ async function apiFetch<T>(path: string, init: RequestInit = {}, sessionId?: str
 
 /** Guest session id (localStorage). Server carts key off this until login. */
 const SESSION_KEY = 'glowly-session-id';
+const GUEST_ORDER_TOKENS = 'glowly-guest-order-tokens';
+export function newGuestOrderToken(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  return Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+}
+export function rememberGuestOrderToken(id: string, number: string, token: string): void {
+  const tokens = JSON.parse(localStorage.getItem(GUEST_ORDER_TOKENS) ?? '{}') as Record<string, string>;
+  localStorage.setItem(GUEST_ORDER_TOKENS, JSON.stringify({ ...tokens, [id]: token, [number]: token }));
+}
+export function guestOrderToken(id: string): string | null {
+  try {
+    return (JSON.parse(localStorage.getItem(GUEST_ORDER_TOKENS) ?? '{}') as Record<string, string>)[id] ?? null;
+  } catch { return null; }
+}
+
+export async function resendVerificationEmail(email: string): Promise<void> {
+  await apiFetch('/api/auth/resend-verification', { method: 'POST', body: JSON.stringify({ email }) });
+}
+function guestHeaders(id: string, token?: string): Record<string, string> {
+  const value = token ?? guestOrderToken(id);
+  return value ? { 'X-Guest-Order-Token': value } : {};
+}
 export function guestSessionId(): string {
   try {
     let id = localStorage.getItem(SESSION_KEY);
@@ -154,7 +177,7 @@ export interface AuthUser {
   profile: { displayName: string; phone?: string; avatarUrl?: string } | null;
 }
 
-export async function apiRegister(email: string, password: string): Promise<{ ok: boolean; email: string }> {
+export async function apiRegister(email: string, password: string): Promise<{ ok: boolean; email: string; _devVerificationToken?: string }> {
   return apiFetch('/api/auth/register', { method: 'POST', body: JSON.stringify({ email, password }) });
 }
 
@@ -230,14 +253,24 @@ export interface ServerCartLine {
   available: number;
 }
 
-export async function syncCartToServer(items: { productId: string; size: string; quantity: number }[]): Promise<void> {  if (!BASE) return;
+export async function syncCartToServer(items: { productId: string; size: string; quantity: number }[]): Promise<void> {
+  if (!BASE) throw new Error('Backend is not configured.');
   const sessionId = guestSessionId();
-  // Replace server cart with local lines (variant-resolved, server-priced).
-  await apiFetch('/api/cart/items', { method: 'DELETE' }, sessionId).catch(() => null);
+  const expected = new Map<string, number>();
   for (const item of items) {
     const variantId = await resolveVariantId(item.productId, item.size);
-    if (!variantId) continue; // unknown to server (mock-only product) — skip line
-    await apiFetch('/api/cart/items', { method: 'POST', body: JSON.stringify({ variantId, qty: Math.min(99, item.quantity) }) }, sessionId).catch(() => null);
+    if (!variantId || expected.has(variantId) || item.quantity < 1 || item.quantity > 99) {
+      throw new Error('An item in your bag cannot be checked out. Refresh the catalogue and review your bag.');
+    }
+    expected.set(variantId, item.quantity);
+  }
+  await apiFetch('/api/cart/items', { method: 'DELETE' }, sessionId);
+  for (const [variantId, qty] of expected) {
+    await apiFetch('/api/cart/items', { method: 'POST', body: JSON.stringify({ variantId, qty }) }, sessionId);
+  }
+  const cart = await apiFetch<{ lines: { variantId: string; qty: number }[] }>('/api/cart', {}, sessionId);
+  if (cart.lines.length !== expected.size || cart.lines.some(line => expected.get(line.variantId) !== line.qty)) {
+    throw new Error('Your bag changed during checkout. Please review it before paying.');
   }
 }
 
@@ -267,6 +300,7 @@ export interface ServerOrderView {
   subtotalKobo: number;
   deliveryFeeKobo: number;
   totalKobo: number;
+  fulfilmentMethod?: string;
   items: { variantId: string; productName: string; variantLabel: string; sku: string; unitPriceKobo: number; qty: number; lineTotalKobo: number }[];
 }
 
@@ -274,21 +308,196 @@ export async function serverCheckout(
   address: CheckoutAddressInput,
   voucherCode?: string,
   creatorCode?: string,
+  fulfilment?: { locationId?: string; method?: 'DELIVERY' | 'PICKUP' },
+  idempotencyKey = newIdempotencyKey(),
+  guestAccessToken?: string,
 ): Promise<{ order: ServerOrderView; replay: boolean }> {
   const sessionId = guestSessionId();
   const { fullName, phone, street, city, state, email, deliveryNotes } = address;
   return apiFetch('/api/checkout', {
     method: 'POST',
-    headers: { 'Idempotency-Key': newIdempotencyKey() },
+    headers: { 'Idempotency-Key': idempotencyKey },
     body: JSON.stringify({
       sessionId,
       guestAddress: { fullName, phone, street, city, state, country: 'NG' },
       guestEmail: email,
+      ...(guestAccessToken ? { guestAccessToken } : {}),
       note: deliveryNotes ?? '',
       ...(voucherCode ? { voucherCode } : {}),
       ...(creatorCode ? { creatorCode } : {}),
+      ...(fulfilment?.locationId ? { fulfilmentLocationId: fulfilment.locationId } : {}),
+      ...(fulfilment?.method ? { fulfilmentMethod: fulfilment.method } : {}),
     }),
   }, sessionId);
+}
+
+// ---------- Location-aware fulfilment (routing) ----------
+
+export interface FulfilmentOption {
+  locationId: string;
+  name: string;
+  city: string;
+  state: string;
+  address: string;
+  phone: string;
+  operatingHours: string;
+  method: 'DELIVERY' | 'PICKUP';
+  feeKobo: number;
+  etaText: string;
+  isLocal: boolean;
+}
+
+export async function locateStockApi(input: {
+  city: string;
+  state: string;
+  method: 'DELIVERY' | 'PICKUP';
+  items: { variantId: string; qty: number }[];
+}): Promise<{ options: FulfilmentOption[]; recommendedLocationId: string | null; hasFullCart: boolean } | null> {
+  if (!BASE) return null;
+  return apiFetch('/api/routing/locate-stock', { method: 'POST', body: JSON.stringify(input) });
+}
+
+// ---------- Creator referral (?ref=CODE) ----------
+
+const REF_KEY = 'desla-referral-code';
+
+export function storeReferralFromUrl(): string | null {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const ref = (params.get('ref') ?? params.get('referral') ?? '').trim().toUpperCase();
+    if (/^[A-Z0-9]{3,20}$/.test(ref)) {
+      try {
+        sessionStorage.setItem(REF_KEY, ref);
+        localStorage.setItem(REF_KEY, ref);
+      } catch { /* storage unavailable */ }
+      try {
+        void validateCreatorCodeLive(ref).catch(() => null);
+      } catch { /* best-effort click funnel only */ }
+      return ref;
+    }
+  } catch { /* non-browser or malformed URL */ }
+  return null;
+}
+
+export function storedReferralCode(): string | null {
+  try {
+    return sessionStorage.getItem(REF_KEY) ?? localStorage.getItem(REF_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function clearReferralCode(): void {
+  try {
+    sessionStorage.removeItem(REF_KEY);
+    localStorage.removeItem(REF_KEY);
+  } catch { /* ignore */ }
+}
+
+// ---------- Partner operations (role-gated, owner-scoped) ----------
+
+export async function fetchPartnerDashboard(kind: 'DISTRIBUTOR' | 'CREATOR'): Promise<unknown | null> {
+  if (!BASE) return null;
+  return apiFetch(`/api/partner?kind=${kind}`);
+}
+
+export interface WholesaleItem {
+  variantId: string; sku: string; name: string; size: string; unitPriceKobo: number;
+  unitsPerCarton: number; minimumCartons: number; available: number;
+}
+export interface WholesaleQuote {
+  tier: string; locationId: string; subtotalKobo: number; deliveryFeeKobo: number; totalKobo: number; quoteFingerprint: string;
+  shippingAddress: { fullName: string; street: string; city: string; state: string; phone: string };
+  items: { variantId: string; productName: string; variantLabel: string; sku: string; cartons: number; unitsPerCarton: number; qty: number; unitPriceKobo: number; lineTotalKobo: number }[];
+}
+export interface WholesaleOrder extends ServerOrderView {
+  kind: 'WHOLESALE'; createdAt: string; wholesaleTerms: WholesaleQuote;
+  wholesaleDispatchedAt: string | null; wholesaleReceivedAt: string | null; wholesaleReturnedAt: string | null;
+}
+export interface WholesaleDashboard {
+  tier: string; location: { id: string; name: string; city: string; address: string };
+  items: WholesaleItem[]; orders: WholesaleOrder[];
+}
+export function fetchWholesale(): Promise<WholesaleDashboard> {
+  return apiFetch('/api/partner/wholesale');
+}
+export function quoteWholesale(items: { variantId: string; cartons: number }[]): Promise<WholesaleQuote> {
+  return apiFetch('/api/partner/wholesale', { method: 'POST', body: JSON.stringify({ action: 'quote', items }) });
+}
+export function buyWholesale(items: { variantId: string; cartons: number }[], quoteFingerprint: string, key: string): Promise<{ order: WholesaleOrder; replay: boolean }> {
+  return apiFetch('/api/partner/wholesale', { method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify({ action: 'checkout', items, quoteFingerprint }) });
+}
+export function wholesaleOrderAction(action: 'receive' | 'cancel', orderId: string): Promise<WholesaleOrder> {
+  return apiFetch('/api/partner/wholesale', { method: 'POST', body: JSON.stringify({ action, orderId }) });
+}
+export function recordWholesaleSale(input: { variantId: string; qty: number; note: string }, key: string): Promise<{ recorded: boolean }> {
+  return apiFetch('/api/partner/wholesale', { method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify({ action: 'directSale', ...input }) });
+}
+
+export async function partnerOrderTransition(input: {
+  orderId: string; transition: 'ACCEPT' | 'DISPATCH' | 'READY_PICKUP' | 'CONFIRM_PICKUP' | 'COMPLETE_DELIVERY'; code?: string; note?: string;
+}): Promise<unknown> {
+  return apiFetch('/api/partner', {
+    method: 'POST',
+    body: JSON.stringify({ action: 'order', kind: 'DISTRIBUTOR', orderId: input.orderId, transition: input.transition, ...(input.code ? { code: input.code } : {}), note: input.note ?? '' }),
+  });
+}
+
+export async function partnerBankRegister(kind: 'DISTRIBUTOR' | 'CREATOR', bank: { bankCode: string; bankName: string; accountName: string; accountNumber: string }): Promise<unknown> {
+  return apiFetch('/api/partner', { method: 'POST', body: JSON.stringify({ action: 'bank', kind, ...bank }) });
+}
+
+export async function partnerWithdraw(kind: 'DISTRIBUTOR' | 'CREATOR', input: { bankAccountId: string; amountKobo: number }): Promise<unknown> {
+  return apiFetch('/api/partner', {
+    method: 'POST',
+    headers: { 'Idempotency-Key': newIdempotencyKey() },
+    body: JSON.stringify({ action: 'withdraw', kind, ...input }),
+  });
+}
+
+export async function partnerRestock(input: { variantId: string; qty: number }): Promise<unknown> {
+  return apiFetch('/api/partner', {
+    method: 'POST',
+    headers: { 'Idempotency-Key': newIdempotencyKey() },
+    body: JSON.stringify({ action: 'restock', kind: 'DISTRIBUTOR', ...input }),
+  });
+}
+
+export async function partnerReceiveTransfer(transferId: string): Promise<unknown> {
+  return apiFetch('/api/partner', { method: 'POST', body: JSON.stringify({ action: 'receive', kind: 'DISTRIBUTOR', transferId }) });
+}
+
+export async function requestPickupCode(orderId: string, _email?: string): Promise<{ code: string; expiresAt: string } | null> {
+  if (!BASE) return null;
+  try {
+    return await apiFetch(`/api/orders/${encodeURIComponent(orderId)}/pickup-code`, {
+      method: 'POST',
+      headers: guestHeaders(orderId),
+      body: JSON.stringify({}),
+    });
+  } catch {
+    return null;
+  }
+}
+
+// ---------- Admin network (locations, transfers, payouts) ----------
+
+export async function fetchNetworkOverview(): Promise<unknown | null> {
+  if (!BASE) return null;
+  try {
+    return await apiFetch('/api/admin/network');
+  } catch (e) {
+    if (e instanceof ApiError && (e.status === 401 || e.status === 403)) return null;
+    throw e;
+  }
+}
+
+export async function networkCommand(input: Record<string, unknown>): Promise<unknown> {
+  return apiFetch('/api/admin/network', {
+    method: 'POST',
+    headers: { 'Idempotency-Key': newIdempotencyKey() },
+    body: JSON.stringify(input),
+  });
 }
 
 export type PayProvider = 'flutterwave' | 'paystack' | 'opay' | 'transfer';
@@ -302,10 +511,11 @@ export interface InitResult {
   replay: boolean;
 }
 
-export async function initPayment(orderId: string, provider: PayProvider, guestEmail?: string): Promise<InitResult> {
+export async function initPayment(orderId: string, provider: PayProvider, _guestEmail?: string, idempotencyKey = newIdempotencyKey()): Promise<InitResult> {
   return apiFetch('/api/payments/init', {
     method: 'POST',
-    body: JSON.stringify({ orderId, provider, ...(guestEmail ? { guestEmail } : {}) }),
+    headers: { 'Idempotency-Key': idempotencyKey, ...guestHeaders(orderId) },
+    body: JSON.stringify({ orderId, provider }),
   }, guestSessionId());
 }
 
@@ -319,17 +529,26 @@ export interface PaymentStatus {
   orderNumber: string;
 }
 
-export async function paymentStatus(reference: string, guestEmail?: string): Promise<PaymentStatus> {
-  const q = guestEmail ? `?guestEmail=${encodeURIComponent(guestEmail)}` : '';
-  return apiFetch(`/api/payments/status?reference=${encodeURIComponent(reference)}${q ? `&${q.slice(1)}` : ''}`, {}, guestSessionId());
+/** Guest capability for a payment attempt (persisted at init; survives reload). */
+export function paymentTokenFor(reference: string): string | null {
+  try { return localStorage.getItem(`glowly-payment-token:${reference}`); } catch { return null; }
+}
+
+/** Most recent payment reference from this browser (resume/verify affordance). */
+export function lastPaymentReference(): string | null {
+  try { return localStorage.getItem('glowly-last-reference'); } catch { return null; }
+}
+
+export async function paymentStatus(reference: string): Promise<PaymentStatus> {
+  const token = paymentTokenFor(reference);
+  return apiFetch(`/api/payments/status?reference=${encodeURIComponent(reference)}`, { headers: token ? { 'X-Guest-Order-Token': token } : {} }, guestSessionId());
 }
 
 // ---------- Orders (tracking screens) ----------
 
-export async function fetchServerOrder(orderId: string, guestEmail?: string): Promise<ServerOrderView & { history: { toStatus: string; createdAt: string }[]; shippingAddress: { name?: string; street?: string; city?: string; state?: string; phone?: string } } | null> {
+export async function fetchServerOrder(orderId: string, token?: string): Promise<ServerOrderView & { history: { toStatus: string; createdAt: string }[]; shippingAddress: { name?: string; street?: string; city?: string; state?: string; phone?: string } } | null> {
   try {
-    const q = guestEmail ? `?email=${encodeURIComponent(guestEmail)}` : '';
-    return await apiFetch(`/api/orders/${encodeURIComponent(orderId)}${q}`, {}, guestSessionId());
+    return await apiFetch(`/api/orders/${encodeURIComponent(orderId)}`, { headers: guestHeaders(orderId, token && /^[a-f0-9]{64}$/.test(token) ? token : undefined) }, guestSessionId());
   } catch {
     return null;
   }
@@ -411,9 +630,11 @@ export interface TransferClaimInput {
 }
 
 export async function submitTransferClaim(input: TransferClaimInput): Promise<{ claim: { id: string; status: string } }> {
+  const { guestEmail: _guestEmail, ...claim } = input;
   return apiFetch('/api/payments/transfer-claim', {
     method: 'POST',
-    body: JSON.stringify(input),
+    headers: guestHeaders(input.orderId),
+    body: JSON.stringify(claim),
   }, guestSessionId());
 }
 
@@ -625,7 +846,7 @@ import type { Distributor } from '../types';
 interface OwnedDistributor {
   id: string;
   name: string;
-  business_name: string;
+  businessName: string;
   city: string;
   state: string;
   address: string;
@@ -633,18 +854,21 @@ interface OwnedDistributor {
   whatsapp: string;
   verified: boolean;
   tier: 'Bronze' | 'Silver' | 'Gold';
-  is_online_only: boolean;
-  pickup_available: boolean;
-  operating_hours: string;
+  isOnlineOnly: boolean;
+  pickupAvailable: boolean;
+  operatingHours: string;
   rating: number | string;
-  reviews_count: number;
+  reviewsCount: number;
+  stockedSkus: string[];
+  location: Distributor['location'];
+  stock: Distributor['stock'];
 }
 
 function mapDistributor(d: OwnedDistributor): Distributor {
   return {
     id: d.id,
     name: d.name,
-    businessName: d.business_name,
+    businessName: d.businessName,
     city: d.city,
     state: d.state,
     address: d.address,
@@ -652,24 +876,22 @@ function mapDistributor(d: OwnedDistributor): Distributor {
     whatsapp: d.whatsapp,
     verified: d.verified,
     tier: d.tier,
-    isOnlineOnly: d.is_online_only,
-    pickupAvailable: d.pickup_available,
-    operatingHours: d.operating_hours,
+    isOnlineOnly: d.isOnlineOnly,
+    pickupAvailable: d.location?.pickupEnabled ?? d.pickupAvailable,
+    operatingHours: d.operatingHours,
     rating: Number(d.rating),
-    reviewsCount: d.reviews_count,
-    stockedSkus: [],
+    reviewsCount: d.reviewsCount,
+    stockedSkus: d.stockedSkus,
+    location: d.location,
+    stock: d.stock,
   };
 }
 
 export async function fetchDistributors(city?: string): Promise<Distributor[] | null> {
   if (!BASE) return null;
-  try {
-    const q = city ? `?city=${encodeURIComponent(city)}` : '';
+    const q = city ? `?limit=100&city=${encodeURIComponent(city)}` : '?limit=100';
     const body = await apiFetch<{ distributors: OwnedDistributor[] }>(`/api/distributors${q}`);
     return body.distributors.map(mapDistributor);
-  } catch {
-    return null;
-  }
 }
 
 export interface CityStock {
@@ -695,6 +917,8 @@ export async function fetchStockNearCity(variantId: string, city: string): Promi
   }
 }
 
+export interface ApplicationReceipt { id: string; status: string }
+
 export async function submitDistributorApplication(input: {
   name: string;
   businessName?: string;
@@ -703,9 +927,10 @@ export async function submitDistributorApplication(input: {
   address: string;
   phone: string;
   whatsapp?: string;
-}): Promise<void> {
-  if (!BASE) return;
-  await apiFetch('/api/distributors', { method: 'POST', body: JSON.stringify(input) }).catch(() => null);
+}): Promise<ApplicationReceipt> {
+  if (!BASE) throw new Error('Connect the live backend to submit an application.');
+  const body = await apiFetch<{ application: ApplicationReceipt }>('/api/distributors', { method: 'POST', body: JSON.stringify(input) });
+  return body.application;
 }
 
 // ---------- Creators (directory, validation, applications) ----------
@@ -722,7 +947,7 @@ interface OwnedCreator {
   discountPercent: number;
 }
 
-function mapCreator(c: OwnedCreator, index: number): Creator {
+function mapCreator(c: OwnedCreator): Creator {
   return {
     id: c.promoCode,
     name: c.name,
@@ -736,7 +961,7 @@ function mapCreator(c: OwnedCreator, index: number): Creator {
     totalSalesNgn: 0,
     commissionEarnedNgn: 0,
     clicks: 0,
-    ordersCount: index,
+    ordersCount: 0,
     verified: true,
   };
 }
@@ -758,9 +983,10 @@ export async function validateCreatorCodeLive(code: string): Promise<{ success: 
   return { success: true, discountPercent: body.discountPercent, name: body.name };
 }
 
-export async function submitCreatorApplication(input: { name: string; handle?: string; platform?: string; niche?: string }): Promise<void> {
-  if (!BASE) return;
-  await apiFetch('/api/creators', { method: 'POST', body: JSON.stringify({ ...input, code: input.name }) }).catch(() => null);
+export async function submitCreatorApplication(input: { name: string; handle: string; platform: 'Instagram' | 'TikTok' | 'YouTube'; niche: string }): Promise<ApplicationReceipt> {
+  if (!BASE) throw new Error('Connect the live backend to submit an application.');
+  const body = await apiFetch<{ application: ApplicationReceipt }>('/api/creators', { method: 'POST', body: JSON.stringify(input) });
+  return body.application;
 }
 
 // ---------- Community (posts, likes, chat) ----------

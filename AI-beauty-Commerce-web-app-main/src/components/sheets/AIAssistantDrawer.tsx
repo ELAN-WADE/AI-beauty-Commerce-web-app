@@ -171,7 +171,7 @@ export const AIAssistantDrawer: React.FC = () => {
                                 <h5 className="font-heading font-semibold text-xs text-[#0F0F10] truncate">
                                   {prod.name}
                                 </h5>
-                                <span className="font-price font-semibold text-xs text-[#FB7701]">
+                                <span className="font-price font-bold text-xs text-[#0F0F10]">
                                   ₦{prod.price.toLocaleString('en-NG')}
                                 </span>
                               </div>

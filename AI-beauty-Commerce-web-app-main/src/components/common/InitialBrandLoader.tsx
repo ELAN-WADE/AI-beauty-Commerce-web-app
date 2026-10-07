@@ -1,31 +1,37 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles } from 'lucide-react';
+import { Activity } from 'lucide-react';
 
 export const InitialBrandLoader: React.FC = () => {
-  const [isVisible, setIsVisible] = useState(true);
+  const [isVisible, setIsVisible] = useState(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        if (sessionStorage.getItem('desla-brand-loader-shown')) return false;
+        sessionStorage.setItem('desla-brand-loader-shown', 'true');
+      }
+    } catch { /* ignore */ }
+    return true;
+  });
   const [isFadingOut, setIsFadingOut] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
   useEffect(() => {
-    // Check user preference for reduced motion
+    if (!isVisible) return;
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     setPrefersReducedMotion(mediaQuery.matches);
 
-    // Fast, elegant luxury timing:
-    // 1100ms display -> 350ms exit crossfade -> unmount
     const fadeTimer = setTimeout(() => {
       setIsFadingOut(true);
-    }, 1150);
+    }, 650);
 
     const unmountTimer = setTimeout(() => {
       setIsVisible(false);
-    }, 1500);
+    }, 900);
 
     return () => {
       clearTimeout(fadeTimer);
       clearTimeout(unmountTimer);
     };
-  }, []);
+  }, [isVisible]);
 
   if (!isVisible) return null;
 
@@ -33,7 +39,8 @@ export const InitialBrandLoader: React.FC = () => {
     <div
       role="status"
       aria-label="Loading Desla"
-      className={`fixed inset-0 z-[100] bg-[#0A0A0C] flex flex-col items-center justify-center pointer-events-none select-none transition-all duration-350 ease-out ${
+      onClick={() => setIsVisible(false)}
+      className={`fixed inset-0 z-[100] bg-[#0A0A0C] flex flex-col items-center justify-center cursor-pointer select-none transition-all duration-300 ease-out ${
         isFadingOut
           ? 'opacity-0 scale-[1.02] pointer-events-none'
           : 'opacity-100 scale-100'
@@ -57,10 +64,10 @@ export const InitialBrandLoader: React.FC = () => {
       >
         {/* Subtle apothecary emblem star */}
         <div className="w-8 h-8 rounded-full bg-[#18181B] border border-[#D4AF37]/30 flex items-center justify-center mb-5 text-[#D4AF37] shadow-lg shadow-black/40">
-          <Sparkles size={14} className="animate-pulse duration-1000" />
+          <Activity size={14} className="animate-pulse duration-1000" />
         </div>
 
-        {/* Separated Delsla Wordmark + TM Badge */}
+        {/* Separated Desla! Wordmark + TM Badge */}
         <div className="flex items-baseline gap-1.5 justify-center">
           <span
             className="font-heading font-extrabold text-4xl sm:text-5xl md:text-6xl text-[#FAF9F5] tracking-tight"

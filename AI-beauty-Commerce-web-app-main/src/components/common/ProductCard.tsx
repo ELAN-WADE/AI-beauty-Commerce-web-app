@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Heart, Plus, Star, Check, MapPin, Sparkles } from 'lucide-react';
+import { Heart, Plus, Star, Check, MapPin, Eye } from 'lucide-react';
 import { Product } from '../../types';
 import { useApp } from '../../context/AppContext';
 
@@ -7,12 +7,14 @@ interface ProductCardProps {
   product: Product;
   variant?: 'grid' | 'rail' | 'compact';
   onQuickAdd?: () => void;
+  onOpenModal?: (product: Product) => void;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
   product,
   variant = 'grid',
-  onQuickAdd
+  onQuickAdd,
+  onOpenModal
 }) => {
   const { viewProductDetails, addToCart, isWishlisted, toggleWishlist, selectedCity } = useApp();
   const wishlisted = isWishlisted(product.id);
@@ -20,8 +22,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   const formatNaira = (amount: number) => '₦' + amount.toLocaleString('en-NG');
 
+  const handleCardClick = () => {
+    if (onOpenModal) {
+      onOpenModal(product);
+    } else {
+      viewProductDetails(product);
+    }
+  };
+
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (onOpenModal) {
+      onOpenModal(product);
+      return;
+    }
     addToCart(product, product.selectedSize || product.sizes[0], 1);
     setJustAdded(true);
     setTimeout(() => setJustAdded(false), 1200);
@@ -46,7 +60,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   if (variant === 'compact') {
     return (
       <div
-        onClick={() => viewProductDetails(product)}
+        onClick={handleCardClick}
         className="flex items-center gap-3 p-3 rounded-2xl bg-white border border-[#E5E7EB] hover:border-[#D4AF37]/50 hover:shadow-sm transition-all cursor-pointer group active-press"
       >
         <div className="w-16 h-16 rounded-xl overflow-hidden bg-[#F6F5F2] shrink-0 relative">
@@ -71,7 +85,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           <h4 className="font-heading font-semibold text-xs text-[#0F0F10] truncate mt-0.5">
             {product.name}
           </h4>
-          <span className="font-price font-semibold text-sm text-[#FB7701] mt-0.5 block">
+          <span className="font-price font-semibold text-sm text-[#0F0F10] mt-0.5 block">
             {formatNaira(product.price)}
           </span>
         </div>
@@ -90,7 +104,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   return (
     <div
-      onClick={() => viewProductDetails(product)}
+      onClick={handleCardClick}
       className={`group relative flex flex-col bg-white rounded-2xl border border-transparent hover:border-[#E5E7EB] hover:shadow-md transition-all duration-300 cursor-pointer overflow-hidden active-press ${
         isRail ? 'w-[195px] shrink-0' : 'w-full'
       }`}
@@ -108,24 +122,27 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           }}
         />
 
-        {/* Badges Container (Temu-inspired commercial signals) */}
+        {/* Clinical & Formulation Badges */}
         <div className="absolute top-2.5 left-2.5 flex flex-col gap-1.5 z-10">
-          {discountPct > 0 && (
-            <span className="px-2 py-0.5 rounded-full bg-[#0F0F10] text-[#FFFFFF] text-[9.5px] font-mono font-semibold tracking-tight shadow-xs">
-              {discountPct}% OFF
+          {product.isBestseller ? (
+            <span className="px-2.5 py-0.5 rounded-full bg-[#0F0F10]/90 backdrop-blur-md text-[#D4AF37] border border-[#D4AF37]/30 text-[9px] font-mono font-bold uppercase tracking-wider shadow-xs">
+              Apothecary Choice
             </span>
-          )}
-          {product.isBestseller && (
-            <span className="px-2 py-0.5 rounded-full bg-[#D4AF37] text-[#0F0F10] text-[9px] font-semibold uppercase tracking-wider shadow-xs">
-              Best-Seller
+          ) : product.isNew ? (
+            <span className="px-2.5 py-0.5 rounded-full bg-white/90 backdrop-blur-md text-[#0F0F10] border border-white/80 text-[9px] font-mono font-semibold tracking-tight shadow-xs">
+              New Formulation
+            </span>
+          ) : (
+            <span className="px-2.5 py-0.5 rounded-full bg-white/90 backdrop-blur-md text-[#4B5563] border border-white/80 text-[9px] font-mono font-semibold tracking-tight shadow-xs">
+              Clinical Lab
             </span>
           )}
         </div>
 
-        {/* Wishlist Heart Button */}
+        {/* Wishlist Heart Button with Frosted Dew Glass */}
         <button
           onClick={handleWishlist}
-          className="absolute top-2.5 right-2.5 z-10 w-7 h-7 rounded-full bg-white/90 backdrop-blur-sm shadow-xs border border-[#E5E7EB] flex items-center justify-center text-[#6B7280] hover:text-[#D4AF37] active-press transition-colors cursor-pointer"
+          className="absolute top-2.5 right-2.5 z-10 w-7 h-7 rounded-full bg-white/85 backdrop-blur-md shadow-xs border border-white/80 flex items-center justify-center text-[#6B7280] hover:text-[#D4AF37] active:scale-90 transition-all cursor-pointer"
           aria-label={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
         >
           <Heart
@@ -139,7 +156,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         <div className="absolute bottom-2.5 left-2.5 right-2.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
           <button
             onClick={handleQuickAdd}
-            className="w-full py-2 px-3 rounded-full bg-[#0F0F10] hover:bg-[#D4AF37] text-white hover:text-[#0F0F10] text-xs font-heading font-semibold shadow-md transition-all active-press flex items-center justify-center gap-1.5 cursor-pointer"
+            className="w-full py-2 px-3 rounded-full bg-[#0F0F10]/90 backdrop-blur-md hover:bg-[#D4AF37] text-white hover:text-[#0F0F10] text-xs font-heading font-semibold shadow-md transition-all active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer border border-white/20"
           >
             {justAdded ? (
               <>
@@ -149,7 +166,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             ) : (
               <>
                 <Plus size={13} strokeWidth={2.5} />
-                <span>Quick Add</span>
+                <span>Quick View &amp; Add</span>
               </>
             )}
           </button>
@@ -167,7 +184,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <div className="flex items-center gap-1 text-[#D4AF37]">
               <Star size={11} fill="currentColor" strokeWidth={0} />
               <span className="font-semibold text-[#0F0F10]">{product.rating}</span>
-              <span className="text-[#6B7280]">({product.reviewsCount || 482})</span>
+              <span className="text-[#9CA3AF]">({product.reviewsCount || 482})</span>
             </div>
           </div>
 
@@ -179,22 +196,22 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           {/* Local Stock Indicator Tag */}
           <div className="mt-1 flex items-center gap-1 text-[10.5px]">
             {localStock ? (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#F3EEE3] text-[#0F0F10] text-[10px] font-medium truncate">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#FAF9F6] border border-[#E5E7EB] text-[#0F0F10] text-[10px] font-medium truncate">
                 <MapPin size={10} className="shrink-0 text-[#997A2E]" />
-                <span>In Stock: {selectedCity}</span>
+                <span>In Stock: {selectedCity} Hub</span>
               </span>
             ) : (
-              <span className="text-[#6B7280] text-[10px] truncate">
-                Lagos Central HQ Dispatch
+              <span className="text-[#9CA3AF] text-[10px] truncate">
+                Lagos Central Lab Dispatch
               </span>
             )}
           </div>
         </div>
 
         {/* Pricing and Action */}
-        <div className="pt-1.5 border-t border-[#F3F4F6] flex items-center justify-between gap-1">
+        <div className="pt-2 border-t border-[#F3F4F6] flex items-center justify-between gap-1">
           <div className="flex items-baseline gap-1.5">
-            <span className="font-price font-semibold text-[17px] leading-[20px] text-[#FB7701]">
+            <span className="font-price font-bold text-base leading-[20px] text-[#0F0F10]">
               {formatNaira(product.price)}
             </span>
             {product.originalPrice && product.originalPrice > product.price && (
@@ -206,10 +223,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
           <button
             onClick={handleQuickAdd}
-            className={`w-7 h-7 rounded-full flex items-center justify-center transition-all active-press cursor-pointer ${
+            className={`w-7 h-7 rounded-full flex items-center justify-center transition-all active:scale-90 cursor-pointer shadow-2xs ${
               justAdded
                 ? 'bg-emerald-600 text-white'
-                : 'bg-[#F8F9FA] text-[#0F0F10] hover:bg-[#D4AF37] hover:text-[#0F0F10] border border-[#E5E7EB]'
+                : 'bg-white hover:bg-[#D4AF37] text-[#0F0F10] hover:text-[#0F0F10] border border-[#E5E7EB] hover:border-[#D4AF37]'
             }`}
             aria-label={`Add ${product.name} to bag`}
           >

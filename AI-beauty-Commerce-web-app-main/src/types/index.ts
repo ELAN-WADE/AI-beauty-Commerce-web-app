@@ -221,6 +221,8 @@ export interface Distributor {
   rating: number;
   reviewsCount: number;
   stockedSkus: string[];
+  location?: { id: string; name: string; city: string; state: string; address: string; pickupEnabled: boolean; deliveryEnabled: boolean; etaText: string } | null;
+  stock?: { sku: string; productId: string; name: string; size: string; available: number }[];
 }
 
 export interface Creator {

@@ -2,6 +2,7 @@ import React from 'react';
 import { useViewport } from './context/ViewportContext';
 import { useApp } from './context/AppContext';
 import { DesktopNav } from './components/common/DesktopNav';
+import { Header } from './components/common/Header';
 import { BottomNav } from './components/common/BottomNav';
 import { AIFloatingButton } from './components/common/AIFloatingButton';
 import { LocationSelector } from './components/common/LocationSelector';
@@ -12,35 +13,35 @@ import { CommunityChatDrawer } from './components/community/CommunityChatDrawer'
 import { InitialBrandLoader } from './components/common/InitialBrandLoader';
 import { OfflineStatusBanner } from './components/common/OfflineStatusBanner';
 
-// Screens
-import { Screen01Splash } from './screens/Screen01Splash';
-import { Screen03Home } from './screens/Screen03Home';
-import { Screen04Search } from './screens/Screen04Search';
-import { Screen05Categories } from './screens/Screen05Categories';
-import { Screen06Catalogue } from './screens/Screen06Catalogue';
-import { Screen07ProductDetails } from './screens/Screen07ProductDetails';
-import { Screen09Cart } from './screens/Screen09Cart';
-import { Screen10Checkout } from './screens/Screen10Checkout';
-import { Screen11Payment } from './screens/Screen11Payment';
-import { Screen12OrderConfirmed } from './screens/Screen12OrderConfirmed';
-import { Screen13OrdersTracking } from './screens/Screen13OrdersTracking';
-import { Screen14AISkinScan } from './screens/Screen14AISkinScan';
-import { ScreenAskAI } from './screens/ScreenAskAI';
-import { Screen16Rewards } from './screens/Screen16Rewards';
-import { Screen17Account } from './screens/Screen17Account';
-import { Screen18DesktopHome } from './screens/Screen18DesktopHome';
-import { ScreenCommunityChat } from './screens/ScreenCommunityChat';
-import { ScreenDistributors } from './screens/ScreenDistributors';
-import { ScreenDistributorPortal } from './screens/ScreenDistributorPortal';
-import { ScreenCreators } from './screens/ScreenCreators';
-import { ScreenAdminConsole } from './screens/ScreenAdminConsole';
-import { ScreenAuthSuite } from './screens/ScreenAuthSuite';
-import { ScreenGuestOrderLookup } from './screens/ScreenGuestOrderLookup';
+// Screens — grouped by feature (see src/screens/README.md)
+import { Screen01Splash } from './screens/catalog/Screen01Splash';
+import { Screen03Home } from './screens/catalog/Screen03Home';
+import { Screen04Search } from './screens/catalog/Screen04Search';
+import { Screen05Categories } from './screens/catalog/Screen05Categories';
+import { Screen06Catalogue } from './screens/catalog/Screen06Catalogue';
+import { Screen07ProductDetails } from './screens/catalog/Screen07ProductDetails';
+import { Screen09Cart } from './screens/checkout/Screen09Cart';
+import { Screen10Checkout } from './screens/checkout/Screen10Checkout';
+import { Screen11Payment } from './screens/checkout/Screen11Payment';
+import { Screen12OrderConfirmed } from './screens/checkout/Screen12OrderConfirmed';
+import { Screen13OrdersTracking } from './screens/orders/Screen13OrdersTracking';
+import { Screen14AISkinScan } from './screens/ai/Screen14AISkinScan';
+import { ScreenAskAI } from './screens/ai/ScreenAskAI';
+import { Screen16Rewards } from './screens/account/Screen16Rewards';
+import { Screen17Account } from './screens/account/Screen17Account';
+import { Screen18DesktopHome } from './screens/catalog/Screen18DesktopHome';
+import { ScreenCommunityChat } from './screens/community/ScreenCommunityChat';
+import { ScreenDistributors } from './screens/partners/ScreenDistributors';
+import { ScreenDistributorPortal } from './screens/partners/ScreenDistributorPortal';
+import { ScreenCreators } from './screens/partners/ScreenCreators';
+import { ScreenAdminConsole } from './screens/admin/ScreenAdminConsole';
+import { ScreenAuthSuite } from './screens/account/ScreenAuthSuite';
+import { ScreenGuestOrderLookup } from './screens/orders/ScreenGuestOrderLookup';
 import { RequireRole } from './components/auth/RequireRole';
 
 export const App: React.FC = () => {
   const { isDesktop } = useViewport();
-  const { currentScreen, isLiveBackend, livePayment, dismissLivePayment } = useApp();
+  const { currentScreen, isLiveBackend, livePayment, dismissLivePayment, navigateTo, loginAsDemoRole } = useApp();
 
   const renderActiveScreen = () => {
     switch (currentScreen) {
@@ -146,12 +147,23 @@ export const App: React.FC = () => {
     }
   };
 
-  const isImmersiveScreen = ['splash', 'ask-ai', 'admin-console'].includes(currentScreen);
-  // Admin console is a separate operational surface (own shell, own chrome).
-  // It lives here for easy access now; later it moves to its own path/host.
+  const isImmersiveScreen = [
+    'splash',
+    'ask-ai',
+    'admin-console',
+    'login',
+    'signup',
+    'forgot-password',
+    'reset-password',
+    'verify-email',
+    'guest-order-lookup'
+  ].includes(currentScreen);
+  // Admin console and Partner Workspaces are separate operational surfaces (own shells, own chrome).
   const isAdminScreen = currentScreen === 'admin-console';
+  const isPartnerWorkspace = ['creators', 'creator-dashboard', 'distributor-portal', 'distributor-dashboard'].includes(currentScreen);
   const showBottomNav =
     !isDesktop &&
+    !isPartnerWorkspace &&
     ![
       'splash',
       'checkout',
@@ -173,25 +185,72 @@ export const App: React.FC = () => {
       {/* Offline Status Awareness & Reconnection Toast */}
       <OfflineStatusBanner />
 
-      {/* Initial Luxury Brand Loading Experience (Delsla Logo reveal) */}
+      {/* Initial Luxury Brand Loading Experience (Desla! Logo reveal) */}
       <InitialBrandLoader />
 
+      {/* Workspace Switcher Ribbon (Desktop convenience ribbon) */}
+      {isDesktop && !isPartnerWorkspace && !isAdminScreen && !isImmersiveScreen && (
+        <div className="bg-[#0F0F10] text-white border-b border-[#D4AF37]/30 px-3 py-1.5 flex items-center justify-between text-xs sticky top-0 z-50 shadow-md select-none font-body">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#D4AF37] animate-pulse" />
+            <span className="text-[11px] font-mono font-bold tracking-wider text-[#D4AF37] uppercase">
+              Desla!™ Portals:
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <button
+              onClick={() => navigateTo('home')}
+              className={`px-2.5 py-1 rounded-full text-[11px] font-bold transition-all cursor-pointer ${
+                currentScreen === 'home' || currentScreen === 'desktop-home'
+                  ? 'bg-white/20 text-[#D4AF37]'
+                  : 'text-gray-300 hover:text-white'
+              }`}
+            >
+              Shop Storefront
+            </button>
+            <button
+              onClick={() => {
+                loginAsDemoRole('CREATOR');
+                navigateTo('creators');
+              }}
+              className="px-2.5 py-1 rounded-full bg-[#D4AF37]/20 hover:bg-[#D4AF37]/30 text-[#D4AF37] text-[11px] font-bold border border-[#D4AF37]/40 transition-all cursor-pointer flex items-center gap-1 shadow-2xs active:scale-95"
+            >
+              <span>✨ Creator Studio</span>
+              <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-black/60 text-[#F6E7C1]">12p</span>
+            </button>
+            <button
+              onClick={() => {
+                loginAsDemoRole('DISTRIBUTOR');
+                navigateTo('distributor-portal');
+              }}
+              className="px-2.5 py-1 rounded-full bg-[#D4AF37]/20 hover:bg-[#D4AF37]/30 text-[#D4AF37] text-[11px] font-bold border border-[#D4AF37]/40 transition-all cursor-pointer flex items-center gap-1 shadow-2xs active:scale-95"
+            >
+              <span>📦 Distributor Hub</span>
+              <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-black/60 text-[#F6E7C1]">10p</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Global Desktop Navigation Bar on Desktop Screens (storefront only) */}
-      {isDesktop && !isImmersiveScreen && !isAdminScreen && <DesktopNav />}
+      {isDesktop && !isImmersiveScreen && !isAdminScreen && !isPartnerWorkspace && <DesktopNav />}
+
+      {/* Global Persistent Mobile Header on Mobile Screens (storefront only) */}
+      {!isDesktop && !isImmersiveScreen && !isAdminScreen && !isPartnerWorkspace && <Header />}
 
       {/* Main Responsive Storefront Viewport */}
       <main className="flex-1 w-full relative">
         {renderActiveScreen()}
       </main>
 
-      {/* Mobile Edge-to-Edge Sticky Bottom Navigation */}
+      {/* Mobile Edge-to-Edge Sticky Bottom Navigation (storefront only) */}
       {showBottomNav && <BottomNav />}
 
       {/* Persistent Global Floating AI Assistant Concierge Button (storefront only) */}
-      {!isAdminScreen && <AIFloatingButton />}
+      {!isAdminScreen && !isPartnerWorkspace && <AIFloatingButton />}
 
       {/* Global Sheets, Drawers & Modals (storefront only) */}
-      {!isAdminScreen && (
+      {!isAdminScreen && !isPartnerWorkspace && (
         <>
           <AddToCartSheet />
           <FilterSortSheet />

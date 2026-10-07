@@ -1,7 +1,6 @@
 import React from 'react';
-import { ShieldAlert, ArrowLeft, KeyRound, Lock, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, KeyRound, Lock, CheckCircle2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { ScreenId } from '../../types';
 
 interface RequireRoleProps {
   allowedRoles: string[];
@@ -16,7 +15,7 @@ export const RequireRole: React.FC<RequireRoleProps> = ({
   title = 'Restricted Operations Console',
   description = 'This portal requires specific operational authorizations to view and manage formulation pipelines.'
 }) => {
-  const { authUser, authLoading, navigateTo, setSimulatedUserRole } = useApp();
+  const { authUser, authLoading, navigateTo, enterPreviewRole, exitPreviewRole, previewRole, isPreviewMode } = useApp();
 
   if (authLoading) {
     return (
@@ -30,9 +29,40 @@ export const RequireRole: React.FC<RequireRoleProps> = ({
   }
 
   const userRoles = authUser?.roles || [];
-  const hasAccess =
+  const hasRealAccess =
     userRoles.includes('SUPER_ADMIN') ||
     userRoles.some((role) => allowedRoles.includes(role));
+
+  // In demo/preview mode or when unauthenticated, auto-activate preview for the primary allowed role
+  const effectivePreviewRole = previewRole || (!authUser && allowedRoles.length > 0 ? allowedRoles[0] : null);
+  const hasPreviewAccess =
+    effectivePreviewRole === 'SUPER_ADMIN' ||
+    (effectivePreviewRole !== null && allowedRoles.includes(effectivePreviewRole));
+  const hasAccess = hasRealAccess || hasPreviewAccess;
+
+  if (hasAccess && hasPreviewAccess && !hasRealAccess) {
+    return (
+      <>
+        <div className="sticky top-0 z-40 bg-[#0F0F10] text-white px-4 py-2 flex items-center justify-between gap-3 text-xs shadow-sm">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#D4AF37] animate-pulse" />
+            <span>
+              <strong className="text-[#D4AF37]">Live Interactive Preview</strong> as {effectivePreviewRole} — full UI &amp; workflow access.
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigateTo('home')}
+              className="shrink-0 px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 text-white font-medium cursor-pointer transition-colors"
+            >
+              Return to Storefront
+            </button>
+          </div>
+        </div>
+        {children}
+      </>
+    );
+  }
 
   if (!hasAccess) {
     return (
@@ -65,22 +95,23 @@ export const RequireRole: React.FC<RequireRoleProps> = ({
             </div>
           </div>
 
-          {/* Development / Preview Simulation Buttons */}
+          {/* Preview entry: mock dashboard access with mock data (no backend auth). */}
           <div className="mb-6 pt-4 border-t border-[#E5E7EB]">
             <p className="text-[11px] font-semibold text-[#6B7280] mb-2 flex items-center justify-center gap-1">
-              <KeyRound className="w-3.5 h-3.5 text-[#D4AF37]" /> Simulate Authorized Role:
+              <KeyRound className="w-3.5 h-3.5 text-[#D4AF37]" /> Preview dashboard with mock data:
             </p>
             <div className="flex flex-wrap gap-2 justify-center">
               {allowedRoles.map((role) => (
                 <button
                   key={role}
-                  onClick={() => setSimulatedUserRole(role)}
+                  onClick={() => enterPreviewRole(role)}
                   className="px-3 py-1.5 rounded-xl bg-[#0F0F10] hover:bg-[#27272A] text-[#D4AF37] text-xs font-bold active:scale-95 transition-all cursor-pointer flex items-center gap-1"
                 >
-                  <CheckCircle2 className="w-3.5 h-3.5" /> Unlock as {role}
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Preview as {role}
                 </button>
               ))}
             </div>
+            <p className="text-[10px] text-[#9CA3AF] mt-2">Preview only — live data and actions still require sign-in.</p>
           </div>
 
           {/* Navigation Action Buttons */}
