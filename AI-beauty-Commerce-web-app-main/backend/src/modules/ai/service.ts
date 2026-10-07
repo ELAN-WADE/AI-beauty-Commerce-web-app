@@ -1,9 +1,10 @@
-import { and, desc, eq, ilike, or } from 'drizzle-orm';
+import { and, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import type { AppDb, Db } from '../../db/client';
 import { Errors } from '../../lib/errors';
 import { getAiProvider } from '../../lib/ai-provider';
 import { products } from '../catalog/schema';
 import { productVariants } from '../catalog/schema';
+import { stockLevels } from '../inventory/schema';
 import { aiConversations, aiMessages } from './schema';
 
 const STOPWORDS = new Set(['what', 'which', 'with', 'that', 'this', 'have', 'from', 'they', 'them', 'your', 'about', 'there', 'their', 'would', 'should', 'recommend']);
@@ -12,7 +13,7 @@ function keywords(content: string): string[] {
   return [...new Set(content.toLowerCase().split(/[^a-z]+/).filter((w) => w.length > 3 && !STOPWORDS.has(w)))].slice(0, 8);
 }
 
-/** Catalogue grounding: keyword match over active products (read-only context for the model). */
+/** Catalogue grounding: keyword match over active, in-stock variants only. */
 export async function groundProducts(db: Db, content: string) {
   const keys = keywords(content);
   if (keys.length === 0) return [];
@@ -28,8 +29,9 @@ export async function groundProducts(db: Db, content: string) {
       priceKobo: productVariants.priceKobo,
     })
     .from(products)
-    .innerJoin(productVariants, eq(productVariants.productId, products.id))
-    .where(and(eq(products.isActive, true), or(...conds)))
+    .innerJoin(productVariants, and(eq(productVariants.productId, products.id), eq(productVariants.isActive, true)))
+    .innerJoin(stockLevels, and(eq(stockLevels.variantId, productVariants.id), eq(stockLevels.pool, 'PLATFORM')))
+    .where(and(eq(products.isActive, true), sql`${stockLevels.onHand} > ${stockLevels.reserved}`, or(...conds)))
     .orderBy(desc(products.rating))
     .limit(5);
   const seen = new Set<string>();

@@ -82,6 +82,10 @@ async function activeVariant(db: Db, variantId: string) {
   return row.v;
 }
 
+async function touchCart(tx: Db, cartId: string): Promise<void> {
+  await tx.update(carts).set({ updatedAt: new Date() }).where(eq(carts.id, cartId));
+}
+
 export async function addItem(db: AppDb, owner: CartOwner, variantId: string, qty: number) {
   return db.transaction(async (tx) => {
     const cart = await resolveCart(tx, owner);
@@ -98,6 +102,7 @@ export async function addItem(db: AppDb, owner: CartOwner, variantId: string, qt
     } else {
       await tx.insert(cartItems).values({ cartId: cart.id, variantId: variant.id, qty: Math.min(99, qty) });
     }
+    await touchCart(tx, cart.id);
     return getCartView(tx, cart.id);
   });
 }
@@ -112,6 +117,7 @@ export async function setItemQty(db: AppDb, owner: CartOwner, itemId: string, qt
       .limit(1);
     if (!rows[0]) throw Errors.notFound('Cart item not found.');
     await tx.update(cartItems).set({ qty, updatedAt: new Date() }).where(eq(cartItems.id, itemId));
+    await touchCart(tx, cart.id);
     return getCartView(tx, cart.id);
   });
 }
@@ -123,12 +129,14 @@ export async function removeItem(db: AppDb, owner: CartOwner, itemId: string) {
     .where(and(eq(cartItems.id, itemId), eq(cartItems.cartId, cart.id)))
     .returning({ id: cartItems.id });
   if (deleted.length === 0) throw Errors.notFound('Cart item not found.');
+  await db.update(carts).set({ updatedAt: new Date() }).where(eq(carts.id, cart.id));
   return getCartView(db, cart.id);
 }
 
 export async function clearCart(db: AppDb, owner: CartOwner) {
   const cart = await resolveCart(db, owner);
   await db.delete(cartItems).where(eq(cartItems.cartId, cart.id));
+  await db.update(carts).set({ updatedAt: new Date() }).where(eq(carts.id, cart.id));
   return getCartView(db, cart.id);
 }
 
@@ -155,6 +163,7 @@ export async function mergeGuestCart(db: AppDb, userId: string, sessionId: strin
       }
     }
     await tx.delete(carts).where(eq(carts.id, guest[0].id));
+    await touchCart(tx, user.id);
     return getCartView(tx, user.id);
   });
 }

@@ -3,7 +3,7 @@ import { getDb } from '@/db/client';
 import { clientIp, readRawBody } from '@/lib/errors';
 import { checkRateLimit, Limits } from '@/lib/rate-limit';
 import { verifyOpayCallback } from '@/lib/providers';
-import { recordEvent, settleAttempt } from '@/modules/payments/service';
+import { isReferenceSettled, recordEvent, settleAttempt } from '@/modules/payments/service';
 
 /**
  * Opay callback. Signature scheme (HMAC-SHA512 over raw body) is verified;
@@ -47,7 +47,12 @@ export async function POST(req: Request) {
     eventType: event.status ?? 'unknown',
     payload: event,
   });
-  if (duplicate) return respond({ received: true, settled: true, replay: true });
+  if (duplicate) {
+    const settled = reference
+      ? await isReferenceSettled(getDb(), reference).catch(() => ({ settled: false, orderId: null }))
+      : { settled: false, orderId: null };
+    if (settled.settled || event.status !== 'SUCCESS' || !reference) return respond({ received: true, ...settled, replay: true });
+  }
 
   if (event.status !== 'SUCCESS' || !reference) return respond({ received: true, settled: false });
 
@@ -56,6 +61,6 @@ export async function POST(req: Request) {
     return respond({ received: true, ...result });
   } catch (err) {
     console.error(JSON.stringify({ level: 'error', requestId, scope: 'opay-webhook-settle', err: String(err) }));
-    return respond({ received: true, settled: false, reason: 'settle-error' });
+    return respond({ received: true, settled: false, reason: 'settle-error', retryable: true }, 500);
   }
 }

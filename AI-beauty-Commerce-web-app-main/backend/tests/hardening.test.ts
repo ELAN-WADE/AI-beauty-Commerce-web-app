@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { ApiError, enforceOrigin, readRawBody } from '@/lib/errors';
+import { ApiError, enforceOrigin, readJson, readRawBody } from '@/lib/errors';
+import { openAuthUrl, sealAuthUrl } from '@/lib/outbox-crypto';
 import { sessionCookieName } from '@/lib/cookies';
 
 // THREAT (browser-driven CSRF from an evil origin) → CONTROL (Origin check on
@@ -39,6 +40,19 @@ describe('origin enforcement', () => {
     await expect(readRawBody(big, 10)).rejects.toBeInstanceOf(ApiError);
     const small = new Request('http://x/hook', { method: 'POST', body: '{"a":1}' });
     await expect(readRawBody(small, 262144)).resolves.toBe('{"a":1}');
+  });
+
+  it('rejects simple-content JSON and caps multibyte bodies by bytes', async () => {
+    await expect(readJson(new Request('http://x/api', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: '{}' }))).rejects.toMatchObject({ status: 415 });
+    await expect(readJson(new Request('http://x/api', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: 'é'.repeat(40) }) }), 64)).rejects.toMatchObject({ status: 413 });
+  });
+
+  it('encrypts one-time email links at rest and detects tampering', () => {
+    const url = 'https://example.com/reset-password?token=secret';
+    const sealed = sealAuthUrl(url);
+    expect(sealed).not.toContain('secret');
+    expect(openAuthUrl(sealed)).toBe(url);
+    expect(() => openAuthUrl(sealed.slice(0, -2) + 'aa')).toThrow();
   });
 });
 

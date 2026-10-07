@@ -3,7 +3,7 @@ import { getDb } from '@/db/client';
 import { clientIp, Errors, readRawBody } from '@/lib/errors';
 import { checkRateLimit, Limits } from '@/lib/rate-limit';
 import { verifyFlutterwaveWebhook } from '@/lib/providers';
-import { recordEvent, settleAttempt } from '@/modules/payments/service';
+import { isReferenceSettled, recordEvent, settleAttempt } from '@/modules/payments/service';
 
 /**
  * Flutterwave webhook. Order of operations is the security contract:
@@ -49,14 +49,16 @@ export async function POST(req: Request) {
     eventType: event.event ?? 'unknown',
     payload: event,
   });
-  if (duplicate) return respond({ received: true, settled: true, replay: true });
+  if (duplicate) {
+    const settled = await isReferenceSettled(getDb(), txRef).catch(() => ({ settled: false, orderId: null }));
+    if (settled.settled) return respond({ received: true, ...settled, replay: true });
+  }
 
   try {
     const result = await settleAttempt(getDb(), { provider: 'flutterwave', reference: txRef, transactionId: txId });
     return respond({ received: true, ...result });
   } catch (err) {
     console.error(JSON.stringify({ level: 'error', requestId, scope: 'flw-webhook-settle', err: String(err) }));
-    // Recorded + deduplicated: safe to ack; sweeper will reconcile (S5).
-    return respond({ received: true, settled: false, reason: 'settle-error' });
+    return respond({ received: true, settled: false, reason: 'settle-error', retryable: true }, 500);
   }
 }

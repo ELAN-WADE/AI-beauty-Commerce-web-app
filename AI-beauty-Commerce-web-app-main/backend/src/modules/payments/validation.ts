@@ -1,12 +1,11 @@
 import { z } from 'zod';
 
 const uuid = z.string().uuid();
-const email = z.string().trim().toLowerCase().email().max(254);
 
 export const paymentProvider = z.enum(['flutterwave', 'paystack', 'opay', 'transfer']);
 
 export const initPaymentSchema = z
-  .object({ orderId: uuid, provider: paymentProvider, guestEmail: email.optional() })
+  .object({ orderId: uuid, provider: paymentProvider })
   .strict();
 
 export const paymentStatusQuery = z.object({ reference: z.string().trim().min(1).max(120) });
@@ -14,7 +13,6 @@ export const paymentStatusQuery = z.object({ reference: z.string().trim().min(1)
 export const transferClaimSchema = z
   .object({
     orderId: uuid,
-    guestEmail: email.optional(),
     senderName: z.string().trim().min(1).max(120),
     amountKobo: z.number().int().positive('Amount must be positive (kobo).'),
     bankName: z.string().trim().max(80).default(''),

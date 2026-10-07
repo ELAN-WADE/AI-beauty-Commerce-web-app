@@ -1,7 +1,8 @@
 import { createHash, randomBytes, scrypt as scryptCb, type ScryptOptions } from 'node:crypto';
 import { and, eq, isNull, gt } from 'drizzle-orm';
-import type { AppDb } from '../../db/client';
+import type { AppDb, Db } from '../../db/client';
 import { Errors } from '../../lib/errors';
+import { enqueueAuthEmail } from './email';
 import {
   emailVerificationTokens,
   passwordResetTokens,
@@ -82,13 +83,23 @@ export async function register(db: AppDb, input: { email: string; password: stri
   if (existing.length > 0) {
     // Timing equalization: burn one scrypt so existing-vs-new is indistinguishable.
     await hashPassword(newRawToken(16));
-    return { created: false as const, email, verificationToken: null as string | null };
+    return { created: false as const, email, verificationToken: null as string | null, userId: null as string | null };
   }
   const passwordHash = await hashPassword(input.password);
-  const [user] = await db.insert(users).values({ email, passwordHash }).returning({ id: users.id });
-  await db.insert(userRoles).values({ userId: user.id, roleId: 'CUSTOMER' });
-  const verificationToken = await issueVerificationToken(db, user.id);
-  return { created: true as const, email, userId: user.id, verificationToken };
+  // Atomic: user + role + verification token succeed or fail together (no orphans).
+  return db.transaction(async (tx) => {
+    const [user] = await tx.insert(users).values({ email, passwordHash }).onConflictDoNothing({ target: users.email }).returning({ id: users.id });
+    if (!user) return { created: false as const, email, verificationToken: null, userId: null };
+    await tx.insert(userRoles).values({ userId: user.id, roleId: 'CUSTOMER' });
+    const raw = newRawToken();
+    await tx.insert(emailVerificationTokens).values({
+      userId: user.id,
+      tokenHash: sha256Hex(raw),
+      expiresAt: new Date(Date.now() + VERIFY_TTL_MS),
+    });
+    await enqueueAuthEmail(tx, { userId: user.id, email, template: 'auth.verify-email', token: raw });
+    return { created: true as const, email, userId: user.id, verificationToken: raw as string | null };
+  });
 }
 
 export async function issueVerificationToken(db: AppDb, userId: string): Promise<string> {
@@ -101,7 +112,20 @@ export async function issueVerificationToken(db: AppDb, userId: string): Promise
   return raw;
 }
 
-export async function verifyEmail(db: AppDb, rawToken: string): Promise<void> {
+export async function resendVerification(db: AppDb, emailRaw: string): Promise<void> {
+  const email = normalizeEmail(emailRaw);
+  const [user] = await db.select({ id: users.id, verifiedAt: users.emailVerifiedAt }).from(users).where(eq(users.email, email)).limit(1);
+  if (!user || user.verifiedAt) return;
+  await db.transaction(async tx => {
+    const [current] = await tx.select().from(users).where(eq(users.id, user.id)).for('update');
+    if (!current || current.emailVerifiedAt) return;
+    const raw = newRawToken();
+    await tx.insert(emailVerificationTokens).values({ userId: user.id, tokenHash: sha256Hex(raw), expiresAt: new Date(Date.now() + VERIFY_TTL_MS) });
+    await enqueueAuthEmail(tx, { userId: user.id, email, template: 'auth.verify-email', token: raw });
+  });
+}
+
+export async function verifyEmail(db: AppDb, rawToken: string): Promise<string> {
   const now = new Date();
   const rows = await db
     .select()
@@ -116,12 +140,18 @@ export async function verifyEmail(db: AppDb, rawToken: string): Promise<void> {
     .limit(1);
   const row = rows[0];
   if (!row) throw Errors.gone();
-  await db.transaction(async (tx) => {
-    await tx
+  return db.transaction(async (tx) => {
+    await tx.select({ id: users.id }).from(users).where(eq(users.id, row.userId)).for('update');
+    const [claimed] = await tx
       .update(emailVerificationTokens)
       .set({ consumedAt: now })
-      .where(eq(emailVerificationTokens.id, row.id));
+      .where(and(eq(emailVerificationTokens.id, row.id), isNull(emailVerificationTokens.consumedAt), gt(emailVerificationTokens.expiresAt, now)))
+      .returning({ id: emailVerificationTokens.id });
+    if (!claimed) throw Errors.gone();
     await tx.update(users).set({ emailVerifiedAt: now }).where(eq(users.id, row.userId));
+    await tx.update(emailVerificationTokens).set({ consumedAt: now }).where(and(eq(emailVerificationTokens.userId, row.userId), isNull(emailVerificationTokens.consumedAt)));
+    await tx.update(userSessions).set({ revokedAt: now }).where(and(eq(userSessions.userId, row.userId), isNull(userSessions.revokedAt)));
+    return row.userId;
   });
 }
 
@@ -158,6 +188,7 @@ export async function login(
       .where(eq(users.id, user.id));
     throw Errors.unauthorized('Invalid email or password.');
   }
+  if (!user.emailVerifiedAt) throw Errors.unauthorized('Verify your email address before signing in.');
   await db
     .update(users)
     .set({ failedLoginAttempts: 0, lockedUntil: null })
@@ -221,27 +252,28 @@ export async function revokeAllSessions(db: AppDb, userId: string): Promise<void
     .where(and(eq(userSessions.userId, userId), isNull(userSessions.revokedAt)));
 }
 
-const ASSIGNABLE_ROLES = ['CUSTOMER', 'SUPPORT', 'INVENTORY_MANAGER', 'STAFF', 'ADMIN', 'SUPER_ADMIN'] as const;
+const ASSIGNABLE_ROLES = ['CUSTOMER', 'DISTRIBUTOR', 'CREATOR', 'SUPPORT', 'INVENTORY_MANAGER', 'STAFF', 'ADMIN', 'SUPER_ADMIN'] as const;
 
 /**
  * Role grants (S7, roles:grant gated at the route). Escalation guards:
  * SUPER_ADMIN can only be granted by a SUPER_ADMIN, and nobody can strip
  * their own SUPER_ADMIN (anti-lockout).
  */
-export async function grantRole(db: AppDb, input: { userId: string; roleId: string; grantedBy: string; granterRoles: string[] }) {
+export async function grantRole(db: Db, input: { userId: string; roleId: string; grantedBy: string; granterRoles: string[] }) {
   if (!(ASSIGNABLE_ROLES as readonly string[]).includes(input.roleId)) {
     throw Errors.badRequest('Unknown role.');
   }
   if (input.roleId === 'SUPER_ADMIN' && !input.granterRoles.includes('SUPER_ADMIN')) {
     throw Errors.forbidden('Only a SUPER_ADMIN can grant SUPER_ADMIN.');
   }
-  const target = await db.select({ id: users.id }).from(users).where(eq(users.id, input.userId)).limit(1);
+  const target = await db.select({ id: users.id, verifiedAt: users.emailVerifiedAt }).from(users).where(eq(users.id, input.userId)).limit(1);
   if (!target[0]) throw Errors.notFound('User not found.');
+  if (input.roleId !== 'CUSTOMER' && !target[0].verifiedAt) throw Errors.badRequest('Verify the account email before granting privileged roles.');
   await db.insert(userRoles).values({ userId: input.userId, roleId: input.roleId, grantedBy: input.grantedBy }).onConflictDoNothing();
   return { userId: input.userId, roleId: input.roleId };
 }
 
-export async function revokeRole(db: AppDb, input: { userId: string; roleId: string; revokedBy: string }) {
+export async function revokeRole(db: Db, input: { userId: string; roleId: string; revokedBy: string }) {
   if (input.roleId === 'SUPER_ADMIN' && input.userId === input.revokedBy) {
     throw Errors.badRequest('You cannot strip your own SUPER_ADMIN.');
   }
@@ -255,19 +287,19 @@ export async function revokeRole(db: AppDb, input: { userId: string; roleId: str
 
 /** Reset request: always success (no enumeration); dev echoes token for MailHog-less flow. */
 export async function requestPasswordReset(db: AppDb, email: string) {
+  const normalized = normalizeEmail(email);
   const rows = await db
     .select({ id: users.id })
     .from(users)
-    .where(eq(users.email, normalizeEmail(email)))
+    .where(eq(users.email, normalized))
     .limit(1);
-  if (rows.length === 0) return { emailed: false as const, resetToken: null as string | null };
+  if (rows.length === 0) return { emailed: false as const, resetToken: null as string | null, userId: null as string | null, email: normalized };
   const raw = newRawToken();
-  await db.insert(passwordResetTokens).values({
-    userId: rows[0].id,
-    tokenHash: sha256Hex(raw),
-    expiresAt: new Date(Date.now() + RESET_TTL_MS),
+  await db.transaction(async tx => {
+    await tx.insert(passwordResetTokens).values({ userId: rows[0].id, tokenHash: sha256Hex(raw), expiresAt: new Date(Date.now() + RESET_TTL_MS) });
+    await enqueueAuthEmail(tx, { userId: rows[0].id, email: normalized, template: 'auth.reset-password', token: raw });
   });
-  return { emailed: true as const, resetToken: raw };
+  return { emailed: true as const, resetToken: raw, userId: rows[0].id, email: normalized };
 }
 
 export async function resetPassword(db: AppDb, rawToken: string, newPassword: string): Promise<void> {
@@ -285,18 +317,24 @@ export async function resetPassword(db: AppDb, rawToken: string, newPassword: st
     .limit(1);
   const row = rows[0];
   if (!row) throw Errors.gone();
+  const passwordHash = await hashPassword(newPassword);
   await db.transaction(async (tx) => {
-    await tx
+    // Serialize sibling reset tokens before claiming one and invalidating the rest.
+    await tx.select({ id: users.id }).from(users).where(eq(users.id, row.userId)).for('update');
+    const [claimed] = await tx
       .update(passwordResetTokens)
       .set({ consumedAt: now })
-      .where(eq(passwordResetTokens.id, row.id));
+      .where(and(eq(passwordResetTokens.id, row.id), isNull(passwordResetTokens.consumedAt), gt(passwordResetTokens.expiresAt, now)))
+      .returning({ id: passwordResetTokens.id });
+    if (!claimed) throw Errors.gone();
     await tx
       .update(users)
-      .set({ passwordHash: await hashPassword(newPassword), failedLoginAttempts: 0, lockedUntil: null })
+      .set({ passwordHash, failedLoginAttempts: 0, lockedUntil: null })
       .where(eq(users.id, row.userId));
     await tx
       .update(userSessions)
       .set({ revokedAt: now }) // reset kills all sessions (fixation/hijack defence)
       .where(and(eq(userSessions.userId, row.userId), isNull(userSessions.revokedAt)));
+    await tx.update(passwordResetTokens).set({ consumedAt: now }).where(and(eq(passwordResetTokens.userId, row.userId), isNull(passwordResetTokens.consumedAt)));
   });
 }

@@ -22,6 +22,8 @@ export const distributors = pgTable(
   'distributors',
   {
     id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'restrict' }).unique(),
+    commissionBps: integer('commission_bps').notNull().default(0),
     name: text('name').notNull(),
     businessName: text('business_name').notNull().default(''),
     city: text('city').notNull(),
@@ -41,6 +43,7 @@ export const distributors = pgTable(
   },
   (t) => [
     index('distributors_city_idx').on(t.city),
+    check('distributor_commission_bps', sql`"commission_bps" BETWEEN 0 AND 5000`),
     check('distributor_tier_allowed', sql`"tier" IN ('Bronze','Silver','Gold')`),
     check('distributor_rating_range', sql`"rating" >= 0 AND "rating" <= 5`),
   ],

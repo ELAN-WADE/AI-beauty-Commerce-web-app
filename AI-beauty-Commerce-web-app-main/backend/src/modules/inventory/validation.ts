@@ -3,6 +3,7 @@ import { z } from 'zod';
 export const adjustStockSchema = z
   .object({
     variantId: z.string().uuid(),
+    locationId: z.string().uuid().optional(),
     delta: z.number().int().min(-100000).max(100000).refine((d) => d !== 0, 'Delta cannot be zero.'),
     reason: z.string().trim().min(1).max(200),
   })

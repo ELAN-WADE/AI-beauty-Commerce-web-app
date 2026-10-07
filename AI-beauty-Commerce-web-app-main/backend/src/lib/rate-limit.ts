@@ -3,6 +3,9 @@
  * Interface is deliberately Redis-shaped so the multi-instance swap (§9) only
  * changes this file's internals — call sites stay identical.
  */
+import { createHash } from 'node:crypto';
+import { sql } from 'drizzle-orm';
+import type { AppDb } from '../db/client';
 interface Bucket {
   tokens: number;
   resetAt: number;
@@ -66,4 +69,20 @@ export function sweepRateLimits(now = Date.now()): number {
 /** Test-only reset. */
 export function resetRateLimits(): void {
   buckets.clear();
+}
+
+/** Atomic shared quota for security-critical endpoints across API replicas. */
+export async function checkSharedRateLimit(db: AppDb, key: string, spec: LimitSpec): Promise<{ allowed: boolean; retryAfterMs: number }> {
+  const digest = createHash('sha256').update(key).digest('hex');
+  const result = await db.execute(sql`
+    INSERT INTO request_quotas (key_hash, hits, reset_at)
+    VALUES (${digest}, 1, now() + ${spec.windowMs} * interval '1 millisecond')
+    ON CONFLICT (key_hash) DO UPDATE SET
+      hits = CASE WHEN request_quotas.reset_at <= now() THEN 1 ELSE request_quotas.hits + 1 END,
+      reset_at = CASE WHEN request_quotas.reset_at <= now() THEN now() + ${spec.windowMs} * interval '1 millisecond' ELSE request_quotas.reset_at END
+    RETURNING hits, reset_at
+  `);
+  const rows = Array.isArray(result) ? result : (result as unknown as { rows: { hits: number; reset_at: Date | string }[] }).rows;
+  const row = rows[0] as { hits: number; reset_at: Date | string };
+  return { allowed: Number(row.hits) <= spec.limit, retryAfterMs: Math.max(0, new Date(row.reset_at).getTime() - Date.now()) };
 }

@@ -29,22 +29,25 @@ export async function getOrCreateAccount(db: Db, userId: string) {
 }
 
 /**
- * Credit earn points for a paid order. UNIQUE(account, earn, order, id) makes
- * webhook replays converge — second call credits nothing (returns credited:false).
+ * Credit earn points for a paid order. Txn insert + balance bump commit
+ * together; UNIQUE(account, earn, order) makes worker replays converge —
+ * second call credits nothing (returns credited:false).
  */
-export async function earnForOrder(db: Db, input: { userId: string; orderId: string; totalKobo: number }) {
+export async function earnForOrder(db: AppDb, input: { userId: string; orderId: string; totalKobo: number }) {
   const points = earnPointsForKobo(input.totalKobo);
   if (points <= 0) return { credited: false, points: 0 };
-  const account = await getOrCreateAccount(db, input.userId);
-  const [txn] = await db
-    .insert(loyaltyTxns)
-    .values({ accountId: account.userId, points, type: 'earn', refType: 'order', refId: input.orderId, note: `Earned on order ${input.orderId}`.slice(0, 300) })
-    .onConflictDoNothing()
-    .returning({ id: loyaltyTxns.id });
-  if (!txn) return { credited: false, points };
-  // Atomic increment (no read-then-write: concurrent webhooks can't lose updates).
-  await db.update(loyaltyAccounts).set({ points: sql`${loyaltyAccounts.points} + ${points}`, updatedAt: new Date() }).where(eq(loyaltyAccounts.userId, input.userId));
-  return { credited: true, points };
+  return db.transaction(async (tx) => {
+    const account = await getOrCreateAccount(tx, input.userId);
+    const [txn] = await tx
+      .insert(loyaltyTxns)
+      .values({ accountId: account.userId, points, type: 'earn', refType: 'order', refId: input.orderId, note: `Earned on order ${input.orderId}`.slice(0, 300) })
+      .onConflictDoNothing()
+      .returning({ id: loyaltyTxns.id });
+    if (!txn) return { credited: false, points };
+    // Atomic increment (no read-then-write: concurrent webhooks can't lose updates).
+    await tx.update(loyaltyAccounts).set({ points: sql`${loyaltyAccounts.points} + ${points}`, updatedAt: new Date() }).where(eq(loyaltyAccounts.userId, input.userId));
+    return { credited: true, points };
+  });
 }
 
 export async function redeemToVoucher(db: AppDb, userId: string, points: number) {
@@ -83,7 +86,8 @@ export async function consumeVoucher(
   const rows = await tx.select().from(loyaltyVouchers).where(eq(loyaltyVouchers.code, input.code.trim().toUpperCase())).for('update').limit(1);
   const v = rows[0];
   if (!v || v.status !== 'active') throw Errors.badRequest('Voucher is invalid or already used.');
-  if (input.userId && v.userId !== input.userId) throw Errors.badRequest('Voucher does not belong to this account.');
+  if (!input.userId) throw Errors.badRequest('Login is required to use a loyalty voucher.');
+  if (v.userId !== input.userId) throw Errors.badRequest('Voucher does not belong to this account.');
   if (v.expiresAt && v.expiresAt < new Date()) throw Errors.badRequest('Voucher has expired.');
   if (input.subtotalKobo < v.minSpendKobo) throw Errors.badRequest('Order does not meet the voucher minimum spend.');
   const discountKobo = Math.min(v.amountKobo, input.subtotalKobo);

@@ -19,6 +19,9 @@ export async function requireAuth(db: AppDb): Promise<AuthContext> {
   const raw = jar.get(sessionCookieName())?.value;
   const session = await getSessionUser(db, raw);
   if (!session) throw Errors.unauthorized();
+  // An unverified address is not an identity proof. Verification must precede
+  // all cookie-authenticated customer, partner, and admin operations.
+  if (!session.user.emailVerifiedAt) throw Errors.forbidden('Verify your email address before accessing your account.');
   return {
     userId: session.user.id,
     email: session.user.email,

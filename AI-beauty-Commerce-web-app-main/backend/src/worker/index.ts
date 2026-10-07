@@ -19,21 +19,22 @@ async function main() {
   const pass = async () => {
     const results = await runAllTasks(db);
     console.log(JSON.stringify({ level: 'info', scope: 'worker', results }));
+    return results.every(r => r.ok);
   };
 
   if (once) {
-    await pass();
-    process.exit(0);
+    process.exit(await pass() ? 0 : 1);
   }
-  const stop = () => process.exit(0);
+  let stopping = false;
+  const stop = () => { stopping = true; };
   process.on('SIGINT', stop);
   process.on('SIGTERM', stop);
-  for (;;) {
+  while (!stopping) {
     await pass().catch((err) => {
       console.error(JSON.stringify({ level: 'error', scope: 'worker', err: String(err) }));
       captureError(err, { scope: 'worker' });
     });
-    await new Promise((r) => setTimeout(r, intervalMs));
+    if (!stopping) await new Promise((r) => setTimeout(r, intervalMs));
   }
 }
 

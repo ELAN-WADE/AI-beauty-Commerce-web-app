@@ -16,3 +16,7 @@ export * from '../modules/audit/schema';
 export * from '../modules/distributors/schema';
 export * from '../modules/creators/schema';
 export * from '../modules/community/schema';
+export * from '../modules/ledger/schema';
+export * from '../modules/content-rewards/schema';
+export * from '../modules/wholesale/schema';
+export * from '../lib/quota-schema';

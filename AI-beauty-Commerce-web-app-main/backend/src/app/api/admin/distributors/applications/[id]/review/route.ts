@@ -16,10 +16,13 @@ export async function POST(req: Request, { params }: Ctx) {
     if (!rl.allowed) throw Errors.rateLimited(60);
     const { id } = await params;
     const db = getDb();
-    const ctx = await requirePerm(db, 'products:write');
+     const ctx = await requirePerm(db, 'partners:review');
     const input = reviewApplicationSchema.parse(await readJson(req));
-    const result = await reviewApplication(db, { applicationId: id, adminId: ctx.userId, ...input });
-    await audit(db, { actorId: ctx.userId, action: 'distributor.approve', entityType: 'distributor_application', entityId: id, after: { approve: input.approve }, ip: clientIp(req), requestId });
+    const result = await db.transaction(async tx => {
+      const result = await reviewApplication(tx, { applicationId: id, adminId: ctx.userId, ...input });
+      await audit(tx, { actorId: ctx.userId, action: 'distributor.approve', entityType: 'distributor_application', entityId: id, after: { approve: input.approve }, ip: clientIp(req), requestId });
+      return result;
+    });
     const res = NextResponse.json(result);
     res.headers.set('x-request-id', requestId);
     return res;

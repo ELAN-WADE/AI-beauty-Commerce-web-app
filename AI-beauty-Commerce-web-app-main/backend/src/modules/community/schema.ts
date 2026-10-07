@@ -12,6 +12,7 @@ import {
 import { sql } from 'drizzle-orm';
 import { users } from '../auth/schema';
 import { products } from '../catalog/schema';
+import { creators } from '../creators/schema';
 
 /** timestamptz alias: timezone-aware timestamps everywhere (audit-safe). */
 const timestamptz = (name: string) => timestamp(name, { withTimezone: true, mode: 'date' });
@@ -35,6 +36,12 @@ export const communityPosts = pgTable(
     mediaUrl: text('media_url'),
     taggedProductId: uuid('tagged_product_id').references(() => products.id, { onDelete: 'set null' }),
     taggedHashtag: text('tagged_hashtag'),
+    // Creator attribution for content rewards (set server-side from the
+    // author's verified creator profile; null for non-creator posts).
+    creatorId: uuid('creator_id').references(() => creators.id, { onDelete: 'set null' }),
+    // Admin-gated: only rewardEligible + visible posts settle. Approval is the
+    // anti-farming control — likes/views alone never pay.
+    rewardEligible: boolean('reward_eligible').notNull().default(false),
     likesCount: integer('likes_count').notNull().default(0),
     commentsCount: integer('comments_count').notNull().default(0),
     visible: boolean('visible').notNull().default(true),
@@ -43,6 +50,7 @@ export const communityPosts = pgTable(
   (t) => [
     index('posts_time_idx').on(t.createdAt),
     index('posts_product_idx').on(t.taggedProductId),
+    index('posts_creator_idx').on(t.creatorId),
     check('post_media_allowed', sql`"media_type" IS NULL OR "media_type" IN ('image','video')`),
     check('post_likes_nonnegative', sql`"likes_count" >= 0`),
   ],

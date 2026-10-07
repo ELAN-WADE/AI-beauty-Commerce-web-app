@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/db/client';
 import { api, clientIp, Errors, readJson } from '@/lib/errors';
-import { checkRateLimit, Limits } from '@/lib/rate-limit';
+import { checkSharedRateLimit, Limits } from '@/lib/rate-limit';
 import { shopper } from '@/lib/shopper';
 import { checkout } from '@/modules/orders/service';
 import { checkoutSchema } from '@/modules/cart/validation';
 
 export const POST = api(async ({ req }) => {
-  const rl = checkRateLimit(`checkout:${clientIp(req)}`, Limits.checkoutInit);
+  const db = getDb();
+  const rl = await checkSharedRateLimit(db, `checkout:${clientIp(req)}`, Limits.checkoutInit);
   if (!rl.allowed) throw Errors.rateLimited(60);
 
   // Idempotency-Key is REQUIRED: safe retries, no duplicate orders (§12).
@@ -16,9 +17,9 @@ export const POST = api(async ({ req }) => {
     throw Errors.badRequest('Idempotency-Key header (8–128 chars, unique per checkout) is required.');
   }
 
-  const db = getDb();
   const who = await shopper(db, req);
   const input = checkoutSchema.parse(await readJson(req));
+  if (!who.userId && !input.guestAccessToken) throw Errors.badRequest('Guest access token is required.');
   // NOTE: totals/prices/discounts in the body are rejected by strict() —
   // the server prices everything from variant rows (§6).
   const result = await checkout(db, {

@@ -1,7 +1,12 @@
-import { desc, eq, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import type { AppDb, Db } from '../../db/client';
 import { Errors } from '../../lib/errors';
 import { creatorApplications, creators } from './schema';
+import { contentRewardTotals } from '../content-rewards/service';
+import { userRoles } from '../auth/schema';
+import { orders } from '../orders/schema';
+import { payments, refunds } from '../payments/schema';
+import { commissionAwards } from '../ledger/schema';
 
 /** Pure: affiliate discount in kobo (capped at subtotal by the caller). */
 export function creatorDiscountKobo(subtotalKobo: number, discountPercent: number): number {
@@ -18,6 +23,9 @@ export async function validateCode(db: Db, code: string) {
   const creator = rows[0];
   if (!creator || !creator.verified) throw Errors.notFound('Creator code not found.');
   return {
+    id: creator.id,
+    userId: creator.userId,
+    commissionBps: creator.commissionRate * 100,
     name: creator.name,
     handle: creator.handle,
     promoCode: creator.promoCode,
@@ -38,7 +46,7 @@ export async function listCreators(db: Db, limit = 20) {
     })
     .from(creators)
     .where(eq(creators.verified, true))
-    .orderBy(desc(creators.ordersCount))
+    .orderBy(asc(creators.name), asc(creators.promoCode))
     .limit(Math.min(50, Math.max(1, limit)));
 }
 
@@ -65,13 +73,14 @@ export async function listApplications(db: AppDb, status?: string) {
 }
 
 export async function reviewApplication(
-  db: AppDb,
+  db: Db,
   input: { applicationId: string; adminId: string; approve: boolean; promoCode?: string; discountPercent: number; commissionRate: number; note: string },
 ) {
   return db.transaction(async (tx) => {
     const rows = await tx.select().from(creatorApplications).where(eq(creatorApplications.id, input.applicationId)).for('update').limit(1);
     const app = rows[0];
     if (!app) throw Errors.notFound('Application not found.');
+    if (app.userId && app.userId === input.adminId) throw Errors.forbidden('You cannot review your own application.');
     if (app.status !== 'pending') throw Errors.conflict('Application already reviewed.');
     let creatorId: string | null = null;
     if (input.approve) {
@@ -93,6 +102,7 @@ export async function reviewApplication(
         .returning({ id: creators.id });
       if (!c) throw Errors.conflict('Promo code already taken.');
       creatorId = c.id;
+      if (app.userId) await tx.insert(userRoles).values({ userId: app.userId, roleId: 'CREATOR', grantedBy: input.adminId }).onConflictDoNothing();
     }
     await tx
       .update(creatorApplications)
@@ -102,21 +112,17 @@ export async function reviewApplication(
   });
 }
 
-/** Called on verified payment: attribute sales + commission (idempotent per order). */
-export async function recordAttributedSale(db: Db, promoCode: string | null, orderTotalKobo: number): Promise<void> {
-  if (!promoCode) return;
-  const rows = await db.select().from(creators).where(eq(creators.promoCode, normalizeCode(promoCode))).limit(1);
-  const creator = rows[0];
-  if (!creator || !creator.verified) return;
-  const commission = Math.round((orderTotalKobo * creator.commissionRate) / 100);
-  // Atomic increments: concurrent settlements can't lose sales.
-  await db
-    .update(creators)
-    .set({
-      totalSalesKobo: sql`${creators.totalSalesKobo} + ${orderTotalKobo}`,
-      commissionEarnedKobo: sql`${creators.commissionEarnedKobo} + ${commission}`,
-      ordersCount: sql`${creators.ordersCount} + 1`,
-      updatedAt: new Date(),
-    })
-    .where(eq(creators.id, creator.id));
+/** Financial display metrics are derived, never the seeded legacy counters. */
+export async function creatorMetrics(db: Db, creatorId: string, walletId: string) {
+  const [sales] = await db.select({
+    ordersCount: sql<number>`count(*)::int`,
+    paidMerchandiseKobo: sql<string>`coalesce(sum(${orders.subtotalKobo} - ${orders.discountKobo}), 0)::text`,
+  }).from(orders).where(and(eq(orders.creatorId, creatorId), eq(orders.kind, 'RETAIL'), inArray(orders.paymentStatus, ['PAID', 'REFUNDED'])));
+  const [returned] = await db.select({ refundedKobo: sql<string>`coalesce(sum(${refunds.amountKobo}), 0)::text` }).from(refunds)
+    .innerJoin(payments, eq(payments.id, refunds.paymentId)).innerJoin(orders, eq(orders.id, payments.orderId))
+    .where(and(eq(orders.creatorId, creatorId), eq(refunds.status, 'success')));
+  const [earnings] = await db.select({ commissionNetKobo: sql<string>`coalesce(sum(${commissionAwards.amountKobo} - ${commissionAwards.reversedKobo}), 0)::text` })
+    .from(commissionAwards).where(eq(commissionAwards.walletId, walletId));
+  const content = await contentRewardTotals(db, walletId);
+  return { ordersCount: sales.ordersCount, paidMerchandiseKobo: Number(sales.paidMerchandiseKobo), refundedKobo: Number(returned.refundedKobo), commissionNetKobo: Number(earnings.commissionNetKobo), ...content };
 }

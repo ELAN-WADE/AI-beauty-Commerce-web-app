@@ -10,6 +10,8 @@ async function main() {
   const db = getDb();
 
   const roleRows = [
+    { id: 'DISTRIBUTOR', description: 'Approved owner-scoped fulfilment partner.' },
+    { id: 'CREATOR', description: 'Approved owner-scoped affiliate.' },
     { id: 'CUSTOMER', description: 'Registered shopper; owner-scoped access only.' },
     { id: 'SUPPORT', description: 'Read orders/users for customer care; no mutations.' },
     { id: 'INVENTORY_MANAGER', description: 'Manages stock levels and movements.' },
@@ -22,6 +24,9 @@ async function main() {
   }
 
   const permRows = [
+    'network:manage',
+    'payouts:manage',
+    'partners:review',
     'orders:read:own',
     'orders:read:all',
     'orders:update:status',

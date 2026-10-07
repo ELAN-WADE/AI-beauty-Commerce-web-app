@@ -99,6 +99,7 @@ export const refunds = pgTable(
       .references(() => payments.id, { onDelete: 'cascade' }),
     amountKobo: integer('amount_kobo').notNull(),
     reason: text('reason').notNull(),
+    idempotencyKey: text('idempotency_key').unique(),
     status: text('status').notNull().default('pending'),
     providerRef: text('provider_ref'),
     createdAt: timestamptz('created_at').notNull().defaultNow(),

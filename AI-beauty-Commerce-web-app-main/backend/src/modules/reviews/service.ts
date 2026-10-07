@@ -37,12 +37,16 @@ export async function recomputeAggregate(db: Db, productId: string): Promise<voi
   await db.update(products).set({ reviewsCount: count, rating: avg, updatedAt: new Date() }).where(eq(products.id, productId));
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /** Accept a uuid or a storefront slug; rejects inactive products. */
 export async function resolveProductId(db: Db, slugOrId: string): Promise<string> {
+  const input = slugOrId.trim();
+  const byId = UUID_RE.test(input);
   const rows = await db
     .select({ id: products.id, isActive: products.isActive })
     .from(products)
-    .where(or(eq(products.id, slugOrId), eq(products.slug, slugOrId.toLowerCase())))
+    .where(byId ? eq(products.id, input) : eq(products.slug, input.toLowerCase()))
     .limit(1);
   const p = rows[0];
   if (!p || !p.isActive) throw Errors.notFound('Product not found.');

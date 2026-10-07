@@ -1,5 +1,6 @@
 import { drizzle, type PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
+import { assertProductionEnv } from '../lib/env';
 import * as schema from './schema';
 
 export type AppDb = PostgresJsDatabase<typeof schema>;
@@ -16,6 +17,7 @@ let db: AppDb | null = null;
 /** Fail-fast pooled client. Throws a clear error when DATABASE_URL is missing. */
 export function getDb(): AppDb {
   if (db) return db;
+  assertProductionEnv();
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error('DATABASE_URL is not set (see backend/.env.example).');
   pg = postgres(url, {

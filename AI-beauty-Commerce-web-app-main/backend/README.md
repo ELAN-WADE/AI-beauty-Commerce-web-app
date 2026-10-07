@@ -14,7 +14,7 @@ npm test            # vitest (unit, DB-free)
 npm run db:generate # emit drizzle/ migration from schema (review before commit)
 ```
 
-## With Docker (staging/VPS or any machine with Docker)
+## With Docker (local development only)
 
 ```bash
 # repo root
@@ -24,11 +24,15 @@ npm run db:migrate && npm run db:seed
 npm run dev  # :3001; frontend proxies /api/* here (same-origin cookies)
 ```
 
+For production use `backend/compose.production.yml` and
+`backend/nginx.production.conf.example` with private managed infrastructure and
+secret injection. Do not expose this development Compose file publicly.
+
 ## Auth contract (S1)
 
 | Endpoint | Body → Response |
 |---|---|
-| POST `/api/auth/register` | `{email,password}` → 201 `{ok,email}` (+session cookie; `_dev*Token` only in dev) |
+| POST `/api/auth/register` | `{email,password}` → 201 `{ok,email}` (no session until email verification; `_dev*Token` only in dev) |
 | POST `/api/auth/login` | same → 200 `{ok}` + cookie. Failures: one generic message |
 | POST `/api/auth/logout` | — → revokes server session, clears cookie |
 | GET `/api/auth/me` | — → `{id,email,emailVerified,roles,profile}` |
@@ -62,7 +66,7 @@ Storefront reads this API when `VITE_API_URL` is set, mocks otherwise.
 | GET `/api/cart`, POST `/api/cart/items`, PATCH/DELETE `/api/cart/items/[id]`, DELETE `/api/cart/items` | user or `X-Session-Id` guest | authoritative prices, availability attached |
 | POST `/api/cart/merge` | auth | folds guest cart into user cart on login |
 | POST `/api/checkout` (`Idempotency-Key` required) | user or guest | atomic tx: validate → address → server pricing → order+items+history → reserve → clear cart |
-| GET `/api/orders`, GET `/api/orders/[id]` (+`?email=` for guests) | owner / guest-email match | keyset pages; identical 404s (no enumeration) |
+| GET `/api/orders`, GET `/api/orders/[id]` | owner / `X-Guest-Order-Token` (guest) | keyset pages; guest email is never an authorization credential |
 | GET/POST `/api/me/wishlist`, GET/POST `/api/me/recently-viewed` (cap 20) | auth | |
 | GET `/api/admin/orders`, GET+PATCH `/api/admin/orders/[id]` | ADMIN/STAFF | status machine enforced; PAID is system-only |
 
@@ -75,7 +79,7 @@ Delivery fee is 0 until the S5 shipping module prices it.
 
 | Endpoint | Access | Notes |
 |---|---|---|
-| POST `/api/payments/init` `{orderId, provider, guestEmail?}` | owner | server-side init; returns hosted `authorizationUrl` (transfer → bank details) |
+| POST `/api/payments/init` `{orderId, provider}` | owner / guest token | server-side init; returns hosted `authorizationUrl` (transfer → bank details) |
 | GET `/api/payments/status?reference=` | owner | frontend polling |
 | GET `/api/payments/return?...` | public (lookup only) | provider redirect landing; settles via server verify, never trusts query |
 | POST `/api/webhooks/flutterwave|paystack|opay` | signature-verified | HMAC-SHA256 / HMAC-SHA512 / HMAC-SHA512; dedupe ledger; verified 200s |
@@ -97,7 +101,7 @@ dashboard confirmation at merchant onboarding.
 | GET `/api/me/loyalty`, POST `/api/me/loyalty/redeem` | auth | 1pt/₦100 on PAID (idempotent), fixed voucher tiers |
 | POST `/api/admin/loyalty/adjust` | ADMIN/STAFF | balance can never go negative |
 | POST `/api/admin/shipments`, POST `…/[id]/events` | ADMIN/STAFF | scans auto-advance the order via the guarded machine |
-| GET `/api/orders/[id]/shipment` | owner / guest-email | tracking + events |
+| GET `/api/orders/[id]/shipment` | owner / guest token | tracking + events |
 
 Checkout now prices zone delivery fees and consumes loyalty vouchers
 atomically. Notifications use a transactional outbox (`order.created`,
@@ -131,6 +135,22 @@ is validated data, never a decision; every response labels its provider.
 Permission bundles live in migration `0006` (STAFF keeps prior catalog access,
 SUPPORT is read-only, grants are SUPER_ADMIN-only). Audit rows are append-only
 by construction — no update/delete path exists.
+
+## Partner network (S8+ — locations, routing, ledger, payouts)
+
+| Endpoint | Access | Notes |
+|---|---|---|
+| POST `/api/routing/locate-stock` | public | city+state+method+quantities → full-cart options with server fees |
+| POST `/api/checkout` (`fulfilmentLocationId?`, `fulfilmentMethod`) | user or guest | additive fields; server revalidates + reserves the location |
+| GET `/api/partner?kind=` | DISTRIBUTOR/CREATOR | owned dashboard: orders/inventory/wallet (distributor) or earnings (creator) |
+| POST `/api/partner` (order/bank/withdraw/restock/receive) | owner | pickup codes hashed + rate-limited; withdrawals hold funds, min ₦10,000 |
+| POST `/api/orders/[id]/pickup-code` | owner / guest token | 6-digit code, 15-min expiry, 5 attempts |
+| GET/POST `/api/admin/network` | `network:manage` / `payouts:manage` | locations, ownership links, transfers, restocks, bank verification, payout review |
+
+Invariants: one location per order; reservations precede payment; expired holds are
+re-acquired before settling late payments; journals balance and replay safely;
+commission releases 14 days after delivery; payouts are manually reconciled
+(approval never moves money). See `docs/PARTNER_NETWORK.md`.
 
 ## Partner ecosystem (S8 — distributors, creators, community)
 

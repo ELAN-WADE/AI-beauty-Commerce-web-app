@@ -14,6 +14,7 @@ import {
   products,
 } from './schema';
 import { stockLevels } from '../inventory/schema';
+import { getLevels } from '../inventory/service';
 import { computeAvailable } from '../inventory/service';
 import type { ProductCreateInput, ProductQuery, ProductUpdateInput } from './validation';
 
@@ -213,9 +214,9 @@ export async function hydrate(
       ? db.select().from(productVariants).where(and(inArray(productVariants.productId, ids), eq(productVariants.isActive, true))).orderBy(asc(productVariants.position))
       : Promise.resolve([] as (typeof productVariants.$inferSelect)[]),
     db.select().from(productImages).where(inArray(productImages.productId, ids)).orderBy(asc(productImages.position)),
-    variantIds.length > 0 ? db.select().from(stockLevels).where(inArray(stockLevels.variantId, variantIds)) : Promise.resolve([] as (typeof stockLevels.$inferSelect)[]),
+    getLevels(db, variantIds),
   ]);
-  const avail = new Map(stock.map((s) => [s.variantId, computeAvailable(s.onHand, s.reserved)]));
+  const avail = new Map([...stock].map(([id, level]) => [id, level.available]));
   return prods.map((p, i) =>
     toPublicProduct(
       p,
@@ -228,13 +229,17 @@ export async function hydrate(
   );
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function getProduct(db: AppDb, slugOrId: string): Promise<ProductDetail> {
+  const input = slugOrId.trim();
+  const byId = UUID_RE.test(input);
   const rows = await db
     .select({ p: products, brandName: brands.name, brandSlug: brands.slug, catName: categories.name, catSlug: categories.slug })
     .from(products)
     .innerJoin(brands, eq(products.brandId, brands.id))
     .innerJoin(categories, eq(products.categoryId, categories.id))
-    .where(or(eq(products.slug, slugOrId.toLowerCase()), eq(products.id, slugOrId)))
+    .where(byId ? eq(products.id, input) : eq(products.slug, input.toLowerCase()))
     .limit(1);
   const row = rows[0];
   if (!row || !row.p.isActive) throw Errors.notFound('Product not found.');

@@ -32,8 +32,11 @@ export const checkoutSchema = z
     addressId: uuid.optional(),
     guestAddress: addressBody.optional(),
     guestEmail: email.optional(),
+    guestAccessToken: z.string().regex(/^[a-f0-9]{64}$/).optional(),
     voucherCode: z.string().trim().min(1).max(32).optional(),
     creatorCode: z.string().trim().min(1).max(40).optional(),
+    fulfilmentLocationId: uuid.optional(),
+    fulfilmentMethod: z.enum(['DELIVERY', 'PICKUP']).default('DELIVERY'),
     note: z.string().trim().max(500).default(''),
   })
   .strict()
@@ -48,7 +51,7 @@ export const recordViewSchema = z.object({ productId: uuid }).strict();
 
 export const orderStatusSchema = z
   .object({
-    status: z.enum(['PENDING', 'PAID', 'FULFILLING', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'REFUNDED']),
+    status: z.enum(['PENDING', 'PAID', 'FULFILLING', 'READY_PICKUP', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'REFUNDED']),
   })
   .strict();
 

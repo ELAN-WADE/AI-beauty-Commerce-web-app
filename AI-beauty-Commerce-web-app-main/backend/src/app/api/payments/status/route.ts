@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { z } from 'zod';
 import { getDb } from '@/db/client';
 import { api } from '@/lib/errors';
 import { shopper } from '@/lib/shopper';
@@ -11,6 +10,5 @@ export const GET = api(async ({ req }) => {
   const who = await shopper(db, req);
   const url = new URL(req.url);
   const { reference } = paymentStatusQuery.parse({ reference: url.searchParams.get('reference') });
-  const guestEmail = z.string().email().optional().parse(url.searchParams.get('guestEmail') ?? undefined);
-  return NextResponse.json(await attemptStatus(db, reference, { userId: who.userId, guestEmail }));
+  return NextResponse.json(await attemptStatus(db, reference, { userId: who.userId, guestToken: req.headers.get('x-guest-order-token') ?? undefined }));
 });

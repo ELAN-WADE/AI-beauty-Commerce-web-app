@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import type { AppDb, Db } from '../../db/client';
 import { ApiError, Errors } from '../../lib/errors';
 import {
@@ -12,13 +12,13 @@ import {
   type FetchFn,
 } from '../../lib/providers';
 import { users } from '../auth/schema';
-import { getOrderView, transitionOrder } from '../orders/service';
-import { orders } from '../orders/schema';
+import { getOrderView, requireGuestOrder, transitionOrder } from '../orders/service';
+import { orderItems, orders } from '../orders/schema';
 import { audit } from '../audit/service';
-import { commitReservation } from '../inventory/service';
+import { commitReservation, reserveStock } from '../inventory/service';
 import { reservations } from '../inventory/schema';
-import { earnForOrder } from '../loyalty/service';
-import { recordAttributedSale } from '../creators/service';
+import { reverseCommissions } from '../ledger/service';
+import { reverseContentRewards } from '../content-rewards/service';
 import { enqueueNotification } from '../notifications/service';
 import {
   paymentAttempts,
@@ -47,6 +47,9 @@ function opayBase() {
 }
 
 export function bankDetails() {
+  if (process.env.NODE_ENV === 'production' && (!process.env.BANK_NAME || !process.env.BANK_ACCOUNT_NUMBER || !process.env.BANK_ACCOUNT_NAME)) {
+    throw new ApiError(503, 'bank_transfer_unavailable', 'Bank transfer is temporarily unavailable.');
+  }
   return {
     bankName: process.env.BANK_NAME ?? '',
     accountNumber: process.env.BANK_ACCOUNT_NUMBER ?? '',
@@ -56,12 +59,11 @@ export function bankDetails() {
 
 // ---------- Order ownership (owner cookie OR guest email; uniform 404) ----------
 
-async function ownedOrder(db: Db, orderId: string, owner: { userId?: string; guestEmail?: string }) {
+async function ownedOrder(db: Db, orderId: string, owner: { userId?: string; guestToken?: string }) {
   const rows = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1);
   const o = rows[0];
   if (!o) throw Errors.notFound('Order not found.');
-  const ok = owner.userId ? o.userId === owner.userId : !!owner.guestEmail && (o.guestEmail ?? '').toLowerCase() === owner.guestEmail!.toLowerCase();
-  if (!ok) throw Errors.notFound('Order not found.');
+  if (o.userId !== owner.userId && (o.userId || !(await requireGuestOrder(db, orderId, owner.guestToken).catch(() => null)))) throw Errors.notFound('Order not found.');
   return o;
 }
 
@@ -86,54 +88,80 @@ export interface InitResult {
 
 export async function initPayment(
   db: AppDb,
-  input: { orderId: string; provider: Provider; userId?: string; guestEmail?: string; appUrl: string; fetchFn?: FetchFn },
+  input: { orderId: string; provider: Provider; userId?: string; guestToken?: string; appUrl: string; idempotencyKey: string; fetchFn?: FetchFn },
 ): Promise<InitResult> {
   const fetchFn = input.fetchFn ?? fetch;
-  const order = await ownedOrder(db, input.orderId, { guestEmail: input.guestEmail, userId: input.userId });
-  if (order.status !== 'PENDING' || order.paymentStatus !== 'UNPAID') {
-    throw Errors.conflict('Order is no longer payable.');
-  }
+  const order = await ownedOrder(db, input.orderId, { guestToken: input.guestToken, userId: input.userId });
+  if (order.kind === 'WHOLESALE' && !['paystack', 'flutterwave'].includes(input.provider)) throw Errors.badRequest('Wholesale orders use Paystack or Flutterwave.');
 
-  // Open-attempt reuse (30 min): frontend retries converge, no duplicate provider bills.
-  const open = await db
-    .select()
-    .from(paymentAttempts)
-    .where(and(eq(paymentAttempts.orderId, order.id), eq(paymentAttempts.provider, input.provider)))
-    .orderBy(desc(paymentAttempts.createdAt))
-    .limit(1);
-  const fresh = open[0] && Date.now() - (open[0].createdAt as Date).getTime() < 30 * 60_000 && open[0].status !== 'failed';
-  if (fresh) {
+  // Serialize by order/provider so concurrent browser retries cannot create two
+  // provider references before either request has published its checkout URL.
+  const claimed = await db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`payment-init:${order.id}:${input.provider}`}, 0))`);
+    const [lockedOrder] = await tx.select().from(orders).where(eq(orders.id, order.id)).for('update');
+    if (!lockedOrder || lockedOrder.status !== 'PENDING' || lockedOrder.paymentStatus !== 'UNPAID') {
+      throw Errors.conflict('Order is no longer payable.');
+    }
+
+    const [exact] = await tx.select().from(paymentAttempts).where(eq(paymentAttempts.idempotencyKey, input.idempotencyKey)).limit(1);
+    if (exact) {
+      if (exact.orderId !== order.id || exact.provider !== input.provider) {
+        throw Errors.conflict('Idempotency-Key was already used for another payment request.');
+      }
+      if (exact.status === 'failed') {
+        const reference = `${order.orderNumber}-${Date.now().toString(36).toUpperCase()}`;
+        const [retried] = await tx.update(paymentAttempts).set({ reference, status: 'initiated', authorizationUrl: null, providerRef: null, expiresAt: new Date(Date.now() + 60 * 60_000), updatedAt: new Date() }).where(eq(paymentAttempts.id, exact.id)).returning();
+        return { attempt: retried, created: true };
+      }
+      return { attempt: exact, created: false };
+    }
+
+    const open = await tx
+      .select()
+      .from(paymentAttempts)
+      .where(and(eq(paymentAttempts.orderId, order.id), eq(paymentAttempts.provider, input.provider)))
+      .orderBy(desc(paymentAttempts.createdAt))
+      .limit(1);
+    const fresh = open[0] && Date.now() - (open[0].createdAt as Date).getTime() < 30 * 60_000 && open[0].status !== 'failed';
+    if (fresh) return { attempt: open[0], created: false };
+
+    const reference = `${order.orderNumber}-${Date.now().toString(36).toUpperCase()}`;
+    const [attempt] = await tx
+      .insert(paymentAttempts)
+      .values({
+        orderId: order.id,
+        provider: input.provider,
+        amountKobo: order.totalKobo,
+        currency: 'NGN',
+        reference,
+        idempotencyKey: input.idempotencyKey,
+        status: input.provider === 'transfer' ? 'authorization_open' : 'initiated',
+        expiresAt: new Date(Date.now() + (input.provider === 'transfer' ? 48 * 3600_000 : 60 * 60_000)),
+      })
+      .returning();
+    return { attempt, created: true };
+  });
+  const attempt = claimed.attempt;
+
+  if (!claimed.created) {
+    if (attempt.status === 'initiated') throw Errors.conflict('Payment initialization is already in progress. Retry shortly with the same Idempotency-Key.');
     return {
-      attemptId: open[0].id,
-      reference: open[0].reference,
+      attemptId: attempt.id,
+      reference: attempt.reference,
       provider: input.provider,
-      authorizationUrl: open[0].authorizationUrl,
+      authorizationUrl: attempt.authorizationUrl,
       ...(input.provider === 'transfer' ? { bankDetails: bankDetails() } : {}),
       replay: true,
     };
   }
-
-  const reference = `${order.orderNumber}-${Date.now().toString(36).toUpperCase()}`;
-  const [attempt] = await db
-    .insert(paymentAttempts)
-    .values({
-      orderId: order.id,
-      provider: input.provider,
-      amountKobo: order.totalKobo,
-      currency: 'NGN',
-      reference,
-      idempotencyKey: `init:${order.id}:${input.provider}:${reference}`,
-      status: 'initiated',
-      expiresAt: new Date(Date.now() + (input.provider === 'transfer' ? 48 * 3600_000 : 60 * 60_000)),
-    })
-    .returning({ id: paymentAttempts.id });
+  const reference = attempt.reference;
 
   if (input.provider === 'transfer') {
     await db.update(paymentAttempts).set({ status: 'authorization_open' }).where(eq(paymentAttempts.id, attempt.id));
     return { attemptId: attempt.id, reference, provider: 'transfer', authorizationUrl: null, bankDetails: bankDetails(), replay: false };
   }
 
-  const payer = await payerEmail(db, order, input.guestEmail);
+  const payer = await payerEmail(db, order);
   if (!payer.email) throw Errors.badRequest('Order has no payer email.');
   const returnUrl = `${input.appUrl}/api/payments/return?provider=${input.provider}`;
 
@@ -183,7 +211,11 @@ export async function initPayment(
     await db.update(paymentAttempts).set({ authorizationUrl: r.authorizationUrl, providerRef: r.providerRef, status: 'authorization_open' }).where(eq(paymentAttempts.id, attempt.id));
     return { attemptId: attempt.id, reference, provider: 'opay', authorizationUrl: r.authorizationUrl, replay: false };
   } catch (err) {
-    await db.update(paymentAttempts).set({ status: 'failed' }).where(eq(paymentAttempts.id, attempt.id));
+    // A timeout is ambiguous: keep the stable reference reconcilable instead
+    // of allowing a retry to create a second provider charge.
+    if (err instanceof ProviderError && !err.retryable) {
+      await db.update(paymentAttempts).set({ status: 'failed', updatedAt: new Date() }).where(eq(paymentAttempts.id, attempt.id));
+    }
     if (err instanceof ProviderError) throw Errors.badRequest(`Payment provider error: ${err.message}`);
     throw err;
   }
@@ -203,6 +235,20 @@ export async function recordEvent(
   return { duplicate: !row };
 }
 
+/**
+ * Receipt vs settlement: a duplicate webhook receipt proves the provider sent
+ * twice, not that settlement succeeded. Check the payments ledger instead.
+ */
+export async function isReferenceSettled(db: AppDb, reference: string): Promise<{ settled: boolean; orderId: string | null }> {
+  const attempt = await db.select({ orderId: paymentAttempts.orderId }).from(paymentAttempts).where(eq(paymentAttempts.reference, reference)).limit(1);
+  if (!attempt[0]) return { settled: false, orderId: null };
+  const pay = await db.select({ id: payments.id }).from(payments).where(eq(payments.reference, reference)).limit(1);
+  const [order] = await db.select({ paymentStatus: orders.paymentStatus }).from(orders).where(eq(orders.id, attempt[0].orderId));
+  if (pay.length > 0) return { settled: order?.paymentStatus === 'PAID' || order?.paymentStatus === 'REFUNDED', orderId: attempt[0].orderId };
+  const byOrder = await db.select({ id: payments.id }).from(payments).where(eq(payments.orderId, attempt[0].orderId)).limit(1);
+  return { settled: byOrder.length > 0 && (order?.paymentStatus === 'PAID' || order?.paymentStatus === 'REFUNDED'), orderId: attempt[0].orderId };
+}
+
 // ---------- Settle (the ONLY path to PAID for provider payments) ----------
 
 export interface SettleResult {
@@ -212,10 +258,81 @@ export interface SettleResult {
   reason?: string;
 }
 
+/** Reacquire expired holds at the original location before selling any stock. */
+async function commitOrderStock(tx: Db, orderId: string) {
+  const [order] = await tx.select().from(orders).where(eq(orders.id, orderId));
+  const items = await tx.select().from(orderItems).where(eq(orderItems.orderId, orderId)).orderBy(orderItems.variantId);
+  const holds = await tx.select().from(reservations).where(and(eq(reservations.refType, 'order'), eq(reservations.refId, orderId))).for('update');
+  for (const item of items) {
+    const committed = holds.filter(r => r.variantId === item.variantId && r.status === 'committed').reduce((n, r) => n + r.qty, 0);
+    const active = holds.filter(r => r.variantId === item.variantId && r.status === 'active');
+    const missing = item.qty - committed - active.reduce((n, r) => n + r.qty, 0);
+    if (missing > 0) {
+      const newHold = await reserveStock(tx, { locationId: order.fulfilmentLocationId, variantId: item.variantId, qty: missing, refType: 'order', refId: orderId, ttlMinutes: 30 });
+      await commitReservation(tx, newHold.id);
+    }
+    for (const hold of active) await commitReservation(tx, hold.id);
+  }
+}
+
+async function finalizePaidOrder(db: AppDb, attempt: typeof paymentAttempts.$inferSelect): Promise<void> {
+  await db.transaction(async (tx) => {
+    const [order] = await tx.select().from(orders).where(eq(orders.id, attempt.orderId)).for('update');
+    if (!order) throw Errors.notFound('Order not found.');
+    if (order.paymentStatus === 'PAID' || order.paymentStatus === 'REFUNDED') return;
+    if (order.status !== 'PENDING' || order.paymentStatus !== 'UNPAID') {
+      throw Errors.conflict('Verified payment requires manual order reconciliation.');
+    }
+
+    await transitionOrder(tx, attempt.orderId, 'PAID', { actor: 'system', note: `${attempt.provider} verified ${attempt.reference}` });
+    await commitOrderStock(tx, attempt.orderId);
+    // Side-effects (loyalty + commissions) run via outbox worker, never in the
+    // critical PAID tx: a points/ledger bug must delay perks, not block payment.
+    await enqueuePostPaymentSideEffects(tx, {
+      orderId: attempt.orderId,
+      userId: order.userId,
+      kind: order.kind,
+      totalKobo: attempt.amountKobo,
+    });
+    await enqueueNotification(tx, {
+      userId: order.userId,
+      channel: 'email',
+      template: 'order.paid',
+      payload: { orderId: attempt.orderId, orderNumber: order.orderNumber, provider: attempt.provider, guestEmail: order.guestEmail },
+    });
+  });
+}
+
 /**
- * Verify with the provider, then transact: payment row (UNIQUE reference →
- * replays converge) → order PAID (system actor) → reservations committed.
- * Anything unverified returns { settled: false } — never throws the order paid.
+ * Enqueue idempotent post-payment jobs in the SAME tx as the PAID transition.
+ * Worker executes them via earnForOrder (UNIQUE account/earn/order) and
+ * awardOrderCommissions (UNIQUE order/wallet + balanced-journal eventKey),
+ * so replays converge and failures retry with backoff instead of rolling back PAID.
+ */
+async function enqueuePostPaymentSideEffects(
+  tx: Db,
+  input: { orderId: string; userId: string | null; kind: string; totalKobo: number },
+) {
+  if (input.userId && input.kind !== 'WHOLESALE') {
+    await enqueueNotification(tx, {
+      userId: input.userId,
+      channel: 'push',
+      template: 'loyalty.earn',
+      payload: { orderId: input.orderId, userId: input.userId, totalKobo: input.totalKobo },
+    });
+  }
+  await enqueueNotification(tx, {
+    userId: input.userId,
+    channel: 'push',
+    template: 'commission.award',
+    payload: { orderId: input.orderId },
+  });
+}
+
+/**
+ * Verify with the provider, durably record the money, then finalize fulfilment
+ * in a separate transaction. A stock or side-effect failure can delay the order
+ * transition but can never roll back evidence that the provider charged it.
  */
 export async function settleAttempt(
   db: AppDb,
@@ -227,76 +344,77 @@ export async function settleAttempt(
   if (!attempt || attempt.provider !== input.provider) {
     return { settled: false, replay: false, orderId: null, reason: 'unknown-reference' };
   }
-  if (attempt.status === 'success') return { settled: true, replay: true, orderId: attempt.orderId };
 
-  let verified = { ok: false, amountKobo: 0, currency: '', ref: '' };
-  if (input.provider === 'flutterwave') {
-    if (!input.transactionId) return { settled: false, replay: false, orderId: null, reason: 'missing-transaction-id' };
-    const v = await flutterwaveVerify(fetchFn, { baseUrl: flwBase(), secretKey: requiredEnv('FLW_SECRET_KEY'), secretHash: '' }, input.transactionId);
-    verified = { ok: v.ok && v.status === 'successful', amountKobo: v.amountKobo, currency: v.currency, ref: v.txRef };
-    if (verified.ok) {
-      await db.update(paymentAttempts).set({ providerRef: input.transactionId }).where(eq(paymentAttempts.id, attempt.id));
+  const [recorded] = await db.select().from(payments).where(eq(payments.reference, attempt.reference)).limit(1);
+  if (!recorded) {
+    let verified = { ok: false, amountKobo: 0, currency: '', ref: '' };
+    if (input.provider === 'flutterwave') {
+      const transactionId = input.transactionId ?? attempt.providerRef;
+      if (!transactionId) {
+        await db.update(paymentAttempts).set({ updatedAt: new Date() }).where(eq(paymentAttempts.id, attempt.id));
+        return { settled: false, replay: false, orderId: attempt.orderId, reason: 'missing-transaction-id' };
+      }
+      const v = await flutterwaveVerify(fetchFn, { baseUrl: flwBase(), secretKey: requiredEnv('FLW_SECRET_KEY'), secretHash: '' }, transactionId);
+      verified = { ok: v.ok && v.status === 'successful', amountKobo: v.amountKobo, currency: v.currency, ref: v.txRef };
+      if (verified.ok) {
+        await db.update(paymentAttempts).set({ providerRef: transactionId, updatedAt: new Date() }).where(eq(paymentAttempts.id, attempt.id));
+      }
+    } else if (input.provider === 'paystack') {
+      const v = await paystackVerify(fetchFn, { baseUrl: process.env.PAYSTACK_BASE_URL ?? 'https://api.paystack.co', secretKey: requiredEnv('PAYSTACK_SECRET_KEY') }, attempt.reference);
+      verified = { ok: v.ok && v.status === 'success', amountKobo: v.amountKobo, currency: v.currency, ref: attempt.reference };
+    } else {
+      const v = await opayStatus(
+        fetchFn,
+        {
+          baseUrl: opayBase(),
+          merchantId: requiredEnv('OPAY_MERCHANT_ID'),
+          publicKey: requiredEnv('OPAY_PUBLIC_KEY'),
+          secretKey: requiredEnv('OPAY_SECRET_KEY'),
+          createPath: process.env.OPAY_CREATE_PATH ?? '/api/v1/international/cashier/create',
+          statusPath: process.env.OPAY_STATUS_PATH ?? '/api/v1/international/cashier/status',
+        },
+        attempt.providerRef ? { orderNo: attempt.providerRef } : { reference: attempt.reference },
+      );
+      verified = { ok: v.status === 'SUCCESS', amountKobo: v.amountKobo, currency: 'NGN', ref: attempt.reference };
     }
-  } else if (input.provider === 'paystack') {
-    const v = await paystackVerify(fetchFn, { baseUrl: process.env.PAYSTACK_BASE_URL ?? 'https://api.paystack.co', secretKey: requiredEnv('PAYSTACK_SECRET_KEY') }, attempt.reference);
-    verified = { ok: v.ok && v.status === 'success', amountKobo: v.amountKobo, currency: v.currency, ref: attempt.reference };
-  } else {
-    const v = await opayStatus(
-      fetchFn,
-      {
-        baseUrl: opayBase(),
-        merchantId: requiredEnv('OPAY_MERCHANT_ID'),
-        publicKey: requiredEnv('OPAY_PUBLIC_KEY'),
-        secretKey: requiredEnv('OPAY_SECRET_KEY'),
-        createPath: process.env.OPAY_CREATE_PATH ?? '/api/v1/international/cashier/create',
-        statusPath: process.env.OPAY_STATUS_PATH ?? '/api/v1/international/cashier/status',
-      },
-      attempt.providerRef ? { orderNo: attempt.providerRef } : { reference: attempt.reference },
-    );
-    verified = { ok: v.status === 'SUCCESS', amountKobo: v.amountKobo, currency: 'NGN', ref: attempt.reference };
+
+    // A non-final provider status is NOT a decline: keep the stable reference
+    // eligible for later webhook/worker reconciliation.
+    if (!verified.ok) {
+      await db.update(paymentAttempts).set({ updatedAt: new Date() }).where(eq(paymentAttempts.id, attempt.id));
+      return { settled: false, replay: false, orderId: attempt.orderId, reason: 'provider-pending' };
+    }
+    if (verified.currency !== 'NGN' || verified.amountKobo !== attempt.amountKobo || verified.ref !== attempt.reference) {
+      await db.update(paymentAttempts).set({ status: 'failed', updatedAt: new Date() }).where(eq(paymentAttempts.id, attempt.id));
+      return { settled: false, replay: false, orderId: null, reason: 'verification-mismatch' };
+    }
   }
 
-  // Four-way match: status + amount + currency + reference. Anything less → no value.
-  if (!verified.ok || verified.currency !== 'NGN' || verified.amountKobo < attempt.amountKobo || (verified.ref && verified.ref !== attempt.reference)) {
-    await db.update(paymentAttempts).set({ status: 'failed' }).where(eq(paymentAttempts.id, attempt.id));
-    return { settled: false, replay: false, orderId: null, reason: 'verification-mismatch' };
-  }
-
-  return db.transaction(async (tx) => {
+  const recognition = await db.transaction(async (tx) => {
+    await tx.select().from(orders).where(eq(orders.id, attempt.orderId)).for('update');
+    const [existing] = await tx.select().from(payments).where(eq(payments.orderId, attempt.orderId));
+    if (existing && existing.reference !== attempt.reference) return { settled: false, replay: false, orderId: attempt.orderId, reason: 'additional-payment-requires-reconciliation' };
     const [pay] = await tx
       .insert(payments)
       .values({ orderId: attempt.orderId, provider: attempt.provider, reference: attempt.reference, amountKobo: attempt.amountKobo, currency: 'NGN' })
       .onConflictDoNothing()
       .returning({ id: payments.id });
     if (!pay) {
-      await tx.update(paymentAttempts).set({ status: 'success' }).where(eq(paymentAttempts.id, attempt.id));
+      await tx.update(paymentAttempts).set({ status: 'success', updatedAt: new Date() }).where(eq(paymentAttempts.id, attempt.id));
       return { settled: true, replay: true, orderId: attempt.orderId };
     }
-    await transitionOrder(tx, attempt.orderId, 'PAID', { actor: 'system', note: `${attempt.provider} verified ${attempt.reference}` });
-    const active = await tx.select({ id: reservations.id }).from(reservations).where(and(eq(reservations.refType, 'order'), eq(reservations.refId, attempt.orderId), eq(reservations.status, 'active')));
-    for (const r of active) await commitReservation(tx, r.id);
-    await tx.update(paymentAttempts).set({ status: 'success' }).where(eq(paymentAttempts.id, attempt.id));
-    // Post-payment side effects (same tx: loyalty + notification never lost).
-    const paid = await tx.select().from(orders).where(eq(orders.id, attempt.orderId)).limit(1);
-    if (paid[0]?.userId) {
-      await earnForOrder(tx, { userId: paid[0].userId, orderId: attempt.orderId, totalKobo: attempt.amountKobo });
-    }
-    if (paid[0]) {
-      await recordAttributedSale(tx, paid[0].creatorCode, paid[0].totalKobo);
-    }
-    await enqueueNotification(tx, {
-      userId: paid[0]?.userId ?? null,
-      channel: 'email',
-      template: 'order.paid',
-      payload: { orderId: attempt.orderId, orderNumber: paid[0]?.orderNumber, provider: attempt.provider, guestEmail: paid[0]?.guestEmail },
-    });
+    await tx.update(paymentAttempts).set({ status: 'success', updatedAt: new Date() }).where(eq(paymentAttempts.id, attempt.id));
     return { settled: true, replay: false, orderId: attempt.orderId };
   });
+  if (!recognition.settled) return recognition;
+
+  await finalizePaidOrder(db, attempt);
+  return recognition;
 }
 
 // ---------- Attempt status (frontend polling) ----------
 
-export async function attemptStatus(db: Db, reference: string, owner: { userId?: string; guestEmail?: string }) {
+export async function attemptStatus(db: Db, reference: string, owner: { userId?: string; guestToken?: string }) {
   const rows = await db
     .select({ attempt: paymentAttempts, order: orders })
     .from(paymentAttempts)
@@ -305,7 +423,7 @@ export async function attemptStatus(db: Db, reference: string, owner: { userId?:
     .limit(1);
   const row = rows[0];
   if (!row) throw Errors.notFound('Payment not found.');
-  const ok = owner.userId ? row.order.userId === owner.userId : (row.order.guestEmail ?? '').toLowerCase() === (owner.guestEmail ?? '').toLowerCase();
+   const ok = (!!owner.userId && row.order.userId === owner.userId) || (!row.order.userId && !!(await requireGuestOrder(db, row.order.id, owner.guestToken).catch(() => null)));
   if (!ok) throw Errors.notFound('Payment not found.');
   const pay = await db.select({ id: payments.id }).from(payments).where(eq(payments.orderId, row.order.id)).limit(1);
   return {
@@ -323,9 +441,10 @@ export async function attemptStatus(db: Db, reference: string, owner: { userId?:
 
 export async function submitClaim(
   db: AppDb,
-  input: { orderId: string; userId?: string; guestEmail?: string; senderName: string; amountKobo: number; bankName: string; narration: string; transferDate: string },
+  input: { orderId: string; userId?: string; guestToken?: string; senderName: string; amountKobo: number; bankName: string; narration: string; transferDate: string },
 ) {
-  const order = await ownedOrder(db, input.orderId, { userId: input.userId, guestEmail: input.guestEmail });
+  const order = await ownedOrder(db, input.orderId, { userId: input.userId, guestToken: input.guestToken });
+  if (order.kind === 'WHOLESALE') throw Errors.badRequest('Wholesale orders use online payment.');
   if (order.status !== 'PENDING' || order.paymentStatus !== 'UNPAID') {
     throw Errors.conflict('Order is no longer payable.');
   }
@@ -375,12 +494,13 @@ export async function confirmClaim(
       currency: 'NGN',
     });
     await transitionOrder(tx, order.id, 'PAID', { actor: 'system', note: `manual-transfer confirmed by admin:${input.adminId} claim:${claim.id} ${input.note}`.slice(0, 500) });
-    const active = await tx.select({ id: reservations.id }).from(reservations).where(and(eq(reservations.refType, 'order'), eq(reservations.refId, order.id), eq(reservations.status, 'active')));
-    for (const r of active) await commitReservation(tx, r.id);
-    if (order.userId) {
-      await earnForOrder(tx, { userId: order.userId, orderId: order.id, totalKobo: order.totalKobo });
-    }
-    await recordAttributedSale(tx, order.creatorCode, order.totalKobo);
+    await commitOrderStock(tx, order.id);
+    await enqueuePostPaymentSideEffects(tx, {
+      orderId: order.id,
+      userId: order.userId,
+      kind: order.kind,
+      totalKobo: order.totalKobo,
+    });
     await enqueueNotification(tx, {
       userId: order.userId,
       channel: 'email',
@@ -396,26 +516,37 @@ export async function confirmClaim(
 
 export async function createRefund(
   db: AppDb,
-  input: { paymentId: string; amountKobo: number; reason: string; adminId: string; fetchFn?: FetchFn },
+  input: { paymentId: string; amountKobo: number; reason: string; adminId: string; idempotencyKey: string; fetchFn?: FetchFn },
 ) {
   const fetchFn = input.fetchFn ?? fetch;
   // Phase 1 (short tx): lock the payment row, re-check the cumulative cap,
   // insert the pending refund. No network I/O inside the transaction.
   const locked = await db.transaction(async (tx) => {
+    // Match fulfilment's order-first lock: a refund cannot race wholesale dispatch.
+    const [preview] = await tx.select().from(payments).where(eq(payments.id, input.paymentId));
+    if (!preview) throw Errors.notFound('Payment not found.');
+    await tx.select().from(orders).where(eq(orders.id, preview.orderId)).for('update');
     const pay = await tx.select().from(payments).where(eq(payments.id, input.paymentId)).for('update').limit(1);
     const payment = pay[0];
     if (!payment) throw Errors.notFound('Payment not found.');
-    const done = await tx.select({ amountKobo: refunds.amountKobo }).from(refunds).where(and(eq(refunds.paymentId, payment.id), eq(refunds.status, 'success')));
+    const [prior] = await tx.select().from(refunds).where(eq(refunds.idempotencyKey, input.idempotencyKey)).limit(1);
+    if (prior) {
+      if (prior.paymentId !== input.paymentId || prior.amountKobo !== input.amountKobo || prior.reason !== input.reason) throw Errors.conflict('Idempotency key reused with different refund details.');
+      return { payment, refundId: prior.id, replay: true, status: prior.status };
+    }
+    const [unresolved] = await tx.select({ id: refunds.id }).from(refunds).where(and(eq(refunds.paymentId, payment.id), eq(refunds.status, 'pending'))).limit(1);
+    if (unresolved) throw Errors.conflict('A refund for this payment is awaiting reconciliation.');
+    const done = await tx.select({ amountKobo: refunds.amountKobo }).from(refunds).where(and(eq(refunds.paymentId, payment.id), inArray(refunds.status, ['pending', 'success'])));
     const refunded = done.reduce((s, r) => s + r.amountKobo, 0);
     if (refunded + input.amountKobo > payment.amountKobo) {
       throw Errors.badRequest('Refund exceeds the paid amount.');
     }
-    const [refund] = await tx.insert(refunds).values({ paymentId: payment.id, amountKobo: input.amountKobo, reason: input.reason }).returning({ id: refunds.id });
-    return { payment, refundId: refund.id };
+    const [refund] = await tx.insert(refunds).values({ paymentId: payment.id, amountKobo: input.amountKobo, reason: input.reason, idempotencyKey: input.idempotencyKey }).returning({ id: refunds.id });
+    await audit(tx, { actorId: input.adminId, action: 'refund.requested', entityType: 'refund', entityId: refund.id, after: { paymentId: payment.id, amountKobo: input.amountKobo, reason: input.reason } });
+    return { payment, refundId: refund.id, replay: false, status: 'pending' };
   });
   const { payment, refundId } = locked;
-  const orderRows = await db.select().from(orders).where(eq(orders.id, payment.orderId)).limit(1);
-  const order = orderRows[0];
+  if (locked.replay) return { refundId, status: locked.status, replay: true };
 
   try {
     if (payment.provider === 'flutterwave') {
@@ -439,7 +570,7 @@ export async function createRefund(
         }
       })());
       if (data?.status !== 'success') throw new ProviderError('Flutterwave refused the refund', false);
-      await finalizeRefund(db, refundId, String(data?.data?.id ?? ''), input, payment, order);
+       await db.update(refunds).set({ providerRef: String(data?.data?.id ?? ''), updatedAt: new Date() }).where(eq(refunds.id, refundId));
     } else if (payment.provider === 'paystack') {
       const ctrl = new AbortController();
       const t = setTimeout(() => ctrl.abort(), 8000);
@@ -451,23 +582,49 @@ export async function createRefund(
           signal: ctrl.signal,
         });
         if (!res.ok) throw new ProviderError(`Paystack refund HTTP ${res.status}`, res.status >= 500);
-        const data = (await res.json()) as { status?: boolean };
+        const data = (await res.json()) as { status?: boolean; data?: { id?: number | string } };
         if (data?.status !== true) throw new ProviderError('Paystack refused the refund', false);
+        if (data?.data?.id) await db.update(refunds).set({ providerRef: String(data.data.id) }).where(eq(refunds.id, refundId));
       } finally {
         clearTimeout(t);
       }
-      await finalizeRefund(db, refundId, null, input, payment, order);
+       // Acceptance of a refund request is not proof of refunded funds.
     } else {
       // opay refund path + manual transfers: dashboard step (documented, S5 admin UI).
       await db.update(refunds).set({ status: 'pending' }).where(eq(refunds.id, refundId));
       return { refundId, status: 'pending' as const, note: 'Complete on the provider dashboard, then mark success.' };
     }
   } catch (err) {
-    await db.update(refunds).set({ status: 'failed' }).where(eq(refunds.id, refundId));
+    // A timeout or lost DB acknowledgement is ambiguous: never let a retry
+    // submit another provider refund while this request is unresolved.
+    if (err instanceof ProviderError && !err.retryable) {
+      await db.update(refunds).set({ status: 'failed' }).where(eq(refunds.id, refundId));
+    }
     if (err instanceof ProviderError) throw Errors.badRequest(`Refund failed: ${err.message}`);
     throw err;
   }
-  return { refundId, status: 'success' as const };
+  return { refundId, status: 'pending' as const, note: 'Verify completed refund in the provider dashboard, then reconcile.' };
+}
+
+/** Finance confirmation after independent provider/bank settlement verification. */
+export async function reconcileRefund(db: AppDb, input: { refundId: string; adminId: string; evidence: string; status: 'success' | 'failed' }) {
+  if (input.evidence.trim().length < 20) throw Errors.badRequest('Provider/bank reconciliation evidence is required.');
+  const [refund] = await db.select().from(refunds).where(eq(refunds.id, input.refundId));
+  if (!refund) throw Errors.notFound('Refund not found.');
+  if (refund.status !== 'pending') throw Errors.conflict('Refund has already been reconciled.');
+  const [payment] = await db.select().from(payments).where(eq(payments.id, refund.paymentId));
+  if (!payment) throw Errors.notFound('Payment not found.');
+  if (input.status === 'failed') {
+    await db.transaction(async tx => {
+      await tx.select().from(orders).where(eq(orders.id, payment.orderId)).for('update');
+      const [changed] = await tx.update(refunds).set({ status: 'failed', updatedAt: new Date() }).where(and(eq(refunds.id, refund.id), eq(refunds.status, 'pending'))).returning({ id: refunds.id });
+      if (!changed) throw Errors.conflict('Refund has already been reconciled.');
+      await audit(tx, { actorId: input.adminId, action: 'refund.reconciled.failed', entityType: 'refund', entityId: refund.id, after: { evidence: input.evidence } });
+    });
+  } else {
+    await finalizeRefund(db, refund.id, refund.providerRef, { amountKobo: refund.amountKobo, adminId: input.adminId }, payment, input.evidence);
+  }
+  return { refundId: refund.id, status: input.status };
 }
 
 /**
@@ -481,9 +638,11 @@ async function finalizeRefund(
   providerRef: string | null,
   input: { amountKobo: number; adminId: string },
   payment: typeof payments.$inferSelect,
-  order: typeof orders.$inferSelect | undefined,
+  evidence: string,
 ) {
   await db.transaction(async (tx) => {
+    const [currentOrder] = await tx.select().from(orders).where(eq(orders.id, payment.orderId)).for('update');
+    await tx.select().from(payments).where(eq(payments.id, payment.id)).for('update');
     const done = await tx.select({ amountKobo: refunds.amountKobo }).from(refunds).where(and(eq(refunds.paymentId, payment.id), eq(refunds.status, 'success'))).for('update');
     const total = done.reduce((s, r) => s + r.amountKobo, 0) + input.amountKobo;
     if (total > payment.amountKobo) {
@@ -491,9 +650,13 @@ async function finalizeRefund(
       await audit(tx, { actorType: 'system', action: 'refund.over_limit', entityType: 'payment', entityId: payment.id, after: { refundId, total, paid: payment.amountKobo } });
       throw Errors.badRequest('Refund would exceed the paid amount (concurrent refund detected). Reconcile at the provider.');
     }
-    await tx.update(refunds).set({ status: 'success', ...(providerRef ? { providerRef } : {}) }).where(eq(refunds.id, refundId));
-    if (order && total >= payment.amountKobo && ['PAID', 'FULFILLING', 'SHIPPED', 'DELIVERED'].includes(order.status)) {
-      await transitionOrder(tx, order.id, 'REFUNDED', { actor: 'admin', actorId: input.adminId, note: `refund ${refundId}` });
+    const [updated] = await tx.update(refunds).set({ status: 'success', ...(providerRef ? { providerRef } : {}), updatedAt: new Date() }).where(and(eq(refunds.id, refundId), eq(refunds.status, 'pending'))).returning({ id: refunds.id });
+    if (!updated) throw Errors.conflict('Refund has already been reconciled.');
+    await audit(tx, { actorId: input.adminId, action: 'refund.reconciled.success', entityType: 'refund', entityId: refundId, after: { evidence, amountKobo: input.amountKobo } });
+    await reverseCommissions(tx, payment.orderId, total);
+    await reverseContentRewards(tx, payment.orderId, input.amountKobo);
+    if (currentOrder && total >= payment.amountKobo && ['PAID', 'FULFILLING', 'READY_PICKUP', 'SHIPPED', 'DELIVERED'].includes(currentOrder.status)) {
+      await transitionOrder(tx, currentOrder.id, 'REFUNDED', { actor: 'admin', actorId: input.adminId, note: `refund ${refundId}` });
     }
   });
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/db/client';
-import { clientIp, Errors, readJson, toErrorResponse } from '@/lib/errors';
+import { clientIp, enforceOrigin, Errors, readJson, toErrorResponse } from '@/lib/errors';
 import { checkRateLimit, Limits } from '@/lib/rate-limit';
 import { requirePerm } from '@/lib/admin';
 import { audit } from '@/modules/audit/service';
@@ -33,9 +33,11 @@ export async function GET(req: Request, { params }: Ctx) {
 export async function PATCH(req: Request, { params }: Ctx) {
   const requestId = req.headers.get('x-request-id') ?? crypto.randomUUID();
   try {
+    enforceOrigin(req);
     const { id } = await params;
     const { db, ctx } = await gate(req, 'orders:update:status');
     const input = orderStatusSchema.parse(await readJson(req));
+    if (input.status === 'REFUNDED') throw Errors.badRequest('Use the refund workflow to reconcile payment and earnings.');
     // PAID via this route is rejected by the machine (system-only, §11).
     const order = await transitionOrder(db, id, input.status, { actor: 'admin', actorId: ctx.userId });
     await audit(db, { actorId: ctx.userId, action: 'order.status', entityType: 'order', entityId: id, after: { status: input.status }, ip: clientIp(req), requestId });

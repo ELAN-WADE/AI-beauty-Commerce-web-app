@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { and, desc, eq } from 'drizzle-orm';
 import type { AppDb, Db } from '../../db/client';
 import { Errors } from '../../lib/errors';
@@ -70,11 +71,11 @@ export async function addShipmentEvent(
   });
 }
 
-export async function getShipmentForOrder(db: Db, orderId: string, owner: { userId?: string; guestEmail?: string }) {
+export async function getShipmentForOrder(db: Db, orderId: string, owner: { userId?: string; guestToken?: string }) {
   const o = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1);
   const order = o[0];
   if (!order) throw Errors.notFound('Order not found.');
-  const ok = owner.userId ? order.userId === owner.userId : (order.guestEmail ?? '').toLowerCase() === (owner.guestEmail ?? '').toLowerCase();
+   const ok = (!!owner.userId && order.userId === owner.userId) || (!order.userId && !!owner.guestToken && !!order.guestAccessTokenHash && /^[a-f0-9]{64}$/.test(owner.guestToken) && order.guestAccessTokenHash === createHash('sha256').update(owner.guestToken).digest('hex'));
   if (!ok) throw Errors.notFound('Order not found.');
   const s = await db.select().from(shipments).where(eq(shipments.orderId, orderId)).limit(1);
   if (!s[0]) return { shipment: null, events: [] };

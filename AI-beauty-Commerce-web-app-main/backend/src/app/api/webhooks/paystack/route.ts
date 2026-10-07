@@ -3,7 +3,7 @@ import { getDb } from '@/db/client';
 import { clientIp, Errors, readRawBody } from '@/lib/errors';
 import { checkRateLimit, Limits } from '@/lib/rate-limit';
 import { verifyPaystackWebhook } from '@/lib/providers';
-import { recordEvent, settleAttempt } from '@/modules/payments/service';
+import { isReferenceSettled, recordEvent, settleAttempt } from '@/modules/payments/service';
 
 /** Paystack webhook: HMAC-SHA512(x-paystack-signature) → dedupe → verify → settle. */
 export async function POST(req: Request) {
@@ -38,7 +38,11 @@ export async function POST(req: Request) {
     eventType: event.event ?? 'unknown',
     payload: event,
   });
-  if (duplicate) return respond({ received: true, settled: true, replay: true });
+  if (duplicate) {
+    const settled = await isReferenceSettled(getDb(), reference).catch(() => ({ settled: false, orderId: null }));
+    if (settled.settled || event.event !== 'charge.success') return respond({ received: true, ...settled, replay: true });
+    // Receipt dedupe must not suppress a settlement retry after a DB failure.
+  }
 
   if (event.event !== 'charge.success') return respond({ received: true, settled: false });
 
@@ -47,6 +51,7 @@ export async function POST(req: Request) {
     return respond({ received: true, ...result });
   } catch (err) {
     console.error(JSON.stringify({ level: 'error', requestId, scope: 'paystack-webhook-settle', err: String(err) }));
-    return respond({ received: true, settled: false, reason: 'settle-error' });
+    // Transient failure: ask provider to retry (dedupe makes retries safe).
+    return respond({ received: true, settled: false, reason: 'settle-error', retryable: true }, 500);
   }
 }

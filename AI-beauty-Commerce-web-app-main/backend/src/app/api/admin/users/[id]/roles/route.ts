@@ -24,8 +24,11 @@ export async function POST(req: Request, { params }: Ctx) {
     const { id } = await params;
     const { db, ctx, ip } = await gate(req);
     const input = grantSchema.parse(await readJson(req));
-    const result = await grantRole(db, { userId: id, roleId: input.role.toUpperCase(), grantedBy: ctx.userId, granterRoles: ctx.roles });
-    await audit(db, { actorId: ctx.userId, action: 'role.grant', entityType: 'user', entityId: id, after: result, ip, requestId });
+    const result = await db.transaction(async tx => {
+      const result = await grantRole(tx, { userId: id, roleId: input.role.toUpperCase(), grantedBy: ctx.userId, granterRoles: ctx.roles });
+      await audit(tx, { actorId: ctx.userId, action: 'role.grant', entityType: 'user', entityId: id, after: result, ip, requestId });
+      return result;
+    });
     return NextResponse.json(result, { status: 201 });
   })(req);
 }
@@ -35,8 +38,11 @@ export async function DELETE(req: Request, { params }: Ctx) {
     const { id } = await params;
     const { db, ctx, ip } = await gate(req);
     const q = revokeQuery.parse(Object.fromEntries(new URL(req.url).searchParams));
-    const result = await revokeRole(db, { userId: id, roleId: q.role.toUpperCase(), revokedBy: ctx.userId });
-    await audit(db, { actorId: ctx.userId, action: 'role.revoke', entityType: 'user', entityId: id, after: result, ip, requestId });
+    const result = await db.transaction(async tx => {
+      const result = await revokeRole(tx, { userId: id, roleId: q.role.toUpperCase(), revokedBy: ctx.userId });
+      await audit(tx, { actorId: ctx.userId, action: 'role.revoke', entityType: 'user', entityId: id, after: result, ip, requestId });
+      return result;
+    });
     return NextResponse.json(result);
   })(req);
 }

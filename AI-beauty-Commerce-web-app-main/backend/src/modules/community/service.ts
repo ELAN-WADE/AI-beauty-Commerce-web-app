@@ -4,6 +4,7 @@ import { Errors } from '../../lib/errors';
 import { decodeCursor, encodeCursor } from '../../lib/cursor';
 import { orders } from '../orders/schema';
 import { products } from '../catalog/schema';
+import { creators } from '../creators/schema';
 import { communityMessages, communityPosts, postLikes } from './schema';
 import type { createPostSchema } from './validation';
 import type { z } from 'zod';
@@ -49,6 +50,13 @@ export async function createPost(db: AppDb, userId: string, author: { name: stri
     if (!p[0]) throw Errors.notFound('Tagged product not found.');
   }
   const role = await buyerRole(db, userId);
+  // Server-side creator link: a verified creator profile owned by the author
+  // makes the post reward-attributable. Clients can never set this.
+  const [creator] = await db
+    .select({ id: creators.id })
+    .from(creators)
+    .where(and(eq(creators.userId, userId), eq(creators.verified, true)))
+    .limit(1);
   const [post] = await db
     .insert(communityPosts)
     .values({
@@ -57,6 +65,7 @@ export async function createPost(db: AppDb, userId: string, author: { name: stri
       authorHandle: author.handle ?? '',
       authorAvatar: author.avatar ?? '',
       authorRole: role,
+      creatorId: creator?.id ?? null,
       content: input.content,
       mediaType: input.mediaType,
       mediaUrl: input.mediaUrl,
@@ -89,6 +98,21 @@ export async function setPostVisibility(db: AppDb, postId: string, visible: bool
   const [post] = await db.update(communityPosts).set({ visible }).where(eq(communityPosts.id, postId)).returning({ id: communityPosts.id });
   if (!post) throw Errors.notFound('Post not found.');
   return { id: post.id, visible };
+}
+
+/**
+ * Admin reward gate: only eligible + visible posts settle. Hiding a post
+ * (visible=false) pauses future settlement; already-settled windows keep
+ * their ledger rows (audit trail) and release net of refunds.
+ */
+export async function setRewardEligible(db: AppDb, postId: string, eligible: boolean) {
+  const [post] = await db
+    .update(communityPosts)
+    .set({ rewardEligible: eligible })
+    .where(eq(communityPosts.id, postId))
+    .returning({ id: communityPosts.id });
+  if (!post) throw Errors.notFound('Post not found.');
+  return { id: post.id, rewardEligible: eligible };
 }
 
 export async function listMessages(db: Db, channel: string, limit: number) {

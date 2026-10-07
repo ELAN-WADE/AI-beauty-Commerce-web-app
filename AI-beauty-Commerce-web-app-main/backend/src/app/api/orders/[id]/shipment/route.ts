@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { z } from 'zod';
 import { getDb } from '@/db/client';
 import { toErrorResponse } from '@/lib/errors';
 import { optionalAuth } from '@/modules/auth/require-auth';
@@ -13,8 +12,7 @@ export async function GET(req: Request, { params }: Ctx) {
     const { id } = await params;
     const db = getDb();
     const auth = await optionalAuth(db);
-    const email = z.string().email().optional().parse(new URL(req.url).searchParams.get('email') ?? undefined);
-    const res = NextResponse.json(await getShipmentForOrder(db, id, { userId: auth?.userId, guestEmail: email }));
+    const res = NextResponse.json(await getShipmentForOrder(db, id, { userId: auth?.userId, guestToken: req.headers.get('x-guest-order-token') ?? undefined }));
     res.headers.set('x-request-id', requestId);
     return res;
   } catch (err) {

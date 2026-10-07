@@ -1,0 +1,23 @@
+# API and worker only: provision managed private PostgreSQL, encrypted object
+# storage, SMTP and TLS proxy separately. Do not use root docker-compose.yml.
+services:
+  api:
+    build:
+      context: .
+      target: runner
+    restart: unless-stopped
+    env_file: .env.production
+    ports:
+      - "127.0.0.1:3001:3001"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/api/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+  worker:
+    build:
+      context: .
+      target: worker
+    restart: unless-stopped
+    env_file: .env.production
+    stop_grace_period: 5m

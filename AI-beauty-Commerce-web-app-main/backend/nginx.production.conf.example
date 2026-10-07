@@ -1,0 +1,23 @@
+# Place inside the reverse proxy's http{} block. Restrict the API to the proxy;
+# block direct connections to 3001 and never expose database/object-store ports.
+limit_req_zone $binary_remote_addr zone=auth:10m rate=10r/m;
+limit_req_zone $binary_remote_addr zone=api:10m rate=120r/m;
+limit_req_zone $binary_remote_addr zone=webhooks:10m rate=600r/m;
+server {
+  listen 443 ssl;
+  server_name example.com;
+  # Install TLS certificates and redirect port 80 to HTTPS in the host config.
+  client_max_body_size 1m;
+  add_header Strict-Transport-Security "max-age=63072000; includeSubDomains" always;
+  add_header X-Content-Type-Options nosniff always;
+  add_header X-Frame-Options DENY always;
+  add_header Referrer-Policy no-referrer always;
+  # Remove any user-supplied identity header, then replace it with the real peer.
+  proxy_set_header X-Verified-Client-IP $remote_addr;
+  proxy_set_header X-Forwarded-For $remote_addr;
+  proxy_set_header Host $host;
+  location /api/auth/ { limit_req zone=auth burst=10 nodelay; proxy_pass http://127.0.0.1:3001; }
+  location /api/webhooks/ { limit_req zone=webhooks burst=100 nodelay; proxy_pass http://127.0.0.1:3001; }
+  location /api/ { limit_req zone=api burst=60 nodelay; proxy_pass http://127.0.0.1:3001; }
+  location / { root /var/www/glowly-storefront; try_files $uri /index.html; }
+}

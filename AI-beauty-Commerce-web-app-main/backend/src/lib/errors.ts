@@ -96,11 +96,37 @@ function envelope(
   return res;
 }
 
-/** Parse JSON body with a size cap (default 1 MB, §10 API4). */export async function readJson(req: Request, maxBytes = 1_048_576): Promise<unknown> {
-  const text = await req.text();
-  if (text.length > maxBytes) {
-    throw new ApiError(413, 'payload_too_large', 'Request body too large.', false);
+async function boundedText(req: Request, maxBytes: number): Promise<string> {
+  const reader = req.body?.getReader();
+  if (!reader) return '';
+  const parts: Uint8Array[] = [];
+  let bytes = 0;
+  try {
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      bytes += value.byteLength;
+      if (bytes > maxBytes) {
+        void reader.cancel();
+        throw new ApiError(413, 'payload_too_large', 'Request body too large.');
+      }
+      parts.push(value);
+    }
+    return new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(parts));
+  } catch (err) {
+    if (err instanceof ApiError) throw err;
+    throw Errors.badRequest('Invalid request body.');
+  } finally {
+    reader.releaseLock();
   }
+}
+
+/** Parse JSON before allocating more than the configured byte limit. */
+export async function readJson(req: Request, maxBytes = 1_048_576): Promise<unknown> {
+  if (!/^application\/json(?:\s*;|\s*$)/i.test(req.headers.get('content-type') ?? '')) {
+    throw new ApiError(415, 'unsupported_media_type', 'Content-Type must be application/json.');
+  }
+  const text = await boundedText(req, maxBytes);
   if (!text) throw Errors.badRequest('Empty request body.');
   try {
     return JSON.parse(text);
@@ -111,8 +137,10 @@ function envelope(
 
 /** Best-effort client IP (trusts x-forwarded-for set by our own proxy). */
 export function clientIp(req: Request): string {
-  const fwd = req.headers.get('x-forwarded-for');
-  const ip = fwd?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
+  // Forwarded headers are only trustworthy when overwritten by a controlled edge.
+  // Configure CLIENT_IP_HEADER with a private header that the edge strips and sets.
+  const header = process.env.CLIENT_IP_HEADER;
+  const ip = header ? req.headers.get(header)?.trim() || 'unknown' : process.env.NODE_ENV === 'production' ? 'unknown' : req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
   return ip.slice(0, 64);
 }
 
@@ -133,7 +161,14 @@ export function enforceOrigin(req: Request): void {
     process.env.FRONTEND_URL,
     ...(process.env.ALLOWED_ORIGINS ?? '').split(',').map((s) => s.trim()).filter(Boolean),
   ].filter(Boolean) as string[];
-  if (allowlist.length === 0) return; // unconfigured (dev): SameSite is the backstop
+  if (allowlist.length === 0) {
+    // Disconnect rule: dev may run unconfigured (SameSite is the backstop),
+    // but production must fail closed — never accept a foreign Origin.
+    if (process.env.NODE_ENV === 'production') {
+      throw new ApiError(403, 'forbidden_origin', 'Cross-origin requests are not allowed.', false);
+    }
+    return;
+  }
   const norm = (u: string) => {
     try {
       return new URL(u).origin;
@@ -147,9 +182,5 @@ export function enforceOrigin(req: Request): void {
 
 /** Raw body with a size cap (webhooks bypass readJson — §10 API4). */
 export async function readRawBody(req: Request, maxBytes = 262_144): Promise<string> {
-  const text = await req.text();
-  if (text.length > maxBytes) {
-    throw new ApiError(413, 'payload_too_large', 'Request body too large.', false);
-  }
-  return text;
+  return boundedText(req, maxBytes);
 }

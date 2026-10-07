@@ -17,9 +17,31 @@ CREATE INDEX "audit_actor_idx" ON "audit_logs" USING btree ("actor_id");--> stat
 CREATE INDEX "audit_time_idx" ON "audit_logs" USING btree ("created_at");--> statement-breakpoint
 -- S7 permission matrix: new capabilities + role bundles (least-privilege).
 -- STAFF keeps prior catalog access; SUPPORT is read-only; grants are SUPER_ADMIN-only.
+-- Fresh-install fix: roles are otherwise only created by seed.ts, so ensure they exist here.
+INSERT INTO "roles" ("id", "description") VALUES
+  ('CUSTOMER', 'Registered shopper; owner-scoped access only.'),
+  ('DISTRIBUTOR', 'Approved owner-scoped fulfilment partner.'),
+  ('CREATOR', 'Approved owner-scoped affiliate.'),
+  ('SUPPORT', 'Read orders/users for customer care; no mutations.'),
+  ('INVENTORY_MANAGER', 'Manages stock levels and movements.'),
+  ('STAFF', 'Order fulfilment and content moderation.'),
+  ('ADMIN', 'Full operational access except role grants.'),
+  ('SUPER_ADMIN', 'Role grants and break-glass access.')
+ON CONFLICT ("id") DO NOTHING;
+--> statement-breakpoint
 INSERT INTO "permissions" ("id", "description") VALUES
+  ('orders:read:own', 'orders:read:own'),
+  ('orders:read:all', 'orders:read:all'),
+  ('orders:update:status', 'orders:update:status'),
+  ('users:read:all', 'users:read:all'),
+  ('products:write', 'products:write'),
+  ('inventory:write', 'inventory:write'),
+  ('reviews:moderate', 'reviews:moderate'),
+  ('refunds:write', 'refunds:write'),
   ('payments:confirm', 'Confirm manual transfer claims'),
-  ('loyalty:adjust', 'Adjust loyalty balances')
+  ('loyalty:adjust', 'Adjust loyalty balances'),
+  ('roles:grant', 'roles:grant'),
+  ('audit:read', 'audit:read')
 ON CONFLICT ("id") DO NOTHING;
 --> statement-breakpoint
 INSERT INTO "role_permissions" ("role_id", "permission_id") VALUES
