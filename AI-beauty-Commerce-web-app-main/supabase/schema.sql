@@ -1,4 +1,8 @@
--- Desla!™ Backend — Supabase Postgres Schema
+-- DEPRECATED PROTOTYPE — DO NOT USE FOR PRODUCTION.
+-- Source of truth is backend/ (Drizzle + Postgres modular monolith).
+-- This file is frozen for local Vite mocks only and will not receive
+-- reservations/idempotency/outbox/variants fixes. See backend/README.md.
+-- Desla!™ Backend — Supabase Postgres Schema (prototype, frozen)
 -- Project: Desla Beauty and Lifestyle Limited (Lagos, Nigeria)
 -- Stack: Supabase Postgres + Auth + Storage + Realtime | Redis (Upstash) for cache
 -- How to apply: Supabase Dashboard > SQL Editor > paste this file > Run.

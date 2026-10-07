@@ -16,27 +16,34 @@ with Docker + a public URL (webhooks need one — Lightsail/QServers VPS).
 ## 1. Boot infrastructure
 
 ```bash
-# repo root = AI-beauty-Commerce-web-app-main/
-docker compose up -d postgres redis minio mailhog
-docker compose ps   # all healthy
+# Use a private managed PostgreSQL and private S3-compatible bucket. Do not
+# run the root development docker-compose.yml on a public VPS (known passwords,
+# published ports, MailHog). Start the production API/worker with the dedicated
+# backend/compose.production.yml after provisioning secrets and TLS.
 ```
 
 ## 2. Backend env (staging — secrets live HERE and in CI secrets, never git)
 
 ```bash
-cd backend && cp .env.example .env   # then fill:
-# DATABASE_URL=postgres://glowly:<strong-pw>@postgres:5432/glowly_staging
+cd backend
+# Create a private .env.production from your secret manager (never copy dev .env.example).
+# NODE_ENV=production; EDGE_RATE_LIMIT_ENABLED=true; CLIENT_IP_HEADER=x-verified-client-ip
+# AUTH_EMAIL_ENCRYPTION_KEY=<64 random hex characters>; SMTP_HOST/USER/PASS/FROM=<TLS SMTP>
+# DATABASE_URL=postgres://<user>:<secret>@<private-db-host>:5432/glowly_staging
 # APP_URL=https://staging.<domain>  FRONTEND_URL=https://staging.<domain>
 # PAYSTACK_SECRET_KEY=sk_test_…  FLW_SECRET_KEY=FLWSECK_TEST-…  FLW_SECRET_HASH=<random>
 # OPAY_* (sandbox)  BANK_* (business account)  SMTP_* (real)
+# CONTENT_REWARD_BPS=200 (default; 0 pauses the program for settlement testing)
+# CONTENT_REWARD_MIN_MERCHANDISE_KOBO=50000  CONTENT_REWARD_HOLD_DAYS=14
 ```
 
 ## 3. Migrate + seed (in order — never ad-hoc SQL on staging)
 
 ```bash
-npm ci && npm run db:migrate   # 0000 → 0006
-npm run db:seed                # roles + permissions matrix
+npm ci && npm run db:migrate   # 0000 → 0015 (HQ backfill + network permissions + wholesale pools + content rewards)
+npm run db:seed                # roles + permissions matrix (idempotent)
 npm run db:seed:catalog        # DES- catalogue from storefront mocks
+npm run db:seed:partners       # distributors/creators + location-scoped stock (locations start inactive)
 ```
 
 ## 4. Bootstrap the first SUPER_ADMIN (psql — there is no self-signup for this)
@@ -49,8 +56,7 @@ INSERT INTO user_roles (user_id, role_id) VALUES ('<user-uuid>', 'SUPER_ADMIN');
 ## 5. Run backend + worker
 
 ```bash
-npm run build && npm start &            # :3001 behind nginx (/api/* → :3001, / → storefront dist/)
-npm run worker &                        # outbox, sweeps, purge
+docker compose -f compose.production.yml up -d --build  # :3001 localhost-only; supervised worker
 curl localhost:3001/api/health          # {"ok":true}
 curl localhost:3001/api/ready           # {"ok":true,"db":"up"}
 ```
@@ -70,6 +76,8 @@ server {
   add_header Referrer-Policy strict-origin-when-cross-origin always;
   client_max_body_size 1m;   # mirrors the app's 1 MB cap
 
+  proxy_set_header X-Verified-Client-IP $remote_addr; # strip caller's spoofed header
+  proxy_set_header X-Forwarded-For $remote_addr;
   location /api/auth/    { limit_req zone=auth burst=5 nodelay; proxy_pass http://127.0.0.1:3001; }
   location /api/webhooks/ { limit_req zone=webhook burst=10 nodelay; proxy_pass http://127.0.0.1:3001; }
   location /api/         { limit_req zone=api burst=40 nodelay; proxy_pass http://127.0.0.1:3001; }
@@ -79,7 +87,7 @@ server {
 
 ## 6. Smoke suite (curl — every stage must pass before sign-off)
 
-1. `POST /api/auth/register` → 201 (+cookie) → `GET /api/auth/me` → roles `[CUSTOMER]`
+1. `POST /api/auth/register` → 201 (no cookie) → verify email → fresh cookie → `GET /api/auth/me` → roles `[CUSTOMER]`
 2. `GET /api/products?limit=5` → seeded DES- items with kobo prices
 3. Guest cart: `POST /api/cart/items` (X-Session-Id) → `POST /api/checkout` with `Idempotency-Key` → 201 PENDING order, totals server-computed
 4. Replay same `Idempotency-Key` → 200 `replay:true`, no duplicate order
@@ -87,8 +95,12 @@ server {
 6. Paystack/Flutterwave test flow → hosted page (test card) → webhook → `GET /api/payments/status` → `settled:true`
 7. Replay a webhook payload → `replay:true`, single `payments` row
 8. Tampered webhook signature → 401, nothing written
-9. Cross-user order fetch → 404-shaped 403 envelope; admin without `orders:read:all` → 403
+9. Guest order fetch requires private order token (email alone returns 404); admin without `orders:read:all` → 403
 10. `POST /api/checkout` with `totalKobo` in body → 422 (client money rejected)
+11. Auth round-trip: register → verification email arrives → link verifies once → login works; reset link works once, revokes sessions, retry fails
+12. Provider return with the provider unreachable → 302 back to `?pay=<ref>&pending=1&order=<DES-n>` (never a raw error page); shopper retries from the payment screen and confirms
+13. Content rewards: approve a creator post (`rewardEligible`), place a coded test order, run `npm run worker:once` → one `content_rewards` row + PENDING journal; second approved post earns nothing on the same orders; release after hold clears to AVAILABLE; reconciled refund reverses proportionally
+14. Worker recovery: stop the worker mid-outbox, restart → claimed work resumes, no duplicate payments/commissions/rewards (UNIQUE + journal eventKeys)
 
 ## 7. Frontend (staging)
 
@@ -106,7 +118,8 @@ proof form under Orders → Track, loyalty accrues after PAID.
 New Postgres (PITR on), fresh secrets, `APP_URL/FRONTEND_URL` → prod domain,
 provider LIVE keys + live webhook URLs re-registered, `npm run db:migrate`
 before traffic switch, nightly `pg_dump` → object storage + quarterly restore
-drill. Keep the hardcoded demo card in `Screen11Payment` — delete it now.
+drill. No hardcoded payment card exists in `Screen11Payment` (verified); only
+frozen mock display strings remain in `src/data/` — confirm none render in live mode.
 
 ## 9. Third-party activation checklist
 

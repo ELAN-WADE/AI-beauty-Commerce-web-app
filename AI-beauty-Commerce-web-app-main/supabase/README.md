@@ -1,4 +1,8 @@
-# Desla!™ Backend — Supabase + Redis Setup
+# DEPRECATED PROTOTYPE — frozen. Production truth is `backend/` (Next.js + Drizzle + Postgres).
+# Do not extend this Supabase schema; new guarantees (variants, reservations, idempotency, outbox) live in `backend/src/modules/*`.
+# This doc stays for local Vite mock fallback only.
+
+# Desla!™ Backend — Supabase + Redis Setup (prototype)
 
 Resumed backend architecture (Supabase Postgres is source of truth, Upstash Redis is cache only).
 
