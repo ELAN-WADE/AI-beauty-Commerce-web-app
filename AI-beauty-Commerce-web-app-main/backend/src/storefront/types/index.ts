@@ -8,9 +8,11 @@ export interface Product {
   reviewsCount: number;
   price: number;
   originalPrice?: number;
+  comparePrice?: number;
   discountPercentage?: number;
   image: string;
   galleryImages: string[];
+  gallery?: string[];
   category: string;
   subCategory: string;
   sizes: string[];
@@ -20,13 +22,11 @@ export interface Product {
   isBestseller?: boolean;
   isNew?: boolean;
   isFlashSale?: boolean;
-  hashtag?: string;
   customBadge?: string;
-  comparePrice?: number;
-  gallery?: string[];
+  hashtag?: string;
   skinTypes?: string[];
   concerns?: string[];
-  ingredients?: { name: string; percentage?: string; description?: string }[];
+  ingredients?: string[];
   distributorStock?: { city: string; available: boolean; quantity: number }[];
   description: string;
   whatItDoes: string[];
@@ -68,7 +68,7 @@ export interface Category {
   name: string;
   slug: string;
   itemCount: number;
-  image: string;
+  image?: string;
   isFeatured?: boolean;
   description?: string;
 }
@@ -385,7 +385,7 @@ export interface HeroSlide {
   headline: string;
   subtext: string;
   actionLabel: string;
-  actionRoute: string;
+  actionRoute?: string;
   actionCategory?: string;
   secondaryActionText?: string;
   secondaryRoute?: string;
@@ -396,16 +396,19 @@ export interface HeroSlide {
 
 export interface EditorialRoutineStep {
   id?: string;
-  associatedProductId?: string;
-  number: string;
+  step?: string;
+  price?: number;
+  skinType?: string;
+  number?: string;
   title: string;
   productName: string;
   productId?: string;
+  associatedProductId?: string;
   image: string;
   tagline: string;
   description: string;
   keyBenefit: string;
-  isActive: boolean;
+  isActive?: boolean;
 }
 
 export interface BrandStoryConfig {

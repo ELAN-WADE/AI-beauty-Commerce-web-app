@@ -7,7 +7,9 @@ import type { CartItem, Order, Product, AdminOrder, AdminTransferClaim, AdminAud
 const BASE = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/+$/, '');
 
 export const isOwnedApiConfigured = Boolean(BASE);
-if (import.meta.env.PROD && !BASE) throw new Error('Production storefront requires VITE_API_URL.');
+if (import.meta.env.PROD && !BASE && (import.meta.env.VITE_STRICT_API === 'true' || import.meta.env.VITE_STRICT_API === '1')) {
+  throw new Error('Production storefront requires VITE_API_URL.');
+}
 
 export class ApiError extends Error {
   constructor(

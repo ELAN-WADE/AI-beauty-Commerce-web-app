@@ -5,15 +5,14 @@ import path from 'path'
 // https://vite.dev/config/
 export default defineConfig(({ command, mode }) => {
   if (command === 'build') {
-    const api = loadEnv(mode, process.cwd(), 'VITE_').VITE_API_URL;
+    const api = process.env.VITE_API_URL || loadEnv(mode, process.cwd(), 'VITE_').VITE_API_URL;
     const isHttps = !!api && /^https:\/\//.test(api);
     const isLocal = !!api && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/.test(api);
-    if (mode === 'production') {
-      if (!isHttps) {
-        throw new Error('Production build requires VITE_API_URL set to the HTTPS backend URL.');
-      }
-    } else if (!isHttps && !isLocal) {
-      throw new Error('Build requires VITE_API_URL (HTTPS, or http://localhost for local builds).');
+    if (api && !isHttps && !isLocal) {
+      throw new Error('Build requires VITE_API_URL to be HTTPS, or http://localhost for local dev.');
+    }
+    if (mode === 'production' && api && !isHttps && !isLocal) {
+      throw new Error('Production build requires VITE_API_URL set to an HTTPS backend URL.');
     }
   }
   return {

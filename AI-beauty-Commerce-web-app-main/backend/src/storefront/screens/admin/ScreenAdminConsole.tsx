@@ -665,7 +665,7 @@ export const ScreenAdminConsole: React.FC = () => {
       name: newCatName.trim(),
       slug: newCatSlug.trim().toLowerCase().replace(/\s+/g, '-'),
       itemCount: 0,
-      image: '',
+      image: '/cat_skincare.jpg',
       description: newCatDesc.trim() || 'Clinical formulation category.',
       isFeatured: true
     };
@@ -789,7 +789,7 @@ export const ScreenAdminConsole: React.FC = () => {
     e.preventDefault();
     if (!newPRBoxForm.title.trim()) return;
     addPRBox({
-      id: `pr-${Date.now()}`,
+      id: 'pr-box-' + Date.now(),
       title: newPRBoxForm.title.trim(),
       category: newPRBoxForm.category,
       retailValue: newPRBoxForm.retailValue,
@@ -821,7 +821,7 @@ export const ScreenAdminConsole: React.FC = () => {
     e.preventDefault();
     if (!newCampaignForm.title.trim()) return;
     addCreatorCampaign({
-      id: `camp-${Date.now()}`,
+      id: 'camp-' + Date.now(),
       title: newCampaignForm.title.trim(),
       category: newCampaignForm.category,
       commissionRate: newCampaignForm.commissionRate,
