@@ -10,12 +10,14 @@ import {
 } from 'lucide-react';
 import { FilterTabs } from '../shared/FilterTabs';
 import { ActionDrawer } from '../shared/ActionDrawer';
+import { useApp } from '../../../context/AppContext';
 
 export const CreatorCampaigns: React.FC = () => {
+  const { creatorCampaigns: appCampaigns } = useApp();
   const [activeTab, setActiveTab] = useState<'available' | 'active' | 'completed'>('available');
   const [selectedCampaign, setSelectedCampaign] = useState<any | null>(null);
 
-  const campaigns = [
+  const campaigns = (appCampaigns && appCampaigns.length > 0 ? appCampaigns : [
     {
       id: 'camp-1',
       title: 'Glow Season 2026: The Melanin Radiance Initiative',
@@ -23,11 +25,11 @@ export const CreatorCampaigns: React.FC = () => {
       commissionRate: '15% Commission',
       bonus: '+ ₦25,000 Milestone Bonus',
       deadline: '12 Days Left',
-      eligibility: 'Eligible (Level 3+)',
       deliverables: ['1 High-Resolution Instagram Reel (9:16)', '1 Shoppable Desla Routine published'],
-      products: ['Radiant Glow Oil 100ml', 'Gentle Amino Cleanser', 'Sun Defense SPF50+'],
       heroImage: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=800&q=80',
-      description: 'Highlight real skin texture, morning hydration regimens, and clinical barrier restoration. Discourage excessive skin bleaching claims; emphasize radiant healthy nourishment.'
+      description: 'Highlight real skin texture, morning hydration regimens, and clinical barrier restoration. Discourage excessive skin bleaching claims; emphasize radiant healthy nourishment.',
+      slots: '10/15 slots filled',
+      status: 'ACTIVE' as const
     },
     {
       id: 'camp-2',
@@ -36,13 +38,17 @@ export const CreatorCampaigns: React.FC = () => {
       commissionRate: '12% Commission',
       bonus: '+ ₦15,000 Bonus',
       deadline: '24 Days Left',
-      eligibility: 'Eligible',
       deliverables: ['2 TikTok Application Videos', '1 Skin Article Guide'],
-      products: ['Clinical Barrier Cream', 'Hydrating Botanical Mist'],
       heroImage: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=800&q=80',
-      description: 'Educate followers on managing extreme harmattan dryness across Northern and Central Nigeria through clinical occlusives and ceramide layering.'
+      description: 'Educate followers on managing extreme harmattan dryness across Northern and Central Nigeria through clinical occlusives and ceramide layering.',
+      slots: '8/10 slots filled',
+      status: 'ACTIVE' as const
     }
-  ];
+  ]).map((c) => ({
+    ...c,
+    eligibility: 'Eligible (Level 2+)',
+    products: ['Radiant Glow Formulation', 'Barrier Cream SPF50+']
+  }));
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
@@ -85,7 +91,7 @@ export const CreatorCampaigns: React.FC = () => {
                 <div className="absolute top-3 left-3 bg-[#0F0F10]/80 backdrop-blur-md px-3 py-1 rounded-full text-white text-[10px] font-mono font-bold">
                   {camp.category}
                 </div>
-                <div className="absolute top-3 right-3 bg-rose-600 text-white px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold flex items-center gap-1">
+                <div className="absolute top-3 right-3 bg-[#0F0F10] text-white px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold flex items-center gap-1">
                   <Clock size={11} />
                   <span>{camp.deadline}</span>
                 </div>
@@ -104,7 +110,7 @@ export const CreatorCampaigns: React.FC = () => {
                     <span className="text-[10px] font-mono text-[#997A2E] uppercase block">
                       Reward Rate
                     </span>
-                    <span className="font-extrabold text-emerald-800 text-sm">
+                    <span className="font-extrabold text-[#0F0F10] text-sm font-mono">
                       {camp.commissionRate}
                     </span>
                   </div>
@@ -167,7 +173,7 @@ export const CreatorCampaigns: React.FC = () => {
               <ul className="space-y-1.5">
                 {selectedCampaign.deliverables.map((d: string, i: number) => (
                   <li key={i} className="flex items-center gap-2 text-[#4B5563]">
-                    <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
+                    <CheckCircle2 size={14} className="text-[#0F0F10] shrink-0" />
                     <span>{d}</span>
                   </li>
                 ))}

@@ -56,7 +56,7 @@ describe('content reward settlement (postgres)', () => {
         creatorCode: 'CONTENT99', creatorId: creator.id, creatorCommissionBps: 1200,
         shippingAddress: { fullName: 'Buyer' }, createdAt: new Date('2026-01-07T12:00:00Z'),
       }).returning({ id: schema.orders.id });
-      const [p] = await db.insert(schema.payments).values({ orderId: o.id, provider: 'paystack', reference: `REF-${n}`, amountKobo: subtotal - discount }).returning({ id: schema.payments.id });
+      const [p] = await db.insert(schema.payments).values({ orderId: o.id, provider: 'flutterwave', reference: `REF-${n}`, amountKobo: subtotal - discount }).returning({ id: schema.payments.id });
       return { orderId: o.id, paymentId: p.id };
     };
     const a = await mkOrder('DES-CONTENT-1', 'content-key-1', 100000, 0);
@@ -107,7 +107,7 @@ describe('content reward settlement (postgres)', () => {
       creatorCode: 'CONTENT98', creatorId: creator.id, creatorCommissionBps: 1200,
       shippingAddress: { fullName: 'Buyer' }, createdAt: new Date('2026-01-08T12:00:00Z'),
     }).returning({ id: schema.orders.id });
-    const [pay] = await db.insert(schema.payments).values({ orderId: o.id, provider: 'paystack', reference: 'REF-DES-CONTENT-3', amountKobo: 200000 }).returning({ id: schema.payments.id });
+    const [pay] = await db.insert(schema.payments).values({ orderId: o.id, provider: 'flutterwave', reference: 'REF-DES-CONTENT-3', amountKobo: 200000 }).returning({ id: schema.payments.id });
 
     expect((await settleContentRewards(db as never)).settled).toBe(1);
     expect(await db.select().from(schema.contentRewards)).toHaveLength(2); // 1 from prior test + 1 here

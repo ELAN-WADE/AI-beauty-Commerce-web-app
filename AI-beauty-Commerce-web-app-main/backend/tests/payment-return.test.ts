@@ -9,10 +9,10 @@ describe('provider return redirect contract (pure)', () => {
   const base = new URL('https://shop.example.com/');
 
   it('lands settled shoppers with reference, provider and order handle', () => {
-    const url = new URL(returnRedirectUrl(base, { reference: 'DES-ABC-XYZ', provider: 'paystack', settled: true, orderNumber: 'DES-ABC123' }));
+    const url = new URL(returnRedirectUrl(base, { reference: 'DES-ABC-XYZ', provider: 'stripe', settled: true, orderNumber: 'DES-ABC123' }));
     expect(url.origin).toBe('https://shop.example.com');
     expect(url.searchParams.get('pay')).toBe('DES-ABC-XYZ');
-    expect(url.searchParams.get('provider')).toBe('paystack');
+    expect(url.searchParams.get('provider')).toBe('stripe');
     expect(url.searchParams.get('order')).toBe('DES-ABC123');
     expect(url.searchParams.has('pending')).toBe(false);
   });
@@ -47,7 +47,7 @@ describe('return order lookup (postgres)', () => {
       shippingAddress: { fullName: 'Buyer', city: 'Lagos' },
     }).returning({ id: schema.orders.id });
     await db.insert(schema.paymentAttempts).values({
-      orderId: order.id, provider: 'paystack', amountKobo: 250000, reference: 'DES-RETURN-1-REF', idempotencyKey: 'return-attempt-1',
+      orderId: order.id, provider: 'stripe', amountKobo: 250000, reference: 'DES-RETURN-1-REF', idempotencyKey: 'return-attempt-1',
     });
     expect(await lookupReturnOrder(db as never, 'DES-RETURN-1-REF')).toMatchObject({ orderId: order.id, orderNumber: 'DES-RETURN-1' });
     expect(await lookupReturnOrder(db as never, 'DES-NOPE-REF')).toBeNull();

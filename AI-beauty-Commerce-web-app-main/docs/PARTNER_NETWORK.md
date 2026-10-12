@@ -57,7 +57,7 @@ capabilities. Existing catalogue prices remain brand-controlled.
 - Wholesale purchases are `WHOLESALE`-kind orders with snapshotted terms
   (variant, cartons, unit price, minimums, tier, delivery fee). HQ platform
   stock is reserved transactionally at invoice creation; verified online payment
-  (Paystack/Flutterwave only — no manual transfer claims) debits HQ platform
+  (Flutterwave only — no manual transfer claims) debits HQ platform
   stock. Distributor receipt credits the `WHOLESALE` pool at their location
   exactly once (replay-safe). Wholesale orders never award retail commission,
   loyalty points, or creator discounts.

@@ -1,5 +1,5 @@
 import { createHash, randomBytes, scrypt as scryptCb, type ScryptOptions } from 'node:crypto';
-import { and, eq, isNull, gt } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, gt, sql } from 'drizzle-orm';
 import type { AppDb, Db } from '../../db/client';
 import { Errors } from '../../lib/errors';
 import { enqueueAuthEmail } from './email';
@@ -193,6 +193,7 @@ export async function login(
     .update(users)
     .set({ failedLoginAttempts: 0, lockedUntil: null })
     .where(eq(users.id, user.id));
+  await enforceSessionCap(db, user.id);
   return createSession(db, user.id, meta);
 }
 
@@ -207,6 +208,34 @@ export async function createSession(db: AppDb, userId: string, meta: SessionMeta
     expiresAt,
   });
   return { token: raw, expiresAt };
+}
+
+/**
+ * Batch-1 session hygiene (Part VII): cap concurrent active sessions per
+ * user (default 10). Keeps the newest, revokes the oldest — bounds session
+ * accumulation from stolen-token reuse and forgotten devices without logging
+ * out normal multi-device users. Called on login before minting the new
+ * session. No migration (updates only).
+ */
+export async function enforceSessionCap(db: AppDb, userId: string, maxActive = 10): Promise<{ revoked: number }> {
+  // Serialized per user: parallel logins must converge on the same cap
+  // instead of each observing a stale count and overshooting it.
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${'session-cap:' + userId}, 0))`);
+    const active = await tx
+      .select({ id: userSessions.id })
+      .from(userSessions)
+      .where(and(eq(userSessions.userId, userId), isNull(userSessions.revokedAt), gt(userSessions.expiresAt, new Date())))
+      .orderBy(asc(userSessions.createdAt));
+    // Keep the newest (maxActive - 1); the login below mints the maxActive-th.
+    const revokeIds = active.slice(0, Math.max(0, active.length - (maxActive - 1))).map((s) => s.id);
+    if (revokeIds.length === 0) return { revoked: 0 };
+    await tx
+      .update(userSessions)
+      .set({ revokedAt: new Date() })
+      .where(and(eq(userSessions.userId, userId), inArray(userSessions.id, revokeIds)));
+    return { revoked: revokeIds.length };
+  });
 }
 
 /** Validate cookie token → { user, roles }. Null = anonymous (callers 401). */

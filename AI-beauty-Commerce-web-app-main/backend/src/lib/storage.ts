@@ -1,4 +1,5 @@
 import {
+  DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
   PutObjectCommand,
@@ -33,6 +34,41 @@ export function s3(): S3Client {
 
 export function scansBucket(): string {
   return process.env.SCANS_BUCKET ?? 'glowly-scans';
+}
+
+/** Public bucket for community images/video (readable without signing). */
+export function communityBucket(): string {
+  return process.env.COMMUNITY_BUCKET ?? 'glowly-community';
+}
+
+/**
+ * Public read URL for community media. The bucket must allow public GET;
+ * writes always go through presigned PUTs (never public write).
+ */
+export function communityMediaUrl(key: string): string {
+  const base = (process.env.COMMUNITY_MEDIA_BASE_URL ?? '').replace(/\/+$/, '');
+  if (base) return `${base}/${key}`;
+  if (process.env.S3_ENDPOINT) {
+    return `${process.env.S3_ENDPOINT.replace(/\/+$/, '')}/${communityBucket()}/${key}`;
+  }
+  const region = process.env.S3_REGION ?? 'eu-west-1';
+  return `https://${communityBucket()}.s3.${region}.amazonaws.com/${key}`;
+}
+
+/** community/<mediaId>.<ext> — server-generated ids only, never user filenames. */
+export function communityObjectKey(mediaId: string, mime: string): string {
+  const ext =
+    mime === 'image/png' ? 'png'
+    : mime === 'image/webp' ? 'webp'
+    : mime === 'video/mp4' ? 'mp4'
+    : mime === 'video/webm' ? 'webm'
+    : 'jpg';
+  const safeId = mediaId.replace(/[^a-z0-9-]/gi, '');
+  return `community/${safeId}.${ext}`;
+}
+
+export async function deleteObject(bucket: string, key: string): Promise<void> {
+  await s3().send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
 }
 
 /** scans/<userId>/<analysisId>.<ext> — no user input in the path, ever. */
@@ -91,6 +127,13 @@ export function checkMagicBytes(buf: Uint8Array, mime: string): boolean {
   }
   if (mime === 'image/webp') {
     return buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46 && buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50;
+  }
+  // MP4: 'ftyp' box at offset 4. WebM: EBML header 0x1A45DFA3.
+  if (mime === 'video/mp4') {
+    return buf[4] === 0x66 && buf[5] === 0x74 && buf[6] === 0x79 && buf[7] === 0x70;
+  }
+  if (mime === 'video/webm') {
+    return buf[0] === 0x1a && buf[1] === 0x45 && buf[2] === 0xdf && buf[3] === 0xa3;
   }
   return false;
 }

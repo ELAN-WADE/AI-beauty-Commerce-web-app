@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getDb } from '@/db/client';
 import { clientIp, Errors, readJson, toErrorResponse } from '@/lib/errors';
 import { checkRateLimit, Limits } from '@/lib/rate-limit';
+import { BulkheadLimits, tryAcquire } from '@/lib/bulkhead';
 import { requireAuth } from '@/modules/auth/require-auth';
 import { getMessages, postMessage } from '@/modules/ai/service';
 import { chatMessageSchema } from '@/modules/ai/validation';
@@ -32,9 +33,16 @@ export async function POST(req: Request, { params }: Ctx) {
     if (!rl.allowed) throw Errors.rateLimited(60);
     const { id } = await params;
     const input = chatMessageSchema.parse(await readJson(req));
-    const res = NextResponse.json(await postMessage(db, ctx.userId, id, input.content));
-    res.headers.set('x-request-id', requestId);
-    return res;
+    // Bulkhead: provider-backed turns must not starve checkout of pool connections.
+    const slot = tryAcquire('ai-chat', BulkheadLimits.ai());
+    if (!slot) throw Errors.rateLimited(30);
+    try {
+      const res = NextResponse.json(await postMessage(db, ctx.userId, id, input.content));
+      res.headers.set('x-request-id', requestId);
+      return res;
+    } finally {
+      slot();
+    }
   } catch (err) {
     return toErrorResponse(err, requestId);
   }

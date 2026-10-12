@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import { getDb } from '@/db/client';
+import { getDb, type AppDb } from '@/db/client';
 import { readJson, toErrorResponse } from '@/lib/errors';
 import { requireAuth } from '@/modules/auth/require-auth';
+import { audit } from '@/modules/audit/service';
 import { deleteAddress, updateAddress } from '@/modules/users/service';
 import { updateAddressSchema } from '@/modules/users/validation';
 
@@ -17,7 +18,13 @@ export async function PATCH(req: Request, { params }: Ctx) {
     const ctx = await requireAuth(db);
     const input = updateAddressSchema.parse(await readJson(req));
     // Ownership enforced inside the service (id + userId scope, §8 BOLA).
-    const res = NextResponse.json({ address: await updateAddress(db, ctx.userId, id, input) });
+    const address = await db.transaction(async (tx) => {
+      const t = tx as unknown as AppDb;
+      const a = await updateAddress(t, ctx.userId, id, input);
+      await audit(t, { actorId: ctx.userId, action: 'address.update', entityType: 'address', entityId: id, after: { fields: Object.keys(input) }, requestId });
+      return a;
+    });
+    const res = NextResponse.json({ address });
     res.headers.set('x-request-id', requestId);
     return res;
   } catch (err) {
@@ -31,7 +38,11 @@ export async function DELETE(req: Request, { params }: Ctx) {
     const { id } = await params;
     const db = getDb();
     const ctx = await requireAuth(db);
-    await deleteAddress(db, ctx.userId, id);
+    await db.transaction(async (tx) => {
+      const t = tx as unknown as AppDb;
+      await deleteAddress(t, ctx.userId, id);
+      await audit(t, { actorId: ctx.userId, action: 'address.delete', entityType: 'address', entityId: id, requestId });
+    });
     const res = NextResponse.json({ ok: true });
     res.headers.set('x-request-id', requestId);
     return res;

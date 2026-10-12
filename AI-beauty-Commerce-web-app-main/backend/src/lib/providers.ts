@@ -140,48 +140,148 @@ export function verifyFlutterwaveWebhook(
   return false;
 }
 
-// ---------- Paystack ----------
+// ---------- Stripe (international cards via Checkout Sessions) ----------
 
-export interface PaystackConfig {
-  baseUrl: string; // https://api.paystack.co
-  secretKey: string;
+export interface StripeConfig {
+  secretKey: string; // sk_live_… / sk_test_…
+  webhookSecret: string; // whsec_… (dashboard endpoint secret)
 }
 
-export async function paystackInit(
-  fetchFn: FetchFn,
-  cfg: PaystackConfig,
-  input: { email: string; amountKobo: number; reference: string; callbackUrl: string },
-): Promise<{ authorizationUrl: string }> {
-  const data = (await callApi(fetchFn, `${cfg.baseUrl}/transaction/initialize`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${cfg.secretKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: input.email, amount: input.amountKobo, reference: input.reference, callback_url: input.callbackUrl }),
-  }, 'paystack')) as { status?: boolean; data?: { authorization_url?: string } };
-  if (data?.status !== true || !data?.data?.authorization_url) {
-    throw new ProviderError('Paystack refused the payment request', false);
-  }
-  return { authorizationUrl: data.data.authorization_url };
+const STRIPE_API = 'https://api.stripe.com';
+
+function stripeForm(params: Record<string, string>): string {
+  return Object.entries(params)
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+    .join('&');
 }
 
-export async function paystackVerify(
+async function stripeCall(
   fetchFn: FetchFn,
-  cfg: PaystackConfig,
-  reference: string,
-): Promise<{ ok: boolean; status: string; amountKobo: number; currency: string }> {
-  const data = (await callApi(
+  path: string,
+  cfg: StripeConfig,
+  params: Record<string, string>,
+  method = 'POST',
+  idempotencyKey?: string,
+): Promise<unknown> {
+  return callApi(
     fetchFn,
-    `${cfg.baseUrl}/transaction/verify/${encodeURIComponent(reference)}`,
-    { headers: { Authorization: `Bearer ${cfg.secretKey}` } },
-    'paystack',
-  )) as { status?: boolean; data?: { status?: string; amount?: number; currency?: string } };
-  const d = data?.data ?? {};
-  return { ok: data?.status === true, status: d.status ?? 'unknown', amountKobo: Number(d.amount ?? 0), currency: d.currency ?? '' };
+    `${STRIPE_API}${path}`,
+    {
+      method,
+      headers: {
+        Authorization: `Bearer ${cfg.secretKey}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+        // Retry safety: Stripe dedupes POSTs carrying a previously seen key,
+        // so timeouts and webhook-driven retries cannot double-charge.
+        ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
+      },
+      ...(method === 'POST' ? { body: stripeForm(params) } : {}),
+    },
+    'stripe',
+  );
 }
 
-/** Docs: x-paystack-signature = HMAC-SHA512(raw body, secret key). */
-export function verifyPaystackWebhook(rawBody: string, signature: string | undefined, secretKey: string | undefined): boolean {
-  if (!signature || !secretKey) return false;
-  return safeEqual(signature, hmacSha512Hex(secretKey, rawBody));
+export async function stripeInit(
+  fetchFn: FetchFn,
+  cfg: StripeConfig,
+  input: {
+    email: string;
+    amountKobo: number; // NGN smallest unit — Stripe takes minor units natively
+    reference: string; // our stable attempt reference (echoed in metadata)
+    orderNumber: string;
+    successUrl: string; // must contain {CHECKOUT_SESSION_ID}; Stripe fills it
+    cancelUrl: string;
+    idempotencyKey: string; // our attempt key: safe retry of session creation
+  },
+): Promise<{ sessionId: string; authorizationUrl: string }> {
+  const data = (await stripeCall(fetchFn, '/v1/checkout/sessions', cfg, {
+    'payment_method_types[0]': 'card',
+    'line_items[0][price_data][currency]': 'ngn',
+    'line_items[0][price_data][unit_amount]': String(input.amountKobo),
+    'line_items[0][price_data][product_data][name]': `Desla order ${input.orderNumber}`,
+    'line_items[0][quantity]': '1',
+    mode: 'payment',
+    customer_email: input.email,
+    success_url: input.successUrl,
+    cancel_url: input.cancelUrl,
+    'metadata[reference]': input.reference,
+    'metadata[order_number]': input.orderNumber,
+  }, 'POST', input.idempotencyKey)) as { id?: string; url?: string };
+  if (!data?.id || !data?.url) {
+    throw new ProviderError('Stripe refused the payment request', false);
+  }
+  return { sessionId: data.id, authorizationUrl: data.url };
+}
+
+export interface StripeSession {
+  paid: boolean;
+  status: string;
+  amountKobo: number;
+  currency: string;
+  reference: string;
+  paymentIntent: string | null;
+}
+
+export async function stripeRetrieveSession(
+  fetchFn: FetchFn,
+  cfg: StripeConfig,
+  sessionId: string,
+): Promise<StripeSession> {
+  const data = ((await stripeCall(fetchFn, `/v1/checkout/sessions/${encodeURIComponent(sessionId)}`, cfg, {}, 'GET')) as {
+    payment_status?: string;
+    status?: string;
+    amount_total?: number;
+    currency?: string;
+    metadata?: { reference?: string };
+    payment_intent?: string;
+  }) ?? {};
+  return {
+    paid: data.payment_status === 'paid',
+    status: data.status ?? 'unknown',
+    amountKobo: Number(data.amount_total ?? 0),
+    currency: String(data.currency ?? '').toUpperCase(),
+    reference: data.metadata?.reference ?? '',
+    paymentIntent: data.payment_intent ?? null,
+  };
+}
+
+/**
+ * Docs (Stripe signature verification without the SDK):
+ * `Stripe-Signature: t=1492774577,v1=<hex>` where v1 =
+ * HMAC-SHA256(endpoint secret, `${t}.${rawBody}`). Timestamps older than
+ * 5 minutes are rejected (replay defence); comparisons are constant-time.
+ */
+export function verifyStripeWebhook(
+  rawBody: string,
+  signatureHeader: string | undefined,
+  webhookSecret: string | undefined,
+  nowMs = Date.now(),
+): boolean {
+  if (!signatureHeader || !webhookSecret) return false;
+  const parts = Object.fromEntries(
+    signatureHeader.split(',').map((p) => {
+      const i = p.indexOf('=');
+      return i < 0 ? [p.trim(), ''] : [p.slice(0, i).trim(), p.slice(i + 1).trim()];
+    }),
+  );
+  const t = Number(parts.t ?? NaN);
+  const v1 = parts.v1 ?? '';
+  if (!Number.isFinite(t) || !v1) return false;
+  if (Math.abs(nowMs - t * 1000) > 5 * 60_000) return false;
+  return safeEqual(v1, hmacSha256Hex(webhookSecret, `${t}.${rawBody}`));
+}
+
+export async function stripeRefundPaymentIntent(
+  fetchFn: FetchFn,
+  cfg: StripeConfig,
+  input: { paymentIntent: string; amountKobo: number; idempotencyKey: string },
+): Promise<{ id: string }> {
+  const data = (await stripeCall(fetchFn, '/v1/refunds', cfg, {
+    payment_intent: input.paymentIntent,
+    amount: String(input.amountKobo),
+  }, 'POST', input.idempotencyKey)) as { id?: string };
+  if (!data?.id) throw new ProviderError('Stripe refused the refund', false);
+  return { id: data.id };
 }
 
 // ---------- Opay Cashier (hosted page — we never touch card data) ----------

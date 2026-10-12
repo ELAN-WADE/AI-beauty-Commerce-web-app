@@ -1,21 +1,12 @@
 import React, { useState } from 'react';
 import {
-  Wallet,
-  ArrowDownToLine,
-  TrendingUp,
-  Clock,
-  CheckCircle2,
   Building,
-  AlertCircle
+  CheckCircle2
 } from 'lucide-react';
 import { StatChip } from '../shared/StatChip';
 import { StatusBadge } from '../shared/StatusBadge';
-import { ConfirmDialog } from '../shared/ConfirmDialog';
 
 export const CreatorEarnings: React.FC = () => {
-  const [payoutModalOpen, setPayoutModalOpen] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-
   const transactions = [
     {
       id: 'tx-1',
@@ -63,160 +54,120 @@ export const CreatorEarnings: React.FC = () => {
     }
   ];
 
-  const handleConfirmPayout = () => {
-    setIsProcessing(true);
-    setTimeout(() => {
-      setIsProcessing(false);
-      setPayoutModalOpen(false);
-      alert('Payout request for ₦84,620 submitted! Funds will reflect in your GTBank account within 24 hours.');
-    }, 1200);
-  };
-
   return (
-    <div className="space-y-6 animate-in fade-in duration-200">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E5E7EB]">
-        <div>
-          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
-            Financial Settlement &amp; Ledger
-          </span>
-          <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-[#0F0F10]">
-            Creator Earnings
-          </h1>
-          <p className="text-xs sm:text-sm text-[#6B7280] mt-0.5">
-            Transparent commission ledger, cleared balances, and direct Nigerian NUBAN payouts.
-          </p>
-        </div>
-
-        <button
-          onClick={() => setPayoutModalOpen(true)}
-          className="px-6 py-2.5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-[#D4AF37] text-xs font-bold shadow-md active:scale-[0.97] transition-all flex items-center gap-2 cursor-pointer self-start sm:self-auto"
-        >
-          <ArrowDownToLine size={14} />
-          <span>Request Payout (₦84,620)</span>
-        </button>
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-200">
+      {/* Subtitle banner */}
+      <div className="pb-1">
+        <p className="text-xs sm:text-sm text-[#6B7280]">
+          Transparent commission ledger, cleared balances, and direct Nigerian NUBAN payouts.
+        </p>
       </div>
 
-      {/* Balance Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* 3 Metric Cards with Clean Upper-Right Stamps */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
         <StatChip
-          label="Available Withdrawable Balance"
+          label="AVAILABLE WITHDRAWABLE BALANCE"
           value="₦84,620"
           subtext="Ready for instant bank transfer"
-          badge="Cleared"
-          badgeVariant="success"
+          badge="CLEARED"
         />
         <StatChip
-          label="Pending Clearance"
+          label="PENDING CLEARANCE"
           value="₦21,300"
           subtext="Held in 7-day client satisfaction window"
-          badge="Pending"
-          badgeVariant="warning"
+          badge="PENDING"
         />
         <StatChip
-          label="Lifetime Payouts Received"
+          label="LIFETIME PAYOUTS RECEIVED"
           value="₦320,450"
           subtext="Transferred to verified NUBAN"
-          badge="Paid Out"
-          badgeVariant="gold"
+          badge="PAID OUT"
         />
       </div>
 
-      {/* Verified Bank Dossier */}
-      <div className="p-5 rounded-3xl bg-white border border-[#E5E7EB] shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-[#FBF5E8] border border-[#D4AF37]/30 text-[#997A2E] flex items-center justify-center shrink-0">
-            <Building size={20} />
+      {/* Verified Bank Account Card */}
+      <div className="p-5 sm:p-6 rounded-2xl sm:rounded-3xl bg-white border border-[#E5E7EB] shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-2xl bg-[#FBF5E8] border border-[#D4AF37]/30 text-[#997A2E] flex items-center justify-center shrink-0">
+            <Building size={22} />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="font-bold text-xs sm:text-sm text-[#0F0F10]">
+              <h3 className="font-bold text-sm sm:text-base text-[#0F0F10]">
                 Guaranty Trust Bank (GTBank) • 0123456789
               </h3>
-              <span className="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                Verified ✓
+              <span className="text-[11px] font-mono font-bold text-[#0F0F10] flex items-center gap-1">
+                Verified <CheckCircle2 size={12} className="inline text-[#0F0F10]" />
               </span>
             </div>
-            <p className="text-[11px] text-[#6B7280] font-mono mt-0.5">
+            <p className="text-xs text-[#6B7280] font-mono mt-0.5">
               Account Name: AMARA NNADI • BVN Linked &amp; NIP Real-Time Settlement
             </p>
           </div>
         </div>
 
         <button
-          onClick={() => alert('Bank settings can be updated in Settings tab')}
-          className="px-4 py-1.5 rounded-full border border-[#E5E7EB] bg-white hover:bg-[#FAF9F6] text-xs font-semibold text-[#0F0F10] cursor-pointer"
+          onClick={() => alert('Bank account management')}
+          className="px-5 py-2 rounded-full border border-[#E5E7EB] bg-white hover:bg-[#FAF9F6] text-xs font-semibold text-[#0F0F10] transition-colors cursor-pointer self-start sm:self-auto shrink-0 shadow-2xs"
         >
           Change Account
         </button>
       </div>
 
-      {/* Transaction Ledger Table */}
-      <section className="p-6 rounded-3xl bg-white border border-[#E5E7EB] shadow-xs space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="font-heading font-bold text-lg text-[#0F0F10]">
-            Commission Transaction Ledger
-          </h2>
-          <span className="text-xs text-[#9CA3AF] font-mono">Real-time ledger entries</span>
+      {/* Commission Transaction Ledger Table */}
+      <div className="rounded-2xl sm:rounded-3xl bg-white border border-[#E5E7EB] shadow-2xs overflow-hidden">
+        <div className="p-5 sm:p-6 border-b border-[#E5E7EB] flex items-center justify-between">
+          <div>
+            <h2 className="font-heading font-extrabold text-lg sm:text-xl text-[#0F0F10] tracking-tight">
+              Commission Transaction Ledger
+            </h2>
+          </div>
+          <span className="text-xs text-[#9CA3AF] font-mono">
+            Real-time ledger entries
+          </span>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="border-b border-[#E5E7EB] text-[#9CA3AF] font-mono uppercase text-[10px]">
-                <th className="pb-3 font-semibold">Date &amp; Order</th>
-                <th className="pb-3 font-semibold">Client / Description</th>
-                <th className="pb-3 font-semibold text-right">Order Value</th>
-                <th className="pb-3 font-semibold text-right">Rate</th>
-                <th className="pb-3 font-semibold text-right">Net Commission</th>
-                <th className="pb-3 font-semibold text-right">Status</th>
+              <tr className="border-b border-[#E5E7EB] text-[10px] font-mono font-bold uppercase text-[#9CA3AF] tracking-wider">
+                <th className="py-3.5 px-6">Date &amp; Order</th>
+                <th className="py-3.5 px-6">Client / Description</th>
+                <th className="py-3.5 px-6">Order Value</th>
+                <th className="py-3.5 px-6">Rate</th>
+                <th className="py-3.5 px-6">Net Commission</th>
+                <th className="py-3.5 px-6 text-right">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E5E7EB]/70">
+            <tbody className="divide-y divide-[#E5E7EB]">
               {transactions.map((tx) => (
                 <tr key={tx.id} className="hover:bg-[#FAF9F6]/80 transition-colors">
-                  <td className="py-4">
+                  <td className="py-4 px-6 font-mono">
                     <span className="font-bold text-[#0F0F10] block">{tx.orderNumber}</span>
-                    <span className="text-[11px] text-[#9CA3AF] font-mono">{tx.date}</span>
+                    <span className="text-[11px] text-[#9CA3AF]">{tx.date}</span>
                   </td>
-                  <td className="py-4">
-                    <span className="font-medium text-[#0F0F10] block">{tx.client}</span>
+                  <td className="py-4 px-6">
+                    <span className="font-bold text-[#0F0F10] block">{tx.client}</span>
                     <span className="text-[11px] text-[#6B7280]">{tx.note}</span>
                   </td>
-                  <td className="py-4 text-right font-mono text-[#6B7280]">{tx.grossOrder}</td>
-                  <td className="py-4 text-right font-mono font-bold text-[#0F0F10]">
+                  <td className="py-4 px-6 font-mono font-bold text-[#0F0F10]">
+                    {tx.grossOrder}
+                  </td>
+                  <td className="py-4 px-6 font-mono text-[#6B7280]">
                     {tx.commissionRate}
                   </td>
-                  <td className="py-4 text-right">
-                    <span
-                      className={`font-mono font-extrabold ${
-                        tx.netPayout.startsWith('-') ? 'text-rose-600' : 'text-emerald-700'
-                      }`}
-                    >
-                      {tx.netPayout}
-                    </span>
+                  <td className="py-4 px-6 font-mono font-bold text-[#0F0F10]">
+                    <span>{tx.netPayout}</span>
                   </td>
-                  <td className="py-4 text-right">
-                    <StatusBadge status={tx.status} />
+                  <td className="py-4 px-6 text-right">
+                    <StatusBadge status={tx.status} variant="minimal" />
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </section>
-
-      {/* Payout Confirmation Dialog */}
-      <ConfirmDialog
-        isOpen={payoutModalOpen}
-        onClose={() => setPayoutModalOpen(false)}
-        onConfirm={handleConfirmPayout}
-        title="Confirm Bank Settlement Transfer"
-        description="Withdraw ₦84,620 directly to your verified GTBank account (0123456789 - AMARA NNADI)? Transfers are dispatched via NIP instant clearing."
-        confirmLabel="Confirm & Transfer ₦84,620"
-        cancelLabel="Review Later"
-        isProcessing={isProcessing}
-      />
+      </div>
     </div>
   );
 };

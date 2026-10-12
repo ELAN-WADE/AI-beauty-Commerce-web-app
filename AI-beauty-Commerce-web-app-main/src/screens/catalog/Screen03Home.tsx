@@ -1,18 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ArrowRight,
-  ShieldCheck,
-  Sparkles,
-  Users,
-  Store,
-  MapPin,
   ChevronRight,
-  PhoneCall,
-  LogIn
+  Star,
+  Plus
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { ProductCard } from '../../components/common/ProductCard';
-import { BotanicalSprig, ApothecaryPuritySeal } from '../../components/common/HandDrawnAccents';
+import { ProductQuickModal } from '../../components/common/ProductQuickModal';
+import { FaceScanIcon } from '../../components/common/FaceScanIcon';
+import { Product } from '../../types';
 
 export const Screen03Home: React.FC = () => {
   const {
@@ -20,281 +17,472 @@ export const Screen03Home: React.FC = () => {
     navigateTo,
     setSelectedCategory,
     selectedCity,
-    setIsLocationModalOpen,
-    getDistributorsForCity,
-    loginAsDemoRole
+    loginAsDemoRole,
+    routineSteps: appRoutineSteps
   } = useApp();
 
-  const localDistributors = getDistributorsForCity(selectedCity);
-  const bestsellers = products.filter((p) => p.isBestseller).slice(0, 4);
+  // Curated 5 products for mobile
+  const [activeCategoryFilter, setActiveCategoryFilter] = useState('All');
+  const categoryFilters = [
+    { id: 'All', label: 'All' },
+    { id: 'skincare', label: 'Skin Care' },
+    { id: 'body-care', label: 'Body Care' },
+    { id: 'fragrance', label: 'Fragrance' },
+    { id: 'makeup', label: 'Lip & Color' },
+  ];
+
+  const filteredProducts = activeCategoryFilter === 'All'
+    ? products.filter((p) => p.isBestseller || p.rating >= 4.7).slice(0, 5)
+    : products.filter((p) => p.category.toLowerCase().includes(activeCategoryFilter.toLowerCase())).slice(0, 5);
+
+  const displayedProducts = filteredProducts.length > 0 ? filteredProducts : products.slice(0, 5);
+
+  // Category Discovery in Motion
+  const categoryItems = [
+    { label: 'Body Care', image: '/cat_bodycare.jpg', category: 'body-care' },
+    { label: 'Skincare', image: '/cat_skincare.jpg', category: 'skincare' },
+    { label: 'Fragrance', image: '/cat_fragrance.jpg', category: 'fragrance' },
+    { label: 'Makeup', image: '/cat_makeup.jpg', category: 'makeup' },
+    { label: 'Lifestyle', image: '/cat_lifestyle.jpg', category: 'lifestyle' },
+  ];
+
+  // Routine Steps (Visual 3-Chapter Ritual - Live from CMS)
+  const routineSteps = (appRoutineSteps && appRoutineSteps.length > 0 ? appRoutineSteps : [
+    {
+      id: 'step-01',
+      number: '01',
+      title: 'Cleanse',
+      productName: 'Gentle Purifying Cleanser',
+      description: 'Purifies at pH 5.5 without stripping the delicate moisture barrier.',
+      image: '/routine_lady_cleanse.jpg'
+    },
+    {
+      id: 'step-02',
+      number: '02',
+      title: 'Moisturize',
+      productName: 'Bio-Active Barrier Cream',
+      description: 'Cold-pressed Nilotica shea and restorative niacinamide lock 48h lipids.',
+      image: '/routine_lady_moisturize.jpg'
+    },
+    {
+      id: 'step-03',
+      number: '03',
+      title: 'Protect',
+      productName: 'Melanin Defense SPF 50+',
+      description: 'Broad spectrum PA++++ protection with sheer finish and zero white cast.',
+      image: '/routine_lady_protect.jpg'
+    }
+  ]).map((s) => ({
+    step: s.number,
+    title: s.title,
+    product: s.productName,
+    desc: s.description,
+    image: s.image
+  }));
+
+  // Variant Selection Modal
+  const [modalProduct, setModalProduct] = useState<Product | null>(null);
+  const [isQuickModalOpen, setIsQuickModalOpen] = useState(false);
+
+  const handleOpenVariantModal = (product: Product) => {
+    setModalProduct(product);
+    setIsQuickModalOpen(true);
+  };
 
   return (
     <div className="min-h-screen bg-[#FAF9F6] text-[#0F0F10] pb-24 font-body selection:bg-[#D4AF37]/20 selection:text-[#997A2E]">
-      <main className="max-w-md mx-auto px-4 pt-3 space-y-5">
+      <main className="max-w-md mx-auto px-4 pt-2.5 space-y-4">
         {/* ========================================================================= */}
-        {/* 1. RESTRAINED HERO                                                        */}
+        {/* 1. PRODUCT-FOCUSED HERO (Mobile Editorial)                                */}
         {/* ========================================================================= */}
         <section
-          aria-label="Welcome to Desla"
-          className="bg-white rounded-3xl p-5 border border-[#E5E7EB] shadow-xs space-y-4"
+          aria-label="Welcome to Delsla"
+          className="bg-white rounded-3xl p-5 border border-[#E5E7EB] shadow-xs space-y-3.5"
         >
-          <div className="space-y-1.5">
-            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E] bg-[#FBF5E8] px-2.5 py-0.5 rounded-full border border-[#D4AF37]/30 inline-block">
-              Haute Dermatologie &amp; Lifestyle
-            </span>
+          <div className="space-y-1">
+            <p className="font-serif italic text-[11px] sm:text-xs text-[#997A2E]">
+              Clinical Formulations • Lagos
+            </p>
             <h1 className="font-heading font-extrabold text-xl sm:text-2xl text-[#0F0F10] tracking-tight leading-snug">
               Health Before Beauty.<br />
               <span className="text-[#997A2E]">Intention Before Trend.</span>
             </h1>
-            <p className="text-xs text-[#6B7280] leading-relaxed pt-0.5">
+            <p className="text-[11px] sm:text-xs text-[#6B7280] leading-relaxed">
               Bio-compatible shea, cold-pressed botanical oils, and active formulations engineered specifically for melanin-rich skin.
             </p>
           </div>
 
-          {/* Single High-Contrast Thumb-Zone Action: Shop Now */}
-          <button
-            onClick={() => {
-              setSelectedCategory('All');
-              navigateTo('catalogue');
-            }}
-            className="w-full min-h-[48px] py-3.5 px-5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-semibold tracking-wide shadow-md active-press transition-colors flex items-center justify-center gap-2 cursor-pointer"
-            aria-label="Shop skincare formulations now"
-          >
-            <span>Shop Now</span>
-            <ArrowRight size={15} className="text-[#D4AF37]" />
-          </button>
+          {/* High-Contrast Action: Shop Now */}
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={() => {
+                setSelectedCategory('All');
+                navigateTo('catalogue');
+              }}
+              className="w-full min-h-[46px] py-3 px-5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-semibold tracking-wide shadow-xs active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+              aria-label="Shop skincare formulations now"
+            >
+              <span>Shop Formulations</span>
+              <ArrowRight size={15} className="text-[#D4AF37]" />
+            </button>
 
-          {/* Compact Editorial Brand Photograph with Subtle Laboratory Seal */}
-          <div className="relative rounded-2xl overflow-hidden border border-[#E5E7EB] bg-[#FAF9F6] aspect-[16/9]">
+            <button
+              onClick={() => navigateTo('ai-scan')}
+              className="w-full min-h-[44px] py-2.5 px-5 rounded-full bg-[#FAF9F6] hover:bg-[#F3EEE3] text-[#0F0F10] border border-[#E5E7EB] text-xs font-semibold active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <FaceScanIcon size={14} className="text-[#D4AF37]" />
+              <span>Biometric Skin Analysis</span>
+            </button>
+          </div>
+
+          {/* Editorial Brand Photograph */}
+          <div className="relative rounded-2xl overflow-hidden border border-[#E5E7EB] bg-[#FAF9F6] aspect-[16/10]">
             <img
               src="/hero_slide_1.jpg"
-              alt="Desla!™ Safe-Conscious Skincare Ritual"
+              alt="Delsla Safe-Conscious Skincare Ritual"
               className="w-full h-full object-cover"
               loading="eager"
             />
             <div className="absolute bottom-2.5 left-2.5 right-2.5 flex items-center justify-between text-white text-[10px] backdrop-blur-md bg-black/65 px-3 py-1.5 rounded-xl border border-white/20">
-              <span className="font-medium">Lagos Laboratory Verified</span>
-              <span className="font-mono text-[#D4AF37] font-semibold">100% NAFDAC</span>
+              <span className="font-serif italic text-[#D4AF37]">Lagos Laboratory Verified</span>
+              <span className="font-mono text-white font-semibold">100% NAFDAC</span>
             </div>
           </div>
         </section>
 
         {/* ========================================================================= */}
-        {/* 2. THREE VERTICALLY STACKED REGISTRATION & PARTNERSHIP ENTRY POINTS        */}
+        {/* 2. CHOOSE YOUR PATHWAY: SCULPTED DIAGONAL CURVES & LUSH BEAUTY FACE       */}
         {/* ========================================================================= */}
         <section
-          aria-label="Registration and Partnership Pathways"
-          className="bg-white rounded-3xl p-5 border border-[#E5E7EB] shadow-xs space-y-3.5"
+          aria-label="Audience Pathways"
+          className="relative bg-white rounded-3xl p-4.5 border border-[#E5E7EB] shadow-xs space-y-3.5 overflow-hidden"
         >
-          <div className="flex items-center justify-between px-1">
-            <h2 className="font-heading font-extrabold text-xs text-[#0F0F10] uppercase tracking-wider">
-              Get Started with Desla!™
-            </h2>
-            <span className="text-[10px] font-mono text-[#997A2E] font-semibold">
-              3 Easy Pathways
-            </span>
+          {/* Ambient Wave Background */}
+          <div className="absolute inset-0 pointer-events-none opacity-25 select-none">
+            <div
+              className="absolute bottom-0 left-0 w-[200%] h-[140px] bg-repeat-x bg-bottom animate-wave-flow"
+              style={{
+                backgroundImage: `url('/wave_white_gold.svg')`,
+                backgroundSize: '500px 140px',
+              }}
+            />
           </div>
 
-          <div className="space-y-2.5">
-            {/* Pathway 1: First-Time Customer */}
-            <div
-              onClick={() => {
-                loginAsDemoRole('CUSTOMER');
-                navigateTo('signup');
-              }}
-              className="p-3.5 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] hover:border-[#D4AF37]/50 active-press transition-all cursor-pointer flex items-center justify-between gap-3"
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-[#FBF5E8] text-[#997A2E] flex items-center justify-center shrink-0">
-                  <Sparkles size={18} className="text-[#D4AF37]" />
-                </div>
-                <div className="min-w-0">
-                  <h3 className="font-heading font-bold text-xs text-[#0F0F10] truncate">
-                    Register as a first-time customer
-                  </h3>
-                  <p className="text-[11px] text-[#6B7280] truncate mt-0.5">
-                    Personalized routine dossier &amp; loyalty rewards
-                  </p>
-                </div>
-              </div>
-              <div className="w-7 h-7 rounded-full bg-white border border-[#E5E7EB] flex items-center justify-center text-[#0F0F10] shrink-0 shadow-2xs">
-                <ChevronRight size={14} />
-              </div>
-            </div>
+          <div className="relative z-10">
+            <p className="font-serif italic text-xs text-[#997A2E]">
+              Curated Gateways
+            </p>
+            <h2 className="font-heading font-extrabold text-lg text-[#0F0F10] tracking-tight">
+              Connect with Delsla™
+            </h2>
+          </div>
 
-            {/* Pathway 2: Creator Partnership */}
-            <div
+          <div className="relative z-10 space-y-3">
+            {/* Customer Card with Lush Beauty Face and Sculpted Asymmetric Curvature */}
+            <article
+              onClick={() => navigateTo('signup')}
+              className="relative rounded-tl-3xl rounded-br-3xl rounded-tr-xl rounded-bl-xl overflow-hidden h-36 flex flex-col justify-end p-4 border border-[#E5E7EB] cursor-pointer group active:scale-[0.98] transition-all"
+            >
+              <img
+                src="/connect_customer_lush.jpg"
+                alt="Client Experience"
+                className="absolute inset-0 w-full h-full object-cover"
+                loading="lazy"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent" />
+              <div className="relative z-10 text-white space-y-0.5">
+                <span className="font-serif italic text-xs text-[#D4AF37] block">
+                  Client Sanctuary
+                </span>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-heading font-bold text-sm text-white">Customer Experience</h3>
+                  <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
+                    <ArrowRight size={12} className="text-white" />
+                  </span>
+                </div>
+                <p className="text-[11px] text-gray-200 line-clamp-1">
+                  Routine tracking &amp; concierge delivery across {selectedCity}.
+                </p>
+              </div>
+            </article>
+
+            {/* Creator Card (Sculpted Top-Right Curvature) */}
+            <article
               onClick={() => {
                 loginAsDemoRole('CREATOR');
                 navigateTo('creators');
               }}
-              className="p-3.5 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] hover:border-[#D4AF37]/50 active-press transition-all cursor-pointer flex items-center justify-between gap-3"
+              className="relative rounded-tr-3xl rounded-bl-3xl rounded-tl-xl rounded-br-xl overflow-hidden h-32 flex flex-col justify-end p-4 border border-[#E5E7EB] cursor-pointer group active:scale-[0.98] transition-all"
             >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-[#FBF5E8] text-[#997A2E] flex items-center justify-center shrink-0">
-                  <Users size={18} className="text-[#D4AF37]" />
+              <img
+                src="/connect_creator.jpg"
+                alt="Creator Collective"
+                className="absolute inset-0 w-full h-full object-cover"
+                loading="lazy"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent" />
+              <div className="relative z-10 text-white space-y-0.5">
+                <span className="font-serif italic text-xs text-[#D4AF37] block">
+                  Creative Studio
+                </span>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-heading font-bold text-sm text-white">Creator Collective</h3>
+                  <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
+                    <ArrowRight size={12} className="text-white" />
+                  </span>
                 </div>
-                <div className="min-w-0">
-                  <h3 className="font-heading font-bold text-xs text-[#0F0F10] truncate">
-                    Partner as a creator
-                  </h3>
-                  <p className="text-[11px] text-[#6B7280] truncate mt-0.5">
-                    12% commission, personal codes &amp; PR box room
-                  </p>
-                </div>
+                <p className="text-[11px] text-gray-200 line-clamp-1">
+                  Share verified routines &amp; earn creator commissions.
+                </p>
               </div>
-              <div className="w-7 h-7 rounded-full bg-white border border-[#E5E7EB] flex items-center justify-center text-[#0F0F10] shrink-0 shadow-2xs">
-                <ChevronRight size={14} />
-              </div>
-            </div>
+            </article>
 
-            {/* Pathway 3: Distributor Partnership */}
-            <div
+            {/* Distributor Card (Sculpted Top-Left Curvature) */}
+            <article
               onClick={() => {
                 loginAsDemoRole('DISTRIBUTOR');
                 navigateTo('distributor-portal');
               }}
-              className="p-3.5 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] hover:border-[#D4AF37]/50 active-press transition-all cursor-pointer flex items-center justify-between gap-3"
+              className="relative rounded-tl-3xl rounded-br-3xl rounded-tr-xl rounded-bl-xl overflow-hidden h-32 flex flex-col justify-end p-4 border border-[#E5E7EB] cursor-pointer group active:scale-[0.98] transition-all"
             >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-[#FBF5E8] text-[#997A2E] flex items-center justify-center shrink-0">
-                  <Store size={18} className="text-[#D4AF37]" />
+              <img
+                src="/connect_distributor.jpg"
+                alt="Distributor Network"
+                className="absolute inset-0 w-full h-full object-cover"
+                loading="lazy"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent" />
+              <div className="relative z-10 text-white space-y-0.5">
+                <span className="font-serif italic text-xs text-[#D4AF37] block">
+                  Prestige Commerce
+                </span>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-heading font-bold text-sm text-white">Distribution Network</h3>
+                  <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
+                    <ArrowRight size={12} className="text-white" />
+                  </span>
                 </div>
-                <div className="min-w-0">
-                  <h3 className="font-heading font-bold text-xs text-[#0F0F10] truncate">
-                    Partner as a distributor
-                  </h3>
-                  <p className="text-[11px] text-[#6B7280] truncate mt-0.5">
-                    32% wholesale margin &amp; regional city dispatch
-                  </p>
-                </div>
+                <p className="text-[11px] text-gray-200 line-clamp-1">
+                  Dispensary inventory allocations &amp; margin support.
+                </p>
               </div>
-              <div className="w-7 h-7 rounded-full bg-white border border-[#E5E7EB] flex items-center justify-center text-[#0F0F10] shrink-0 shadow-2xs">
-                <ChevronRight size={14} />
-              </div>
-            </div>
-          </div>
-
-          {/* Returning Customer / Partner Sign In Access */}
-          <div className="pt-2 border-t border-[#E5E7EB]/80 flex items-center justify-between text-xs px-1">
-            <span className="text-[#6B7280]">Already have an account?</span>
-            <button
-              onClick={() => navigateTo('login')}
-              className="font-bold text-[#0F0F10] hover:text-[#997A2E] flex items-center gap-1 active-press transition-colors cursor-pointer"
-            >
-              <LogIn size={13} className="text-[#D4AF37]" />
-              <span>Sign In</span>
-            </button>
+            </article>
           </div>
         </section>
 
         {/* ========================================================================= */}
-        {/* 3. SUPPORTING CONTENT: BESTSELLING FORMULATIONS & BRAND PREVIEW           */}
+        {/* 3. CATEGORY DISCOVERY IN CONTINUOUS MOTION                                */}
+        {/* ========================================================================= */}
+        <section
+          aria-label="Category Discovery in Motion"
+          className="bg-white rounded-3xl p-4 border border-[#E5E7EB] shadow-xs space-y-2.5 overflow-hidden select-none"
+        >
+          <div className="flex items-center justify-between px-1">
+            <div>
+              <p className="font-serif italic text-[11px] text-[#997A2E]">Disciplines</p>
+              <h2 className="font-heading font-bold text-xs text-[#0F0F10] uppercase tracking-wider">
+                Explore Categories
+              </h2>
+            </div>
+            <button
+              onClick={() => navigateTo('categories')}
+              className="text-[11px] font-semibold text-[#997A2E] hover:underline"
+            >
+              View All
+            </button>
+          </div>
+
+          {/* Continuous Motion Carousel Track */}
+          <div className="relative w-full overflow-hidden rounded-2xl">
+            <div
+              className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none"
+              aria-hidden="true"
+            />
+            <div
+              className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none"
+              aria-hidden="true"
+            />
+            <div className="animate-marquee-smooth flex items-center gap-4 w-max">
+              {[...categoryItems, ...categoryItems, ...categoryItems].map((item, idx) => (
+                <button
+                  key={`${item.category}-${idx}`}
+                  onClick={() => {
+                    setSelectedCategory(item.category);
+                    navigateTo('catalogue');
+                  }}
+                  className="flex flex-col items-center gap-1.5 focus:outline-none shrink-0"
+                >
+                  <div className="w-14 h-14 rounded-2xl overflow-hidden border-2 border-[#E5E7EB] bg-[#FAF9F6]">
+                    <img src={item.image} alt={item.label} className="w-full h-full object-cover" loading="lazy" />
+                  </div>
+                  <span className="text-[10px] font-semibold text-[#0F0F10] whitespace-nowrap">
+                    {item.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ========================================================================= */}
+        {/* 4. SHOP ESSENTIALS: 5 FEATURED PRODUCTS IN 2-COL MOBILE GRID              */}
         {/* ========================================================================= */}
         <section aria-label="Bestselling Formulations" className="space-y-3 pt-1">
           <div className="flex items-center justify-between px-1">
             <div>
-              <h2 className="font-heading font-bold text-sm text-[#0F0F10]">
-                Curated Formulations
+              <p className="font-serif italic text-xs text-[#997A2E]">Essentials</p>
+              <h2 className="font-heading font-bold text-base text-[#0F0F10]">
+                Bestselling Formulations
               </h2>
-              <p className="text-[11px] text-[#6B7280]">
-                Clinically tested for melanin-rich skin
-              </p>
             </div>
             <button
               onClick={() => {
                 setSelectedCategory('All');
                 navigateTo('catalogue');
               }}
-              className="text-xs font-bold text-[#997A2E] hover:underline flex items-center gap-0.5 active-press cursor-pointer"
+              className="text-xs font-semibold text-[#997A2E] flex items-center gap-0.5"
             >
-              <span>See All ({products.length})</span>
+              <span>View All</span>
               <ChevronRight size={13} />
             </button>
           </div>
 
+          {/* Filter Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar px-1">
+            {categoryFilters.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveCategoryFilter(tab.id)}
+                className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
+                  activeCategoryFilter === tab.id
+                    ? 'bg-[#0F0F10] text-white shadow-2xs'
+                    : 'bg-white text-[#4B5563] border border-[#E5E7EB]'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* 2-Column Product Cards (Exactly 5 Products) */}
           <div className="grid grid-cols-2 gap-3">
-            {bestsellers.map((product) => (
-              <ProductCard key={product.id} product={product} />
+            {displayedProducts.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                variant="grid"
+                onOpenModal={handleOpenVariantModal}
+              />
             ))}
           </div>
         </section>
 
         {/* ========================================================================= */}
-        {/* 4. SUPPORTING CONTENT: LOCAL DISPATCH, VERIFICATION & QUIET SUPPORT      */}
+        {/* 5. YOUR EVERYDAY ROUTINE: SEAMLESS BACKGROUND, WELL-PADDED CARDS          */}
         {/* ========================================================================= */}
-        <section aria-label="Regional Sourcing Guarantee" className="space-y-3 pt-1">
-          {/* Local Dispatch Card */}
-          <div className="p-4 rounded-2xl bg-white border border-[#E5E7EB] shadow-2xs space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="font-heading font-bold text-xs text-[#0F0F10] flex items-center gap-1.5">
-                <MapPin size={14} className="text-[#D4AF37]" />
-                <span>Same-Day Dispatch in {selectedCity}</span>
-              </span>
-              <button
-                onClick={() => setIsLocationModalOpen(true)}
-                className="text-[10px] font-bold text-[#997A2E] hover:underline active-press cursor-pointer"
-              >
-                Change City
-              </button>
-            </div>
-            <p className="text-[11px] leading-relaxed text-[#4B5563]">
-              Authorized distributor hubs across {selectedCity} eliminate shipping delays. Orders dispatched via local courier.
+        <section
+          aria-label="The Daily Ritual"
+          className="bg-white rounded-3xl p-5 border border-[#E5E7EB] shadow-xs space-y-3.5"
+        >
+          <div className="space-y-0.5">
+            <p className="font-serif italic text-xs text-[#997A2E]">
+              The Daily Ritual
             </p>
-            <div className="pt-1 flex items-center justify-between border-t border-gray-100">
-              <button
-                onClick={() => navigateTo('distributors')}
-                className="text-[11px] font-bold text-[#0F0F10] hover:text-[#997A2E] flex items-center gap-1 active-press cursor-pointer"
-              >
-                <span>View {selectedCity} Hubs ({localDistributors.length})</span>
-                <ChevronRight size={12} />
-              </button>
-            </div>
+            <h2 className="font-heading font-extrabold text-lg text-[#0F0F10] tracking-tight">
+              Your Everyday Routine
+            </h2>
+            <p className="text-xs text-[#6B7280] leading-relaxed">
+              Formulations designed to compound together for melanin barrier defense.
+            </p>
           </div>
 
-          {/* Authenticity Guarantee & WhatsApp Concierge */}
-          <div className="p-4 rounded-2xl bg-white border border-[#E5E7EB] shadow-2xs space-y-2.5">
-            <div className="flex items-start justify-between gap-3">
-              <div className="space-y-1">
-                <div className="flex items-center gap-1.5 text-xs font-heading font-bold text-[#0F0F10]">
-                  <ShieldCheck size={15} className="text-[#D4AF37]" />
-                  <span>100% NAFDAC Authentic Batch Formulations</span>
+          <div className="space-y-2.5">
+            {routineSteps.map((step) => (
+              <div
+                key={step.step}
+                className="p-3.5 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] flex items-center gap-3.5"
+              >
+                <div className="w-16 h-16 rounded-2xl overflow-hidden bg-white shrink-0 border border-[#E5E7EB]">
+                  <img src={step.image} alt={step.title} className="w-full h-full object-cover" loading="lazy" />
                 </div>
-                <p className="text-[11px] leading-relaxed text-[#4B5563]">
-                  Zero harsh bleaching agents or toxic parabens. Formulated with clinical biocompatibility.
-                </p>
+                <div className="min-w-0 flex-1">
+                  <span className="font-serif italic text-[11px] text-[#997A2E]">
+                    Chapter {step.step} / {step.title}
+                  </span>
+                  <h3 className="font-heading font-bold text-xs text-[#0F0F10] truncate mt-0.5">
+                    {step.product}
+                  </h3>
+                  <p className="text-[11px] text-[#6B7280] line-clamp-2 mt-0.5 leading-snug">
+                    {step.desc}
+                  </p>
+                </div>
               </div>
-              <ApothecaryPuritySeal className="w-11 h-11 shrink-0 hidden xs:block" />
-            </div>
-
-            <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
-              <a
-                href="https://wa.me/2348148120642"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[#0F0F10] hover:text-[#997A2E] font-bold flex items-center gap-1.5 text-[11px] transition-colors"
-              >
-                <PhoneCall size={12} className="text-emerald-600" />
-                <span>VIP WhatsApp Concierge: 0814 812 0642</span>
-              </a>
-            </div>
+            ))}
           </div>
+
+          <button
+            onClick={() => {
+              setSelectedCategory('skincare');
+              navigateTo('catalogue');
+            }}
+            className="w-full py-3 rounded-full bg-[#0F0F10] text-white text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] transition-transform"
+          >
+            <span>Explore the Complete Ritual</span>
+            <ArrowRight size={13} className="text-[#D4AF37]" />
+          </button>
         </section>
 
-        {/* Quiet Editorial Footer */}
-        <footer className="text-center pt-3 pb-2 space-y-1">
-          <div className="flex items-center justify-center gap-2">
-            <BotanicalSprig className="w-3.5 h-3.5 text-[#D4AF37]" />
-            <p className="text-[10px] font-mono text-[#6B7280]">
-              © {new Date().getFullYear()} Desla!™ Beauty &amp; Lifestyle Limited.
-            </p>
-            <BotanicalSprig className="w-3.5 h-3.5 text-[#D4AF37] scale-x-[-1]" />
+        {/* ========================================================================= */}
+        {/* 6. BRAND STORY: CARE WITH INTENTION                                       */}
+        {/* ========================================================================= */}
+        <section
+          aria-label="Brand Story"
+          className="bg-white rounded-3xl p-5 border border-[#E5E7EB] shadow-xs space-y-3.5"
+        >
+          <div className="relative rounded-2xl overflow-hidden aspect-[16/10] border border-[#E5E7EB]">
+            <img
+              src="/hero_editorial.jpg"
+              alt="Delsla clinical formulations"
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+            <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white text-[10px]">
+              <span className="font-serif italic text-[#D4AF37]">Lagos Clinical Formulation</span>
+              <span className="font-mono text-white font-semibold">Bio-Compatible Shea</span>
+            </div>
           </div>
-          <p className="text-[9.5px] text-[#9CA3AF] tracking-wide uppercase font-mono">
-            Health Before Beauty • Intention Before Trend
-          </p>
-        </footer>
+
+          <div className="space-y-1">
+            <p className="font-serif italic text-xs text-[#997A2E]">
+              Our Philosophy
+            </p>
+            <h2 className="font-heading font-extrabold text-base text-[#0F0F10]">
+              Care with intention.
+            </h2>
+            <p className="text-xs text-[#4B5563] leading-relaxed">
+              Formulated in Lagos with clinical dermatologists. We elevate indigenous African botanicals — cold-pressed shea, moringa, and active niacinamide — to nourish melanin barrier health.
+            </p>
+          </div>
+
+          <button
+            onClick={() => navigateTo('categories')}
+            className="w-full py-2.5 rounded-full border border-[#0F0F10] text-[#0F0F10] text-xs font-semibold hover:bg-[#FAF9F6] active:scale-[0.98] transition-transform cursor-pointer"
+          >
+            Our Story &amp; Pillars
+          </button>
+        </section>
       </main>
+
+      {/* Variant Selection Modal */}
+      <ProductQuickModal
+        product={modalProduct}
+        isOpen={isQuickModalOpen}
+        onClose={() => {
+          setIsQuickModalOpen(false);
+          setModalProduct(null);
+        }}
+      />
     </div>
   );
 };

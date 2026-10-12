@@ -14,6 +14,25 @@ npm test            # vitest (unit, DB-free)
 npm run db:generate # emit drizzle/ migration from schema (review before commit)
 ```
 
+## Local PostgreSQL on Windows (verified 2026-10-12)
+
+No Docker or admin rights needed. Native PostgreSQL 17 binaries run from an
+isolated tooling folder; cluster data lives in git-ignored `backend/.local/`
+(persistent across restarts; delete that folder for a factory reset).
+
+```bash
+cd backend
+npm run db:local -- setup   # one-time: fetch binaries, init cluster, start on 127.0.0.1:5433
+npm run db:migrate && npm run db:seed && npm run db:seed:catalog && npm run db:seed:partners
+npm run db:check            # verifies 17/17 migrations (SQL hashes), RBAC, stock invariants
+npm run test:postgres       # real-PostgreSQL concurrency proof (uses TEST_DATABASE_URL)
+npm run dev                 # :3001; /api/ready should report {"ok":true,"db":"up"}
+```
+
+Restart/shutdown later: `npm run db:local -- start|status|stop`.
+`DATABASE_URL` points at `glowly_dev`; `TEST_DATABASE_URL` at the separate
+`glowly_test` — the test runner refuses to run if both point at the same database.
+
 ## With Docker (local development only)
 
 ```bash
@@ -82,7 +101,7 @@ Delivery fee is 0 until the S5 shipping module prices it.
 | POST `/api/payments/init` `{orderId, provider}` | owner / guest token | server-side init; returns hosted `authorizationUrl` (transfer → bank details) |
 | GET `/api/payments/status?reference=` | owner | frontend polling |
 | GET `/api/payments/return?...` | public (lookup only) | provider redirect landing; settles via server verify, never trusts query |
-| POST `/api/webhooks/flutterwave|paystack|opay` | signature-verified | HMAC-SHA256 / HMAC-SHA512 / HMAC-SHA512; dedupe ledger; verified 200s |
+| POST `/api/webhooks/flutterwave|stripe|opay` | signature-verified | HMAC-SHA256 / Stripe t,v1 / HMAC-SHA512; dedupe ledger; verified 200s |
 | POST `/api/payments/transfer-claim` | owner | proof of manual transfer for PENDING orders |
 | GET `/api/admin/transfer-claims`, POST `…/confirm` | ADMIN/STAFF | approve settles via system-only PAID path with evidence note |
 | POST `/api/admin/refunds` | ADMIN/STAFF | provider API refunds (opay/transfer = dashboard step); full refunds flip order |

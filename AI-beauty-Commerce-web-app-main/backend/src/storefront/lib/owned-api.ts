@@ -1,0 +1,1253 @@
+// Owned-backend client (Glowly S2+). Strangler pattern: when VITE_API_URL is
+// set, the storefront talks to the owned Next.js API; otherwise it keeps
+// running on local mocks. Reads never throw (null = use fallback); writes
+// throw ApiError so callers can show messages.
+import type { CartItem, Order, Product, AdminOrder, AdminTransferClaim, AdminAuditLog, AdminInventoryItem } from '../types';
+import { publicEnv, isProd } from './env';
+// Phase 5: engagement/community mirrors run as Server Actions first
+// (single-attempt, silent — identical UX to the old swallowed REST failures).
+import { submitReviewAction, toggleWishlistAction, redeemVoucherAction, saveSkinProfileAction } from '@/app/actions/engagement';
+import { createPostAction, likePostAction, sendChatAction } from '@/app/actions/community';
+
+// Next.js (NEXT_PUBLIC_API_URL) + Vite (VITE_API_URL) compatible. Relative '/api'
+// keeps same-origin cookies in the unified Next.js app; absolute URL still works
+// for split Vite-dev against :3001.
+const RAW_BASE =
+  publicEnv('NEXT_PUBLIC_API_URL', 'VITE_API_URL')?.replace(/\/+$/, '') ?? '';
+// '' = same-origin (unified Next.js app). Absolute URL = split Vite-dev vs :3001.
+export const BASE: string = RAW_BASE;
+
+export const isOwnedApiConfigured = true;
+if (isProd() && !BASE && typeof window !== 'undefined' && process.env.NEXT_PUBLIC_STRICT_API === '1') throw new Error('Production storefront requires NEXT_PUBLIC_API_URL.');
+
+export class ApiError extends Error {
+  constructor(
+    public status: number,
+    public code: string,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+async function apiFetch<T>(path: string, init: RequestInit = {}, sessionId?: string): Promise<T> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json', ...(init.headers as Record<string, string> | undefined) };
+  if (sessionId) headers['X-Session-Id'] = sessionId;
+  const res = await fetch(`${BASE}${path}`, { ...init, headers, credentials: 'include' });
+  const body = (await res.json().catch(() => null)) as { error?: { code?: string; message?: string } } | T;
+  if (!res.ok) {
+    const err = (body as { error?: { code?: string; message?: string } })?.error;
+    throw new ApiError(res.status, err?.code ?? 'request_failed', err?.message ?? `Request failed (${res.status}).`);
+  }
+  return body as T;
+}
+
+function buildQueryString(params: Record<string, string | number | undefined | null>): string {
+  const searchParams = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== '') {
+      searchParams.set(key, String(value));
+    }
+  }
+  const q = searchParams.toString();
+  return q ? `?${q}` : '';
+}
+
+/** Guest session id (localStorage). Server carts key off this until login. */
+const SESSION_KEY = 'glowly-session-id';
+const GUEST_ORDER_TOKENS = 'glowly-guest-order-tokens';
+export function newGuestOrderToken(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  return Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+}
+export function rememberGuestOrderToken(id: string, number: string, token: string): void {
+  const tokens = JSON.parse(localStorage.getItem(GUEST_ORDER_TOKENS) ?? '{}') as Record<string, string>;
+  localStorage.setItem(GUEST_ORDER_TOKENS, JSON.stringify({ ...tokens, [id]: token, [number]: token }));
+}
+export function guestOrderToken(id: string): string | null {
+  try {
+    return (JSON.parse(localStorage.getItem(GUEST_ORDER_TOKENS) ?? '{}') as Record<string, string>)[id] ?? null;
+  } catch { return null; }
+}
+
+export async function resendVerificationEmail(email: string): Promise<void> {
+  await apiFetch('/api/auth/resend-verification', { method: 'POST', body: JSON.stringify({ email }) });
+}
+function guestHeaders(id: string, token?: string): Record<string, string> {
+  const value = token ?? guestOrderToken(id);
+  return value ? { 'X-Guest-Order-Token': value } : {};
+}
+export function guestSessionId(): string {
+  try {
+    let id = localStorage.getItem(SESSION_KEY);
+    if (!id) {
+      id = typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `gs-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      localStorage.setItem(SESSION_KEY, id);
+    }
+    return id;
+  } catch {
+    return `gs-${Date.now()}`;
+  }
+}
+
+export function newIdempotencyKey(): string {
+  try {
+    return crypto.randomUUID();
+  } catch {
+    return `ik-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  }
+}
+
+interface OwnedVariant {
+  id: string;
+  sku: string;
+  sizeLabel: string;
+  priceKobo: number;
+  priceNgn: number;
+  compareAtKobo: number | null;
+  available: number;
+}
+
+interface OwnedProduct {
+  slug: string;
+  name: string;
+  brand: { name: string; slug: string };
+  category: { name: string; slug: string };
+  tagline: string;
+  description: string;
+  subCategory: string;
+  hashtag: string | null;
+  rating: number;
+  reviewsCount: number;
+  isBestseller: boolean;
+  isNew: boolean;
+  isFlashSale: boolean;
+  minPriceKobo: number;
+  minPriceNgn: number;
+  totalAvailable: number;
+  images: { url: string; alt: string }[];
+  variants: OwnedVariant[];
+}
+
+function mapOwned(o: OwnedProduct): Product {
+  const gallery = o.images.map((i) => i.url);
+  return {
+    id: o.slug,
+    sku: o.variants[0]?.sku,
+    name: o.name,
+    brand: o.brand.name,
+    tagline: o.tagline,
+    rating: o.rating,
+    reviewsCount: o.reviewsCount,
+    price: Math.round(o.minPriceNgn),
+    originalPrice: undefined,
+    discountPercentage: undefined,
+    image: gallery[0] ?? '',
+    galleryImages: gallery,
+    category: o.category.slug,
+    subCategory: o.subCategory,
+    sizes: o.variants.map((v) => v.sizeLabel),
+    selectedSize: o.variants[0]?.sizeLabel,
+    inStock: o.totalAvailable > 0,
+    stockCount: o.totalAvailable,
+    isBestseller: o.isBestseller,
+    isNew: o.isNew,
+    isFlashSale: o.isFlashSale,
+    hashtag: o.hashtag ?? undefined,
+    distributorStock: [],
+    description: o.description,
+    whatItDoes: [],
+    keyIngredients: [],
+    howToUse: { routine: '', step: '', instructions: '', precautions: '' },
+    whoItsFor: { skinTypes: [], concerns: [] },
+    brandInfo: { origin: 'Lagos, Nigeria', crueltyFree: true, guarantee: '' },
+  };
+}
+
+export async function fetchCatalogFromOwnedApi(limit = 100): Promise<Product[] | null> {
+  if (BASE === undefined) return null;
+  try {
+    const items: Product[] = [];
+    let cursor: string | null = null;
+    // Keyset pages until full (bounded: catalogue-scale loop, max 5 pages here).
+    for (let page = 0; page < 5; page++) {
+      const query = buildQueryString({ limit, sort: 'newest', cursor });
+      const res = await fetch(`${BASE}/api/products${query}`);
+      if (!res.ok) return null;
+      const body = (await res.json()) as { items: OwnedProduct[]; nextCursor: string | null };
+      if (!Array.isArray(body.items)) return null;
+      items.push(...body.items.map(mapOwned));
+      cursor = body.nextCursor;
+      if (!cursor) break;
+    }
+    return items;
+  } catch {
+    return null;
+  }
+}
+
+// ---------- Auth (cookie session; no tokens in JS) ----------
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  emailVerified: boolean;
+  roles: string[];
+  profile: { displayName: string; phone?: string; avatarUrl?: string } | null;
+}
+
+export async function apiRegister(email: string, password: string): Promise<{ ok: boolean; email: string; _devVerificationToken?: string }> {
+  return apiFetch('/api/auth/register', { method: 'POST', body: JSON.stringify({ email, password }) });
+}
+
+export async function apiLogin(email: string, password: string): Promise<{ ok: boolean }> {
+  return apiFetch('/api/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
+}
+
+export async function apiLogout(): Promise<{ ok: boolean }> {
+  return apiFetch('/api/auth/logout', { method: 'POST' });
+}
+
+export async function apiMe(): Promise<AuthUser | null> {
+  try {
+    return await apiFetch<AuthUser>('/api/auth/me');
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 401) return null;
+    throw e;
+  }
+}
+
+export async function apiRequestPasswordReset(email: string): Promise<{ ok: boolean; _devResetToken?: string }> {
+  return apiFetch('/api/auth/request-password-reset', { method: 'POST', body: JSON.stringify({ email }) });
+}
+
+export async function apiResetPassword(token: string, newPassword: string): Promise<{ ok: boolean }> {
+  return apiFetch('/api/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, newPassword }) });
+}
+
+export async function apiVerifyEmail(token: string): Promise<{ ok: boolean }> {
+  return apiFetch('/api/auth/verify-email', { method: 'POST', body: JSON.stringify({ token }) });
+}
+
+// ---------- Catalogue detail (variant resolution for cart sync) ----------
+
+interface OwnedDetail extends OwnedProduct {
+  attributes: { name: string; value: string }[];
+  ingredients: { name: string; description: string; detail: string }[];
+}
+
+/**
+ * Batch-2 detail cache: 5-minute TTL (buy-box stock accuracy), in-flight
+ * sharing (concurrent same-slug renders = 1 request), bounded size.
+ * Failures are never cached — the next call retries.
+ */
+export const DETAIL_TTL_MS = 5 * 60_000;
+const MAX_DETAIL_ENTRIES = 200;
+
+const detailCache = new Map<string, { data: OwnedDetail; at: number }>();
+const detailInflight = new Map<string, Promise<OwnedDetail | null>>();
+
+export async function fetchProductDetail(slug: string): Promise<OwnedDetail | null> {
+  if (BASE === undefined) return null;
+  const key = slug.toLowerCase();
+  const hit = detailCache.get(key);
+  if (hit && Date.now() - hit.at < DETAIL_TTL_MS) return hit.data;
+  const ongoing = detailInflight.get(key);
+  if (ongoing) return ongoing;
+  const run = (async (): Promise<OwnedDetail | null> => {
+    try {
+      const detail = await apiFetch<OwnedDetail>(`/api/products/${encodeURIComponent(key)}`);
+      detailCache.set(key, { data: detail, at: Date.now() });
+      if (detailCache.size > MAX_DETAIL_ENTRIES) {
+        const oldest = detailCache.keys().next().value as string | undefined;
+        if (oldest !== undefined) detailCache.delete(oldest);
+      }
+      return detail;
+    } catch {
+      return null;
+    } finally {
+      detailInflight.delete(key);
+    }
+  })();
+  detailInflight.set(key, run);
+  return run;
+}
+
+export async function resolveVariantId(productId: string, size: string): Promise<string | null> {
+  const detail = await fetchProductDetail(productId);
+  if (!detail || detail.variants.length === 0) return null;
+  const exact = detail.variants.find((v) => v.sizeLabel.toLowerCase() === size.toLowerCase());
+  return (exact ?? detail.variants[0]).id;
+}
+
+// ---------- Server cart ----------
+
+export interface ServerCartLine {
+  id: string;
+  variantId: string;
+  sku: string;
+  sizeLabel: string;
+  productSlug: string;
+  productName: string;
+  unitPriceKobo: number;
+  qty: number;
+  available: number;
+}
+
+/** Restore the durable server cart (guest session or login). Null on any failure. */
+export async function fetchServerCart(): Promise<ServerCartLine[] | null> {
+  try {
+    const cart = await apiFetch<{ lines: ServerCartLine[] }>('/api/cart', {}, guestSessionId());
+    return Array.isArray(cart.lines) ? cart.lines : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function syncCartToServer(items: { productId: string; size: string; quantity: number }[]): Promise<void> {
+  if (BASE === undefined) throw new Error('Backend is not configured.');
+  const sessionId = guestSessionId();
+  const expected = new Map<string, number>();
+  for (const item of items) {
+    const variantId = await resolveVariantId(item.productId, item.size);
+    if (!variantId || expected.has(variantId) || item.quantity < 1 || item.quantity > 99) {
+      throw new Error('An item in your bag cannot be checked out. Refresh the catalogue and review your bag.');
+    }
+    expected.set(variantId, item.quantity);
+  }
+  await apiFetch('/api/cart/items', { method: 'DELETE' }, sessionId);
+  for (const [variantId, qty] of expected) {
+    await apiFetch('/api/cart/items', { method: 'POST', body: JSON.stringify({ variantId, qty }) }, sessionId);
+  }
+  const cart = await apiFetch<{ lines: { variantId: string; qty: number }[] }>('/api/cart', {}, sessionId);
+  if (cart.lines.length !== expected.size || cart.lines.some(line => expected.get(line.variantId) !== line.qty)) {
+    throw new Error('Your bag changed during checkout. Please review it before paying.');
+  }
+}
+
+/** Fold the guest cart into the user cart after login (best-effort). */
+export async function mergeServerCart(): Promise<void> {
+  if (BASE === undefined) return;
+  await apiFetch('/api/cart/merge', { method: 'POST', body: JSON.stringify({ sessionId: guestSessionId() }) }).catch(() => null);
+}
+
+// ---------- Checkout + payments ----------
+
+export interface CheckoutAddressInput {
+  fullName: string;
+  email: string;
+  phone: string;
+  street: string;
+  city: string;
+  state: string;
+  deliveryNotes?: string;
+}
+
+export interface ServerOrderView {
+  id: string;
+  orderNumber: string;
+  status: string;
+  paymentStatus: string;
+  createdAt?: string | Date;
+  shippingAddress?: { fullName?: string; name?: string; street?: string; city?: string; state?: string; phone?: string };
+  history?: { toStatus: string; createdAt: string | Date }[];
+  subtotalKobo: number;
+  deliveryFeeKobo: number;
+  totalKobo: number;
+  fulfilmentMethod?: string;
+  items: { variantId: string; productName: string; variantLabel: string; sku: string; unitPriceKobo: number; qty: number; lineTotalKobo: number }[];
+}
+
+export async function serverCheckout(
+  address: CheckoutAddressInput,
+  voucherCode?: string,
+  creatorCode?: string,
+  fulfilment?: { locationId?: string; method?: 'DELIVERY' | 'PICKUP' },
+  idempotencyKey = newIdempotencyKey(),
+  guestAccessToken?: string,
+): Promise<{ order: ServerOrderView; replay: boolean }> {
+  const sessionId = guestSessionId();
+  const { fullName, phone, street, city, state, email, deliveryNotes } = address;
+  return apiFetch('/api/checkout', {
+    method: 'POST',
+    headers: { 'Idempotency-Key': idempotencyKey },
+    body: JSON.stringify({
+      sessionId,
+      guestAddress: { fullName, phone, street, city, state, country: 'NG' },
+      guestEmail: email,
+      ...(guestAccessToken ? { guestAccessToken } : {}),
+      note: deliveryNotes ?? '',
+      ...(voucherCode ? { voucherCode } : {}),
+      ...(creatorCode ? { creatorCode } : {}),
+      ...(fulfilment?.locationId ? { fulfilmentLocationId: fulfilment.locationId } : {}),
+      ...(fulfilment?.method ? { fulfilmentMethod: fulfilment.method } : {}),
+    }),
+  }, sessionId);
+}
+
+// ---------- Location-aware fulfilment (routing) ----------
+
+export interface FulfilmentOption {
+  locationId: string;
+  name: string;
+  city: string;
+  state: string;
+  address: string;
+  phone: string;
+  operatingHours: string;
+  method: 'DELIVERY' | 'PICKUP';
+  feeKobo: number;
+  etaText: string;
+  isLocal: boolean;
+}
+
+export async function locateStockApi(input: {
+  city: string;
+  state: string;
+  method: 'DELIVERY' | 'PICKUP';
+  items: { variantId: string; qty: number }[];
+}): Promise<{ options: FulfilmentOption[]; recommendedLocationId: string | null; hasFullCart: boolean } | null> {
+  if (BASE === undefined) return null;
+  return apiFetch('/api/routing/locate-stock', { method: 'POST', body: JSON.stringify(input) });
+}
+
+// ---------- Creator referral (?ref=CODE) ----------
+
+const REF_KEY = 'desla-referral-code';
+
+export function storeReferralFromUrl(): string | null {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const ref = (params.get('ref') ?? params.get('referral') ?? '').trim().toUpperCase();
+    if (/^[A-Z0-9]{3,20}$/.test(ref)) {
+      try {
+        sessionStorage.setItem(REF_KEY, ref);
+        localStorage.setItem(REF_KEY, ref);
+      } catch { /* storage unavailable */ }
+      try {
+        void validateCreatorCodeLive(ref).catch(() => null);
+      } catch { /* best-effort click funnel only */ }
+      return ref;
+    }
+  } catch { /* non-browser or malformed URL */ }
+  return null;
+}
+
+export function storedReferralCode(): string | null {
+  try {
+    return sessionStorage.getItem(REF_KEY) ?? localStorage.getItem(REF_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function clearReferralCode(): void {
+  try {
+    sessionStorage.removeItem(REF_KEY);
+    localStorage.removeItem(REF_KEY);
+  } catch { /* ignore */ }
+}
+
+// ---------- Partner operations (role-gated, owner-scoped) ----------
+
+export async function fetchPartnerDashboard(kind: 'DISTRIBUTOR' | 'CREATOR'): Promise<unknown | null> {
+  if (BASE === undefined) return null;
+  return apiFetch(`/api/partner?kind=${kind}`);
+}
+
+export interface WholesaleItem {
+  variantId: string; sku: string; name: string; size: string; unitPriceKobo: number;
+  unitsPerCarton: number; minimumCartons: number; available: number;
+}
+export interface WholesaleQuote {
+  tier: string; locationId: string; subtotalKobo: number; deliveryFeeKobo: number; totalKobo: number; quoteFingerprint: string;
+  shippingAddress: { fullName: string; street: string; city: string; state: string; phone: string };
+  items: { variantId: string; productName: string; variantLabel: string; sku: string; cartons: number; unitsPerCarton: number; qty: number; unitPriceKobo: number; lineTotalKobo: number }[];
+}
+export interface WholesaleOrder extends ServerOrderView {
+  kind: 'WHOLESALE'; createdAt: string; wholesaleTerms: WholesaleQuote;
+  wholesaleDispatchedAt: string | null; wholesaleReceivedAt: string | null; wholesaleReturnedAt: string | null;
+}
+export interface WholesaleDashboard {
+  tier: string; location: { id: string; name: string; city: string; address: string };
+  items: WholesaleItem[]; orders: WholesaleOrder[];
+}
+export function fetchWholesale(): Promise<WholesaleDashboard> {
+  return apiFetch('/api/partner/wholesale');
+}
+export function quoteWholesale(items: { variantId: string; cartons: number }[]): Promise<WholesaleQuote> {
+  return apiFetch('/api/partner/wholesale', { method: 'POST', body: JSON.stringify({ action: 'quote', items }) });
+}
+export function buyWholesale(items: { variantId: string; cartons: number }[], quoteFingerprint: string, key: string): Promise<{ order: WholesaleOrder; replay: boolean }> {
+  return apiFetch('/api/partner/wholesale', { method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify({ action: 'checkout', items, quoteFingerprint }) });
+}
+export function wholesaleOrderAction(action: 'receive' | 'cancel', orderId: string): Promise<WholesaleOrder> {
+  return apiFetch('/api/partner/wholesale', { method: 'POST', body: JSON.stringify({ action, orderId }) });
+}
+export function recordWholesaleSale(input: { variantId: string; qty: number; note: string }, key: string): Promise<{ recorded: boolean }> {
+  return apiFetch('/api/partner/wholesale', { method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify({ action: 'directSale', ...input }) });
+}
+
+export async function partnerOrderTransition(input: {
+  orderId: string; transition: 'ACCEPT' | 'DISPATCH' | 'READY_PICKUP' | 'CONFIRM_PICKUP' | 'COMPLETE_DELIVERY'; code?: string; note?: string;
+}): Promise<unknown> {
+  return apiFetch('/api/partner', {
+    method: 'POST',
+    body: JSON.stringify({ action: 'order', kind: 'DISTRIBUTOR', orderId: input.orderId, transition: input.transition, ...(input.code ? { code: input.code } : {}), note: input.note ?? '' }),
+  });
+}
+
+export async function partnerBankRegister(kind: 'DISTRIBUTOR' | 'CREATOR', bank: { bankCode: string; bankName: string; accountName: string; accountNumber: string }): Promise<unknown> {
+  return apiFetch('/api/partner', { method: 'POST', body: JSON.stringify({ action: 'bank', kind, ...bank }) });
+}
+
+export async function partnerWithdraw(kind: 'DISTRIBUTOR' | 'CREATOR', input: { bankAccountId: string; amountKobo: number }): Promise<unknown> {
+  return apiFetch('/api/partner', {
+    method: 'POST',
+    headers: { 'Idempotency-Key': newIdempotencyKey() },
+    body: JSON.stringify({ action: 'withdraw', kind, ...input }),
+  });
+}
+
+export async function partnerRestock(input: { variantId: string; qty: number }): Promise<unknown> {
+  return apiFetch('/api/partner', {
+    method: 'POST',
+    headers: { 'Idempotency-Key': newIdempotencyKey() },
+    body: JSON.stringify({ action: 'restock', kind: 'DISTRIBUTOR', ...input }),
+  });
+}
+
+export async function partnerReceiveTransfer(transferId: string): Promise<unknown> {
+  return apiFetch('/api/partner', { method: 'POST', body: JSON.stringify({ action: 'receive', kind: 'DISTRIBUTOR', transferId }) });
+}
+
+export async function requestPickupCode(orderId: string, _email?: string): Promise<{ code: string; expiresAt: string } | null> {
+  if (BASE === undefined) return null;
+  try {
+    return await apiFetch(`/api/orders/${encodeURIComponent(orderId)}/pickup-code`, {
+      method: 'POST',
+      headers: guestHeaders(orderId),
+      body: JSON.stringify({}),
+    });
+  } catch {
+    return null;
+  }
+}
+
+// ---------- Admin network (locations, transfers, payouts) ----------
+
+export async function fetchNetworkOverview(): Promise<unknown | null> {
+  if (BASE === undefined) return null;
+  try {
+    return await apiFetch('/api/admin/network');
+  } catch (e) {
+    if (e instanceof ApiError && (e.status === 401 || e.status === 403)) return null;
+    throw e;
+  }
+}
+
+export async function networkCommand(input: Record<string, unknown>): Promise<unknown> {
+  return apiFetch('/api/admin/network', {
+    method: 'POST',
+    headers: { 'Idempotency-Key': newIdempotencyKey() },
+    body: JSON.stringify(input),
+  });
+}
+
+export type PayProvider = 'flutterwave' | 'stripe' | 'opay' | 'transfer';
+
+export interface InitResult {
+  attemptId: string;
+  reference: string;
+  provider: PayProvider;
+  authorizationUrl: string | null;
+  bankDetails?: { bankName: string; accountNumber: string; accountName: string };
+  replay: boolean;
+}
+
+export async function initPayment(orderId: string, provider: PayProvider, _guestEmail?: string, idempotencyKey = newIdempotencyKey()): Promise<InitResult> {
+  return apiFetch('/api/payments/init', {
+    method: 'POST',
+    headers: { 'Idempotency-Key': idempotencyKey, ...guestHeaders(orderId) },
+    body: JSON.stringify({ orderId, provider }),
+  }, guestSessionId());
+}
+
+export interface PaymentStatus {
+  reference: string;
+  provider: string;
+  status: string;
+  authorizationUrl: string | null;
+  settled: boolean;
+  orderId: string;
+  orderNumber: string;
+}
+
+/** Guest capability for a payment attempt (persisted at init; survives reload). */
+export function paymentTokenFor(reference: string): string | null {
+  try { return localStorage.getItem(`glowly-payment-token:${reference}`); } catch { return null; }
+}
+
+/** Most recent payment reference from this browser (resume/verify affordance). */
+export function lastPaymentReference(): string | null {
+  try { return localStorage.getItem('glowly-last-reference'); } catch { return null; }
+}
+
+export async function paymentStatus(reference: string): Promise<PaymentStatus> {
+  const token = paymentTokenFor(reference);
+  return apiFetch(`/api/payments/status?reference=${encodeURIComponent(reference)}`, { headers: token ? { 'X-Guest-Order-Token': token } : {} }, guestSessionId());
+}
+
+// ---------- Orders (tracking screens) ----------
+
+export async function fetchServerOrder(orderId: string, token?: string): Promise<ServerOrderView & { history: { toStatus: string; createdAt: string }[]; shippingAddress: { name?: string; street?: string; city?: string; state?: string; phone?: string } } | null> {
+  try {
+    return await apiFetch(`/api/orders/${encodeURIComponent(orderId)}`, { headers: guestHeaders(orderId, token && /^[a-f0-9]{64}$/.test(token) ? token : undefined) }, guestSessionId());
+  } catch {
+    return null;
+  }
+}
+
+/** Map a server order view onto the storefront Order type (tracking UI). */
+export function mapServerOrder(view: ServerOrderView, fallbackItems: CartItem[], paymentMethod: string): Order {
+  const items = view.items.length > 0
+    ? view.items.map((i) => {
+      const local = fallbackItems.find((c) => c.product.name === i.productName);
+      return {
+        productId: i.variantId,
+        productName: i.productName,
+        brand: local?.product.brand ?? 'DESLA!™',
+        size: i.variantLabel,
+        price: Math.round(i.unitPriceKobo / 100),
+        quantity: i.qty,
+        image: local?.product.image ?? '',
+      };
+    })
+    : fallbackItems.map((ci) => ({
+      productId: ci.productId,
+      productName: ci.product.name,
+      brand: ci.product.brand,
+      size: ci.size,
+      price: ci.unitPrice,
+      quantity: ci.quantity,
+      image: ci.product.image,
+    }));
+  const subtotal = Math.round(view.subtotalKobo / 100);
+  const deliveryFee = Math.round(view.deliveryFeeKobo / 100);
+  return {
+    id: view.orderNumber,
+    serverId: view.id,
+    paymentStatus: view.paymentStatus,
+    serverStatus: view.status,
+    date: view.createdAt ? new Date(view.createdAt).toLocaleDateString('en-NG') : '',
+    status: view.status === 'DELIVERED' ? 'Delivered' : ['CANCELLED', 'REFUNDED'].includes(view.status) ? 'Cancelled' : view.status === 'SHIPPED' ? 'Shipped' : 'Processing',
+    items,
+    subtotal,
+    deliveryFee,
+    total: Math.round(view.totalKobo / 100),
+    fulfillmentType: 'local',
+    trackingSteps: (view.history ?? []).map(event => ({title: event.toStatus.replace(/_/g, ' '), timestamp: new Date(event.createdAt).toLocaleString('en-NG'), status: 'completed' as const, description: 'Recorded order update'})),
+    shippingAddress: { name: view.shippingAddress?.fullName ?? view.shippingAddress?.name ?? '', street: view.shippingAddress?.street ?? '', city: view.shippingAddress?.city ?? '', state: view.shippingAddress?.state ?? '', phone: view.shippingAddress?.phone ?? '' },
+    paymentMethod,
+  };
+}
+
+// ---------- Reviews / wishlist / loyalty (fire-and-forget mirrors) ----------
+
+export async function submitReviewApi(input: { productId: string; rating: number; title: string; comment: string }): Promise<boolean> {
+  // productId is the storefront slug; the action resolves slug → uuid.
+  // (The old REST zod required uuid-only and 422'd slug submits silently.)
+  // Returns false when the server did not record the review so callers can
+  // say so instead of implying it was published.
+  try {
+    const res = await submitReviewAction(input);
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function fetchLoyalty(): Promise<{ points: number } | null> {
+  if (BASE === undefined) return null;
+  try {
+    return await apiFetch('/api/me/loyalty');
+  } catch {
+    return null;
+  }
+}
+
+// ---------- Transfer claims (manual bank-transfer proof) ----------
+
+export interface TransferClaimInput {
+  orderId: string; // server uuid (see orderUuid helpers below)
+  guestEmail?: string;
+  senderName: string;
+  amountKobo: number;
+  bankName?: string;
+  narration?: string;
+  transferDate?: string;
+}
+
+export async function submitTransferClaim(input: TransferClaimInput): Promise<{ claim: { id: string; status: string } }> {
+  const { guestEmail: _guestEmail, ...claim } = input;
+  return apiFetch('/api/payments/transfer-claim', {
+    method: 'POST',
+    headers: guestHeaders(input.orderId),
+    body: JSON.stringify(claim),
+  }, guestSessionId());
+}
+
+/** orderNumber (local) ↔ server uuid mapping for claim/tracking continuity. */
+const ORDER_MAP_KEY = 'glowly-order-uuids';
+
+function readOrderMap(): Record<string, string> {
+  try {
+    return JSON.parse(localStorage.getItem(ORDER_MAP_KEY) ?? '{}') as Record<string, string>;
+  } catch {
+    return {};
+  }
+}
+
+export function rememberServerOrder(orderNumber: string, serverUuid: string): void {
+  try {
+    const map = readOrderMap();
+    map[orderNumber] = serverUuid;
+    localStorage.setItem(ORDER_MAP_KEY, JSON.stringify(map));
+  } catch {
+    // storage unavailable — claim flow degrades gracefully
+  }
+}
+
+export function serverOrderUuid(orderNumber: string): string | null {
+  try {
+    return readOrderMap()[orderNumber] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// ---------- Loyalty (full view + redeem) ----------
+
+export interface LoyaltyVoucher {
+  code: string;
+  amountKobo: number;
+  status: string;
+}
+
+export interface LoyaltyActivity {
+  id?: string;
+  title: string;
+  points: number;
+  date?: string;
+}
+
+export interface LoyaltyView {
+  points: number;
+  vouchers: LoyaltyVoucher[];
+  activity: LoyaltyActivity[];
+  tiers: { points: number; amountKobo: number }[];
+}
+
+export async function fetchLoyaltyView(): Promise<LoyaltyView | null> {
+  if (BASE === undefined) return null;
+  try {
+    return await apiFetch<LoyaltyView>('/api/me/loyalty');
+  } catch {
+    return null;
+  }
+}
+
+export async function redeemLoyaltyVoucher(points: number): Promise<{ voucher: LoyaltyVoucher }> {
+  // Surfaces errors to the caller (rewards screen shows them). No REST
+  // fallback: voucher minting is NOT idempotent — a retry could double-mint.
+  let res: Awaited<ReturnType<typeof redeemVoucherAction>>;
+  try {
+    res = await redeemVoucherAction(points);
+  } catch {
+    throw new ApiError(0, 'request_failed', 'Could not redeem voucher. Check your connection and try again.');
+  }
+  if (!res.ok) throw new ApiError(res.status, res.code, res.message);
+  return { voucher: { code: res.data.code, amountKobo: res.data.amountKobo, status: res.data.status } };
+}
+
+// ---------- AI concierge (authenticated; mock thread otherwise) ----------
+
+export interface ChatMsg {
+  id: string;
+  sender: 'user' | 'assistant';
+  text: string;
+  timestamp: string;
+  recommendedProductIds?: string[];
+}
+
+const CONV_KEY = 'glowly-ai-conv';
+
+function convId(): string | null {
+  try {
+    return localStorage.getItem(CONV_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/** One chat turn against the owned assistant (catalogue-grounded, quota'd). */
+export async function aiChat(content: string): Promise<{ user: ChatMsg; assistant: ChatMsg; provider: string }> {
+  let id = convId();
+  if (!id) {
+    const created = await apiFetch<{ conversation: { id: string } }>('/api/ai/conversations', { method: 'POST', body: JSON.stringify({}) });
+    id = created.conversation.id;
+    try {
+      localStorage.setItem(CONV_KEY, id);
+    } catch {
+      // storage unavailable — conversation simply won't persist
+    }
+  }
+  const res = await apiFetch<{
+    userMessage: { id: string; content: string };
+    assistantMessage: { id: string; content: string };
+    grounded: { slug: string }[];
+    provider: string;
+  }>(`/api/ai/conversations/${encodeURIComponent(id)}/messages`, { method: 'POST', body: JSON.stringify({ content }) });
+  // Dead conversation (deleted server-side): reset once and retry.
+  if (!res?.assistantMessage) throw new ApiError(500, 'chat_failed', 'Assistant is unavailable.');
+  return {
+    user: { id: res.userMessage.id, sender: 'user', text: res.userMessage.content, timestamp: 'Just now' },
+    assistant: {
+      id: res.assistantMessage.id,
+      sender: 'assistant',
+      text: res.assistantMessage.content,
+      timestamp: 'Just now',
+      recommendedProductIds: (res.grounded ?? []).map((g) => g.slug),
+    },
+    provider: res.provider,
+  };
+}
+
+// ---------- Skin profile mirror (fire-and-forget after local scan) ----------
+
+const SKIN_ENUM = ['oily', 'dry', 'combination', 'sensitive', 'normal'] as const;
+
+export async function mirrorSkinProfile(input: { skinType: string; concerns: string[] }): Promise<void> {
+  const skinType = input.skinType.trim().toLowerCase();
+  if (!(SKIN_ENUM as readonly string[]).includes(skinType)) return;
+  try {
+    await saveSkinProfileAction({ skinType, concerns: input.concerns.slice(0, 12) });
+  } catch {
+    // silent mirror
+  }
+}
+
+// ---------- Wishlist mirror (authenticated; silent for guests) ----------
+
+export async function mirrorWishlist(productId: string, size: string | undefined, wishlisted: boolean): Promise<boolean> {
+  // Variant resolution moved server-side (kills the client's detail-fetch
+  // roundtrip). Returns false when the server did not record the change so
+  // callers can roll back optimistic UI instead of lying about saved state.
+  try {
+    const res = await toggleWishlistAction({ slug: productId, ...(size ? { sizeLabel: size } : {}), wished: wishlisted });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+// ---------- Admin Console Operations (STAFF / ADMIN / SUPER_ADMIN) ----------
+
+export async function fetchAdminOrders(status?: string, limit = 50): Promise<{ orders: AdminOrder[] } | null> {
+  if (BASE === undefined) return null;
+  try {
+    const query = buildQueryString({ status, limit });
+    const res = await apiFetch<{ orders: AdminOrder[] }>(`/api/admin/orders${query}`);
+    return res;
+  } catch (e) {
+    if (e instanceof ApiError && (e.status === 401 || e.status === 403)) return null;
+    throw e;
+  }
+}
+
+export async function updateAdminOrderStatus(orderId: string, status: string): Promise<{ ok: boolean; order?: unknown }> {
+  return apiFetch(`/api/admin/orders/${encodeURIComponent(orderId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+}
+
+export async function fetchAdminTransferClaims(status?: 'pending' | 'confirmed' | 'rejected'): Promise<{ claims: AdminTransferClaim[] } | null> {
+  if (BASE === undefined) return null;
+  try {
+    const query = buildQueryString({ status });
+    return await apiFetch<{ claims: AdminTransferClaim[] }>(`/api/admin/transfer-claims${query}`);
+  } catch (e) {
+    if (e instanceof ApiError && (e.status === 401 || e.status === 403)) return null;
+    throw e;
+  }
+}
+
+export async function confirmAdminTransferClaim(claimId: string, approve: boolean, note?: string): Promise<{ ok: boolean }> {
+  return apiFetch('/api/admin/transfer-claims/confirm', {
+    method: 'POST',
+    body: JSON.stringify({ claimId, approve, note }),
+  });
+}
+
+export async function fetchAdminAudits(limit = 20): Promise<{ audit: AdminAuditLog[] } | null> {
+  if (BASE === undefined) return null;
+  try {
+    return await apiFetch<{ audit: AdminAuditLog[] }>(`/api/admin/audit?limit=${limit}`);
+  } catch (e) {
+    if (e instanceof ApiError && (e.status === 401 || e.status === 403)) return null;
+    throw e;
+  }
+}
+
+// ---------- Distributors (directory + city stock + applications) ----------
+
+import type { Distributor } from '../types';
+
+interface OwnedDistributor {
+  id: string;
+  name: string;
+  businessName: string;
+  city: string;
+  state: string;
+  address: string;
+  phone: string;
+  whatsapp: string;
+  verified: boolean;
+  tier: 'Bronze' | 'Silver' | 'Gold';
+  isOnlineOnly: boolean;
+  pickupAvailable: boolean;
+  operatingHours: string;
+  rating: number | string;
+  reviewsCount: number;
+  stockedSkus: string[];
+  location: Distributor['location'];
+  stock: Distributor['stock'];
+}
+
+function mapDistributor(d: OwnedDistributor): Distributor {
+  return {
+    id: d.id,
+    name: d.name,
+    businessName: d.businessName,
+    city: d.city,
+    state: d.state,
+    address: d.address,
+    phone: d.phone,
+    whatsapp: d.whatsapp,
+    verified: d.verified,
+    tier: d.tier,
+    isOnlineOnly: d.isOnlineOnly,
+    pickupAvailable: d.location?.pickupEnabled ?? d.pickupAvailable,
+    operatingHours: d.operatingHours,
+    rating: Number(d.rating),
+    reviewsCount: d.reviewsCount,
+    stockedSkus: d.stockedSkus,
+    location: d.location,
+    stock: d.stock,
+  };
+}
+
+export async function fetchDistributors(city?: string): Promise<Distributor[] | null> {
+  if (BASE === undefined) return null;
+    const q = city ? `?limit=100&city=${encodeURIComponent(city)}` : '?limit=100';
+    const body = await apiFetch<{ distributors: OwnedDistributor[] }>(`/api/distributors${q}`);
+    return body.distributors.map(mapDistributor);
+}
+
+export interface CityStock {
+  distributorId: string;
+  name: string;
+  businessName: string;
+  city: string;
+  address: string;
+  phone: string;
+  pickupAvailable: boolean;
+  quantity: number;
+}
+
+export async function fetchStockNearCity(variantId: string, city: string): Promise<CityStock[] | null> {
+  if (BASE === undefined) return null;
+  try {
+    const body = await apiFetch<{ stock: CityStock[] }>(
+      `/api/distributors/stock?variantId=${encodeURIComponent(variantId)}&city=${encodeURIComponent(city)}`
+    );
+    return body.stock;
+  } catch {
+    return null;
+  }
+}
+
+export interface ApplicationReceipt { id: string; status: string }
+
+export async function submitDistributorApplication(input: {
+  name: string;
+  businessName?: string;
+  city: string;
+  state?: string;
+  address: string;
+  phone: string;
+  whatsapp?: string;
+}): Promise<ApplicationReceipt> {
+  if (BASE === undefined) throw new Error('Connect the live backend to submit an application.');
+  const body = await apiFetch<{ application: ApplicationReceipt }>('/api/distributors', { method: 'POST', body: JSON.stringify(input) });
+  return body.application;
+}
+
+// ---------- Creators (directory, validation, applications) ----------
+
+import type { Creator, CommunityPost, CommunityMessage, ProductReview } from '../types';
+
+interface OwnedCreator {
+  name: string;
+  handle: string;
+  platform: 'Instagram' | 'TikTok' | 'YouTube';
+  niche: string;
+  avatarUrl: string;
+  promoCode: string;
+  discountPercent: number;
+}
+
+function mapCreator(c: OwnedCreator): Creator {
+  return {
+    id: c.promoCode,
+    name: c.name,
+    handle: c.handle,
+    platform: c.platform,
+    niche: c.niche,
+    avatar: c.avatarUrl,
+    promoCode: c.promoCode,
+    discountPercent: c.discountPercent,
+    commissionRate: 0,
+    totalSalesNgn: 0,
+    commissionEarnedNgn: 0,
+    clicks: 0,
+    ordersCount: 0,
+    verified: true,
+  };
+}
+
+export async function fetchCreators(): Promise<Creator[] | null> {
+  if (BASE === undefined) return null;
+  try {
+    const body = await apiFetch<{ creators: OwnedCreator[] }>('/api/creators');
+    return body.creators.map(mapCreator);
+  } catch {
+    return null;
+  }
+}
+
+export async function validateCreatorCodeLive(code: string): Promise<{ success: boolean; discountPercent: number; name: string }> {
+  const body = await apiFetch<{ name: string; promoCode: string; discountPercent: number }>(
+    `/api/creators?code=${encodeURIComponent(code.trim())}`
+  );
+  return { success: true, discountPercent: body.discountPercent, name: body.name };
+}
+
+export async function submitCreatorApplication(input: { name: string; handle: string; platform: 'Instagram' | 'TikTok' | 'YouTube'; niche: string }): Promise<ApplicationReceipt> {
+  if (BASE === undefined) throw new Error('Connect the live backend to submit an application.');
+  const body = await apiFetch<{ application: ApplicationReceipt }>('/api/creators', { method: 'POST', body: JSON.stringify(input) });
+  return body.application;
+}
+
+// ---------- Community (posts, likes, chat) ----------
+
+interface OwnedPost {
+  id: string;
+  author_name: string;
+  author_handle: string;
+  author_avatar: string;
+  author_role: string;
+  skin_type?: string;
+  content: string;
+  media_type?: 'image' | 'video';
+  media_url?: string;
+  tagged_product_id?: string;
+  tagged_product_hashtag?: string;
+  likes_count: number;
+  comments_count: number;
+  created_at: string;
+}
+
+function mapPost(p: OwnedPost): CommunityPost {
+  return {
+    id: p.id,
+    authorName: p.author_name,
+    authorHandle: p.author_handle,
+    authorAvatar: p.author_avatar,
+    authorRole: p.author_role,
+    skinType: p.skin_type,
+    timestamp: p.created_at,
+    content: p.content,
+    mediaType: p.media_type,
+    mediaUrl: p.media_url,
+    taggedProductId: p.tagged_product_id,
+    taggedProductHashtag: p.tagged_product_hashtag,
+    likesCount: p.likes_count,
+    commentsCount: p.comments_count,
+    likedByMe: false,
+  } as unknown as CommunityPost;
+}
+
+export async function fetchCommunityPosts(): Promise<CommunityPost[] | null> {
+  if (BASE === undefined) return null;
+  try {
+    const body = await apiFetch<{ posts: OwnedPost[] }>('/api/community/posts?limit=50');
+    return body.posts.map(mapPost);
+  } catch {
+    return null;
+  }
+}
+
+export async function createCommunityPostApi(input: {
+  content: string;
+  taggedProductId?: string;
+  taggedProductHashtag?: string;
+}): Promise<void> {
+  try {
+    await createPostAction({ content: input.content, ...(input.taggedProductId ? { taggedProductId: input.taggedProductId } : {}), ...(input.taggedProductHashtag ? { taggedHashtag: input.taggedProductHashtag } : {}) });
+  } catch {
+    // silent mirror
+  }
+}
+
+export async function likeCommunityPostApi(postId: string): Promise<void> {
+  try {
+    await likePostAction(postId);
+  } catch {
+    // silent mirror
+  }
+}
+
+interface OwnedChatMessage {
+  id: string;
+  sender_name: string;
+  sender_avatar: string;
+  channel: string;
+  message: string;
+  likes: number;
+  created_at: string;
+}
+
+function mapChatMessage(m: OwnedChatMessage): CommunityMessage {
+  return { id: m.id, senderName: m.sender_name, senderAvatar: m.sender_avatar, time: m.created_at, message: m.message, likes: m.likes, channel: m.channel };
+}
+
+export async function fetchCommunityChat(channel = 'routine'): Promise<CommunityMessage[] | null> {
+  if (BASE === undefined) return null;
+  try {
+    const body = await apiFetch<{ messages: OwnedChatMessage[] }>(`/api/community/chat?channel=${encodeURIComponent(channel)}&limit=50`);
+    return body.messages.map(mapChatMessage);
+  } catch {
+    return null;
+  }
+}
+
+export async function sendCommunityChatApi(channel: string, message: string): Promise<void> {
+  try {
+    await sendChatAction(channel, message);
+  } catch {
+    // silent mirror (rate-limit hits included — chat stays usable)
+  }
+}
+
+// ---------- Reviews (approved list per product) ----------
+
+interface OwnedReview {
+  id: string;
+  product_id: string;
+  product_sku?: string;
+  author_name: string;
+  author_avatar?: string;
+  rating: number;
+  title: string;
+  comment: string;
+  verified_purchase: boolean;
+  city?: string;
+  skin_type?: string;
+  photo_url?: string;
+  helpful_count: number;
+  created_at: string;
+}
+
+function timeAgo(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  if (!Number.isFinite(ms) || ms < 0) return 'Just now';
+  const mins = Math.floor(ms / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+export async function fetchProductReviewsApi(productSlug: string): Promise<ProductReview[] | null> {
+  if (BASE === undefined) return null;
+  try {
+    const body = await apiFetch<{ reviews: OwnedReview[] }>(`/api/products/${encodeURIComponent(productSlug)}/reviews?limit=20`);
+    return body.reviews.map((r) => ({
+      id: r.id,
+      productId: productSlug,
+      productSku: r.product_sku,
+      authorName: r.author_name,
+      authorAvatar: r.author_avatar,
+      rating: r.rating,
+      date: timeAgo(r.created_at),
+      title: r.title,
+      comment: r.comment,
+      verifiedPurchase: r.verified_purchase,
+      city: r.city,
+      skinType: r.skin_type,
+      photoUrl: r.photo_url,
+      helpfulCount: r.helpful_count,
+    }));
+  } catch {
+    return null;
+  }
+}
+
+// ---------- Admin reads (console tabs) ----------
+
+export interface InventoryOverviewRow {
+  slug: string;
+  name: string;
+  variants: { id: string; sku: string; sizeLabel: string; priceKobo: number; available: number }[];
+  totalAvailable: number;
+}
+
+export async function fetchInventoryOverview(): Promise<InventoryOverviewRow[] | null> {
+  if (BASE === undefined) return null;
+  try {
+    const body = await apiFetch<{ items: InventoryOverviewRow[] }>('/api/admin/inventory/overview?limit=100');
+    return body.items;
+  } catch (e) {
+    if (e instanceof ApiError && (e.status === 401 || e.status === 403)) return null;
+    throw e;
+  }
+}
+
+export async function adjustStockApi(variantId: string, delta: number, reason: string): Promise<void> {
+  await apiFetch('/api/admin/inventory', { method: 'POST', body: JSON.stringify({ variantId, delta, reason }) });
+}
+
+export interface AdminUserRow {
+  id: string;
+  email: string;
+  emailVerified: boolean;
+  displayName: string;
+  roles: string[];
+  createdAt: string;
+}
+
+export async function fetchAdminUsers(): Promise<AdminUserRow[] | null> {
+  if (BASE === undefined) return null;
+  try {
+    const body = await apiFetch<{ users: AdminUserRow[] }>('/api/admin/users?limit=100');
+    return body.users;
+  } catch (e) {
+    if (e instanceof ApiError && (e.status === 401 || e.status === 403)) return null;
+    throw e;
+  }
+}

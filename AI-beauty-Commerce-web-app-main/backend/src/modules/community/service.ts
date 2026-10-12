@@ -1,11 +1,13 @@
 import { and, desc, eq, lt, or } from 'drizzle-orm';
+import { randomUUID } from 'node:crypto';
 import type { AppDb, Db } from '../../db/client';
 import { Errors } from '../../lib/errors';
 import { decodeCursor, encodeCursor } from '../../lib/cursor';
 import { orders } from '../orders/schema';
 import { products } from '../catalog/schema';
 import { creators } from '../creators/schema';
-import { communityMessages, communityPosts, postLikes } from './schema';
+import { communityMedia, communityMessages, communityPosts, postLikes } from './schema';
+import { checkMagicBytes, communityBucket, communityMediaUrl, communityObjectKey, headBytes, headScan, presignedPutUrl } from '../../lib/storage';
 import type { createPostSchema } from './validation';
 import type { z } from 'zod';
 
@@ -49,6 +51,32 @@ export async function createPost(db: AppDb, userId: string, author: { name: stri
     const p = await db.select({ id: products.id }).from(products).where(eq(products.id, input.taggedProductId)).limit(1);
     if (!p[0]) throw Errors.notFound('Tagged product not found.');
   }
+  // Verified-upload path: ownership + single-use + HEAD size/mime + magic
+  // bytes, mirroring the scan pipeline. Runs before the post tx (read-only);
+  // the media row flips to attached inside the same tx as the post.
+  let mediaType = input.mediaType ?? null;
+  let mediaUrl = input.mediaUrl ?? null;
+  let mediaVerified = false;
+  let mediaRow: typeof communityMedia.$inferSelect | null = null;
+  if (input.mediaId) {
+    const rows = await db
+      .select()
+      .from(communityMedia)
+      .where(and(eq(communityMedia.id, input.mediaId), eq(communityMedia.userId, userId)))
+      .limit(1);
+    mediaRow = rows[0] ?? null;
+    if (!mediaRow || mediaRow.status !== 'pending') throw Errors.badRequest('Upload not found or already used — please upload again.');
+    const head = await headScan(communityBucket(), mediaRow.mediaKey);
+    if (!head) throw Errors.badRequest('Upload not found — please upload again.');
+    if (head.bytes <= 0 || head.bytes !== mediaRow.bytes) throw Errors.badRequest('Upload corrupted in transit — please retry.');
+    if (head.mime !== mediaRow.mime) throw Errors.badRequest('Upload content type mismatch.');
+    if (!checkMagicBytes(await headBytes(communityBucket(), mediaRow.mediaKey, 12), mediaRow.mime)) {
+      throw Errors.badRequest('File content is not a genuine image or video.');
+    }
+    mediaType = mediaRow.mime.startsWith('video/') ? 'video' : 'image';
+    mediaUrl = communityMediaUrl(mediaRow.mediaKey);
+    mediaVerified = true;
+  }
   const role = await buyerRole(db, userId);
   // Server-side creator link: a verified creator profile owned by the author
   // makes the post reward-attributable. Clients can never set this.
@@ -57,23 +85,41 @@ export async function createPost(db: AppDb, userId: string, author: { name: stri
     .from(creators)
     .where(and(eq(creators.userId, userId), eq(creators.verified, true)))
     .limit(1);
-  const [post] = await db
-    .insert(communityPosts)
-    .values({
-      userId,
-      authorName: author.name,
-      authorHandle: author.handle ?? '',
-      authorAvatar: author.avatar ?? '',
-      authorRole: role,
-      creatorId: creator?.id ?? null,
-      content: input.content,
-      mediaType: input.mediaType,
-      mediaUrl: input.mediaUrl,
-      taggedProductId: input.taggedProductId,
-      taggedHashtag: input.taggedHashtag?.toLowerCase(),
-    })
-    .returning();
+  const [post] = await db.transaction(async (tx) => {
+    const [row] = await tx
+      .insert(communityPosts)
+      .values({
+        userId,
+        authorName: author.name,
+        authorHandle: author.handle ?? '',
+        authorAvatar: author.avatar ?? '',
+        authorRole: role,
+        creatorId: creator?.id ?? null,
+        content: input.content,
+        mediaType,
+        mediaUrl,
+        mediaVerified,
+        taggedProductId: input.taggedProductId,
+        taggedHashtag: input.taggedHashtag?.toLowerCase(),
+      })
+      .returning();
+    if (mediaRow) {
+      await tx.update(communityMedia).set({ status: 'attached', postId: row.id }).where(eq(communityMedia.id, mediaRow.id));
+    }
+    return [row];
+  });
   return post;
+}
+
+/**
+ * Stage an upload: DB row + server key first, bytes second via presigned PUT.
+ * Size/type policed here AND re-verified at post time (never trust the client).
+ */
+export async function initMediaUpload(db: AppDb, userId: string, input: { mime: string; bytes: number }) {
+  const id = randomUUID();
+  const key = communityObjectKey(id, input.mime);
+  await db.insert(communityMedia).values({ id, userId, mime: input.mime, bytes: input.bytes, mediaKey: key });
+  return { mediaId: id, uploadUrl: await presignedPutUrl(communityBucket(), key, input.mime), objectKey: key, expiresInSec: 900 };
 }
 
 export async function togglePostLike(db: AppDb, userId: string, postId: string) {

@@ -368,3 +368,127 @@ export type ScreenId =
   | 'creator-dashboard'
   | 'distributor-dashboard';
 
+
+export interface HeroSlide {
+  id: string;
+  image: string;
+  tag: string;
+  headline: string;
+  subtext: string;
+  actionLabel: string;
+  actionRoute: string;
+  actionCategory?: string;
+  secondaryActionText?: string;
+  secondaryRoute?: string;
+  isActive: boolean;
+  order: number;
+}
+
+export interface EditorialRoutineStep {
+  number: string;
+  title: string;
+  productName: string;
+  productId?: string;
+  image: string;
+  tagline: string;
+  description: string;
+  keyBenefit: string;
+  isActive: boolean;
+}
+
+export interface BrandStoryConfig {
+  tagline: string;
+  heading: string;
+  paragraph1: string;
+  paragraph2: string;
+  image: string;
+  badge1: string;
+  badge2: string;
+}
+
+export interface AnnouncementTickerConfig {
+  text: string;
+  linkText?: string;
+  linkRoute?: string;
+  isActive: boolean;
+}
+
+export interface PRBoxOffering {
+  id: string;
+  title: string;
+  category: string;
+  retailValue: string;
+  openSpots: string;
+  spotsLeft: number;
+  thumbnail: string;
+  description: string;
+  includedProducts: string[];
+  eligibleTiers: ('Rising' | 'Verified' | 'Icon')[];
+  isActive: boolean;
+}
+
+export interface CreatorCampaignBrief {
+  id: string;
+  title: string;
+  category: string;
+  commissionRate: string;
+  bonus: string;
+  deadline: string;
+  description: string;
+  heroImage: string;
+  deliverables: string[];
+  slots: string;
+  status: 'ACTIVE' | 'DRAFT' | 'COMPLETED';
+}
+
+export interface WholesaleCartonItem {
+  id: string;
+  sku: string;
+  name: string;
+  category: string;
+  cartonUnits: number;
+  wholesalePrice: number;
+  retailCartonValue: number;
+  expectedMargin: number;
+  marginPercent: number;
+  image: string;
+}
+
+export interface LabRestockShipment {
+  id: string;
+  batchNumber: string;
+  courier: string;
+  trackingNumber: string;
+  destinationHub: string;
+  itemCount: number;
+  status: 'IN_TRANSIT' | 'DELIVERED' | 'PREPARING';
+  dispatchedAt: string;
+  estimatedArrival: string;
+}
+
+export interface LogisticsIncidentTicket {
+  id: string;
+  ticketNumber: string;
+  hubName: string;
+  category: string;
+  message: string;
+  contactEmail: string;
+  severity: 'NORMAL' | 'HIGH' | 'CRITICAL';
+  status: 'PENDING' | 'IN_REVIEW' | 'RESOLVED';
+  createdAt: string;
+  resolvedAt?: string;
+  resolutionNote?: string;
+}
+
+export interface CouponRule {
+  id: string;
+  code: string;
+  discountType: 'PERCENTAGE' | 'FIXED_NGN';
+  discountValue: number;
+  minOrderNgn: number;
+  maxUses?: number;
+  usedCount: number;
+  creatorHandle?: string;
+  isActive: boolean;
+  expiresAt: string;
+}

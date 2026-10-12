@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/db/client';
-import { api, readJson } from '@/lib/errors';
+import { api, clientIp, Errors, readJson } from '@/lib/errors';
+import { checkRateLimit, Limits } from '@/lib/rate-limit';
 import { requireAuth } from '@/modules/auth/require-auth';
 import { getProfile } from '@/modules/users/service';
 import { createPost, listPosts } from '@/modules/community/service';
@@ -12,6 +13,8 @@ export const GET = api(async ({ req }) => {
 });
 
 export const POST = api(async ({ req }) => {
+  const rl = checkRateLimit(`posts:${clientIp(req)}`, Limits.posts);
+  if (!rl.allowed) throw Errors.rateLimited(60);
   const db = getDb();
   const ctx = await requireAuth(db);
   const input = createPostSchema.parse(await readJson(req));

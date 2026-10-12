@@ -12,9 +12,21 @@ import {
   Distributor,
   Creator,
   CommunityPost,
-  ProductReview
+  ProductReview,
+  Category,
+  HeroSlide,
+  EditorialRoutineStep,
+  BrandStoryConfig,
+  AnnouncementTickerConfig,
+  PRBoxOffering,
+  CreatorCampaignBrief,
+  WholesaleCartonItem,
+  LabRestockShipment,
+  LogisticsIncidentTicket,
+  CouponRule
 } from '../types';
 import { products as sampleProducts } from '../data/products';
+import { categories as sampleCategories } from '../data/categories';
 import { initialOrders } from '../data/orders';
 import { initialUserProfile, initialVouchers, initialPointsActivity } from '../data/rewards';
 import { initialCommunityMessages } from '../data/community';
@@ -115,6 +127,11 @@ interface AppContextType {
   isAddToCartSheetOpen: boolean;
   lastAddedCartItem: CartItem | null;
   closeAddToCartSheet: () => void;
+
+  // Product Quick View Modal
+  quickModalProduct: Product | null;
+  openQuickModal: (product: Product) => void;
+  closeQuickModal: () => void;
 
   // Wishlist
   wishlist: string[];
@@ -218,6 +235,50 @@ interface AppContextType {
   reverifyPayment: (reference: string) => Promise<boolean>;
   addLocalOrder: (order: Order) => void;
   prepareLiveCheckout: (provider: PayProvider) => Promise<LiveCheckoutResult>;
+
+  // Storefront & Editorial CMS State
+  heroSlides: HeroSlide[];
+  updateHeroSlides: (slides: HeroSlide[]) => void;
+  routineSteps: EditorialRoutineStep[];
+  updateRoutineSteps: (steps: EditorialRoutineStep[]) => void;
+  brandStory: BrandStoryConfig;
+  updateBrandStory: (config: BrandStoryConfig) => void;
+  announcementTicker: AnnouncementTickerConfig;
+  updateAnnouncementTicker: (config: AnnouncementTickerConfig) => void;
+
+  // Categories & Taxonomy CRUD
+  categories: Category[];
+  updateCategories: (cats: Category[]) => void;
+  addCategory: (cat: Category) => void;
+  deleteCategory: (id: string) => void;
+
+  // Creator PR & Campaigns
+  prBoxes: PRBoxOffering[];
+  updatePRBoxes: (boxes: PRBoxOffering[]) => void;
+  addPRBox: (box: PRBoxOffering) => void;
+  creatorCampaigns: CreatorCampaignBrief[];
+  updateCreatorCampaigns: (campaigns: CreatorCampaignBrief[]) => void;
+  addCreatorCampaign: (campaign: CreatorCampaignBrief) => void;
+
+  // Wholesale & Logistics
+  wholesaleCartons: WholesaleCartonItem[];
+  updateWholesaleCartons: (cartons: WholesaleCartonItem[]) => void;
+  labShipments: LabRestockShipment[];
+  updateLabShipments: (shipments: LabRestockShipment[]) => void;
+  addLabShipment: (shipment: LabRestockShipment) => void;
+  incidentTickets: LogisticsIncidentTicket[];
+  updateIncidentTickets: (tickets: LogisticsIncidentTicket[]) => void;
+  resolveIncidentTicket: (ticketId: string, note?: string) => void;
+
+  // Coupons & Promo Rules
+  couponRules: CouponRule[];
+  updateCouponRules: (rules: CouponRule[]) => void;
+  addCouponRule: (rule: CouponRule) => void;
+
+  // Product CRUD mutations from Admin
+  saveProductFromAdmin: (productData: Partial<Product>) => Promise<void>;
+  deleteProductFromAdmin: (productId: string) => void;
+  toggleProductStock: (productId: string) => void;
 }
 
 export interface LiveCheckoutResult {
@@ -355,6 +416,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [isAddToCartSheetOpen, setIsAddToCartSheetOpen] = useState(false);
   const [lastAddedCartItem, setLastAddedCartItem] = useState<CartItem | null>(null);
 
+  // Product Quick View Modal
+  const [quickModalProduct, setQuickModalProduct] = useState<Product | null>(null);
+  const openQuickModal = (product: Product) => setQuickModalProduct(product);
+  const closeQuickModal = () => setQuickModalProduct(null);
+
   // Wishlist
   const [wishlist, setWishlist] = useState<string[]>([sampleProducts[2].id]);
 
@@ -413,6 +479,411 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [reviewsList, setReviewsList] = useState<ProductReview[]>(initialReviews);
 
   const [isCartBannerDismissed, setIsCartBannerDismissed] = useState(false);
+
+  // Storefront & Editorial CMS State
+  const [heroSlides, setHeroSlides] = useState<HeroSlide[]>([
+    {
+      id: 'routine',
+      image: '/hero_slide_1.jpg',
+      tag: 'Clinical Formulation',
+      headline: 'Health Before Beauty. Intention Before Trend.',
+      subtext: 'Bio-compatible shea, cold-pressed botanical oils, and active formulations engineered specifically for melanin-rich skin.',
+      actionLabel: 'Shop Formulations',
+      actionRoute: 'catalogue',
+      secondaryActionText: 'AI Skin Analysis',
+      secondaryRoute: 'ai-scan',
+      isActive: true,
+      displayOrder: 1
+    },
+    {
+      id: 'body-care',
+      image: '/hero_slide_2.jpg',
+      tag: 'Nourishing Body Rituals',
+      headline: 'Cold-Pressed Extrait Oils. Lasting Radiance.',
+      subtext: 'Lightweight, rapidly absorbing botanical oils infused with indigenous botanicals to nourish and restore deep cellular radiance.',
+      actionLabel: 'Explore Body Care',
+      actionCategory: 'body-care',
+      secondaryActionText: 'View Collections',
+      secondaryRoute: 'categories',
+      isActive: true,
+      displayOrder: 2
+    },
+    {
+      id: 'sun-defense',
+      image: '/hero_slide_3.jpg',
+      tag: 'Daily Shield SPF 50+',
+      headline: 'Invisible Sun Defense. Tailored for Melanin.',
+      subtext: 'No chalky residue, no pore congestion. Lightweight daily mineral protection engineered specifically for Fitzpatrick IV–VI skin tones.',
+      actionLabel: 'Discover Sun Protection',
+      actionCategory: 'skincare',
+      secondaryActionText: 'Our Formulation Ethics',
+      secondaryRoute: 'categories',
+      isActive: true,
+      displayOrder: 3
+    }
+  ]);
+
+  const updateHeroSlides = (slides: HeroSlide[]) => {
+    setHeroSlides(slides);
+  };
+
+  const [routineSteps, setRoutineSteps] = useState<EditorialRoutineStep[]>([
+    {
+      id: 'step-01',
+      number: '01',
+      title: 'Cleanse',
+      productName: 'Gentle Purifying Cleanser',
+      image: '/routine_lady_cleanse.jpg',
+      tagline: 'Acid Mantle Balancing',
+      description: 'Preserves the delicate skin barrier while removing impurities. Formulated at pH 5.5 to prevent tightness and moisture loss.',
+      keyBenefit: 'NAFDAC Certified • Zero Sulfates • Microbiome Safe',
+      associatedProductId: 'prod-1'
+    },
+    {
+      id: 'step-02',
+      number: '02',
+      title: 'Moisturize',
+      productName: 'Bio-Active Barrier Cream',
+      image: '/routine_lady_moisturize.jpg',
+      tagline: 'Deep Cellular Lipids',
+      description: 'Cold-pressed Nilotica shea and restorative niacinamide seal deep hydration to protect against harsh harmattan and dry climates.',
+      keyBenefit: '48h Lipid Lock • Cold-Pressed Shea • 2% Niacinamide',
+      associatedProductId: 'prod-2'
+    },
+    {
+      id: 'step-03',
+      number: '03',
+      title: 'Protect',
+      productName: 'Melanin Defense Sun Shield SPF 50+',
+      image: '/routine_lady_protect.jpg',
+      tagline: 'Invisible Broad Spectrum',
+      description: 'Engineered specifically for Fitzpatrick IV–VI skin tones. Leaves zero white cast, absorbs in seconds, and protects against UVA/UVB and blue light.',
+      keyBenefit: 'SPF 50+ PA++++ • 0% White Cast • Antioxidant Infused',
+      associatedProductId: 'prod-3'
+    }
+  ]);
+
+  const updateRoutineSteps = (steps: EditorialRoutineStep[]) => {
+    setRoutineSteps(steps);
+  };
+
+  const [brandStory, setBrandStory] = useState<BrandStoryConfig>({
+    tagline: 'Rooted in Science. Inspired by Heritage.',
+    heading: 'Formulations Engineered Specifically for Melanin-Rich Skin.',
+    paragraph1: 'Founded on clinical dermatological evidence, Desla merges indigenous African botanical bio-actives with Swiss pharmaceutical-grade actives. We address hyperpigmentation, barrier sensitivity, and dehydration without compromise.',
+    paragraph2: 'Every batch is cold-formulated, small-batch blended in accredited laboratories, and distributed with full cold-chain tracking across West Africa.',
+    image: '/brand_story_hero.jpg',
+    badge1: 'NAFDAC Laboratory Certified',
+    badge2: 'Ethically Sourced African Botanicals'
+  });
+
+  const updateBrandStory = (config: BrandStoryConfig) => {
+    setBrandStory(config);
+  };
+
+  const [announcementTicker, setAnnouncementTicker] = useState<AnnouncementTickerConfig>({
+    text: 'Complimentary Express Delivery on orders above ₦50,000 within Lagos & Abuja FCT',
+    linkText: 'Explore Formulations',
+    linkRoute: 'catalogue',
+    isActive: true
+  });
+
+  const updateAnnouncementTicker = (config: AnnouncementTickerConfig) => {
+    setAnnouncementTicker(config);
+  };
+
+  // Taxonomy & Categories CRUD
+  const [categoriesList, setCategoriesList] = useState<Category[]>(sampleCategories);
+
+  const updateCategories = (cats: Category[]) => {
+    setCategoriesList(cats);
+  };
+
+  const addCategory = (cat: Category) => {
+    setCategoriesList((prev) => [cat, ...prev]);
+  };
+
+  const deleteCategory = (id: string) => {
+    setCategoriesList((prev) => prev.filter((c) => c.id !== id));
+  };
+
+  // Creator PR & Campaigns
+  const [prBoxesList, setPrBoxesList] = useState<PRBoxOffering[]>([
+    {
+      id: 'pr-1',
+      title: 'Radiant Glow Clinical Collection',
+      category: 'Seasonal Skincare',
+      retailValue: '₦64,000',
+      openSpots: '5 spots remaining',
+      spotsLeft: 5,
+      thumbnail: 'https://images.unsplash.com/photo-1608248597359-0026e6328325?auto=format&fit=crop&w=400&q=80',
+      description: 'Full-sized luxury bottle package formulated for deep melanin illumination.',
+      includedProducts: ['Radiant Glow Oil (100ml)', 'Gentle Amino Cleanser', 'Barrier Essence Mist'],
+      eligibleTiers: ['Rising', 'Verified', 'Icon'],
+      isActive: true
+    },
+    {
+      id: 'pr-2',
+      title: 'Melanin Barrier & UV Defense Kit',
+      category: 'Clinical Protection',
+      retailValue: '₦48,500',
+      openSpots: '8 spots remaining',
+      spotsLeft: 8,
+      thumbnail: 'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?auto=format&fit=crop&w=400&q=80',
+      description: 'Zero white cast clinical UV defense set with ceramide nourishment.',
+      includedProducts: ['Sun Defense SPF50+', 'Ceramide Hydration Cream'],
+      eligibleTiers: ['Verified', 'Icon'],
+      isActive: true
+    }
+  ]);
+
+  const updatePRBoxes = (boxes: PRBoxOffering[]) => {
+    setPrBoxesList(boxes);
+  };
+
+  const addPRBox = (box: PRBoxOffering) => {
+    setPrBoxesList((prev) => [box, ...prev]);
+  };
+
+  const [creatorCampaignsList, setCreatorCampaignsList] = useState<CreatorCampaignBrief[]>([
+    {
+      id: 'camp-1',
+      title: 'Glow Season 2026: The Melanin Radiance Initiative',
+      category: 'Seasonal Skincare Campaign',
+      commissionRate: '15% Commission',
+      bonus: '+ ₦25,000 Milestone Bonus',
+      deadline: '12 Days Left',
+      description: 'Highlight real skin texture, morning hydration regimens, and clinical barrier restoration. Discourage excessive skin bleaching claims; emphasize radiant healthy nourishment.',
+      heroImage: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=800&q=80',
+      deliverables: ['1 High-Resolution Instagram Reel (9:16)', '1 Shoppable Desla Routine published'],
+      slots: '10/15 creators accepted',
+      status: 'ACTIVE'
+    },
+    {
+      id: 'camp-2',
+      title: 'Harmattan Defense: Maximum Barrier Hydration',
+      category: 'Seasonal Climate Campaign',
+      commissionRate: '12% Commission',
+      bonus: '+ ₦15,000 Bonus',
+      deadline: '24 Days Left',
+      description: 'Educate followers on managing extreme harmattan dryness across Northern and Central Nigeria through clinical occlusives and ceramide layering.',
+      heroImage: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=800&q=80',
+      deliverables: ['2 TikTok Application Videos', '1 Skin Article Guide'],
+      slots: '8/10 creators accepted',
+      status: 'ACTIVE'
+    }
+  ]);
+
+  const updateCreatorCampaigns = (campaigns: CreatorCampaignBrief[]) => {
+    setCreatorCampaignsList(campaigns);
+  };
+
+  const addCreatorCampaign = (campaign: CreatorCampaignBrief) => {
+    setCreatorCampaignsList((prev) => [campaign, ...prev]);
+  };
+
+  // Wholesale & Logistics
+  const [wholesaleCartonsList, setWholesaleCartonsList] = useState<WholesaleCartonItem[]>([
+    {
+      id: 'wh-1',
+      sku: 'DES-RGO-100',
+      name: 'Radiant Glow Clinical Oil (100ml)',
+      category: 'Body Care',
+      cartonUnits: 24,
+      wholesalePrice: 391680,
+      retailCartonValue: 576000,
+      expectedMargin: 184320,
+      marginPercent: 32,
+      image: '/hero_slide_1.jpg'
+    },
+    {
+      id: 'wh-2',
+      sku: 'DES-GPC-200',
+      name: 'Gentle Purifying Amino Cleanser (200ml)',
+      category: 'Skincare',
+      cartonUnits: 24,
+      wholesalePrice: 318240,
+      retailCartonValue: 468000,
+      expectedMargin: 149760,
+      marginPercent: 32,
+      image: '/routine_lady_cleanse.jpg'
+    },
+    {
+      id: 'wh-3',
+      sku: 'DES-SUN-50',
+      name: 'Melanin Defense Invisible Sun Shield SPF 50+',
+      category: 'Skincare',
+      cartonUnits: 36,
+      wholesalePrice: 489600,
+      retailCartonValue: 720000,
+      expectedMargin: 230400,
+      marginPercent: 32,
+      image: '/routine_lady_protect.jpg'
+    }
+  ]);
+
+  const updateWholesaleCartons = (cartons: WholesaleCartonItem[]) => {
+    setWholesaleCartonsList(cartons);
+  };
+
+  const [labShipmentsList, setLabShipmentsList] = useState<LabRestockShipment[]>([
+    {
+      id: 'lab-1',
+      batchNumber: 'BATCH-2026-04A',
+      courier: 'GIG Logistics Priority Cold-Chain',
+      trackingNumber: 'GIG-NG-8894102',
+      destinationHub: 'Abuja Central Distribution Hub',
+      itemCount: 450,
+      status: 'IN_TRANSIT',
+      dispatchedAt: 'Today, 08:30 AM',
+      estimatedArrival: 'Tomorrow, 02:00 PM'
+    },
+    {
+      id: 'lab-2',
+      batchNumber: 'BATCH-2026-03F',
+      courier: 'Red Star Express Direct',
+      trackingNumber: 'RSE-LAG-110294',
+      destinationHub: 'Lagos Victoria Island Warehouse',
+      itemCount: 800,
+      status: 'DELIVERED',
+      dispatchedAt: 'Yesterday, 10:15 AM',
+      estimatedArrival: 'Delivered (Received by Warehouse Lead)'
+    }
+  ]);
+
+  const updateLabShipments = (shipments: LabRestockShipment[]) => {
+    setLabShipmentsList(shipments);
+  };
+
+  const addLabShipment = (shipment: LabRestockShipment) => {
+    setLabShipmentsList((prev) => [shipment, ...prev]);
+  };
+
+  const [incidentTicketsList, setIncidentTicketsList] = useState<LogisticsIncidentTicket[]>([
+    {
+      id: 'inc-1',
+      ticketNumber: 'DIS-4190',
+      hubName: 'Abuja Wuse 2 Hub',
+      category: 'Damaged Batch In Transit',
+      message: 'Carton #DES-RGO-100 arrived with outer seal compromised from regional transit depot.',
+      contactEmail: 'abuja.hub@deslabeauty.com',
+      severity: 'HIGH',
+      status: 'IN_REVIEW',
+      createdAt: '2 hours ago'
+    },
+    {
+      id: 'inc-2',
+      ticketNumber: 'DIS-4182',
+      hubName: 'Port Harcourt GRA Hub',
+      category: 'Stock Discrepancy',
+      message: 'Physical stock reconciliation discrepancy of 3 units SPF 50+ after weekend surge.',
+      contactEmail: 'ph.gra@deslabeauty.com',
+      severity: 'NORMAL',
+      status: 'RESOLVED',
+      createdAt: '1 day ago',
+      resolvedAt: 'Today, 09:00 AM',
+      resolutionNote: 'Adjusted in ledger, replacement carton dispatched.'
+    }
+  ]);
+
+  const updateIncidentTickets = (tickets: LogisticsIncidentTicket[]) => {
+    setIncidentTicketsList(tickets);
+  };
+
+  const resolveIncidentTicket = (ticketId: string, note?: string) => {
+    setIncidentTicketsList((prev) =>
+      prev.map((t) =>
+        t.id === ticketId
+          ? {
+              ...t,
+              status: 'RESOLVED',
+              resolvedAt: 'Just now',
+              resolutionNote: note || 'Resolved by Central Admin Operations.'
+            }
+          : t
+      )
+    );
+  };
+
+  // Coupons & Promo Rules
+  const [couponRulesList, setCouponRulesList] = useState<CouponRule[]>([
+    {
+      id: 'c-1',
+      code: 'WELCOME10',
+      discountType: 'PERCENTAGE',
+      discountValue: 10,
+      minOrderNgn: 15000,
+      usedCount: 142,
+      isActive: true,
+      expiresAt: '2026-12-31'
+    },
+    {
+      id: 'c-2',
+      code: 'CHIOMA15',
+      discountType: 'PERCENTAGE',
+      discountValue: 15,
+      minOrderNgn: 20000,
+      creatorHandle: '@dermatology_chi',
+      usedCount: 88,
+      isActive: true,
+      expiresAt: '2026-12-31'
+    }
+  ]);
+
+  const updateCouponRules = (rules: CouponRule[]) => {
+    setCouponRulesList(rules);
+  };
+
+  const addCouponRule = (rule: CouponRule) => {
+    setCouponRulesList((prev) => [rule, ...prev]);
+  };
+
+  // Product CRUD mutations from Admin
+  const saveProductFromAdmin = async (productData: Partial<Product>) => {
+    setProducts((prev) => {
+      if (productData.id && prev.some((p) => p.id === productData.id)) {
+        return prev.map((p) => (p.id === productData.id ? ({ ...p, ...productData } as Product) : p));
+      } else {
+        const newProd: Product = {
+          id: productData.id || `prod-${Date.now()}`,
+          name: productData.name || 'Untitled Formulation',
+          brand: productData.brand || 'Delsla Clinical',
+          category: productData.category || 'Skincare',
+          price: productData.price || 15000,
+          comparePrice: productData.comparePrice,
+          rating: productData.rating || 5.0,
+          reviewsCount: productData.reviewsCount || 0,
+          image: productData.image || '/hero_slide_1.jpg',
+          gallery: productData.gallery || [productData.image || '/hero_slide_1.jpg'],
+          inStock: productData.inStock !== false,
+          isNew: productData.isNew || false,
+          isBestseller: productData.isBestseller || false,
+          description: productData.description || '',
+          whatItDoes: productData.whatItDoes || [],
+          howToUse: productData.howToUse || { instructions: '', precautions: '' },
+          brandInfo: productData.brandInfo || { origin: 'Nigeria / Switzerland', crueltyFree: true, guarantee: '100% Satisfaction Guarantee' },
+          skinTypes: productData.skinTypes || ['All Skin Types'],
+          concerns: productData.concerns || [],
+          ingredients: productData.ingredients || [],
+          sizes: productData.sizes || ['100ml'],
+          customBadge: productData.customBadge,
+          distributorStock: productData.distributorStock,
+          ...productData
+        } as Product;
+        return [newProd, ...prev];
+      }
+    });
+  };
+
+  const deleteProductFromAdmin = (productId: string) => {
+    setProducts((prev) => prev.filter((p) => p.id !== productId));
+  };
+
+  const toggleProductStock = (productId: string) => {
+    setProducts((prev) =>
+      prev.map((p) => (p.id === productId ? { ...p, inStock: !p.inStock } : p))
+    );
+  };
 
   // Loyalty voucher applied at checkout (server-validated; empty = none).
   const [voucherCode, setVoucherCode] = useState<string>('');
@@ -1275,6 +1746,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         isAddToCartSheetOpen,
         lastAddedCartItem,
         closeAddToCartSheet,
+        quickModalProduct,
+        openQuickModal,
+        closeQuickModal,
         wishlist,
         toggleWishlist,
         isWishlisted,
@@ -1351,7 +1825,51 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         dismissLivePayment,
         reverifyPayment: (reference: string) => verifyPaymentReturn(reference),
         addLocalOrder,
-        prepareLiveCheckout
+        prepareLiveCheckout,
+
+        // Storefront & Editorial CMS State
+        heroSlides,
+        updateHeroSlides,
+        routineSteps,
+        updateRoutineSteps,
+        brandStory,
+        updateBrandStory,
+        announcementTicker,
+        updateAnnouncementTicker,
+
+        // Taxonomy & Categories CRUD
+        categories: categoriesList,
+        updateCategories,
+        addCategory,
+        deleteCategory,
+
+        // Creator PR & Campaigns
+        prBoxes: prBoxesList,
+        updatePRBoxes,
+        addPRBox,
+        creatorCampaigns: creatorCampaignsList,
+        updateCreatorCampaigns,
+        addCreatorCampaign,
+
+        // Wholesale & Logistics
+        wholesaleCartons: wholesaleCartonsList,
+        updateWholesaleCartons,
+        labShipments: labShipmentsList,
+        updateLabShipments,
+        addLabShipment,
+        incidentTickets: incidentTicketsList,
+        updateIncidentTickets,
+        resolveIncidentTicket,
+
+        // Coupons & Promo Rules
+        couponRules: couponRulesList,
+        updateCouponRules,
+        addCouponRule,
+
+        // Product CRUD mutations from Admin
+        saveProductFromAdmin,
+        deleteProductFromAdmin,
+        toggleProductStock
       }}
     >
       {children}

@@ -27,14 +27,14 @@ export const paymentAttempts = pgTable(
     orderId: uuid('order_id')
       .notNull()
       .references(() => orders.id, { onDelete: 'cascade' }),
-    provider: text('provider').notNull(), // flutterwave|paystack|opay|transfer
+    provider: text('provider').notNull(), // flutterwave|stripe|opay|transfer
     amountKobo: integer('amount_kobo').notNull(),
     currency: text('currency').notNull().default('NGN'),
     reference: text('reference').notNull().unique(), // our tx_ref / merchant order no.
     idempotencyKey: text('idempotency_key').notNull().unique(),
     status: text('status').notNull().default('initiated'),
     authorizationUrl: text('authorization_url'),
-    providerRef: text('provider_ref'), // flw transaction_id / opay orderNo / paystack ref
+    providerRef: text('provider_ref'), // flw transaction_id / opay orderNo / stripe session id
     expiresAt: timestamptz('expires_at'),
     createdAt: timestamptz('created_at').notNull().defaultNow(),
     updatedAt: timestamptz('updated_at').notNull().defaultNow(),
@@ -70,7 +70,7 @@ export const payments = pgTable(
 
 /**
  * Raw provider callbacks, append-only. Replay-safe via UNIQUE(provider,
- * provider_event_id): flutterwave transaction id, paystack reference:event,
+ * provider_event_id): flutterwave transaction id, stripe event id,
  * opay orderNo. Payload retained for dispute forensics.
  */
 export const paymentEvents = pgTable(

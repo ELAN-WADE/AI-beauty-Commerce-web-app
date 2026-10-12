@@ -2,61 +2,55 @@ import React, { useState } from 'react';
 import {
   Link2,
   Copy,
-  ExternalLink,
-  Plus,
-  TrendingUp,
-  ShoppingBag,
-  Eye,
-  Check
+  Check,
+  Plus
 } from 'lucide-react';
 import { StatChip } from '../shared/StatChip';
-import { useApp } from '../../../context/AppContext';
 
 export const CreatorReferralLinks: React.FC = () => {
-  const { products } = useApp();
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const links = [
     {
-      id: 'l-1',
-      title: 'General Storefront Link',
+      id: 'link-1',
+      name: 'General Storefront Link',
       url: 'https://delsla.com/@amara_glows',
       promoCode: 'AMARA10',
-      clicks: 928,
-      orders: 74,
+      clicks: '928',
+      orders: '74',
       conversion: '7.9%',
-      commissionEarned: '₦56,208'
+      earned: '₦56,208'
     },
     {
-      id: 'l-2',
-      title: 'Radiant Glow Oil Deep Link',
+      id: 'link-2',
+      name: 'Radiant Glow Oil Deep Link',
       url: 'https://delsla.com/p/radiant-glow-oil?ref=amara',
       promoCode: 'AMARA10',
-      clicks: 342,
-      orders: 41,
+      clicks: '342',
+      orders: '41',
       conversion: '11.9%',
-      commissionEarned: '₦32,800'
+      earned: '₦32,800'
     },
     {
-      id: 'l-3',
-      title: 'Glow Season 2026 Campaign Link',
+      id: 'link-3',
+      name: 'Glow Season 2026 Campaign Link',
       url: 'https://delsla.com/campaign/glow-season?c=amara',
       promoCode: 'AMARA15',
-      clicks: 154,
-      orders: 19,
+      clicks: '154',
+      orders: '19',
       conversion: '12.3%',
-      commissionEarned: '₦18,200'
+      earned: '₦18,200'
     }
   ];
 
-  const handleCopy = (id: string, text: string) => {
-    navigator.clipboard.writeText(text);
+  const handleCopy = (id: string, url: string) => {
+    navigator.clipboard.writeText(url);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-200">
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-200">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E5E7EB]">
         <div>
@@ -72,74 +66,102 @@ export const CreatorReferralLinks: React.FC = () => {
         </div>
 
         <button
-          onClick={() => alert('Custom deep link generator opened')}
-          className="px-5 py-2.5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-bold shadow-xs active:scale-[0.97] transition-all flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
+          onClick={() => alert('Create new deep link')}
+          className="px-5 py-2.5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-bold shadow-xs active:scale-[0.97] transition-all flex items-center gap-1.5 cursor-pointer self-start sm:self-auto shrink-0"
         >
           <Plus size={14} className="text-[#D4AF37]" />
           <span>Create New Deep Link</span>
         </button>
       </div>
 
-      {/* KPI Overview */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <StatChip label="Total Link Clicks" value="1,424" change="+24%" trend="up" subtext="Across all platforms" />
-        <StatChip label="Attributed Orders" value="134" change="+18%" trend="up" subtext="Verified orders" />
-        <StatChip label="Average Conversion" value="9.4%" subtext="Industry avg: 2.5%" badge="High" badgeVariant="success" />
-        <StatChip label="Total Commission" value="₦107,208" subtext="12% cash on orders" badge="Cash Earned" badgeVariant="gold" />
+      {/* 4 Metric Cards Matching Reference Screenshot 4 */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatChip
+          label="Total Link Clicks"
+          value="1,424"
+          change="+24%"
+          trend="up"
+          subtext="Across all platforms"
+        />
+        <StatChip
+          label="Attributed Orders"
+          value="134"
+          change="+18%"
+          trend="up"
+          subtext="Verified orders"
+        />
+        <StatChip
+          label="Average Conversion"
+          value="9.4%"
+          subtext="Industry avg: 2.5%"
+          badge="HIGH"
+        />
+        <StatChip
+          label="Total Commission"
+          value="₦107,208"
+          subtext="12% cash on orders"
+          badge="CASH EARNED"
+        />
       </div>
 
-      {/* Tracked Links Table */}
-      <section className="p-6 rounded-3xl bg-white border border-[#E5E7EB] shadow-xs space-y-4">
-        <h2 className="font-heading font-bold text-lg text-[#0F0F10]">
-          Active Attribution Links
-        </h2>
+      {/* Active Attribution Links Table */}
+      <div className="rounded-2xl sm:rounded-3xl bg-white border border-[#E5E7EB] shadow-2xs overflow-hidden">
+        <div className="p-5 sm:p-6 border-b border-[#E5E7EB]">
+          <h2 className="font-heading font-extrabold text-lg sm:text-xl text-[#0F0F10] tracking-tight">
+            Active Attribution Links
+          </h2>
+        </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="border-b border-[#E5E7EB] text-[#9CA3AF] font-mono uppercase text-[10px]">
-                <th className="pb-3 font-semibold">Link Name &amp; URL</th>
-                <th className="pb-3 font-semibold">Promo Code</th>
-                <th className="pb-3 font-semibold text-right">Clicks</th>
-                <th className="pb-3 font-semibold text-right">Orders</th>
-                <th className="pb-3 font-semibold text-right">Conv. Rate</th>
-                <th className="pb-3 font-semibold text-right">Earned</th>
-                <th className="pb-3 font-semibold text-right">Action</th>
+              <tr className="border-b border-[#E5E7EB] text-[10px] font-mono font-bold uppercase text-[#9CA3AF] tracking-wider">
+                <th className="py-3.5 px-6">Link Name &amp; URL</th>
+                <th className="py-3.5 px-6">Promo Code</th>
+                <th className="py-3.5 px-6">Clicks</th>
+                <th className="py-3.5 px-6">Orders</th>
+                <th className="py-3.5 px-6">Conv. Rate</th>
+                <th className="py-3.5 px-6">Earned</th>
+                <th className="py-3.5 px-6 text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E5E7EB]/70">
+            <tbody className="divide-y divide-[#E5E7EB]">
               {links.map((link) => (
                 <tr key={link.id} className="hover:bg-[#FAF9F6]/80 transition-colors">
-                  <td className="py-4 pr-3">
-                    <span className="font-bold text-[#0F0F10] block">{link.title}</span>
-                    <span className="text-[11px] font-mono text-[#6B7280] block truncate max-w-xs">
+                  <td className="py-4 px-6">
+                    <span className="font-bold text-[#0F0F10] block">{link.name}</span>
+                    <span className="text-[11px] text-[#6B7280] font-mono select-all">
                       {link.url}
                     </span>
                   </td>
-                  <td className="py-4">
-                    <span className="font-mono font-bold text-[#0F0F10] bg-[#FAF9F6] border border-[#E5E7EB] px-2 py-0.5 rounded-md">
-                      {link.promoCode}
-                    </span>
+                  <td className="py-4 px-6 font-mono font-bold text-[#0F0F10]">
+                    {link.promoCode}
                   </td>
-                  <td className="py-4 text-right font-mono text-[#6B7280]">{link.clicks}</td>
-                  <td className="py-4 text-right font-bold text-[#0F0F10]">{link.orders}</td>
-                  <td className="py-4 text-right font-bold text-emerald-700">{link.conversion}</td>
-                  <td className="py-4 text-right font-extrabold text-[#0F0F10]">
-                    {link.commissionEarned}
+                  <td className="py-4 px-6 font-mono text-[#0F0F10]">
+                    {link.clicks}
                   </td>
-                  <td className="py-4 text-right">
+                  <td className="py-4 px-6 font-mono text-[#0F0F10]">
+                    {link.orders}
+                  </td>
+                  <td className="py-4 px-6 font-mono font-bold text-[#0F0F10]">
+                    {link.conversion}
+                  </td>
+                  <td className="py-4 px-6 font-mono font-bold text-[#0F0F10]">
+                    {link.earned}
+                  </td>
+                  <td className="py-4 px-6 text-right">
                     <button
                       onClick={() => handleCopy(link.id, link.url)}
-                      className="px-3 py-1 rounded-full border border-[#E5E7EB] bg-white hover:bg-[#FAF9F6] font-semibold text-[11px] inline-flex items-center gap-1 cursor-pointer transition-colors"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E5E7EB] bg-white hover:bg-[#FAF9F6] text-xs font-semibold text-[#0F0F10] transition-colors cursor-pointer"
                     >
                       {copiedId === link.id ? (
                         <>
-                          <Check size={11} className="text-emerald-600" />
-                          <span className="text-emerald-700 font-bold">Copied</span>
+                          <Check size={12} className="text-[#0F0F10]" />
+                          <span className="text-[#0F0F10] font-bold">Copied</span>
                         </>
                       ) : (
                         <>
-                          <Copy size={11} className="text-[#6B7280]" />
+                          <Copy size={12} className="text-[#6B7280]" />
                           <span>Copy</span>
                         </>
                       )}
@@ -150,7 +172,7 @@ export const CreatorReferralLinks: React.FC = () => {
             </tbody>
           </table>
         </div>
-      </section>
+      </div>
     </div>
   );
 };

@@ -1,95 +1,65 @@
 import React, { useState, useEffect } from 'react';
 import {
   ArrowRight,
-  ShieldCheck,
-  Truck,
-  Sparkles,
-  Users,
-  Store,
-  MapPin,
+  ChevronRight,
+  Check,
   Star,
-  Package
+  Plus
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { ProductCard } from '../../components/common/ProductCard';
+import { ProductQuickModal } from '../../components/common/ProductQuickModal';
 import { BrandLogo } from '../../components/common/BrandLogo';
-import { BotanicalSprig, ApothecaryPuritySeal } from '../../components/common/HandDrawnAccents';
+import { FaceScanIcon } from '../../components/common/FaceScanIcon';
+import { Product } from '../../types';
 
 export const Screen18DesktopHome: React.FC = () => {
   const {
     products,
     navigateTo,
     setSelectedCategory,
+    selectedCategory,
     selectedCity,
-    setIsLocationModalOpen,
-    getDistributorsForCity,
-    authUser,
-    loginAsDemoRole
+    loginAsDemoRole,
+    heroSlides: appHeroSlides,
+    routineSteps: appRoutineSteps,
+    announcementTicker
   } = useApp();
 
-  const localDistributors = getDistributorsForCity(selectedCity);
-  const bestsellers = products.filter((p) => p.isBestseller).slice(0, 4);
-
-
-
-  // 3-Slide Dynamic Crossfading Slideshow Definitions
-  const heroSlides = [
+  // 1. PRODUCT-FOCUSED HERO SLIDESHOW (Live from Admin CMS)
+  const heroSlides = appHeroSlides && appHeroSlides.length > 0 ? appHeroSlides : [
     {
       id: 'routine',
       image: '/hero_slide_1.jpg',
-      tag: 'Safe-Conscious Routine',
-      card1: {
-        stat: '100% NAFDAC',
-        label: 'Clinical authentic formulation',
-      },
-      card2: {
-        stat: 'pH 5.5',
-        label: 'Biocompatible Shea & Niacinamide',
-      },
-      card3: {
-        rating: '4.9 ★',
-        label: '1,420+ verified clinical reviews',
-        actionText: 'Start 30s Scan',
-        actionRoute: 'ai-scan',
-      },
+      tag: 'Clinical Formulation',
+      headline: 'Health Before Beauty. Intention Before Trend.',
+      subtext: 'Bio-compatible shea, cold-pressed botanical oils, and active formulations engineered specifically for melanin-rich skin.',
+      actionLabel: 'Shop Formulations',
+      actionRoute: 'catalogue',
+      secondaryActionText: 'AI Skin Analysis',
+      secondaryRoute: 'ai-scan'
     },
     {
-      id: 'distributor',
+      id: 'body-care',
       image: '/hero_slide_2.jpg',
-      tag: 'Regional Distributor Network',
-      card1: {
-        stat: '14 Hubs',
-        label: 'Lagos · Abuja · Accra · PH',
-      },
-      card2: {
-        stat: '32% Net',
-        label: 'Wholesale B2B distributor margin',
-      },
-      card3: {
-        rating: '100%',
-        label: 'Same-day city hub dispatch',
-        actionText: 'Partner Workspace',
-        actionRoute: 'distributor-portal',
-      },
+      tag: 'Nourishing Body Rituals',
+      headline: 'Cold-Pressed Extrait Oils. Lasting Radiance.',
+      subtext: 'Lightweight, rapidly absorbing botanical oils infused with indigenous botanicals to nourish and restore deep cellular radiance.',
+      actionLabel: 'Explore Body Care',
+      actionCategory: 'body-care',
+      secondaryActionText: 'View Collections',
+      secondaryRoute: 'categories'
     },
     {
-      id: 'creator',
+      id: 'sun-defense',
       image: '/hero_slide_3.jpg',
-      tag: 'Creator & MUA Collective',
-      card1: {
-        stat: '12% Cash',
-        label: 'Direct commission on orders',
-      },
-      card2: {
-        stat: '12h Sillage',
-        label: 'Cold-pressed extrait oils',
-      },
-      card3: {
-        rating: '850+',
-        label: 'Melanin shade testing kits',
-        actionText: 'Claim Creator Kit',
-        actionRoute: 'creators',
-      },
+      tag: 'Daily Shield SPF 50+',
+      headline: 'Invisible Sun Defense. Tailored for Melanin.',
+      subtext: 'No chalky residue, no pore congestion. Lightweight daily mineral protection engineered specifically for Fitzpatrick IV–VI skin tones.',
+      actionLabel: 'Discover Sun Protection',
+      actionCategory: 'skincare',
+      secondaryActionText: 'Our Formulation Ethics',
+      secondaryRoute: 'categories'
     },
   ];
 
@@ -100,399 +70,653 @@ export const Screen18DesktopHome: React.FC = () => {
     if (isHeroPaused) return;
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
-    }, 5500);
+    }, 6000);
     return () => clearInterval(interval);
   }, [isHeroPaused, heroSlides.length]);
 
   const activeSlide = heroSlides[currentSlide];
 
+  // 2. CATEGORY DISCOVERY & FILTERING
+  const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>('All');
+  const categoryFilters = [
+    { id: 'All', label: 'All Formulations' },
+    { id: 'skincare', label: 'Skin Care' },
+    { id: 'body-care', label: 'Body Rituals' },
+    { id: 'fragrance', label: 'Haute Fragrance' },
+    { id: 'makeup', label: 'Lip & Color' },
+  ];
+
+  const filteredProducts = products.filter((p) => {
+    if (activeCategoryFilter === 'All') return true;
+    return p.category === activeCategoryFilter;
+  });
+
+  // Exactly 5 products for 1 single uniform row on desktop (as requested)
+  const displayedProducts = filteredProducts.slice(0, 5);
+
+  // 3. CURATED CATEGORY STRIP IN CONTINUOUS MOTION
+  const categoryStripItems = [
+    {
+      label: 'Body Care',
+      category: 'body-care',
+      image: '/cat_bodycare.jpg',
+      desc: 'Radiant botanical oils & whipped butters'
+    },
+    {
+      label: 'Skincare',
+      category: 'skincare',
+      image: '/cat_skincare.jpg',
+      desc: 'pH 5.5 cleansers & invisible SPF 50+'
+    },
+    {
+      label: 'Haute Fragrance',
+      category: 'fragrance',
+      image: '/cat_fragrance.jpg',
+      desc: 'Artisanal extrait perfume oils'
+    },
+    {
+      label: 'Makeup & Lips',
+      category: 'makeup',
+      image: '/cat_makeup.jpg',
+      desc: 'Peptide glosses & velvet finishes'
+    },
+    {
+      label: 'Lifestyle',
+      category: 'lifestyle',
+      image: '/cat_lifestyle.jpg',
+      desc: 'Raw silk & minimal accessories'
+    },
+  ];
+
+  // 4. EVERYDAY ROUTINE: 3-CHAPTER BEAUTY RITUAL (Live from Admin CMS)
+  const [activeRoutineStep, setActiveRoutineStep] = useState(0);
+  const routineSteps = appRoutineSteps && appRoutineSteps.length > 0 ? appRoutineSteps : [
+    {
+      number: '01',
+      title: 'Cleanse',
+      productName: 'Gentle Purifying Cleanser',
+      image: '/routine_lady_cleanse.jpg',
+      tagline: 'Acid Mantle Balancing',
+      description: 'Preserves the delicate skin barrier while removing impurities. Formulated at pH 5.5 to prevent tightness and moisture loss.',
+      keyBenefit: 'NAFDAC Certified • Zero Sulfates • Microbiome Safe'
+    },
+    {
+      number: '02',
+      title: 'Moisturize',
+      productName: 'Bio-Active Barrier Cream',
+      image: '/routine_lady_moisturize.jpg',
+      tagline: 'Deep Cellular Lipids',
+      description: 'Cold-pressed Nilotica shea and restorative niacinamide seal deep hydration to protect against harsh harmattan and dry climates.',
+      keyBenefit: '48h Lipid Lock • Cold-Pressed Shea • 2% Niacinamide'
+    },
+    {
+      number: '03',
+      title: 'Protect',
+      productName: 'Melanin Defense Sun Shield SPF 50+',
+      image: '/routine_lady_protect.jpg',
+      tagline: 'Invisible Broad Spectrum',
+      description: 'Engineered specifically for Fitzpatrick IV–VI skin tones. Leaves zero white cast, absorbs in seconds, and protects against UVA/UVB and blue light.',
+      keyBenefit: 'SPF 50+ PA++++ • 0% White Cast • Antioxidant Infused'
+    }
+  ];
+
+  // 5. PRODUCT QUICK MODAL (Variant Selection)
+  const [modalProduct, setModalProduct] = useState<Product | null>(null);
+  const [isQuickModalOpen, setIsQuickModalOpen] = useState(false);
+
+  const handleOpenVariantModal = (product: Product) => {
+    setModalProduct(product);
+    setIsQuickModalOpen(true);
+  };
+
   return (
-    <div className="min-h-screen bg-white text-[#0F0F10] flex flex-col font-body selection:bg-[#D4AF37]/20 selection:text-[#997A2E]">
-      <main className="flex-1">
+    <div className="min-h-screen bg-[#FAF9F6] text-[#0F0F10] font-body selection:bg-[#D4AF37]/20 selection:text-[#997A2E]">
+      <main className="space-y-0">
         {/* ========================================================================= */}
-        {/* LEVEL 1: RESTORED EDITORIAL HERO WITH GRID TELEMETRY CARDS (BG-WHITE)    */}
-        {/* ========================================================================= */}
-        <section className="relative w-full bg-white pt-2 sm:pt-4 pb-8 sm:pb-10 px-4 sm:px-6 lg:px-8 border-b border-[#E5E7EB]">
-          <div className="w-full max-w-5xl mx-auto relative">
-            {/* Central Asymmetric Photographic Composition & Floating Information Cards */}
-            <div
-              className="relative w-full max-w-[800px] mx-auto select-none"
-              onMouseEnter={() => setIsHeroPaused(true)}
-              onMouseLeave={() => setIsHeroPaused(false)}
-            >
-              {/* Asymmetric Masked Photograph */}
-              <div className="relative w-full">
-                <svg
-                  viewBox="0 0 960 480"
-                  className="w-full h-auto block select-none drop-shadow-[0_16px_36px_rgba(0,0,0,0.07)] overflow-visible"
-                >
-                  <defs>
-                    <clipPath id="hero-asymmetric-silhouette">
-                      <path d="M 280 16 H 740 A 32 32 0 0 1 772 48 V 160 A 24 24 0 0 0 796 184 H 840 A 28 28 0 0 1 868 212 V 320 A 32 32 0 0 1 836 352 H 760 A 24 24 0 0 0 736 328 H 530 A 28 28 0 0 0 502 356 V 432 A 32 32 0 0 1 470 464 H 120 A 32 32 0 0 1 88 432 V 220 A 28 28 0 0 1 116 192 H 220 A 28 28 0 0 0 248 164 V 48 A 32 32 0 0 1 280 16 Z" />
-                    </clipPath>
-                  </defs>
-                  {heroSlides.map((slide, idx) => (
-                    <image
-                      key={slide.id}
-                      href={slide.image}
-                      x="0"
-                      y="0"
-                      width="960"
-                      height="480"
-                      preserveAspectRatio="xMidYMid slice"
-                      clipPath="url(#hero-asymmetric-silhouette)"
-                      style={{
-                        opacity: currentSlide === idx ? 1 : 0,
-                        transition: 'opacity 700ms cubic-bezier(0.77, 0, 0.175, 1)',
-                        pointerEvents: currentSlide === idx ? 'auto' : 'none'
-                      }}
-                    />
-                  ))}
-                </svg>
-              </div>
-
-              {/* Floating Card 01 — Upper Left (Obsidian dark minimalist surface) */}
-              <div className="absolute top-[4%] sm:top-[5%] left-[1%] sm:left-[2%] bg-[#0F1117] text-white px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl sm:rounded-2xl shadow-xl shadow-black/25 z-20 transition-all duration-300 hover:scale-[1.02] border border-white/15">
-                <span className="font-heading font-bold text-[15px] leading-tight text-white block tracking-tight">
-                  {activeSlide.card1.stat}
-                </span>
-                <p className="text-[10px] text-gray-300 font-normal leading-snug mt-0.5 max-w-[110px] sm:max-w-[125px]">
-                  {activeSlide.card1.label}
-                </p>
-              </div>
-
-              {/* Floating Card 02 — Lower Left (Crisp white minimalist surface) */}
-              <div className="absolute bottom-[6%] sm:bottom-[7%] left-[0%] sm:left-[1%] bg-white text-[#0F0F10] px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl sm:rounded-2xl shadow-lg shadow-black/8 z-20 transition-all duration-300 hover:scale-[1.02] border border-[#E5E7EB]">
-                <span className="font-heading font-bold text-[15px] leading-tight text-[#0F1123] block tracking-tight">
-                  {activeSlide.card2.stat}
-                </span>
-                <p className="text-[10px] text-[#6B7280] font-normal leading-snug mt-0.5 max-w-[105px] sm:max-w-[120px]">
-                  {activeSlide.card2.label}
-                </p>
-              </div>
-
-              {/* Floating Card 03 — Upper Right (Crisp white rating card) */}
-              <div className="absolute top-[8%] sm:top-[10%] right-[1%] sm:right-[2%] bg-white text-[#0F0F10] px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl sm:rounded-2xl shadow-lg shadow-black/8 z-20 transition-all duration-300 hover:scale-[1.02] border border-[#E5E7EB]">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-heading font-bold text-[15px] leading-tight text-[#0F1123] tracking-tight">
-                    {activeSlide.card3.rating}
-                  </span>
-                  <div className="w-4 h-4 rounded-full bg-[#111315] text-[#D4AF37] flex items-center justify-center text-[8px]">
-                    <Star size={8} fill="currentColor" />
-                  </div>
-                </div>
-                <p className="text-[10px] text-[#6B7280] font-normal leading-snug mt-0.5 max-w-[100px] sm:max-w-[115px]">
-                  {activeSlide.card3.label}
-                </p>
-                <button
-                  onClick={() => navigateTo(activeSlide.card3.actionRoute as any)}
-                  className="mt-1 text-[10px] font-semibold text-[#0F0F10] hover:text-[#997A2E] flex items-center gap-1 cursor-pointer transition-colors active:scale-95"
-                >
-                  <span>{activeSlide.card3.actionText}</span>
-                  <ArrowRight size={9} />
-                </button>
-              </div>
-
-              {/* Floating Card 04 — Lower Right Notch Category Links */}
-              <div className="absolute bottom-[6%] sm:bottom-[7%] right-[2%] sm:right-[4%] z-20 flex flex-col gap-1 select-none bg-white/95 backdrop-blur-xs px-3 py-1.5 rounded-xl border border-[#E5E7EB] shadow-xs">
-                <div className="flex items-center gap-2 text-[10px] font-medium text-[#2D2A26]">
-                  <button
-                    onClick={() => { setSelectedCategory('body-care'); navigateTo('catalogue'); }}
-                    className="hover:text-[#997A2E] transition-colors cursor-pointer"
-                  >
-                    Whipped Shea
-                  </button>
-                  <span className="text-[#2D2A26]/30 text-[8px]">•</span>
-                  <button
-                    onClick={() => { setSelectedCategory('body-care'); navigateTo('catalogue'); }}
-                    className="hover:text-[#997A2E] transition-colors cursor-pointer"
-                  >
-                    Radiant Oils
-                  </button>
-                  <span className="text-[#2D2A26]/30 text-[8px]">•</span>
-                  <button
-                    onClick={() => { setSelectedCategory('fragrance'); navigateTo('catalogue'); }}
-                    className="hover:text-[#997A2E] transition-colors cursor-pointer"
-                  >
-                    Parfums
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Slide Navigation Controls */}
-            <div className="flex items-center justify-center gap-2 mt-5">
-              {heroSlides.map((slide, idx) => {
-                const isActive = currentSlide === idx;
-                return (
-                  <button
-                    key={slide.id}
-                    onClick={() => setCurrentSlide(idx)}
-                    aria-label={`Go to slide ${idx + 1}: ${slide.tag}`}
-                    className={`h-2 transition-all duration-300 rounded-full cursor-pointer ${
-                      isActive
-                        ? 'w-6 bg-[#0F0F10]'
-                        : 'w-2 bg-[#0F0F10]/20 hover:bg-[#0F0F10]/40'
-                    }`}
-                  />
-                );
-              })}
-            </div>
-
-            {/* Primary Action Buttons */}
-            <div className="flex flex-wrap justify-center items-center gap-3.5 mt-5">
-              <button
-                onClick={() => {
-                  setSelectedCategory('All');
-                  navigateTo('catalogue');
-                }}
-                className="bg-[#0F0F10] hover:bg-[#27272A] text-white px-8 py-3.5 rounded-full text-xs sm:text-sm font-semibold shadow-md flex items-center gap-2.5 active:scale-[0.98] transition-transform duration-160 ease-out cursor-pointer group"
-                aria-label="Shop now"
-              >
-                <span>Shop Now</span>
-                <ArrowRight size={14} className="text-[#D4AF37] group-hover:translate-x-0.5 transition-transform" />
-              </button>
-              <button
-                onClick={() => navigateTo('categories')}
-                className="bg-[#FAF9F6] hover:bg-[#F3EEE3] border border-[#E5E7EB] text-[#0F0F10] px-6 py-3.5 rounded-full text-xs sm:text-sm font-semibold active:scale-[0.98] transition-transform duration-160 ease-out cursor-pointer"
-                aria-label="Explore collections"
-              >
-                Explore Collections
-              </button>
-            </div>
-          </div>
-        </section>
-
-        {/* ========================================================================= */}
-        {/* LEVEL 2: THREE BALANCED ENTRY DOORS WITH 1-CLICK INSTANT DEMO ACCESS       */}
-        {/* WHITE BACKGROUND WITH GOLD WAVES ACCENT                                   */}
+        {/* 1. HERO SECTION: Clean, Spacious, Breathable Editorial                   */}
         {/* ========================================================================= */}
         <section
-          aria-label="Customer and Partner Entry Points"
-          className="relative py-14 lg:py-20 border-b border-[#E5E7EB] bg-white bg-cover bg-bottom overflow-hidden"
-          style={{ backgroundImage: `url('/wave_white_gold.svg')`, backgroundRepeat: 'no-repeat', backgroundSize: 'cover', backgroundPosition: 'bottom' }}
+          aria-label="Editorial Brand Hero"
+          className="relative bg-[#0F0F10] text-white min-h-[580px] lg:min-h-[640px] flex items-center overflow-hidden"
+          onMouseEnter={() => setIsHeroPaused(true)}
+          onMouseLeave={() => setIsHeroPaused(false)}
         >
-          <div className="relative z-10 max-w-6xl mx-auto px-6">
-            <div className="text-center max-w-xl mx-auto mb-10">
-              <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#997A2E] block mb-1">
-                Choose Your Pathway
-              </span>
-              <h2 className="font-heading font-extrabold text-2xl lg:text-3xl text-[#0F0F10] tracking-tight">
-                How would you like to connect with Desla!™?
-              </h2>
-              <p className="text-xs sm:text-sm text-[#6B7280] mt-2 font-medium">
-                Instant access for customers, creators, and regional wholesale partners.
+          {/* Background Photographic Carousel with Smooth Crossfade */}
+          {heroSlides.map((slide, idx) => (
+            <div
+              key={slide.id}
+              className={`absolute inset-0 transition-opacity duration-1000 ease-out pointer-events-none ${
+                idx === currentSlide ? 'opacity-90' : 'opacity-0'
+              }`}
+            >
+              <img
+                src={slide.image}
+                alt={slide.headline}
+                className="w-full h-full object-cover object-center scale-102"
+                loading={idx === 0 ? 'eager' : 'lazy'}
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/55 to-black/25" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/30" />
+            </div>
+          ))}
+
+          {/* Hero Content Stage */}
+          <div className="relative z-10 max-w-6xl mx-auto px-6 py-20 w-full">
+            <div className="max-w-2xl space-y-6">
+              {/* Editorial Sub-Label in Pure Serif Italics (Understated, Luxury Scale) */}
+              <p className="font-serif italic text-sm sm:text-base text-[#D4AF37] tracking-wide">
+                {activeSlide.tag}
               </p>
-            </div>
 
-            {/* 3 Balanced Cards in a Structured Horizontal Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Card 1: First-Time Customer */}
-              <article className="p-7 rounded-3xl bg-white border border-[#E5E7EB] hover:border-[#D4AF37] shadow-sm hover:shadow-md flex flex-col justify-between transition-all duration-200 group">
-                <div className="space-y-3">
-                  <div className="w-11 h-11 rounded-2xl bg-[#FBF5E8] text-[#997A2E] flex items-center justify-center shadow-2xs">
-                    <Sparkles size={20} className="text-[#D4AF37]" />
-                  </div>
-                  <div>
-                    <span className="text-[10.5px] font-mono font-bold uppercase tracking-wider text-[#997A2E] block">
-                      Client Access
-                    </span>
-                    <h3 className="font-heading font-bold text-lg text-[#0F0F10] mt-0.5">
-                      Register as a Customer
-                    </h3>
-                  </div>
-                  <p className="text-xs text-[#6B7280] leading-relaxed">
-                    Create your client dossier for clinical routine tracking, member reward points, and expedited same-day local dispatch.
-                  </p>
-                </div>
+              {/* Expressive Editorial Headline (Refined, Confident Scale) */}
+              <h1 className="font-heading font-extrabold text-2xl sm:text-3xl lg:text-4xl tracking-tight text-white leading-[1.2]">
+                {activeSlide.headline}
+              </h1>
 
-                <div className="pt-6 space-y-2.5 border-t border-[#E5E7EB]/70 mt-6">
-                  <button
-                    onClick={() => {
-                      loginAsDemoRole('CUSTOMER');
-                      navigateTo('account');
-                    }}
-                    className="w-full py-3 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-semibold shadow-xs active:scale-[0.97] transition-transform duration-160 ease-out flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <span>Instant Customer Access</span>
-                    <ArrowRight size={14} />
-                  </button>
-                  <p className="text-center text-[11px] text-[#6B7280]">
-                    Need custom profile?{' '}
-                    <button
-                      onClick={() => navigateTo('signup')}
-                      className="font-semibold text-[#0F0F10] hover:text-[#997A2E] underline cursor-pointer"
-                    >
-                      Create Account
-                    </button>
-                    {' • '}
-                    <button
-                      onClick={() => navigateTo('login')}
-                      className="font-semibold text-[#0F0F10] hover:text-[#997A2E] underline cursor-pointer"
-                    >
-                      Sign In
-                    </button>
-                  </p>
-                </div>
-              </article>
+              {/* Restrained Supporting Statement */}
+              <p className="text-xs sm:text-sm text-gray-200 leading-relaxed max-w-lg font-normal">
+                {activeSlide.subtext}
+              </p>
 
-              {/* Card 2: Creator Partnership */}
-              <article className="p-7 rounded-3xl bg-white border border-[#E5E7EB] hover:border-[#D4AF37] shadow-sm hover:shadow-md flex flex-col justify-between transition-all duration-200 group">
-                <div className="space-y-3">
-                  <div className="w-11 h-11 rounded-2xl bg-[#FBF5E8] text-[#997A2E] flex items-center justify-center shadow-2xs">
-                    <Users size={20} className="text-[#D4AF37]" />
-                  </div>
-                  <div>
-                    <span className="text-[10.5px] font-mono font-bold uppercase tracking-wider text-[#997A2E] block">
-                      MUA &amp; Content Collective
-                    </span>
-                    <h3 className="font-heading font-bold text-lg text-[#0F0F10] mt-0.5">
-                      Partner as a Creator
-                    </h3>
-                  </div>
-                  <p className="text-xs text-[#6B7280] leading-relaxed">
-                    Join verified MUAs &amp; dermatologists. Share your 10% discount promo code with followers and earn 12% cash on every verified order.
-                  </p>
-                </div>
+              {/* Intentional CTAs */}
+              <div className="pt-2 flex flex-wrap items-center gap-4">
+                <button
+                  onClick={() => {
+                    if (activeSlide.actionCategory) {
+                      setSelectedCategory(activeSlide.actionCategory);
+                    } else {
+                      setSelectedCategory('All');
+                    }
+                    navigateTo('catalogue');
+                  }}
+                  className="px-7 py-3.5 rounded-full bg-[#D4AF37] hover:bg-[#c49f2e] text-[#0F0F10] text-xs font-bold tracking-wide transition-all duration-200 active:scale-95 shadow-md flex items-center gap-2 cursor-pointer"
+                >
+                  <span>{activeSlide.actionLabel}</span>
+                  <ArrowRight size={15} strokeWidth={2.2} />
+                </button>
 
-                <div className="pt-6 space-y-2.5 border-t border-[#E5E7EB]/70 mt-6">
-                  <button
-                    onClick={() => {
-                      loginAsDemoRole('CREATOR');
-                      navigateTo('creators');
-                    }}
-                    className="w-full py-3 rounded-full bg-[#FAF9F6] hover:bg-[#F3EEE3] border border-[#E5E7EB] text-[#0F0F10] text-xs font-semibold active:scale-[0.97] transition-transform duration-160 ease-out flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <span>Access Creator Studio</span>
-                    <ArrowRight size={14} />
-                  </button>
-                  <p className="text-center text-[11px] text-[#6B7280]">
-                    Returning creator?{' '}
-                    <button
-                      onClick={() => {
-                        loginAsDemoRole('CREATOR');
-                        navigateTo('creators');
-                      }}
-                      className="font-semibold text-[#0F0F10] hover:text-[#997A2E] underline cursor-pointer"
-                    >
-                      Studio Sign-In
-                    </button>
-                  </p>
-                </div>
-              </article>
-
-              {/* Card 3: Distributor Partnership */}
-              <article className="p-7 rounded-3xl bg-white border border-[#E5E7EB] hover:border-[#D4AF37] shadow-sm hover:shadow-md flex flex-col justify-between transition-all duration-200 group">
-                <div className="space-y-3">
-                  <div className="w-11 h-11 rounded-2xl bg-[#FBF5E8] text-[#997A2E] flex items-center justify-center shadow-2xs">
-                    <Store size={20} className="text-[#D4AF37]" />
-                  </div>
-                  <div>
-                    <span className="text-[10.5px] font-mono font-bold uppercase tracking-wider text-[#997A2E] block">
-                      Regional Commerce Network
-                    </span>
-                    <h3 className="font-heading font-bold text-lg text-[#0F0F10] mt-0.5">
-                      Partner as a Distributor
-                    </h3>
-                  </div>
-                  <p className="text-xs text-[#6B7280] leading-relaxed">
-                    Power same-day delivery in your city. Stock authentic laboratory formulations locally, eliminate shipping delays &amp; capture 32% wholesale margin.
-                  </p>
-                </div>
-
-                <div className="pt-6 space-y-2.5 border-t border-[#E5E7EB]/70 mt-6">
-                  <button
-                    onClick={() => {
-                      loginAsDemoRole('DISTRIBUTOR');
-                      navigateTo('distributor-portal');
-                    }}
-                    className="w-full py-3 rounded-full bg-[#FAF9F6] hover:bg-[#F3EEE3] border border-[#E5E7EB] text-[#0F0F10] text-xs font-semibold active:scale-[0.97] transition-transform duration-160 ease-out flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <span>Access Distributor Hub</span>
-                    <ArrowRight size={14} />
-                  </button>
-                  <p className="text-center text-[11px] text-[#6B7280]">
-                    Looking for local stock?{' '}
-                    <button
-                      onClick={() => navigateTo('distributors')}
-                      className="font-semibold text-[#0F0F10] hover:text-[#997A2E] underline cursor-pointer"
-                    >
-                      Find City Hubs
-                    </button>
-                  </p>
-                </div>
-              </article>
-            </div>
-          </div>
-        </section>
-
-        {/* ========================================================================= */}
-        {/* SUPPORTING SECTION: BEST-SELLING FORMULATIONS                             */}
-        {/* ========================================================================= */}
-        <section aria-label="Best-selling formulations" className="py-14 bg-white">
-          <div className="max-w-6xl mx-auto px-6">
-            <div className="flex items-end justify-between mb-8">
-              <div>
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#997A2E] block mb-1">
-                  Apothecary Staples
-                </span>
-                <h2 className="font-heading font-extrabold text-2xl lg:text-3xl text-[#0F0F10] tracking-tight">
-                  Best-Selling Formulations
-                </h2>
+                <button
+                  onClick={() => {
+                    if (activeSlide.secondaryRoute) {
+                      navigateTo(activeSlide.secondaryRoute as any);
+                    } else {
+                      navigateTo('ai-scan');
+                    }
+                  }}
+                  className="px-6 py-3.5 rounded-full bg-white/10 hover:bg-white/20 text-white border border-white/25 text-xs font-semibold backdrop-blur-md transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
+                >
+                  <FaceScanIcon size={14} className="text-[#D4AF37]" />
+                  <span>{activeSlide.secondaryActionText || 'AI Skin Analysis'}</span>
+                </button>
               </div>
-              <button
-                onClick={() => {
-                  setSelectedCategory('All');
-                  navigateTo('catalogue');
-                }}
-                className="text-xs font-bold text-[#0F0F10] hover:text-[#997A2E] flex items-center gap-1.5 cursor-pointer transition-colors"
-              >
-                <span>View All Skincare</span>
-                <ArrowRight size={14} />
-              </button>
             </div>
 
-            {/* Clean 4-Column Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {bestsellers.map((product) => (
-                <ProductCard key={product.id} product={product} />
+            {/* Slide Navigation Progress Lines */}
+            <div className="mt-14 flex items-center gap-2.5">
+              {heroSlides.map((slide, idx) => (
+                <button
+                  key={slide.id}
+                  onClick={() => setCurrentSlide(idx)}
+                  className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+                    idx === currentSlide
+                      ? 'w-8 bg-[#D4AF37]'
+                      : 'w-2 bg-white/30 hover:bg-white/50'
+                  }`}
+                  aria-label={`Go to slide ${idx + 1}`}
+                />
               ))}
             </div>
           </div>
         </section>
 
         {/* ========================================================================= */}
-        {/* SUPPORTING SECTION: REGIONAL SOURCING & CONCIERGE BANNER                  */}
+        {/* 2. CHOOSE YOUR PATHWAY: ASYMMETRIC BENTO WITH SCULPTED DIAGONAL CURVES    */}
         {/* ========================================================================= */}
-        <section aria-label="Regional sourcing guarantee" className="py-10 bg-[#FAF9F6] border-t border-[#E5E7EB]">
-          <div className="max-w-6xl mx-auto px-6">
-            <div className="p-8 rounded-3xl bg-white border border-[#E5E7EB] shadow-xs flex flex-col md:flex-row items-center justify-between gap-6">
-              <div className="space-y-2 max-w-xl">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FAF9F6] border border-[#E5E7EB] text-[#0F0F10] text-[11px] font-semibold">
-                  <MapPin size={13} className="text-[#D4AF37]" />
-                  <span>Verified Regional Fulfillment Node</span>
+        <section
+          aria-label="Audience Pathways"
+          className="relative py-10 lg:py-14 bg-[#FAF9F6] border-b border-[#E5E7EB] overflow-hidden"
+        >
+          {/* Ambient Flowing Golden Wave Background */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden select-none opacity-35">
+            <div
+              className="absolute bottom-0 left-0 w-[200%] h-[260px] bg-repeat-x bg-bottom animate-wave-flow"
+              style={{
+                backgroundImage: `url('/wave_white_gold.svg')`,
+                backgroundSize: '1200px 260px',
+              }}
+            />
+          </div>
+
+          <div className="relative z-10 max-w-6xl mx-auto px-6">
+            <div className="text-center max-w-xl mx-auto mb-9">
+              <p className="font-serif italic text-base text-[#997A2E] mb-0.5">
+                Curated Gateways
+              </p>
+              <h2 className="font-heading font-extrabold text-2xl lg:text-3xl text-[#0F0F10] tracking-tight">
+                Connect with Delsla™
+              </h2>
+              <p className="text-xs sm:text-sm text-[#6B7280] mt-1.5 font-normal leading-relaxed">
+                Dedicated portals for skincare clients, beauty educators, and commercial partners.
+              </p>
+            </div>
+
+            {/* Asymmetrical Bento Grid with Sculpted Diagonal Curvatures & Lush Beauty Face */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+              {/* Dominant Hero Bento: Customer Experience with Lush Cosmetic Beauty Face */}
+              <article
+                onClick={() => navigateTo('signup')}
+                className="lg:col-span-7 group relative min-h-[420px] lg:min-h-[450px] rounded-tl-[3.5rem] rounded-br-[3.5rem] rounded-tr-2xl rounded-bl-2xl overflow-hidden cursor-pointer shadow-sm hover:shadow-lg transition-all duration-500 border border-[#E5E7EB] flex flex-col justify-end"
+              >
+                <img
+                  src="/connect_customer_lush.jpg"
+                  alt="Delsla Customer Skincare Experience"
+                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-700 ease-out"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent" />
+
+                <div className="relative z-10 p-8 sm:p-10 text-white space-y-2.5">
+                  <span className="font-serif italic text-sm text-[#D4AF37]">
+                    Client Sanctuary
+                  </span>
+                  <h3 className="font-heading font-extrabold text-[20px] text-white">
+                    Customer Experience
+                  </h3>
+                  <p className="text-[12px] text-gray-200 leading-relaxed max-w-lg">
+                    Personalized formulation records, routine tracking, and white-glove concierge delivery across {selectedCity}.
+                  </p>
+                  <div className="pt-2">
+                    <span className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-white text-[#0F0F10] text-xs font-semibold group-hover:bg-[#D4AF37] transition-colors shadow-xs">
+                      <span>Create Client Profile</span>
+                      <ArrowRight size={13} />
+                    </span>
+                  </div>
                 </div>
-                <h3 className="font-heading font-bold text-xl text-[#0F0F10]">
-                  Same-Day Courier Delivery Active in {selectedCity}
-                </h3>
-                <p className="text-xs text-[#6B7280] leading-relaxed">
-                  Authorized local partner hubs in {selectedCity} keep authentic stock on hand. Eliminate interstate transit delays with verified local bike courier dispatch.
+              </article>
+
+              {/* Stacked Companion Bentos: Creator & Distributor with Matching Sculpted Curves */}
+              <div className="lg:col-span-5 flex flex-col gap-5">
+                {/* Bento Card 2: Creator Collective (Top-Right Curved) */}
+                <article
+                  onClick={() => {
+                    loginAsDemoRole('CREATOR');
+                    navigateTo('creators');
+                  }}
+                  className="group relative flex-1 min-h-[210px] rounded-tr-[2.5rem] rounded-bl-[2.5rem] rounded-tl-xl rounded-br-xl overflow-hidden cursor-pointer shadow-sm hover:shadow-md transition-all duration-500 border border-[#E5E7EB] flex flex-col justify-end p-6 sm:p-7"
+                >
+                  <img
+                    src="/connect_creator.jpg"
+                    alt="Delsla Beauty Creator Collective"
+                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-700 ease-out"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-transparent" />
+
+                  <div className="relative z-10 text-white space-y-1">
+                    <span className="font-serif italic text-xs text-[#D4AF37]">
+                      Creative Studio
+                    </span>
+                    <h3 className="font-heading font-bold text-lg text-white">
+                      Creator Collective
+                    </h3>
+                    <p className="text-[11px] text-gray-200 line-clamp-2 leading-relaxed">
+                      Share authentic routines, test lab formulations, and earn transparent creator commissions.
+                    </p>
+                    <div className="pt-1">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-white group-hover:text-[#D4AF37] transition-colors">
+                        <span>Explore Creator Hub</span>
+                        <ArrowRight size={12} />
+                      </span>
+                    </div>
+                  </div>
+                </article>
+
+                {/* Bento Card 3: Distribution Network (Top-Left Curved) */}
+                <article
+                  onClick={() => {
+                    loginAsDemoRole('DISTRIBUTOR');
+                    navigateTo('distributor-portal');
+                  }}
+                  className="group relative flex-1 min-h-[210px] rounded-tl-[2.5rem] rounded-br-[2.5rem] rounded-tr-xl rounded-bl-xl overflow-hidden cursor-pointer shadow-sm hover:shadow-md transition-all duration-500 border border-[#E5E7EB] flex flex-col justify-end p-6 sm:p-7"
+                >
+                  <img
+                    src="/connect_distributor.jpg"
+                    alt="Delsla Wholesale and Distribution"
+                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-700 ease-out"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-transparent" />
+
+                  <div className="relative z-10 text-white space-y-1">
+                    <span className="font-serif italic text-xs text-[#D4AF37]">
+                      Prestige Commerce
+                    </span>
+                    <h3 className="font-heading font-bold text-lg text-white">
+                      Distribution Network
+                    </h3>
+                    <p className="text-[11px] text-gray-200 line-clamp-2 leading-relaxed">
+                      Direct dispensary inventory allocations, tier volume discounts, and regional distribution.
+                    </p>
+                    <div className="pt-1">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-white group-hover:text-[#D4AF37] transition-colors">
+                        <span>Explore Distribution</span>
+                        <ArrowRight size={12} />
+                      </span>
+                    </div>
+                  </div>
+                </article>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ========================================================================= */}
+        {/* 3. CATEGORY DISCOVERY STRIP IN CONTINUOUS MOTION (No Media Controls)       */}
+        {/* ========================================================================= */}
+        <section
+          aria-label="Curated Categories in Motion"
+          className="relative py-8 lg:py-10 bg-white border-b border-[#E5E7EB] overflow-hidden select-none"
+        >
+          {/* Subtle Wave Backdrop */}
+          <div className="absolute inset-0 pointer-events-none opacity-20">
+            <div
+              className="absolute top-0 left-0 w-[200%] h-full bg-repeat-x bg-center animate-wave-flow-slow"
+              style={{
+                backgroundImage: `url('/wave_white_gold.svg')`,
+                backgroundSize: '1400px 100%',
+              }}
+            />
+          </div>
+
+          <div className="relative z-10 max-w-6xl mx-auto px-6 mb-6">
+            <div className="flex items-end justify-between">
+              <div>
+                <p className="font-serif italic text-sm text-[#997A2E] mb-0.5">
+                  Formulation Disciplines
                 </p>
+                <h2 className="font-heading font-extrabold text-xl sm:text-2xl text-[#0F0F10] tracking-tight">
+                  Curated Categories
+                </h2>
+              </div>
+              <button
+                onClick={() => navigateTo('categories')}
+                className="text-xs font-semibold text-[#0F0F10] hover:text-[#997A2E] flex items-center gap-1 transition-colors cursor-pointer"
+              >
+                <span>View All</span>
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+
+          {/* Continuous Motion Carousel Track (Confined within central grid with smooth side fade masks) */}
+          <div className="relative max-w-6xl mx-auto px-6">
+            <div className="relative overflow-hidden rounded-3xl">
+              {/* Left and right elegant gradient edge masks */}
+              <div
+                className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-white via-white/85 to-transparent z-10 pointer-events-none"
+                aria-hidden="true"
+              />
+              <div
+                className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-white via-white/85 to-transparent z-10 pointer-events-none"
+                aria-hidden="true"
+              />
+
+              <div className="animate-marquee-smooth flex items-center gap-6 w-max py-1">
+                {/* Triplicated list for seamless continuous infinite motion within 6xl container */}
+                {[...categoryStripItems, ...categoryStripItems, ...categoryStripItems].map((item, idx) => (
+                  <button
+                    key={`${item.category}-${idx}`}
+                    onClick={() => {
+                      setSelectedCategory(item.category);
+                      navigateTo('catalogue');
+                    }}
+                    className="flex flex-col items-center text-center group cursor-pointer p-2.5 rounded-3xl hover:bg-[#FAF9F6] transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] shrink-0"
+                  >
+                    <div className="w-20 h-20 sm:w-22 sm:h-22 rounded-[1.75rem] overflow-hidden border-2 border-[#E5E7EB] group-hover:border-[#D4AF37] transition-all duration-400 bg-[#FAF9F6] shadow-2xs group-hover:scale-105 shrink-0">
+                      <img
+                        src={item.image}
+                        alt={item.label}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    </div>
+                    <span className="font-heading font-semibold text-xs text-[#0F0F10] group-hover:text-[#997A2E] transition-colors mt-2.5">
+                      {item.label}
+                    </span>
+                    <span className="text-[10.5px] text-[#6B7280] mt-0.5 max-w-[130px] truncate">
+                      {item.desc}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ========================================================================= */}
+        {/* 4. FORMULATION ESSENTIALS: 5 CLEAN PRODUCTS ON 1 SINGLE ROW (Desktop)     */}
+        {/* ========================================================================= */}
+        <section aria-label="Bestselling Formulations" className="py-12 lg:py-16 bg-[#FAF9F6] border-b border-[#E5E7EB]">
+          <div className="max-w-6xl mx-auto px-6">
+            {/* Header & Category Filter Tabs */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
+              <div>
+                <p className="font-serif italic text-base text-[#997A2E] mb-0.5">
+                  Bestselling Formulations
+                </p>
+                <h2 className="font-heading font-extrabold text-2xl lg:text-3xl text-[#0F0F10] tracking-tight">
+                  Formulation Essentials
+                </h2>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto shrink-0">
-                <button
-                  onClick={() => navigateTo('distributors')}
-                  className="w-full sm:w-auto px-6 py-3 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-semibold active:scale-[0.97] transition-transform duration-160 ease-out cursor-pointer"
-                >
-                  View {selectedCity} Hubs ({localDistributors.length})
-                </button>
-                <button
-                  onClick={() => setIsLocationModalOpen(true)}
-                  className="w-full sm:w-auto px-5 py-3 rounded-full bg-[#FAF9F6] hover:bg-gray-100 border border-[#E5E7EB] text-[#0F0F10] text-xs font-semibold active:scale-[0.97] transition-transform duration-160 ease-out cursor-pointer"
-                >
-                  Change City
-                </button>
+              {/* Minimal Filter Pills */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                {categoryFilters.map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveCategoryFilter(tab.id)}
+                    className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-160 cursor-pointer ${
+                      activeCategoryFilter === tab.id
+                        ? 'bg-[#0F0F10] text-white shadow-xs'
+                        : 'bg-white hover:bg-[#F3EEE3] text-[#4B5563] border border-[#E5E7EB]'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Exactly 5 Product Cards on 1 Row Across Desktop (As Requested) */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-5">
+              {displayedProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  variant="grid"
+                  onOpenModal={handleOpenVariantModal}
+                />
+              ))}
+            </div>
+
+            {/* View Full Catalogue Link */}
+            <div className="mt-10 text-center">
+              <button
+                onClick={() => {
+                  setSelectedCategory(activeCategoryFilter === 'All' ? 'All' : activeCategoryFilter);
+                  navigateTo('catalogue');
+                }}
+                className="inline-flex items-center gap-2 px-7 py-3 rounded-full border border-[#0F0F10] text-xs font-semibold text-[#0F0F10] hover:bg-[#0F0F10] hover:text-white transition-colors duration-200 active:scale-95 cursor-pointer"
+              >
+                <span>View Full Formulation Catalogue</span>
+                <ArrowRight size={14} />
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* ========================================================================= */}
+        {/* 5. YOUR EVERYDAY ROUTINE: SEAMLESS BACKGROUND, COMPACT & WELL-PADDED      */}
+        {/* ========================================================================= */}
+        <section
+          aria-label="The Daily Ritual"
+          className="relative py-12 lg:py-16 bg-[#FAF9F6] border-b border-[#E5E7EB] overflow-hidden"
+        >
+          {/* Ambient Wave Background Flow */}
+          <div className="absolute inset-0 pointer-events-none opacity-25 select-none">
+            <div
+              className="absolute bottom-0 left-0 w-[200%] h-[240px] bg-repeat-x bg-bottom animate-wave-flow"
+              style={{
+                backgroundImage: `url('/wave_white_gold.svg')`,
+                backgroundSize: '1200px 240px',
+              }}
+            />
+          </div>
+
+          <div className="relative z-10 max-w-6xl mx-auto px-6">
+            <div className="max-w-xl mb-9">
+              <p className="font-serif italic text-base text-[#997A2E] mb-0.5">
+                The Daily Ritual
+              </p>
+              <h2 className="font-heading font-extrabold text-2xl lg:text-3xl text-[#0F0F10] tracking-tight">
+                Your Everyday Routine.
+              </h2>
+              <p className="text-xs sm:text-sm text-[#6B7280] mt-1.5 leading-relaxed">
+                Formulations designed to compound together. Cleanse without stripping, lock deep cellular lipids, and defend against harsh environmental exposure.
+              </p>
+            </div>
+
+            {/* Seamless, Well-Padded Dual Stage (No Jarring Box-in-a-Box Container) */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+              {/* Left Column: Rich Editorial Photographic Stage with Sculpted Curvature */}
+              <div className="lg:col-span-6">
+                <div className="relative aspect-[4/3] rounded-[2.5rem] overflow-hidden bg-[#F6F5F2] border border-[#E5E7EB] shadow-xs">
+                  <img
+                    src={routineSteps[activeRoutineStep].image}
+                    alt={routineSteps[activeRoutineStep].title}
+                    className="w-full h-full object-cover transition-opacity duration-500 ease-out"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                  <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between text-white text-xs">
+                    <span className="font-serif italic text-sm text-[#D4AF37]">
+                      {routineSteps[activeRoutineStep].tagline}
+                    </span>
+                    <span className="font-mono text-[10px] text-gray-200">
+                      Step {routineSteps[activeRoutineStep].number} of 03
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Intentionally Well-Spaced & Padded Chapter Selectors */}
+              <div className="lg:col-span-6 space-y-3.5">
+                {routineSteps.map((step, idx) => {
+                  const isActive = idx === activeRoutineStep;
+                  return (
+                    <div
+                      key={step.number}
+                      onClick={() => setActiveRoutineStep(idx)}
+                      className={`p-5 rounded-2xl border transition-all duration-300 cursor-pointer ${
+                        isActive
+                          ? 'bg-white border-[#D4AF37] shadow-sm'
+                          : 'bg-white/70 border-[#E5E7EB] hover:border-[#D4AF37]/50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-serif italic text-xs text-[#997A2E]">
+                          Chapter {step.number}
+                        </span>
+                        {isActive && (
+                          <span className="text-[10px] font-mono text-[#D4AF37] uppercase tracking-wider font-semibold">
+                            Active Step
+                          </span>
+                        )}
+                      </div>
+
+                      <h3 className="font-heading font-bold text-base text-[#0F0F10] mt-1">
+                        {step.number} / {step.title}
+                      </h3>
+
+                      <p className="text-xs text-[#6B7280] mt-1 leading-relaxed">
+                        {step.description}
+                      </p>
+
+                      <div className="mt-2 text-[10.5px] font-semibold text-[#0F0F10]">
+                        {step.productName}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                <div className="pt-2">
+                  <button
+                    onClick={() => {
+                      setSelectedCategory('skincare');
+                      navigateTo('catalogue');
+                    }}
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-semibold active:scale-95 transition-all cursor-pointer shadow-xs"
+                  >
+                    <span>Explore the Complete Ritual</span>
+                    <ArrowRight size={14} className="text-[#D4AF37]" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ========================================================================= */}
+        {/* 6. BRAND STORY: CARE WITH INTENTION                                       */}
+        {/* ========================================================================= */}
+        <section aria-label="Brand Story" className="py-14 lg:py-18 bg-white">
+          <div className="max-w-6xl mx-auto px-6">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+              {/* Tactile Editorial Image with Asymmetric Curvature */}
+              <div className="lg:col-span-6">
+                <div className="relative rounded-[2.5rem] overflow-hidden shadow-sm border border-[#E5E7EB] aspect-[4/3]">
+                  <img
+                    src="/hero_editorial.jpg"
+                    alt="Delsla clinical formulations and indigenous botanicals"
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                  <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between text-white text-xs">
+                    <span className="font-serif italic text-sm">Lagos Clinical Formulations</span>
+                    <span className="font-serif italic text-sm text-[#D4AF37]">Bio-Compatible Shea</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Story Narrative */}
+              <div className="lg:col-span-6 space-y-5">
+                <div className="space-y-1.5">
+                  <p className="font-serif italic text-base text-[#997A2E]">
+                    Our Philosophy
+                  </p>
+                  <h2 className="font-heading font-extrabold text-2xl lg:text-3xl text-[#0F0F10] tracking-tight">
+                    Care with intention.
+                  </h2>
+                </div>
+
+                <div className="space-y-3 text-xs sm:text-sm text-[#4B5563] leading-relaxed">
+                  <p>
+                    Formulated in Lagos in partnership with clinical dermatologists. Every batch of Delsla is cold-pressed, bio-compatible, and engineered specifically for the cellular density and melanin profile of African skin.
+                  </p>
+                  <p>
+                    We reject harsh lightening agents and synthetic fragrances. Instead, we elevate indigenous botanicals — pure unrefined shea, cold-pressed moringa, and clinical niacinamide — to build barrier strength and sustained luminosity.
+                  </p>
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    onClick={() => navigateTo('categories')}
+                    className="inline-flex items-center gap-2 text-xs font-semibold text-[#0F0F10] hover:text-[#997A2E] transition-colors py-2.5 px-6 rounded-full border border-[#0F0F10] hover:bg-[#FAF9F6] active:scale-95 cursor-pointer"
+                  >
+                    <span>Our Story &amp; Pillars</span>
+                    <ArrowRight size={13} />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -500,73 +724,168 @@ export const Screen18DesktopHome: React.FC = () => {
       </main>
 
       {/* LUXURY WHITE FOOTER */}
-      <footer className="bg-white border-t border-[#E5E7EB] pt-14 pb-8 text-[#6B7280] text-xs">
-        <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 mb-12">
+      <footer className="bg-white border-t border-[#E5E7EB] pt-12 pb-8 text-[#6B7280] text-xs">
+        <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 mb-10">
           {/* Column 1: Brand Info */}
           <div className="lg:col-span-2 space-y-4">
-            <div className="flex items-start justify-between gap-4">
-              <BrandLogo variant="dark" size="md" showTagline={true} />
-              <ApothecaryPuritySeal className="w-14 h-14 shrink-0 hidden sm:block" />
-            </div>
-            <p className="text-xs leading-relaxed max-w-sm text-[#4B5563]">
-              Desla Beauty and Lifestyle Limited. Unisex luxury skincare, artisanal body oils, and concentrated extrait perfumes formulated specifically for melanin-rich skin.
+            <BrandLogo variant="dark" size="md" showTagline={true} />
+            <p className="text-xs text-[#4B5563] max-w-sm leading-relaxed">
+              Safe-conscious dermatological formulations and luxury lifestyle essentials engineered specifically for melanin-rich skin. 100% NAFDAC certified.
             </p>
-            <div className="flex items-center gap-3 pt-2 text-[#0F0F10]">
-              <span className="text-[11px] font-mono text-[#997A2E] font-bold">Lagos HQ • Abuja • Port Harcourt • Kano</span>
+            <div className="flex items-center gap-3 text-xs text-[#0F0F10]">
+              <span className="font-semibold text-[#D4AF37]">Lagos</span>
+              <span>•</span>
+              <span className="font-semibold text-[#D4AF37]">Abuja</span>
+              <span>•</span>
+              <span className="font-semibold text-[#D4AF37]">Port Harcourt</span>
+              <span>•</span>
+              <span className="font-semibold text-[#D4AF37]">Ibadan</span>
             </div>
           </div>
 
-          {/* Column 2: Pillars */}
+          {/* Column 2: Navigation */}
           <div className="space-y-3">
             <h4 className="font-heading font-bold text-xs uppercase tracking-wider text-[#0F0F10]">
-              Formulations
+              Catalogue
             </h4>
-            <ul className="space-y-2 text-xs">
-              <li><button onClick={() => { setSelectedCategory('body-care'); navigateTo('catalogue'); }} className="hover:text-[#0F0F10] cursor-pointer">Body Oils &amp; Butters</button></li>
-              <li><button onClick={() => { setSelectedCategory('skincare'); navigateTo('catalogue'); }} className="hover:text-[#0F0F10] cursor-pointer">Barrier Cleansers</button></li>
-              <li><button onClick={() => { setSelectedCategory('fragrance'); navigateTo('catalogue'); }} className="hover:text-[#0F0F10] cursor-pointer">Extrait de Parfum</button></li>
-              <li><button onClick={() => { setSelectedCategory('makeup'); navigateTo('catalogue'); }} className="hover:text-[#0F0F10] cursor-pointer">Lip Glazes &amp; Lashes</button></li>
+            <ul className="space-y-2">
+              <li>
+                <button
+                  onClick={() => {
+                    setSelectedCategory('skincare');
+                    navigateTo('catalogue');
+                  }}
+                  className="hover:text-[#0F0F10] transition-colors cursor-pointer"
+                >
+                  Skin Care Formulations
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => {
+                    setSelectedCategory('body-care');
+                    navigateTo('catalogue');
+                  }}
+                  className="hover:text-[#0F0F10] transition-colors cursor-pointer"
+                >
+                  Botanical Body Oils
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => {
+                    setSelectedCategory('fragrance');
+                    navigateTo('catalogue');
+                  }}
+                  className="hover:text-[#0F0F10] transition-colors cursor-pointer"
+                >
+                  Haute Artisanal Fragrance
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => {
+                    setSelectedCategory('makeup');
+                    navigateTo('catalogue');
+                  }}
+                  className="hover:text-[#0F0F10] transition-colors cursor-pointer"
+                >
+                  Peptide Lip Glosses
+                </button>
+              </li>
             </ul>
           </div>
 
-          {/* Column 3: Partner Network */}
+          {/* Column 3: Portals & Tracking */}
           <div className="space-y-3">
             <h4 className="font-heading font-bold text-xs uppercase tracking-wider text-[#0F0F10]">
-              Partners &amp; Creators
+              Portals &amp; Orders
             </h4>
-            <ul className="space-y-2 text-xs">
-              <li><button onClick={() => navigateTo('distributors')} className="hover:text-[#0F0F10] cursor-pointer">Find Local Distributor</button></li>
-              <li><button onClick={() => { loginAsDemoRole('DISTRIBUTOR'); navigateTo('distributor-portal'); }} className="hover:text-[#0F0F10] cursor-pointer">Distributor Portal</button></li>
-              <li><button onClick={() => { loginAsDemoRole('CREATOR'); navigateTo('creators'); }} className="hover:text-[#0F0F10] cursor-pointer">Creator Affiliate Hub</button></li>
-              <li><button onClick={() => navigateTo('community')} className="hover:text-[#0F0F10] cursor-pointer">Desla Collective</button></li>
+            <ul className="space-y-2">
+              <li>
+                <button
+                  onClick={() => navigateTo('orders')}
+                  className="hover:text-[#0F0F10] transition-colors cursor-pointer"
+                >
+                  Track Order
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => navigateTo('ai-scan')}
+                  className="hover:text-[#0F0F10] transition-colors cursor-pointer"
+                >
+                  PIX AI Skin Scan
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => {
+                    loginAsDemoRole('CREATOR');
+                    navigateTo('creators');
+                  }}
+                  className="hover:text-[#0F0F10] transition-colors cursor-pointer"
+                >
+                  Creator Collective
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => {
+                    loginAsDemoRole('DISTRIBUTOR');
+                    navigateTo('distributor-portal');
+                  }}
+                  className="hover:text-[#0F0F10] transition-colors cursor-pointer"
+                >
+                  Distributor Portal
+                </button>
+              </li>
             </ul>
           </div>
 
-          {/* Column 4: Orders & Support */}
+          {/* Column 4: Client Services */}
           <div className="space-y-3">
             <h4 className="font-heading font-bold text-xs uppercase tracking-wider text-[#0F0F10]">
-              Assistance
+              Client Services
             </h4>
-            <ul className="space-y-2 text-xs">
-              <li><button onClick={() => navigateTo('orders')} className="hover:text-[#0F0F10] cursor-pointer">Track Your Order</button></li>
-              <li><button onClick={() => navigateTo('ai-scan')} className="hover:text-[#0F0F10] cursor-pointer">AI Skin Diagnostic</button></li>
-              <li><a href="https://wa.me/2348148120642" target="_blank" rel="noopener noreferrer" className="hover:text-[#0F0F10]">WhatsApp Support</a></li>
-              <li><span className="text-[#0F0F10] font-medium">NAFDAC Clinical Quality</span></li>
-            </ul>
+            <p className="text-xs text-[#4B5563]">
+              Need skincare consultation or regional fulfillment assistance?
+            </p>
+            <div className="pt-1">
+              <a
+                href="https://wa.me/2348148120642"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#FAF9F6] border border-[#E5E7EB] text-[#0F0F10] font-semibold text-xs hover:border-[#D4AF37] transition-colors"
+              >
+                <span>WhatsApp VIP Concierge</span>
+              </a>
+            </div>
           </div>
         </div>
 
+        {/* Bottom Bar */}
         <div className="max-w-6xl mx-auto px-6 pt-6 border-t border-[#E5E7EB] flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-[#9CA3AF]">
-          <span>&copy; {new Date().getFullYear()} Desla Beauty and Lifestyle Limited. All rights reserved.</span>
-          <div className="flex items-center gap-2">
-            <BotanicalSprig className="w-3.5 h-3.5 text-[#D4AF37]" />
-            <span className="text-[#0F0F10] font-medium tracking-wide uppercase font-mono text-[10px]">
-              Health before beauty • Intention before trend
-            </span>
-            <BotanicalSprig className="w-3.5 h-3.5 text-[#D4AF37] scale-x-[-1]" />
+          <p>© {new Date().getFullYear()} Delsla™ Beauty &amp; Dermatologie. All rights reserved.</p>
+          <div className="flex items-center gap-6">
+            <span>Clinical Dermatology</span>
+            <span>•</span>
+            <span>NAFDAC Compliant</span>
+            <span>•</span>
+            <span>Secure Checkout</span>
           </div>
         </div>
       </footer>
+
+      {/* Variant Selection Modal */}
+      <ProductQuickModal
+        product={modalProduct}
+        isOpen={isQuickModalOpen}
+        onClose={() => {
+          setIsQuickModalOpen(false);
+          setModalProduct(null);
+        }}
+      />
     </div>
   );
 };

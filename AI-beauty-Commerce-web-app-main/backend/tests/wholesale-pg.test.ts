@@ -23,7 +23,6 @@ beforeAll(async () => {
   db = drizzle(client, { schema: s });
   await migrate(db as never, { migrationsFolder: './drizzle' });
   await db.insert(s.roles).values({ id: 'DISTRIBUTOR', description: 'Distributor' }).onConflictDoNothing();
-  vi.stubEnv('PAYSTACK_SECRET_KEY', 'test-key');
   vi.stubEnv('FLW_SECRET_KEY', 'test-key');
 }, 120000);
 afterAll(async () => { vi.unstubAllEnvs(); await client?.close(); });
@@ -47,9 +46,9 @@ async function fixture(stock = 240) {
 async function purchase(f: Awaited<ReturnType<typeof fixture>>) {
   return (await checkoutWholesale(db as never, f.user.id, `checkout-${f.variant.id}`, { items: f.items, quoteFingerprint: f.quote.quoteFingerprint })).order;
 }
-async function pay(order: Awaited<ReturnType<typeof purchase>>, userId: string, provider: 'paystack' | 'flutterwave' = 'paystack') {
-  const attempt = await initPayment(db as never, { userId, orderId: order.id, provider, appUrl: 'http://localhost:3001', idempotencyKey: `test-payment-${order.id}-${provider}`, fetchFn: async () => new Response(JSON.stringify(provider === 'paystack' ? { status: true, data: { authorization_url: 'https://checkout.paystack.com/test' } } : { status: 'success', data: { link: 'https://checkout.flutterwave.com/test' } })) });
-  const fetchFn = async () => new Response(JSON.stringify(provider === 'paystack' ? { status: true, data: { status: 'success', amount: order.totalKobo, currency: 'NGN' } } : { status: 'success', data: { status: 'successful', amount: order.totalKobo / 100, currency: 'NGN', tx_ref: attempt.reference } }));
+async function pay(order: Awaited<ReturnType<typeof purchase>>, userId: string, provider: 'flutterwave' = 'flutterwave') {
+  const attempt = await initPayment(db as never, { userId, orderId: order.id, provider, appUrl: 'http://localhost:3001', idempotencyKey: `test-payment-${order.id}-${provider}`, fetchFn: async () => new Response(JSON.stringify({ status: 'success', data: { link: 'https://checkout.flutterwave.com/test' } })) });
+  const fetchFn = async () => new Response(JSON.stringify({ status: 'success', data: { status: 'successful', amount: order.totalKobo / 100, currency: 'NGN', tx_ref: attempt.reference } }));
   const input = { provider, reference: attempt.reference, transactionId: '123', fetchFn };
   expect((await settleAttempt(db as never, input)).settled).toBe(true);
   expect((await settleAttempt(db as never, input)).replay).toBe(true);
@@ -120,7 +119,7 @@ describe('wholesale inventory and money boundaries', () => {
     await transitionOrder(db as never, order.id, 'FULFILLING', { actor: 'admin' });
     await transitionOrder(db as never, order.id, 'SHIPPED', { actor: 'admin' });
     await wholesaleOrderAction(db as never, f.user.id, order.id, 'receive');
-    const refund = await createRefund(db as never, { paymentId: payment.id, amountKobo: payment.amountKobo, reason: 'Return', adminId: f.user.id, idempotencyKey: crypto.randomUUID(), fetchFn: async () => new Response(JSON.stringify({ status: true })) });
+    const refund = await createRefund(db as never, { paymentId: payment.id, amountKobo: payment.amountKobo, reason: 'Return', adminId: f.user.id, idempotencyKey: crypto.randomUUID(), fetchFn: async () => new Response(JSON.stringify({ status: 'success', data: { id: 99 } })) });
     await reconcileRefund(db as never, { refundId: refund.refundId, adminId: f.user.id, status: 'success', evidence: 'Provider dashboard confirms completed refund' });
     expect(await level(s.HQ_LOCATION_ID, f.variant.id, 'PLATFORM')).toBe(216);
     expect(await level(f.location.id, f.variant.id, 'WHOLESALE')).toBe(24);

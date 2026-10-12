@@ -97,6 +97,60 @@ export const Screen12OrderConfirmed: React.FC = () => {
           </div>
         )}
 
+                {/* Real-time Order Status Milestone Tracker */}
+        <div className="p-6 rounded-3xl bg-white border border-[#E5E7EB] shadow-xs space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
+            <span className="font-heading font-bold text-xs uppercase tracking-wider text-[#0F0F10]">
+              Order Journey &amp; Fulfillment Milestones
+            </span>
+            <span className="text-[10px] font-mono font-bold text-[#997A2E] bg-[#FBF5E8] px-2.5 py-0.5 rounded-full border border-[#D4AF37]/30">
+              Live Progression
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-1">
+            <div className="flex flex-col items-center text-center p-3 rounded-2xl bg-[#FBF5E8] border border-[#D4AF37]/40 space-y-1">
+              <div className="w-7 h-7 rounded-full bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center text-xs font-bold shadow-2xs">
+                âœ“
+              </div>
+              <span className="text-xs font-bold text-[#0F0F10]">Placed</span>
+              <span className="text-[10px] text-[#6B7280]">Received</span>
+            </div>
+
+            <div className="flex flex-col items-center text-center p-3 rounded-2xl bg-[#FBF5E8] border border-[#D4AF37]/40 space-y-1">
+              <div className="w-7 h-7 rounded-full bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center text-xs font-bold shadow-2xs">
+                âœ“
+              </div>
+              <span className="text-xs font-bold text-[#0F0F10]">Confirmed</span>
+              <span className="text-[10px] text-[#6B7280]">Paystack Paid</span>
+            </div>
+
+            <div className="flex flex-col items-center text-center p-3 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] space-y-1">
+              <div className="w-7 h-7 rounded-full bg-[#D4AF37] text-white flex items-center justify-center text-xs font-bold animate-pulse">
+                3
+              </div>
+              <span className="text-xs font-bold text-[#0F0F10]">Processing</span>
+              <span className="text-[10px] text-[#997A2E] font-medium">Batch Verified</span>
+            </div>
+
+            <div className="flex flex-col items-center text-center p-3 rounded-2xl bg-white border border-[#E5E7EB] opacity-60 space-y-1">
+              <div className="w-7 h-7 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center text-xs font-bold">
+                4
+              </div>
+              <span className="text-xs font-bold text-[#0F0F10]">Dispatched</span>
+              <span className="text-[10px] text-[#6B7280]">City Hub Node</span>
+            </div>
+
+            <div className="flex flex-col items-center text-center p-3 rounded-2xl bg-white border border-[#E5E7EB] opacity-60 space-y-1 col-span-2 sm:col-span-1">
+              <div className="w-7 h-7 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center text-xs font-bold">
+                5
+              </div>
+              <span className="text-xs font-bold text-[#0F0F10]">Delivered</span>
+              <span className="text-[10px] text-[#6B7280]">Client Handover</span>
+            </div>
+          </div>
+        </div>
+
         {/* Courier Dispatch & Delivery Timeline */}
         <div className="p-6 rounded-3xl bg-white border border-[#E5E7EB] shadow-xs space-y-4 text-xs">
           <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">

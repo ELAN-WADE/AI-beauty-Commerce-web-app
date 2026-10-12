@@ -19,7 +19,8 @@ import { releaseCommissions } from '../modules/ledger/service';
 import { awardOrderCommissions } from '../modules/ledger/service';
 import { releaseContentRewards, settleContentRewards } from '../modules/content-rewards/service';
 import { earnForOrder } from '../modules/loyalty/service';
-import { s3, scansBucket } from '../lib/storage';
+import { communityMedia } from '../modules/community/schema';
+import { communityBucket, deleteObject, s3, scansBucket } from '../lib/storage';
 import { openAuthUrl } from '../lib/outbox-crypto';
 import { isTermiiConfigured, smsCartAbandoned, smsOrderPaid, smsShipmentUpdate, termiiConfig, termiiSend } from '../lib/termii';
 import {
@@ -283,7 +284,7 @@ export async function reconcilePayments(db: AppDb): Promise<TaskResult> {
         and(eq(paymentAttempts.status, 'success'), eq(orders.paymentStatus, 'UNPAID')),
       ),
       lt(paymentAttempts.updatedAt, cutoff),
-      inArray(paymentAttempts.provider, ['paystack', 'opay', 'flutterwave']),
+      inArray(paymentAttempts.provider, ['stripe', 'opay', 'flutterwave']),
     ))
     .orderBy(asc(paymentAttempts.updatedAt))
     .limit(20);
@@ -297,7 +298,7 @@ export async function reconcilePayments(db: AppDb): Promise<TaskResult> {
     checked += 1;
     try {
       const r = await settleAttempt(db, {
-        provider: p.provider as 'paystack' | 'opay' | 'flutterwave',
+        provider: p.provider as 'stripe' | 'opay' | 'flutterwave',
         reference: p.reference,
         transactionId: p.providerRef ?? undefined,
       });
@@ -321,6 +322,28 @@ export async function purgeExpiredOperationalData(db: AppDb): Promise<TaskResult
   return { task: 'operational-retention', ok: true, detail: 'expired quotas, tokens, sessions, sensitive messages pruned' };
 }
 
+/** Reap staged community uploads never attached to a post (24h grace). */
+export async function purgeStaleCommunityMedia(db: AppDb): Promise<TaskResult> {
+  const cutoff = new Date(Date.now() - 24 * 3600_000);
+  const rows = await db
+    .select({ id: communityMedia.id, mediaKey: communityMedia.mediaKey })
+    .from(communityMedia)
+    .where(and(eq(communityMedia.status, 'pending'), lt(communityMedia.createdAt, cutoff)))
+    .orderBy(asc(communityMedia.createdAt))
+    .limit(100);
+  let purged = 0;
+  for (const r of rows) {
+    try {
+      await deleteObject(communityBucket(), r.mediaKey);
+    } catch {
+      continue; // storage hiccup: retry next sweep (row retained)
+    }
+    await db.update(communityMedia).set({ status: 'failed' }).where(eq(communityMedia.id, r.id));
+    purged += 1;
+  }
+  return { task: 'community-media-purge', ok: true, detail: `purged=${purged}` };
+}
+
 export async function runAllTasks(db: AppDb): Promise<TaskResult[]> {
   const results: TaskResult[] = [];
   const clearEarnings = async (db: AppDb): Promise<TaskResult> => ({ task: 'commission-release', ok: true, detail: `released=${await releaseCommissions(db)}` });
@@ -329,7 +352,7 @@ export async function runAllTasks(db: AppDb): Promise<TaskResult[]> {
     const r = await releaseContentRewards(db);
     return { task: 'content-rewards', ok: true, detail: `settled=${s.settled} released=${r}` };
   };
-  for (const task of [processOutbox, sweepReservations, sweepAbandonedCarts, purgeOldScans, clearEarnings, settleContent, reconcilePayments, purgeExpiredOperationalData]) {
+  for (const task of [processOutbox, sweepReservations, sweepAbandonedCarts, purgeOldScans, purgeStaleCommunityMedia, clearEarnings, settleContent, reconcilePayments, purgeExpiredOperationalData]) {
     try {
       results.push(await task(db));
     } catch (err) {

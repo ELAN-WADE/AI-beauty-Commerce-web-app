@@ -85,7 +85,7 @@ export const ScreenAuthSuite: React.FC<AuthSuiteProps> = ({ initialMode = 'login
       if (res.success) {
         setSuccessMessage(res.message);
         setTimeout(() => {
-          navigateTo('home');
+          navigateTo('catalogue');
         }, 800);
       } else {
         setErrorMessage(res.message);
@@ -109,7 +109,7 @@ export const ScreenAuthSuite: React.FC<AuthSuiteProps> = ({ initialMode = 'login
       loginAsDemoRole('CUSTOMER');
       setSuccessMessage('Welcome! Your account is active.');
       setTimeout(() => {
-        navigateTo('account');
+        navigateTo('catalogue');
       }, 500);
     } finally {
       setBusy(false);
@@ -833,7 +833,7 @@ export const ScreenAuthSuite: React.FC<AuthSuiteProps> = ({ initialMode = 'login
                   type="button"
                   onClick={() => {
                     loginAsDemoRole('CUSTOMER');
-                    navigateTo('account');
+                    navigateTo('catalogue');
                   }}
                   className="py-2.5 px-2 rounded-xl bg-[#0F0F10] text-[#D4AF37] hover:bg-[#27272A] text-[11px] font-bold text-center active:scale-[0.97] transition-all cursor-pointer shadow-2xs"
                 >

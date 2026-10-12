@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { FilterTabs } from '../shared/FilterTabs';
 import { StatusBadge } from '../shared/StatusBadge';
+import { useApp } from '../../../context/AppContext';
 
 export interface CreatorPRRoomProps {
   onOpenCreateWithBox?: (boxTitle: string) => void;
@@ -19,32 +20,45 @@ export interface CreatorPRRoomProps {
 export const CreatorPRRoom: React.FC<CreatorPRRoomProps> = ({
   onOpenCreateWithBox
 }) => {
+  const { prBoxes: appPrBoxes } = useApp();
   const [activeTab, setActiveTab] = useState<'available' | 'active' | 'delivered'>('available');
 
-  const prBoxes = [
+  const prBoxes = (appPrBoxes && appPrBoxes.length > 0 ? appPrBoxes : [
     {
       id: 'pr-1',
       title: 'Radiant Glow Clinical Collection',
       retailValue: '₦64,000',
-      status: 'eligible' as const,
       openSpots: '5 spots remaining',
-      deliverables: '1 Instagram Reel + 2 Stories',
-      items: ['Radiant Glow Oil (100ml)', 'Gentle Amino Cleanser', 'Barrier Essence Mist'],
+      spotsLeft: 5,
       thumbnail: 'https://images.unsplash.com/photo-1608248597359-0026e6328325?auto=format&fit=crop&w=400&q=80',
-      description: 'Full-sized luxury bottle package formulated for deep melanin illumination.'
+      description: 'Full-sized luxury bottle package formulated for deep melanin illumination.',
+      includedProducts: ['Radiant Glow Oil (100ml)', 'Gentle Amino Cleanser', 'Barrier Essence Mist'],
+      eligibleTiers: ['Rising', 'Verified', 'Icon'],
+      isActive: true
     },
     {
       id: 'pr-2',
       title: 'Melanin Barrier & UV Defense Kit',
       retailValue: '₦48,500',
-      status: 'eligible' as const,
       openSpots: '8 spots remaining',
-      deliverables: '1 Shoppable Routine + 1 TikTok',
-      items: ['Sun Defense SPF50+', 'Ceramide Hydration Cream'],
+      spotsLeft: 8,
       thumbnail: 'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?auto=format&fit=crop&w=400&q=80',
-      description: 'Zero white cast clinical UV defense set.'
+      description: 'Zero white cast clinical UV defense set.',
+      includedProducts: ['Sun Defense SPF50+', 'Ceramide Hydration Cream'],
+      eligibleTiers: ['Verified', 'Icon'],
+      isActive: true
     }
-  ];
+  ]).map((b) => ({
+    id: b.id,
+    title: b.title,
+    retailValue: b.retailValue,
+    status: 'eligible' as const,
+    openSpots: b.openSpots || `${b.spotsLeft} spots remaining`,
+    deliverables: '1 Shoppable Desla Routine + 1 Post',
+    items: b.includedProducts || ['Radiant Glow Formulation'],
+    thumbnail: b.thumbnail,
+    description: b.description
+  }));
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
@@ -74,7 +88,7 @@ export const CreatorPRRoom: React.FC<CreatorPRRoomProps> = ({
       {/* Dispatched Box Alert Banner (Active delivery) */}
       <div className="p-4 sm:p-5 rounded-3xl bg-white border border-[#E5E7EB] shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-start sm:items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 border border-blue-200 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-2xl bg-[#FAF9F6] text-[#0F0F10] border border-[#E5E7EB] flex items-center justify-center shrink-0">
             <Truck size={20} />
           </div>
           <div>
@@ -115,14 +129,14 @@ export const CreatorPRRoom: React.FC<CreatorPRRoomProps> = ({
                 <div className="absolute top-3 left-3 bg-[#0F0F10]/80 backdrop-blur-md px-3 py-1 rounded-full text-white text-[10px] font-mono font-bold">
                   {box.retailValue} Value (Free)
                 </div>
-                <div className="absolute top-3 right-3 bg-emerald-600 text-white px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold">
+                <div className="absolute top-3 right-3 bg-[#0F0F10] text-white px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold">
                   Eligible ✓
                 </div>
               </div>
 
               <div className="p-6 space-y-3">
                 <div>
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#D97706]">
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#6B7280]">
                     {box.openSpots}
                   </span>
                   <h2 className="font-heading font-extrabold text-xl text-[#0F0F10] mt-0.5">

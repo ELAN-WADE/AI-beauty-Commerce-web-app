@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { FilterTabs } from '../shared/FilterTabs';
 import { StatusBadge } from '../shared/StatusBadge';
+import { StatChip } from '../shared/StatChip';
 import { ActionDrawer } from '../shared/ActionDrawer';
 
 export interface DistributorOrdersProps {
@@ -114,6 +115,30 @@ export const DistributorOrders: React.FC<DistributorOrdersProps> = ({
         <p className="text-xs sm:text-sm text-[#6B7280] mt-0.5">
           Process local orders, generate shipping waybills, and coordinate courier handoffs.
         </p>
+      </div>
+
+      {/* Minimalist Summary Cards with Status Stamps */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+        <StatChip
+          label="Awaiting Hub Packing"
+          value="1 Order"
+          subtext="Direct lab packaging required"
+          badge="NEEDS ACTION"
+        />
+        <StatChip
+          label="Ready for Courier Pickup"
+          value="1 Order"
+          subtext="Gokada Express assigned"
+          badge="DISPATCH READY"
+        />
+        <StatChip
+          label="Same-Day Delivery SLA"
+          value="98.4%"
+          change="+2.1%"
+          trend="up"
+          subtext="Turnaround under 3 hours"
+          badge="ON-TIME"
+        />
       </div>
 
       {/* Tabs & Search */}
@@ -260,7 +285,7 @@ export const DistributorOrders: React.FC<DistributorOrdersProps> = ({
                 <span className="text-[10px] font-mono text-[#9CA3AF] uppercase block">
                   Payment Status
                 </span>
-                <span className="font-bold text-emerald-800">{selectedOrder.paymentMethod}</span>
+                <span className="font-bold text-[#0F0F10]">{selectedOrder.paymentMethod}</span>
               </div>
             </div>
 

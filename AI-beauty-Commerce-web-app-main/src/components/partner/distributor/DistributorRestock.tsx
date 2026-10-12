@@ -95,7 +95,7 @@ export const DistributorRestock: React.FC = () => {
                   <p className="text-xs text-[#6B7280]">
                     Master Carton: <strong>{item.cartonUnits} bottles</strong> • Retail Value: ₦{item.retailCartonValue.toLocaleString('en-NG')}
                   </p>
-                  <p className="text-[11px] font-mono font-bold text-emerald-700">
+                  <p className="text-[11px] font-mono font-bold text-[#0F0F10]">
                     Your Wholesale Price: ₦{item.wholesalePrice.toLocaleString('en-NG')} (Save ₦{item.expectedMargin.toLocaleString('en-NG')})
                   </p>
                 </div>
@@ -148,7 +148,7 @@ export const DistributorRestock: React.FC = () => {
               <p className="font-heading font-extrabold text-lg text-white">
                 ₦{totalInvestment.toLocaleString('en-NG')}
               </p>
-              <p className="text-[10px] text-emerald-400 font-mono">
+              <p className="text-[10px] text-[#A1A1AA] font-mono">
                 Est. Retail Profit: ₦{totalExpectedMargin.toLocaleString('en-NG')} (32%)
               </p>
             </div>
@@ -223,13 +223,13 @@ export const DistributorRestock: React.FC = () => {
               <span className="text-[#6B7280]">Total Wholesale Investment:</span>
               <strong className="font-mono text-[#0F0F10]">₦{totalInvestment.toLocaleString('en-NG')}</strong>
             </div>
-            <div className="flex justify-between text-emerald-800">
+            <div className="flex justify-between text-[#0F0F10]">
               <span>Expected Retail Revenue:</span>
               <strong className="font-mono">₦{(totalInvestment + totalExpectedMargin).toLocaleString('en-NG')}</strong>
             </div>
             <div className="flex justify-between border-t border-[#E5E7EB] pt-2 font-bold text-xs text-[#0F0F10]">
               <span>Your Wholesale Margin:</span>
-              <span className="text-emerald-700 font-mono font-extrabold">₦{totalExpectedMargin.toLocaleString('en-NG')} (32%)</span>
+              <span className="text-[#0F0F10] font-mono font-extrabold">₦{totalExpectedMargin.toLocaleString('en-NG')} (32%)</span>
             </div>
           </div>
         </div>

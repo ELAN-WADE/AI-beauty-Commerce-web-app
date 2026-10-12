@@ -29,7 +29,7 @@ export const CreatorSupport: React.FC = () => {
       <div className="p-6 sm:p-8 rounded-3xl bg-white border border-[#E5E7EB] shadow-xs">
         {submitted ? (
           <div className="text-center py-8 space-y-3">
-            <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto">
+            <div className="w-12 h-12 rounded-full bg-[#FAF9F6] text-[#0F0F10] border border-[#E5E7EB] flex items-center justify-center mx-auto">
               <CheckCircle2 size={24} />
             </div>
             <h3 className="font-heading font-bold text-lg text-[#0F0F10]">

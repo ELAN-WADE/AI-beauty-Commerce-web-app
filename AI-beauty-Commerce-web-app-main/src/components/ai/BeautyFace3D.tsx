@@ -84,7 +84,7 @@ export const BeautyFace3D: React.FC<BeautyFace3DProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [activeLandmarkId, setActiveLandmarkId] = useState<string | null>(null);
   const [hasWebGLError, setHasWebGLError] = useState(false);
-  const texturePath = '/beauty_face_3d.jpg';
+  const texturePath = '/beauty_face_3d.png';
 
   // Three.js refs for animation loop
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -130,7 +130,7 @@ export const BeautyFace3D: React.FC<BeautyFace3DProps> = ({
       const width = canvas.clientWidth || 360;
       const height = canvas.clientHeight || 450;
       const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
-      camera.position.set(0, 0, 3.1);
+      camera.position.set(0, 0, 2.7);
 
       // 2. WebGL Renderer with alpha transparency
       renderer = new THREE.WebGLRenderer({
@@ -165,12 +165,12 @@ export const BeautyFace3D: React.FC<BeautyFace3DProps> = ({
       groupRef.current = mainGroup;
 
       // 5. Curved Plane Geometry (sculpted cylinder curvature for face bust)
-      const geometry = new THREE.PlaneGeometry(2.3, 2.7, 32, 32);
+      const geometry = new THREE.PlaneGeometry(2.35, 2.55, 32, 32);
       const pos = geometry.attributes.position;
       for (let i = 0; i < pos.count; i++) {
         const px = pos.getX(i);
         const py = pos.getY(i);
-        const pz = -Math.pow(px, 2) * 0.18 - Math.pow(py - 0.1, 2) * 0.05 + 0.06;
+        const pz = -Math.pow(px, 2) * 0.22 - Math.pow(py - 0.1, 2) * 0.06 + 0.08;
         pos.setZ(i, pz);
       }
       geometry.computeVertexNormals();
@@ -188,8 +188,10 @@ export const BeautyFace3D: React.FC<BeautyFace3DProps> = ({
           const material = new THREE.MeshStandardMaterial({
             map: tex,
             roughness: 0.35,
-            metalness: 0.15,
+            metalness: 0.1,
             transparent: true,
+            alphaTest: 0.05,
+            depthWrite: true,
             side: THREE.DoubleSide
           });
 
@@ -353,9 +355,6 @@ export const BeautyFace3D: React.FC<BeautyFace3DProps> = ({
             src={texturePath}
             alt="Desla 3D Beauty Face"
             className="w-full h-full object-contain filter drop-shadow-xl"
-            style={{
-              mixBlendMode: 'multiply'
-            }}
           />
 
           {/* Fallback 2D Animated Scanline */}
@@ -390,16 +389,11 @@ export const BeautyFace3D: React.FC<BeautyFace3DProps> = ({
         </motion.div>
       )}
 
-      {/* 3. Subtle Status Hologram / Scanning State Overlay */}
-      {showOverlayTelemetry && (
+      {/* 3. Subtle Status Hologram / Scanning State Overlay (Only shown during active diagnostic stages) */}
+      {showOverlayTelemetry && scanStage !== 'idle' && (
         <div className="absolute top-3 left-4 right-4 flex items-center justify-between pointer-events-none z-10">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/85 backdrop-blur-md border border-[#E5E7EB] shadow-xs text-[11px] font-mono">
-            {scanStage === 'idle' && (
-              <>
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[#0F0F10] font-bold">OPTICAL SYSTEM READY</span>
-              </>
-            )}
+
             {scanStage === 'preparing' && (
               <>
                 <span className="w-2 h-2 rounded-full bg-[#D4AF37] animate-ping" />

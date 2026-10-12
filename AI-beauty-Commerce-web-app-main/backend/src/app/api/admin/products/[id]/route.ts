@@ -6,6 +6,7 @@ import { requireStaff } from '@/lib/admin';
 import { audit } from '@/modules/audit/service';
 import { getProduct, updateProduct } from '@/modules/catalog/service';
 import { productUpdateSchema } from '@/modules/catalog/validation';
+import { revalidateStorefront } from '@/lib/storefront-revalidate';
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -35,6 +36,8 @@ export async function PATCH(req: Request, { params }: Ctx) {
       ip: clientIp(req),
       requestId,
     });
+    // Phase 2: product (possibly price) changed → refresh ISR pages on next hit.
+    revalidateStorefront(updated.slug ?? after?.slug ?? before?.slug);
     const res = NextResponse.json(updated);
     res.headers.set('x-request-id', requestId);
     return res;

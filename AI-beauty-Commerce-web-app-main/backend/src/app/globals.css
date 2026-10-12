@@ -1,0 +1,349 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: 'DeslaDigits';
+  src: local('miui'), local('system-ui'), local('-apple-system'), local('BlinkMacSystemFont'), local('.SFNSText-Regular'), local('Helvetica Neue'), local('Arial');
+  font-weight: 100 900;
+  font-style: normal;
+  unicode-range: U+0030-0039, U+0025, U+002B, U+002D, U+002E, U+002C, U+20A6, U+0024, U+00A3, U+20AC;
+}
+
+@layer base {
+  :root {
+    --desla-canvas: 0 0% 100%;        /* #FFFFFF */
+    --desla-surface: 40 20% 98%;      /* #FAF9F6 */
+    --desla-elevated: 220 14% 96%;    /* #F3F4F6 */
+    --desla-card: 0 0% 100%;          /* #FFFFFF */
+    --desla-img: 40 10% 96%;          /* #F6F5F2 */
+    --desla-gold: 46 65% 52%;         /* #D4AF37 */
+    --desla-gold-light: 47 78% 95%;   /* #FBF5E8 */
+    --desla-gold-dark: 41 46% 42%;    /* #997A2E */
+    --desla-champagne: 39 33% 92%;  /* #F3EEE3 */
+    --desla-olive: 124 13% 17%;     /* #263127 */
+    --desla-text: 240 4% 6%;          /* #0F0F10 */
+    --desla-muted: 220 9% 46%;        /* #6B7280 */
+
+    /* Custom Emil Kowalski Easing Curves */
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+    --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  html,
+  body {
+    overflow-x: clip;
+  }
+
+  input,
+  textarea,
+  select {
+    font-size: 16px; /* Prevents unwanted iOS Safari viewport auto-zoom */
+  }
+
+  button,
+  a,
+  [role="button"] {
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  body {
+    font-family: miui, system-ui, -apple-system, BlinkMacSystemFont, ".SFNSText-Regular", Helvetica, Arial, sans-serif;
+    color: #0F0F10;
+    background-color: #FFFFFF;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11', 'ss01', 'tnum';
+    font-variant-numeric: tabular-nums;
+    line-height: 1.45;
+  }
+
+  h1, h2, h3, h4, h5, h6,
+  .font-heading,
+  .font-editorial,
+  .delsla-hero,
+  .delsla-h1,
+  .delsla-h2,
+  .delsla-h3,
+  .font-bold,
+  .font-extrabold,
+  .font-black,
+  b,
+  strong {
+    font-family: miui, system-ui, -apple-system, BlinkMacSystemFont, ".SFNSText-Regular", Helvetica, Arial, sans-serif !important;
+    letter-spacing: -0.02em;
+    font-weight: 600 !important;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .delsla-body {
+    font-family: miui, system-ui, -apple-system, BlinkMacSystemFont, ".SFNSText-Regular", Helvetica, Arial, sans-serif;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    line-height: 1.5;
+  }
+
+  .delsla-caption {
+    font-family: miui, system-ui, -apple-system, BlinkMacSystemFont, ".SFNSText-Regular", Helvetica, Arial, sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.01em;
+    line-height: 1.4;
+  }
+
+  /* Optical Number & Digit Alignment (MIUI / System-UI 600) */
+  .font-price,
+  .font-digit,
+  .delsla-price,
+  .delsla-digit {
+    font-family: miui, system-ui, -apple-system, BlinkMacSystemFont, ".SFNSText-Regular", Helvetica, Arial, sans-serif !important;
+    font-style: normal !important;
+    font-weight: 600 !important;
+    font-variant-numeric: tabular-nums !important;
+  }
+
+  .font-mono {
+    font-family: miui, system-ui, -apple-system, BlinkMacSystemFont, ".SFNSText-Regular", Helvetica, Arial, sans-serif !important;
+    font-variant-numeric: tabular-nums !important;
+  }
+
+  /* User-Specified System-UI 600 Primary Price Badge */
+  .text-price-primary {
+    font-family: miui, system-ui, -apple-system, BlinkMacSystemFont, ".SFNSText-Regular", Helvetica, Arial, sans-serif !important;
+    font-style: normal !important;
+    font-weight: 600 !important;
+    font-size: 18px !important;
+    line-height: 20px !important;
+    color: rgb(251, 119, 1) !important;
+    font-variant-numeric: tabular-nums !important;
+  }
+
+  .text-price-orange {
+    color: rgb(251, 119, 1) !important;
+  }
+}
+
+/* Custom Luxury Gold Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #F8F9FA;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(212, 175, 55, 0.35);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(212, 175, 55, 0.6);
+}
+
+/* Luxury Liquid Glass Refraction */
+.desla-glass {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
+}
+
+.desla-card {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.04);
+  transition: transform 180ms cubic-bezier(0.23, 1, 0.32, 1), border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.desla-card:hover {
+  border-color: rgba(212, 175, 55, 0.45);
+  box-shadow: 0 8px 24px -4px rgba(212, 175, 55, 0.12), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+}
+
+/* Gold Metallic Gradient Utilities */
+.text-gold-gradient {
+  background: linear-gradient(135deg, #F6E7C1 0%, #D4AF37 50%, #AA8232 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.bg-gold-gradient {
+  background: linear-gradient(135deg, #F6E7C1 0%, #D4AF37 50%, #997A2E 100%);
+}
+
+.bg-gold-metallic {
+  background: linear-gradient(180deg, #E6C566 0%, #D4AF37 50%, #B8922C 100%);
+}
+
+/* Emil Kowalski Button Active State */
+.active-press:active {
+  transform: scale(0.97) !important;
+  transition: transform 140ms cubic-bezier(0.23, 1, 0.32, 1) !important;
+}
+
+/* Shimmer Effect */
+@keyframes goldShimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-gold-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.animate-gold-shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    rgba(212, 175, 55, 0) 0,
+    rgba(246, 231, 193, 0.15) 30%,
+    rgba(212, 175, 55, 0.35) 60%,
+    rgba(212, 175, 55, 0) 100%
+  );
+  animation: goldShimmer 2.4s infinite;
+}
+
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Infinite Smooth Continuous Marquee for Taxonomy Rail */
+@keyframes marqueeHorizontal {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.animate-marquee-smooth {
+  display: flex;
+  width: max-content;
+  animation: marqueeHorizontal 38s linear infinite;
+  will-change: transform;
+}
+
+.animate-marquee-smooth:hover,
+.animate-marquee-smooth:focus-within {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee-smooth {
+    animation: none !important;
+  }
+}
+
+/* ========================================================
+   UNIVERSAL SYSTEM-UI - 600 TYPOGRAPHY SYSTEM
+   Enforces system-ui font-family and caps emphasis at 600
+======================================================== */
+*,
+html,
+body,
+button,
+input,
+select,
+textarea {
+  font-family: miui, system-ui, -apple-system, BlinkMacSystemFont, ".SFNSText-Regular", Helvetica, Arial, sans-serif !important;
+}
+
+h1, h2, h3, h4, h5, h6,
+b, strong,
+.font-bold,
+.font-extrabold,
+.font-black,
+.font-heading,
+.font-editorial,
+.delsla-hero,
+.delsla-h1,
+.delsla-h2,
+.delsla-h3,
+[class*="font-bold"],
+[class*="font-extrabold"],
+[class*="font-black"],
+[class*="font-semibold"] {
+  font-family: miui, system-ui, -apple-system, BlinkMacSystemFont, ".SFNSText-Regular", Helvetica, Arial, sans-serif !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.02em;
+}
+
+.font-price,
+.font-digit,
+.delsla-price,
+.delsla-digit,
+.text-price-primary {
+  font-family: miui, system-ui, -apple-system, BlinkMacSystemFont, ".SFNSText-Regular", Helvetica, Arial, sans-serif !important;
+  font-style: normal !important;
+  font-weight: 600 !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+/* ========================================================
+   DESLA!™ LUXURY GLASSMORPHISM & ORGANIC MINIMALISM
+======================================================== */
+.desla-glass-luxury {
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 8px 32px rgba(212, 175, 55, 0.07), 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.desla-glass-dark {
+  background: rgba(15, 15, 16, 0.82);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4), 0 0 24px rgba(212, 175, 55, 0.12);
+}
+
+.desla-hand-drawn-border {
+  border-radius: 255px 15px 225px 15px/15px 225px 15px 255px;
+}
+
+
+/* Flowing Liquid Gold Wave Background Animations */
+@keyframes waveFlow {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.animate-wave-flow {
+  animation: waveFlow 24s linear infinite;
+  will-change: transform;
+}
+
+.animate-wave-flow-slow {
+  animation: waveFlow 38s linear infinite reverse;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-wave-flow,
+  .animate-wave-flow-slow {
+    animation: none !important;
+  }
+}

@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 const uuid = z.string().uuid();
 
-export const paymentProvider = z.enum(['flutterwave', 'paystack', 'opay', 'transfer']);
+export const paymentProvider = z.enum(['flutterwave', 'stripe', 'opay', 'transfer']);
 
 export const initPaymentSchema = z
   .object({ orderId: uuid, provider: paymentProvider })

@@ -81,7 +81,7 @@ export const CreatorSettings: React.FC = () => {
             <h2 className="font-heading font-bold text-base text-[#0F0F10]">
               Settlement Bank Account (NUBAN)
             </h2>
-            <span className="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+            <span className="text-[10px] font-mono font-bold text-[#0F0F10] bg-[#FAF9F6] px-2.5 py-0.5 rounded-full border border-[#E5E7EB]">
               BVN Matched ✓
             </span>
           </div>
@@ -121,7 +121,7 @@ export const CreatorSettings: React.FC = () => {
           >
             {saved ? (
               <>
-                <Check size={14} className="text-emerald-400" />
+                <Check size={14} className="text-[#0F0F10]" />
                 <span>Changes Saved ✓</span>
               </>
             ) : (

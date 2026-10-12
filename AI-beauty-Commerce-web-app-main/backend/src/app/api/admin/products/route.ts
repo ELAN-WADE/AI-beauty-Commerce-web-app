@@ -6,6 +6,7 @@ import { requireStaff } from '@/lib/admin';
 import { audit } from '@/modules/audit/service';
 import { createProduct } from '@/modules/catalog/service';
 import { productCreateSchema } from '@/modules/catalog/validation';
+import { revalidateStorefront } from '@/lib/storefront-revalidate';
 
 export const POST = api(async ({ req, requestId }) => {
   const rl = checkRateLimit(`admin:${clientIp(req)}`, Limits.admin);
@@ -15,5 +16,7 @@ export const POST = api(async ({ req, requestId }) => {
   const input = productCreateSchema.parse(await readJson(req));
   const created = await createProduct(db, input);
   await audit(db, { actorId: ctx.userId, action: 'product.create', entityType: 'product', entityId: created.id, after: { slug: created.slug, variants: created.variantIds.length }, ip: clientIp(req), requestId });
+  // Phase 2: new product → home/catalogue ISR refresh on next hit.
+  revalidateStorefront(created.slug);
   return NextResponse.json(created, { status: 201 });
 });

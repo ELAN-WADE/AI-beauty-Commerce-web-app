@@ -1,5 +1,5 @@
 // Container startup gate: no traffic/worker runs with a half-configured env.
-const required = ['DATABASE_URL', 'APP_URL', 'FRONTEND_URL', 'SMTP_HOST', 'SMTP_FROM', 'SMTP_USER', 'SMTP_PASS', 'AUTH_EMAIL_ENCRYPTION_KEY', 'CLIENT_IP_HEADER', 'PAYSTACK_SECRET_KEY', 'FLW_SECRET_KEY', 'FLW_SECRET_HASH', 'S3_ACCESS_KEY', 'S3_SECRET_KEY', 'BANK_NAME', 'BANK_ACCOUNT_NUMBER', 'BANK_ACCOUNT_NAME'];
+const required = ['DATABASE_URL', 'APP_URL', 'FRONTEND_URL', 'SMTP_HOST', 'SMTP_FROM', 'SMTP_USER', 'SMTP_PASS', 'AUTH_EMAIL_ENCRYPTION_KEY', 'CLIENT_IP_HEADER', 'STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET', 'FLW_SECRET_KEY', 'FLW_SECRET_HASH', 'S3_ACCESS_KEY', 'S3_SECRET_KEY', 'BANK_NAME', 'BANK_ACCOUNT_NUMBER', 'BANK_ACCOUNT_NAME'];
 if (process.env.NODE_ENV !== 'production') throw new Error('Production container must set NODE_ENV=production');
 for (const name of required) {
   if (!process.env[name]?.trim() || /placeholder/i.test(process.env[name])) throw new Error(`Production setting ${name} is missing or a placeholder`);

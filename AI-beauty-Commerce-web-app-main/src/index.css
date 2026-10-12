@@ -241,8 +241,15 @@
   will-change: transform;
 }
 
-.animate-marquee-smooth:hover {
+.animate-marquee-smooth:hover,
+.animate-marquee-smooth:focus-within {
   animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee-smooth {
+    animation: none !important;
+  }
 }
 
 /* ========================================================
@@ -313,3 +320,30 @@ b, strong,
   border-radius: 255px 15px 225px 15px/15px 225px 15px 255px;
 }
 
+
+/* Flowing Liquid Gold Wave Background Animations */
+@keyframes waveFlow {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.animate-wave-flow {
+  animation: waveFlow 24s linear infinite;
+  will-change: transform;
+}
+
+.animate-wave-flow-slow {
+  animation: waveFlow 38s linear infinite reverse;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-wave-flow,
+  .animate-wave-flow-slow {
+    animation: none !important;
+  }
+}

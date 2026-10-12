@@ -7,7 +7,7 @@ import { lookupReturnOrder, returnErrorUrl, returnRedirectUrl } from '@/modules/
 import { settleAttempt } from '@/modules/payments/service';
 
 /**
- * Provider redirect landing (Flutterwave redirect_url, Paystack callback_url,
+ * Provider redirect landing (Flutterwave redirect_url, Stripe success_url,
  * Opay returnUrl all point here). Settles via server-side verification, then
  * redirects to the storefront with ?pay=reference. The SPA polls
  * /api/payments/status and routes the shopper. The redirect query is NEVER
@@ -17,10 +17,11 @@ import { settleAttempt } from '@/modules/payments/service';
  * Accept: application/json still get JSON (staging smoke, debugging).
  */
 const querySchema = z.object({
-  provider: z.enum(['flutterwave', 'paystack', 'opay']),
+  provider: z.enum(['flutterwave', 'stripe', 'opay']),
   status: z.string().optional(),
   tx_ref: z.string().optional(),
   transaction_id: z.string().optional(),
+  session_id: z.string().optional(),
   reference: z.string().optional(),
   trxref: z.string().optional(),
 });
@@ -47,7 +48,9 @@ export async function GET(req: Request) {
       result = await settleAttempt(db, {
         provider: q.provider,
         reference,
-        transactionId: q.transaction_id,
+        // Stripe echoes the Checkout Session id (its verify key); others use
+        // transaction_id. Falls back to the stored providerRef server-side.
+        transactionId: q.transaction_id ?? q.session_id,
       });
     } catch (settleErr) {
       // Transient provider/DB failure must not strand the shopper on a raw

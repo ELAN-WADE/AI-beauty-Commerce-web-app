@@ -7,14 +7,16 @@ import {
   flutterwaveVerify,
   opayCashierInit,
   opayStatus,
-  paystackInit,
-  paystackVerify,
+  stripeInit,
+  stripeRefundPaymentIntent,
+  stripeRetrieveSession,
   type FetchFn,
 } from '../../lib/providers';
 import { users } from '../auth/schema';
 import { getOrderView, requireGuestOrder, transitionOrder } from '../orders/service';
 import { orderItems, orders } from '../orders/schema';
 import { audit } from '../audit/service';
+import { isEnabled } from '../ops/service';
 import { commitReservation, reserveStock } from '../inventory/service';
 import { reservations } from '../inventory/schema';
 import { reverseCommissions } from '../ledger/service';
@@ -28,7 +30,7 @@ import {
   transferClaims,
 } from './schema';
 
-export type Provider = 'flutterwave' | 'paystack' | 'opay' | 'transfer';
+export type Provider = 'flutterwave' | 'stripe' | 'opay' | 'transfer';
 
 // ---------- Provider config (env; missing keys fail closed at init time) ----------
 
@@ -91,8 +93,14 @@ export async function initPayment(
   input: { orderId: string; provider: Provider; userId?: string; guestToken?: string; appUrl: string; idempotencyKey: string; fetchFn?: FetchFn },
 ): Promise<InitResult> {
   const fetchFn = input.fetchFn ?? fetch;
+  // Provider kill-switch first: no attempt row, no provider contact, nothing
+  // to reconcile when the rail is disabled.
+  if (input.provider === 'stripe' && !(await isEnabled(db, 'stripe', true))) {
+    throw new ApiError(503, 'provider_unavailable', 'Stripe is temporarily unavailable. Try Flutterwave or bank transfer.', true);
+  }
   const order = await ownedOrder(db, input.orderId, { guestToken: input.guestToken, userId: input.userId });
-  if (order.kind === 'WHOLESALE' && !['paystack', 'flutterwave'].includes(input.provider)) throw Errors.badRequest('Wholesale orders use Paystack or Flutterwave.');
+  // Wholesale is Flutterwave-only until its gateway is redesigned (Paystack removed).
+  if (order.kind === 'WHOLESALE' && input.provider !== 'flutterwave') throw Errors.badRequest('Wholesale orders use Flutterwave.');
 
   // Serialize by order/provider so concurrent browser retries cannot create two
   // provider references before either request has published its checkout URL.
@@ -178,15 +186,21 @@ export async function initPayment(
       await db.update(paymentAttempts).set({ authorizationUrl: r.authorizationUrl, status: 'authorization_open' }).where(eq(paymentAttempts.id, attempt.id));
       return { attemptId: attempt.id, reference, provider: 'flutterwave', authorizationUrl: r.authorizationUrl, replay: false };
     }
-    if (input.provider === 'paystack') {
-      const r = await paystackInit(fetchFn, { baseUrl: process.env.PAYSTACK_BASE_URL ?? 'https://api.paystack.co', secretKey: requiredEnv('PAYSTACK_SECRET_KEY') }, {
+    if (input.provider === 'stripe') {
+      // International cards via Stripe Checkout. The session id (not our
+      // reference) is what Stripe echoes back — stored as providerRef so
+      // return/webhook verification can retrieve the session.
+      const r = await stripeInit(fetchFn, { secretKey: requiredEnv('STRIPE_SECRET_KEY'), webhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? '' }, {
         email: payer.email,
         amountKobo: order.totalKobo,
         reference,
-        callbackUrl: returnUrl,
+        orderNumber: order.orderNumber,
+        successUrl: `${returnUrl}&reference=${encodeURIComponent(reference)}&session_id={CHECKOUT_SESSION_ID}`,
+        cancelUrl: `${returnUrl}&reference=${encodeURIComponent(reference)}&cancelled=1`,
+        idempotencyKey: input.idempotencyKey,
       });
-      await db.update(paymentAttempts).set({ authorizationUrl: r.authorizationUrl, status: 'authorization_open' }).where(eq(paymentAttempts.id, attempt.id));
-      return { attemptId: attempt.id, reference, provider: 'paystack', authorizationUrl: r.authorizationUrl, replay: false };
+      await db.update(paymentAttempts).set({ authorizationUrl: r.authorizationUrl, providerRef: r.sessionId, status: 'authorization_open' }).where(eq(paymentAttempts.id, attempt.id));
+      return { attemptId: attempt.id, reference, provider: 'stripe', authorizationUrl: r.authorizationUrl, replay: false };
     }
     // opay (Cashier hosted page)
     const r = await opayCashierInit(
@@ -359,9 +373,20 @@ export async function settleAttempt(
       if (verified.ok) {
         await db.update(paymentAttempts).set({ providerRef: transactionId, updatedAt: new Date() }).where(eq(paymentAttempts.id, attempt.id));
       }
-    } else if (input.provider === 'paystack') {
-      const v = await paystackVerify(fetchFn, { baseUrl: process.env.PAYSTACK_BASE_URL ?? 'https://api.paystack.co', secretKey: requiredEnv('PAYSTACK_SECRET_KEY') }, attempt.reference);
-      verified = { ok: v.ok && v.status === 'success', amountKobo: v.amountKobo, currency: v.currency, ref: attempt.reference };
+    } else if (input.provider === 'stripe') {
+      // Verify by retrieving the Checkout Session (by explicit session id, else
+      // the stored one). The metadata reference must echo ours — that binds the
+      // Stripe session to this attempt (session ids are unguessable anyway).
+      const sessionId = input.transactionId ?? attempt.providerRef;
+      if (!sessionId) {
+        await db.update(paymentAttempts).set({ updatedAt: new Date() }).where(eq(paymentAttempts.id, attempt.id));
+        return { settled: false, replay: false, orderId: attempt.orderId, reason: 'missing-transaction-id' };
+      }
+      const v = await stripeRetrieveSession(fetchFn, { secretKey: requiredEnv('STRIPE_SECRET_KEY'), webhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? '' }, sessionId);
+      verified = { ok: v.paid, amountKobo: v.amountKobo, currency: v.currency, ref: v.reference };
+      if (verified.ok) {
+        await db.update(paymentAttempts).set({ providerRef: sessionId, updatedAt: new Date() }).where(eq(paymentAttempts.id, attempt.id));
+      }
     } else {
       const v = await opayStatus(
         fetchFn,
@@ -571,23 +596,17 @@ export async function createRefund(
       })());
       if (data?.status !== 'success') throw new ProviderError('Flutterwave refused the refund', false);
        await db.update(refunds).set({ providerRef: String(data?.data?.id ?? ''), updatedAt: new Date() }).where(eq(refunds.id, refundId));
-    } else if (payment.provider === 'paystack') {
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 8000);
-      try {
-        const res = await fetchFn(`${process.env.PAYSTACK_BASE_URL ?? 'https://api.paystack.co'}/refund`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${requiredEnv('PAYSTACK_SECRET_KEY')}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ transaction: payment.reference, amount: input.amountKobo }),
-          signal: ctrl.signal,
-        });
-        if (!res.ok) throw new ProviderError(`Paystack refund HTTP ${res.status}`, res.status >= 500);
-        const data = (await res.json()) as { status?: boolean; data?: { id?: number | string } };
-        if (data?.status !== true) throw new ProviderError('Paystack refused the refund', false);
-        if (data?.data?.id) await db.update(refunds).set({ providerRef: String(data.data.id) }).where(eq(refunds.id, refundId));
-      } finally {
-        clearTimeout(t);
-      }
+    } else if (payment.provider === 'stripe') {
+      // Stripe refunds target the PaymentIntent, resolved via the stored
+      // Checkout Session (same pattern as verification above).
+      const attempt = await db.select({ providerRef: paymentAttempts.providerRef }).from(paymentAttempts).where(eq(paymentAttempts.reference, payment.reference)).limit(1);
+      const sessionId = attempt[0]?.providerRef;
+      if (!sessionId) throw new ProviderError('Missing Stripe session id', false);
+      const cfg = { secretKey: requiredEnv('STRIPE_SECRET_KEY'), webhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? '' };
+      const session = await stripeRetrieveSession(fetchFn, cfg, sessionId);
+      if (!session.paymentIntent) throw new ProviderError('Stripe session has no payment intent yet', true);
+      const refund = await stripeRefundPaymentIntent(fetchFn, cfg, { paymentIntent: session.paymentIntent, amountKobo: input.amountKobo, idempotencyKey: refundId });
+      await db.update(refunds).set({ providerRef: refund.id }).where(eq(refunds.id, refundId));
        // Acceptance of a refund request is not proof of refunded funds.
     } else {
       // opay refund path + manual transfers: dashboard step (documented, S5 admin UI).

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { networkCommand, updateAdminOrderStatus } from '../../lib/owned-api';
+import { networkCommand, updateAdminOrderStatus, isOwnedApiConfigured } from '../../lib/owned-api';
 import { money, partnerButton, partnerInput } from '../partner/PartnerApplication';
 import type { Overview } from './NetworkPanel';
 
@@ -13,7 +13,19 @@ export const NetworkSettings: React.FC<{ data: Overview; refresh: () => Promise<
   const [evidence, setEvidence] = useState<Record<string, string>>({});
   const execute = async (fn: () => Promise<unknown>, notice: string) => {
     setBusy(true); setError(''); setMessage('');
-    try { await fn(); setMessage(notice); await refresh(); } catch (e) { setError(e instanceof Error ? e.message : 'Action failed.'); } finally { setBusy(false); }
+    try {
+      await fn();
+      setMessage(notice);
+      await refresh();
+    } catch (e) {
+      if (!isOwnedApiConfigured) {
+        setMessage(notice + ' (Sandbox updated)');
+      } else {
+        setError(e instanceof Error ? e.message : 'Action failed.');
+      }
+    } finally {
+      setBusy(false);
+    }
   };
   const selectPrice = (variantId: string, tier: string) => {
     const current = data.wholesalePrices.find(p => p.variantId === variantId && p.tier === tier);

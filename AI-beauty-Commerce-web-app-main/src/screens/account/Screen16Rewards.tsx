@@ -90,7 +90,7 @@ export const Screen16Rewards: React.FC = () => {
                 Available Rewards Balance
               </span>
               <p className="font-heading font-extrabold text-3xl text-[#1E1B1D] leading-none mt-0.5">
-                {displayPoints.toLocaleString()}{' '}
+                {(displayPoints || 0).toLocaleString()}{' '}
                 <span className="text-sm font-bold uppercase tracking-wider">Points</span>
               </p>
             </div>

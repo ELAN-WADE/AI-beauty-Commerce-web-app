@@ -75,7 +75,7 @@ source. It does not mean live-provider validation or client acceptance has passe
 | Guest/authenticated carts | Persistent database carts, item updates/removal, guest-session ownership and merge-on-login service | Storefront persistence and error handling are not complete just because these APIs exist |
 | Checkout | Server-owned prices, order/item snapshots, address checks, stock reservation, discounts and idempotency | Validate retries and the full retail purchasing journey |
 | Orders/history/status | Owner reads, guest-email lookup, history, guarded status transitions and admin order APIs | Customer-facing order numbers and internal UUID lookup need alignment |
-| Payments | Paystack, Flutterwave and Opay adapters; manual transfer claims; signature checks and server verification | Live/test merchant validation, callback UX and settlement recovery remain |
+| Payments | Stripe, Flutterwave and Opay adapters; manual transfer claims; signature checks and server verification | Live/test merchant validation, callback UX and settlement recovery remain |
 | Refunds | Provider refund requests, cumulative amount checks, order/commission effects | Provider acceptance versus completed refund must be reconciled reliably |
 | Transactional notifications | Outbox and SMTP sender for order-created, paid and shipment messages | Real SMTP verification, worker recovery, and account-message templates/workflows remain |
 | Administration | Permission-gated catalogue, inventory, users, orders, claims, review/loyalty, audit and network endpoints | Backend endpoints do not establish a complete usable admin product |
@@ -175,11 +175,11 @@ and order-recovery flow, including guest identity after navigation/reload.
 
 The webhook routes record a deduplication event before settlement. On replay,
 they report `settled: true` without checking whether settlement previously
-succeeded. The Paystack handler acknowledges settlement errors with HTTP 200.
+succeeded. The Stripe handler acknowledges settlement errors with HTTP 200.
 The worker has no payment-event reconciliation task. A temporary verification
 or database failure can consequently strand a paid transaction.
 
-Evidence: `backend/src/app/api/webhooks/{paystack,flutterwave,opay}/route.ts`,
+Evidence: `backend/src/app/api/webhooks/{stripe,flutterwave,opay}/route.ts`,
 `backend/src/modules/payments/service.ts`, `backend/src/worker/tasks.ts`.
 
 ### D. Image analysis is not connected to the image
@@ -286,7 +286,7 @@ and lookup rules from `data-storage`, async outbox/worker rules from
 | --- | --- | --- |
 | A. Account emails missing + 4-digit UI vs long-token backend | Transactional outbox enqueue for `auth.verify-email` / `auth.reset-password` with SMTP worker templates; frontend now uses secure token paste + dev echo, demo bypass preserved | `backend/src/lib/email.ts`, `backend/src/app/api/auth/register/route.ts`, `backend/src/app/api/auth/request-password-reset/route.ts`, `backend/src/modules/auth/service.ts`, `backend/src/worker/tasks.ts`, `src/screens/ScreenAuthSuite.tsx` |
 | B. Payment return JSON vs `?pay=` SPA contract + lost guest email | Return route 302-redirects browsers to `FRONTEND_URL/?pay=reference`; JSON preserved for API callers; guest email + reference persisted for return polling | `backend/src/app/api/payments/return/route.ts`, `src/context/AppContext.tsx` |
-| C. Webhook receipt conflated with settlement, no recovery | Duplicate receipts now check `payments` ledger via `isReferenceSettled`; transient settle errors return 500 for provider retry; new `reconcilePayments` worker sweep | `backend/src/modules/payments/service.ts`, `backend/src/app/api/webhooks/{paystack,flutterwave,opay}/route.ts`, `backend/src/worker/tasks.ts` |
+| C. Webhook receipt conflated with settlement, no recovery | Duplicate receipts now check `payments` ledger via `isReferenceSettled`; transient settle errors return 500 for provider retry; new `reconcilePayments` worker sweep | `backend/src/modules/payments/service.ts`, `backend/src/app/api/webhooks/{stripe,flutterwave,opay}/route.ts`, `backend/src/worker/tasks.ts` |
 | F1. Slug vs UUID lookup can fail PG UUID cast | Branch lookup by UUID regex vs slug; no dual-column OR | `backend/src/modules/catalog/service.ts`, `backend/src/modules/reviews/service.ts` |
 | F2. Guest lookup expects UUID, UI shows `DES-...` | Owner/guest lookup accepts UUID or `orderNumber`; identical 404 preserved | `backend/src/modules/orders/service.ts` |
 | F3. AI grounding ignores stock/active variant | Grounding requires active variant + `PLATFORM` available stock | `backend/src/modules/ai/service.ts` |
@@ -333,7 +333,7 @@ Security layers soundproofed in this pass:
 
 Still left for the new stack:
 
-1. Live staging proof with real Postgres, S3, SMTP, Termii, Paystack/FLW/Opay test keys, worker `--once` + loop, backup/restore drill.
+1. Live staging proof with real Postgres, S3, SMTP, Termii, Stripe/FLW/Opay test keys, worker `--once` + loop, backup/restore drill.
 2. Real image-to-model vision (today `skin/service.ts:73-76` uses hints only), shipping carrier APIs, newsletter/segmentation, post-purchase/inactivity campaigns.
 3. Shared rate-limit store (current limiter is in-process; multi-instance bypass), WAF/Turnstile at edge, Sentry DSN + alerts, `backend/public/` real assets vs `.gitkeep`.
 4. Remove legacy inner `.github/workflows/` duplicate now that root CI is canonical; add production Docker build + migration gate to pipeline.

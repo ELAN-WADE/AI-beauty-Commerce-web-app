@@ -13,16 +13,18 @@ import {
   X,
   Store,
   Check,
-  ArrowRight
+  ArrowRight,
+  Camera
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { ProductCard } from '../../components/common/ProductCard';
+import { ProductImage } from '../../components/common/ProductImage';
 import { isOwnedApiConfigured, fetchProductReviewsApi, fetchStockNearCity, resolveVariantId, submitReviewApi } from '../../lib/owned-api';
-import type { ProductReview } from '../../types';
+import type { Product, ProductReview } from '../../types';
 
-export const Screen07ProductDetails: React.FC = () => {
+export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({ initialProduct }) => {
   const {
-    selectedProduct,
+    selectedProduct: contextSelectedProduct,
     addToCart,
     navigateTo,
     products,
@@ -35,6 +37,11 @@ export const Screen07ProductDetails: React.FC = () => {
     userProfile
   } = useApp();
 
+  // Phase 3 SSR: server renders with the ISR-seeded product so HTML already
+  // shows the right formulation; the client hydrates with the identical object
+  // (no mismatch, no "Product Not Found" flash). Context still syncs post-mount.
+  const selectedProduct = initialProduct ?? contextSelectedProduct;
+
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [selectedSize, setSelectedSize] = useState(
     selectedProduct?.selectedSize || selectedProduct?.sizes[0] || 'Standard'
@@ -46,6 +53,7 @@ export const Screen07ProductDetails: React.FC = () => {
   const [reviewTitle, setReviewTitle] = useState('');
   const [reviewComment, setReviewComment] = useState('');
   const [reviewSkinType, setReviewSkinType] = useState('Combination Skin');
+  const [reviewPhoto, setReviewPhoto] = useState<string>('');
   const [justAdded, setJustAdded] = useState(false);
   const [liveReviews, setLiveReviews] = useState<ProductReview[] | null>(null);
   const [liveStock, setLiveStock] = useState<{ units: number; partners: number } | null>(null);
@@ -95,12 +103,17 @@ export const Screen07ProductDetails: React.FC = () => {
     );
   }
 
-  const images = selectedProduct.galleryImages || [
-    selectedProduct.image,
-    'https://images.unsplash.com/photo-1608248597359-0c679234b4c7?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?auto=format&fit=crop&w=800&q=80'
+  // Resilient image list with guaranteed packshot fallbacks
+  const defaultFallbackImages = [
+    selectedProduct.image || '/product_barrier_cream.jpg',
+    '/product_barrier_cream.jpg',
+    '/product_cleanser.jpg',
+    '/product_sunscreen.jpg'
   ];
+
+  const images = (selectedProduct.galleryImages && selectedProduct.galleryImages.length > 0)
+    ? selectedProduct.galleryImages
+    : defaultFallbackImages;
 
   const formatNaira = (amt: number) => '₦' + amt.toLocaleString('en-NG');
 
@@ -127,19 +140,21 @@ export const Screen07ProductDetails: React.FC = () => {
     ? Math.round(((selectedProduct.originalPrice - selectedProduct.price) / selectedProduct.originalPrice) * 100)
     : selectedProduct.discountPercentage || 0;
 
-  // Filter other formulations
+  // Filter other formulations - exactly 5 items for balanced desktop 5-col row
   const otherProducts = React.useMemo(() => {
-    if (!selectedProduct) return products.slice(0, 4);
+    if (!selectedProduct) return products.slice(0, 5);
     const sameCategory = products.filter(
       (p) => p.id !== selectedProduct.id && p.category === selectedProduct.category
     );
     const otherCategories = products.filter(
       (p) => p.id !== selectedProduct.id && p.category !== selectedProduct.category
     );
-    return [...sameCategory, ...otherCategories].slice(0, 8);
+    return [...sameCategory, ...otherCategories].slice(0, 5);
   }, [products, selectedProduct]);
 
-  const handleSubmitReview = (e: React.FormEvent) => {
+  const [reviewSyncNote, setReviewSyncNote] = useState<string | null>(null);
+
+  const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reviewTitle.trim() || !reviewComment.trim()) return;
 
@@ -153,18 +168,25 @@ export const Screen07ProductDetails: React.FC = () => {
       comment: reviewComment,
       verifiedPurchase: true,
       city: selectedCity,
-      skinType: reviewSkinType
+      skinType: reviewSkinType,
+      photoUrl: reviewPhoto || undefined
     });
 
-    submitReviewApi({
+    const published = await submitReviewApi({
       productId: selectedProduct.id,
       rating: reviewRating,
       title: reviewTitle,
       comment: reviewComment
-    }).catch(() => {});
+    }).catch(() => false);
+    setReviewSyncNote(
+      published
+        ? null
+        : 'Saved on this device only — we could not reach the server. Reconnect and re-submit to publish it.'
+    );
 
     setReviewTitle('');
     setReviewComment('');
+    setReviewPhoto('');
     setIsReviewModalOpen(false);
   };
 
@@ -176,31 +198,39 @@ export const Screen07ProductDetails: React.FC = () => {
           {/* ========================================================================= */}
           {/* 1. MEDIA GALLERY (lg:col-span-7, order-1)                                 */}
           {/* ========================================================================= */}
-          <div className="lg:col-span-7 order-1 space-y-3">
+          <div className="lg:col-span-7 order-1 space-y-3 min-w-0">
             <div className="flex flex-col-reverse md:flex-row gap-3.5 items-start">
               {/* Vertical Thumbnails */}
-              <div className="flex md:flex-col gap-2 overflow-x-auto md:overflow-y-auto no-scrollbar shrink-0 max-h-[460px]">
+              <div className="flex md:flex-col gap-2 overflow-x-auto md:overflow-y-auto no-scrollbar shrink-0 max-h-[480px]">
                 {images.map((img, idx) => (
                   <button
                     key={idx}
                     onClick={() => setActiveImageIndex(idx)}
-                    className={`w-14 h-14 md:w-16 md:h-16 rounded-xl overflow-hidden bg-[#F6F5F2] border-2 transition-all shrink-0 cursor-pointer active-press ${
+                    className={`relative w-14 h-14 md:w-16 md:h-16 rounded-xl overflow-hidden bg-[#F6F5F2] border-2 transition-all shrink-0 cursor-pointer active-press ${
                       activeImageIndex === idx
                         ? 'border-[#D4AF37] shadow-xs'
                         : 'border-[#E5E7EB] opacity-75 hover:opacity-100 hover:border-gray-400'
                     }`}
                   >
-                    <img src={img} alt={`Thumbnail ${idx}`} className="w-full h-full object-cover" />
+                    <ProductImage
+                      src={img}
+                      alt={`Thumbnail ${idx}`}
+                      sizes="64px"
+                      className="object-cover"
+                      fallbackSrc={selectedProduct.image || '/product_barrier_cream.jpg'}
+                    />
                   </button>
                 ))}
               </div>
 
-              {/* Main Hero Image Viewport */}
-              <div className="relative flex-1 aspect-square max-h-[460px] w-full rounded-2xl overflow-hidden bg-[#F6F5F2] border border-[#E5E7EB] shadow-xs group flex items-center justify-center">
-                <img
-                  src={images[activeImageIndex] || selectedProduct.image}
+              {/* Main Hero Image Viewport - Full Bleed Coverage without Awkward Letterboxing */}
+              <div className="relative flex-1 aspect-square max-h-[480px] w-full rounded-2xl overflow-hidden bg-[#F6F5F2] border border-[#E5E7EB] shadow-xs group">
+                <ProductImage
+                  src={images[activeImageIndex] || selectedProduct.image || '/product_barrier_cream.jpg'}
                   alt={selectedProduct.name}
-                  className="w-full h-full object-cover object-center transition-transform duration-300 group-hover:scale-102"
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                  priority
+                  className="object-cover object-center transition-transform duration-300 group-hover:scale-102"
                 />
 
                 {/* Prev / Next Arrows */}
@@ -222,18 +252,6 @@ export const Screen07ProductDetails: React.FC = () => {
                     </button>
                   </>
                 )}
-
-                {/* Badges on Hero Image */}
-                <div className="absolute top-3 left-3 flex flex-col gap-1 z-10">
-                  <span className="px-2.5 py-0.5 rounded-full bg-[#0F0F10]/90 text-white font-mono text-[11px] font-bold shadow-xs">
-                    {selectedProduct.sku}
-                  </span>
-                  {discountPct > 0 && (
-                    <span className="px-2.5 py-0.5 rounded-full bg-[#D4AF37] text-[#0F0F10] font-mono text-[11px] font-black shadow-xs">
-                      {discountPct}% OFF
-                    </span>
-                  )}
-                </div>
               </div>
             </div>
           </div>
@@ -241,22 +259,23 @@ export const Screen07ProductDetails: React.FC = () => {
           {/* ========================================================================= */}
           {/* 2. PRODUCT BUY-BOX & ADD-TO-BAG (lg:col-span-5, order-2, sticky on desktop) */}
           {/* ========================================================================= */}
-          <div className="lg:col-span-5 order-2 space-y-4 lg:sticky lg:top-20">
-            {/* Commercial Badges */}
+          <div className="lg:col-span-5 order-2 space-y-4 lg:sticky lg:top-20 min-w-0">
+            {/* Commercial Badges & SKU */}
             <div className="space-y-1.5">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#F3EEE3] border border-[#E5E7EB] text-[#0F0F10] text-[11px] font-bold">
-                  <CheckCircle2 size={12} className="text-[#997A2E]" />
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#F3EEE3] border border-[#E5E7EB] text-[#0F0F10] text-[10px] font-semibold">
+                  <CheckCircle2 size={11} className="text-[#997A2E]" />
                   Free Local Shipping in {selectedCity}
                 </span>
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#FBF5E8] border border-[#D4AF37]/40 text-[#997A2E] text-[11px] font-bold">
-                  <Award size={12} className="text-[#D4AF37]" />
-                  #1 Best-Seller in {selectedProduct.category}
-                </span>
+                {selectedProduct.sku && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#F6F5F2] border border-[#E5E7EB] text-[#6B7280] font-mono text-[10px] font-medium">
+                    {selectedProduct.sku}
+                  </span>
+                )}
               </div>
 
               {/* Product Title */}
-              <h1 className="font-heading font-extrabold text-xl sm:text-2xl text-[#0F0F10] tracking-tight leading-tight">
+              <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-[#0F0F10] tracking-tight leading-snug">
                 {selectedProduct.name}
               </h1>
 
@@ -265,30 +284,30 @@ export const Screen07ProductDetails: React.FC = () => {
                 <div className="flex items-center gap-1 text-[#D4AF37]">
                   <div className="flex">
                     {[...Array(5)].map((_, i) => (
-                      <Star key={i} size={12} fill="currentColor" strokeWidth={0} />
+                      <Star key={i} size={11} fill="currentColor" strokeWidth={0} />
                     ))}
                   </div>
-                  <span className="font-bold text-[#0F0F10] ml-1 text-[11px]">{selectedProduct.rating}</span>
+                  <span className="font-bold text-[#0F0F10] ml-0.5 text-[11px]">{selectedProduct.rating}</span>
                 </div>
                 <span>•</span>
                 <span className="text-[11px] text-[#6B7280]">
                   {shownReviews.length + 482} verified reviews
                 </span>
                 <span>•</span>
-                <span className="font-semibold text-[#0F0F10] text-[11px]">
+                <span className="font-medium text-[#0F0F10] text-[11px]">
                   2.4K+ sold
                 </span>
               </div>
             </div>
 
-            {/* Price & Savings Block */}
-            <div className="p-3.5 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] space-y-1.5">
-              <div className="flex items-baseline gap-3 flex-wrap">
-                <span className="font-price font-extrabold text-2xl text-[#0F0F10]">
+            {/* Price & Savings Block - Clean White Card */}
+            <div className="p-3.5 rounded-2xl bg-white border border-[#E5E7EB] space-y-1">
+              <div className="flex items-baseline gap-2.5 flex-wrap">
+                <span className="font-price font-extrabold text-xl sm:text-2xl text-[#0F0F10]">
                   {formatNaira(selectedProduct.price)}
                 </span>
                 {selectedProduct.originalPrice && selectedProduct.originalPrice > selectedProduct.price && (
-                  <span className="font-price text-sm text-[#9CA3AF] line-through">
+                  <span className="font-price text-xs sm:text-sm text-[#9CA3AF] line-through">
                     {formatNaira(selectedProduct.originalPrice)}
                   </span>
                 )}
@@ -298,7 +317,7 @@ export const Screen07ProductDetails: React.FC = () => {
                   </span>
                 )}
               </div>
-              <p className="text-[11px] text-[#6B7280]">
+              <p className="text-[10.5px] text-[#6B7280]">
                 Taxes included. Authorized Lagos dispatch with temperature control.
               </p>
             </div>
@@ -340,19 +359,19 @@ export const Screen07ProductDetails: React.FC = () => {
               </div>
             </div>
 
-            {/* QUANTITY & PRIMARY ADD TO BAG ACTION */}
+            {/* QUANTITY & ERGONOMIC LUXURY ADD TO BAG ACTION */}
             <div className="space-y-2 pt-1">
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
                 {/* Quantity Stepper */}
-                <div className="flex items-center rounded-full border border-[#E5E7EB] bg-[#F8F9FA] px-3 py-1.5 shrink-0">
+                <div className="flex items-center rounded-full border border-[#E5E7EB] bg-[#F8F9FA] px-2.5 py-1 shrink-0 min-h-[42px] select-none" style={{ touchAction: "manipulation" }}>
                   <button
                     onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                     className="p-1 rounded-full hover:bg-white text-[#0F0F10] active-press transition-colors cursor-pointer"
                     aria-label="Decrease quantity"
                   >
-                    <Minus size={13} />
+                    <Minus size={12} />
                   </button>
-                  <span className="w-8 text-center font-mono font-bold text-xs text-[#0F0F10]">
+                  <span className="w-7 text-center font-mono font-bold text-xs text-[#0F0F10]">
                     {quantity}
                   </span>
                   <button
@@ -360,23 +379,23 @@ export const Screen07ProductDetails: React.FC = () => {
                     className="p-1 rounded-full hover:bg-white text-[#0F0F10] active-press transition-colors cursor-pointer"
                     aria-label="Increase quantity"
                   >
-                    <Plus size={13} />
+                    <Plus size={12} />
                   </button>
                 </div>
 
                 {/* Primary Add to Bag CTA */}
                 <button
                   onClick={handleAddToCart}
-                  className="flex-1 min-h-[48px] py-3 px-5 rounded-full bg-[#0F0F10] hover:bg-[#1F1D22] text-white font-heading font-extrabold text-xs sm:text-sm tracking-wide shadow-md flex items-center justify-center gap-2 active-press transition-all cursor-pointer"
+                  className="flex-1 sm:flex-initial sm:max-w-xs min-h-[46px] py-3 px-7 rounded-full bg-[#0F0F10] hover:bg-[#1F1D22] text-white font-heading font-bold text-xs sm:text-[13px] tracking-wide shadow-sm flex items-center justify-center gap-2 active-press transition-all cursor-pointer"
                 >
                   {justAdded ? (
                     <>
-                      <Check size={16} strokeWidth={3} className="text-[#D4AF37]" />
+                      <Check size={15} strokeWidth={3} className="text-[#D4AF37]" />
                       <span>Added to Bag!</span>
                     </>
                   ) : (
                     <>
-                      <ShoppingBag size={16} strokeWidth={2.2} className="text-[#D4AF37]" />
+                      <ShoppingBag size={15} strokeWidth={2.2} className="text-[#D4AF37]" />
                       <span>Add to Bag • {formatNaira(selectedProduct.price * quantity)}</span>
                     </>
                   )}
@@ -474,17 +493,22 @@ export const Screen07ProductDetails: React.FC = () => {
                     </span>
                   </div>
                   <p className="text-xs text-[#6B7280] mt-0.5">
-                    Real feedback from verified buyers across Nigeria.
+                    Real feedback and photo proofs from verified buyers across Nigeria.
                   </p>
                 </div>
 
                 <button
-                  onClick={() => setIsReviewModalOpen(true)}
+                  onClick={() => { setReviewSyncNote(null); setIsReviewModalOpen(true); }}
                   className="px-4 py-2 rounded-full bg-[#0F0F10] hover:bg-[#D4AF37] text-white hover:text-[#0F0F10] text-xs font-heading font-bold active-press transition-colors cursor-pointer shrink-0"
                 >
                   Write Review
                 </button>
               </div>
+              {reviewSyncNote && (
+                <p role="status" className="text-[11px] text-[#997A2E] bg-[#FBF5E8] border border-[#D4AF37]/30 rounded-xl px-3 py-2">
+                  {reviewSyncNote}
+                </p>
+              )}
 
               {/* Reviews Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -507,6 +531,27 @@ export const Screen07ProductDetails: React.FC = () => {
 
                     <h4 className="font-heading font-bold text-xs text-[#0F0F10]">{rev.title}</h4>
                     <p className="text-xs text-[#6B7280] leading-relaxed">{rev.comment}</p>
+
+                    {/* Customer Photo Proof if Attached */}
+                    {rev.photoUrl && (
+                      <div className="pt-1">
+                        <a href={rev.photoUrl} target="_blank" rel="noopener noreferrer" className="inline-block group/photo">
+                          <div className="relative w-14 h-14 rounded-xl overflow-hidden border border-[#E5E7EB] bg-[#F6F5F2]">
+                            <img
+                              src={rev.photoUrl}
+                              alt="Customer result proof"
+                              className="w-full h-full object-cover group-hover/photo:scale-105 transition-transform"
+                            />
+                            <div className="absolute inset-0 bg-black/15 opacity-0 group-hover/photo:opacity-100 transition-opacity flex items-center justify-center">
+                              <Camera size={13} className="text-white" />
+                            </div>
+                          </div>
+                          <span className="text-[9.5px] font-semibold text-[#6B7280] flex items-center gap-1 mt-0.5">
+                            <Camera size={10} className="text-[#997A2E]" /> Photo proof
+                          </span>
+                        </a>
+                      </div>
+                    )}
 
                     {rev.skinType && (
                       <span className="inline-block text-[10px] font-mono text-[#997A2E] bg-[#FBF5E8] px-2 py-0.5 rounded-full">
@@ -556,7 +601,7 @@ export const Screen07ProductDetails: React.FC = () => {
           </div>
         </div>
 
-        {/* 4. EXPLORE OTHER FORMULATIONS & ROUTINE PAIRINGS */}
+        {/* 4. EXPLORE OTHER FORMULATIONS & ROUTINE PAIRINGS (Exactly 5 Cards for Balanced Desktop Row) */}
         {otherProducts.length > 0 && (
           <section className="mt-10 pt-8 border-t border-[#E5E7EB]">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-5">
@@ -587,7 +632,7 @@ export const Screen07ProductDetails: React.FC = () => {
               </button>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5 sm:gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-4">
               {otherProducts.map((prod) => (
                 <ProductCard key={prod.id} product={prod} />
               ))}
@@ -596,7 +641,7 @@ export const Screen07ProductDetails: React.FC = () => {
         )}
       </main>
 
-      {/* Review Submission Modal */}
+      {/* Review Submission Modal with Photo Upload */}
       {isReviewModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-[#E5E7EB] space-y-4">
@@ -605,7 +650,10 @@ export const Screen07ProductDetails: React.FC = () => {
                 Write a Verified Review
               </h3>
               <button
-                onClick={() => setIsReviewModalOpen(false)}
+                onClick={() => {
+                  setIsReviewModalOpen(false);
+                  setReviewPhoto('');
+                }}
                 className="p-1 rounded-full hover:bg-gray-100 text-gray-500 cursor-pointer active-press"
               >
                 <X size={18} />
@@ -634,8 +682,9 @@ export const Screen07ProductDetails: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-[#0F0F10] block mb-1">Headline</label>
+                <label htmlFor="review-headline" className="text-xs font-semibold text-[#0F0F10] block mb-1">Headline</label>
                 <input
+                  id="review-headline"
                   type="text"
                   required
                   placeholder="e.g. Cleared my hyperpigmentation in 3 weeks!"
@@ -646,8 +695,25 @@ export const Screen07ProductDetails: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-[#0F0F10] block mb-1">Review</label>
+                <label htmlFor="review-skin-type" className="text-xs font-semibold text-[#0F0F10] block mb-1">Skin Type</label>
+                <select
+                  id="review-skin-type"
+                  value={reviewSkinType}
+                  onChange={(e) => setReviewSkinType(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-[#F8F9FA] border border-[#E5E7EB] text-xs text-[#0F0F10] focus:outline-none focus:border-[#D4AF37]"
+                >
+                  <option value="Combination Skin">Combination Skin</option>
+                  <option value="Oily Skin">Oily Skin</option>
+                  <option value="Dry Skin">Dry Skin</option>
+                  <option value="Sensitive Skin">Sensitive Skin</option>
+                  <option value="Normal Skin">Normal Skin</option>
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="review-comment" className="text-xs font-semibold text-[#0F0F10] block mb-1">Review</label>
                 <textarea
+                  id="review-comment"
                   required
                   rows={3}
                   placeholder="Share details about the texture, hydration level, and results on your skin..."
@@ -657,10 +723,61 @@ export const Screen07ProductDetails: React.FC = () => {
                 />
               </div>
 
+              {/* Photo Upload Attachment */}
+              <div>
+                <label className="text-xs font-semibold text-[#0F0F10] block mb-1">
+                  Photo Proof or Receipt (Optional)
+                </label>
+                {reviewPhoto ? (
+                  <div className="relative inline-block">
+                    <img
+                      src={reviewPhoto}
+                      alt="Review upload preview"
+                      className="w-20 h-20 rounded-xl object-cover border border-[#E5E7EB]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setReviewPhoto('')}
+                      className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-[#0F0F10] text-white flex items-center justify-center text-[10px] hover:bg-rose-600 transition-colors cursor-pointer"
+                      aria-label="Remove photo"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex items-center gap-2.5 p-3 rounded-xl border border-dashed border-[#D1D5DB] hover:border-[#D4AF37] bg-[#F9FAFB] cursor-pointer transition-colors">
+                    <Camera size={16} className="text-[#997A2E]" />
+                    <span className="text-xs text-[#6B7280]">
+                      Attach photo of your results or packaging
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            if (typeof reader.result === 'string') {
+                              setReviewPhoto(reader.result);
+                            }
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                  </label>
+                )}
+              </div>
+
               <div className="pt-2 flex justify-end gap-2">
                 <button
                   type="button"
-                  onClick={() => setIsReviewModalOpen(false)}
+                  onClick={() => {
+                    setIsReviewModalOpen(false);
+                    setReviewPhoto('');
+                  }}
                   className="px-4 py-2 rounded-full border border-[#E5E7EB] text-xs text-[#6B7280] font-semibold cursor-pointer active-press"
                 >
                   Cancel

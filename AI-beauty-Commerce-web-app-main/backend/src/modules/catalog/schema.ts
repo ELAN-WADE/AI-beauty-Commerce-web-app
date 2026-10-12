@@ -83,7 +83,7 @@ export const products = pgTable(
 );
 
 /**
- * Variants hold the AUTHORITATIVE price (kobo integers — Paystack speaks kobo,
+ * Variants hold the AUTHORITATIVE price (kobo integers — Stripe/Flutterwave speak minor units,
  * floats are banned). Client totals are never trusted (§6).
  */
 export const productVariants = pgTable(

@@ -36,6 +36,9 @@ export const communityPosts = pgTable(
     mediaUrl: text('media_url'),
     taggedProductId: uuid('tagged_product_id').references(() => products.id, { onDelete: 'set null' }),
     taggedHashtag: text('tagged_hashtag'),
+    // True only when media arrived through the verified upload pipeline
+    // (server key + HEAD + magic bytes). URL-pasted media stays false.
+    mediaVerified: boolean('media_verified').notNull().default(false),
     // Creator attribution for content rewards (set server-side from the
     // author's verified creator profile; null for non-creator posts).
     creatorId: uuid('creator_id').references(() => creators.id, { onDelete: 'set null' }),
@@ -86,5 +89,33 @@ export const communityMessages = pgTable(
   (t) => [
     index('messages_channel_time_idx').on(t.channel, t.createdAt),
     check('message_likes_nonnegative', sql`"likes" >= 0`),
+  ],
+);
+
+/**
+ * Staged community uploads. Row first (server key), bytes second (presigned
+ * PUT), verification third (HEAD + magic bytes at post time). Single-use:
+ * attaching consumes the row, so one upload cannot back two posts. Orphaned
+ * pending rows are reaped by the worker after 24h (object deleted too).
+ */
+export const communityMedia = pgTable(
+  'community_media',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    postId: uuid('post_id').references(() => communityPosts.id, { onDelete: 'set null' }),
+    mediaKey: text('media_key').notNull().unique(),
+    mime: text('mime').notNull(),
+    bytes: integer('bytes').notNull(),
+    status: text('status').notNull().default('pending'),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+  },
+  (t) => [
+    index('community_media_user_idx').on(t.userId, t.createdAt),
+    check('community_media_mime_allowed', sql`"mime" IN ('image/jpeg','image/png','image/webp','video/mp4','video/webm')`),
+    check('community_media_bytes_positive', sql`"bytes" > 0 AND "bytes" <= 67108864`),
+    check('community_media_status_allowed', sql`"status" IN ('pending','attached','failed')`),
   ],
 );

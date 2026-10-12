@@ -105,7 +105,7 @@ export const LocationSelector: React.FC = () => {
 
                 <div className="text-right">
                   <span className="text-xs font-mono font-semibold text-[#D4AF37] block">
-                    ₦{item.localFee.toLocaleString()}
+                    ₦{(item.localFee || 0).toLocaleString()}
                   </span>
                   <span className="text-[10px] text-[#A19B96]">
                     Local Delivery

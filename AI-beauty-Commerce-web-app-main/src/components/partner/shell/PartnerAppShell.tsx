@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { PartnerSidebar } from './PartnerSidebar';
-import { PartnerTopbar } from './PartnerTopbar';
-import { PartnerMobileHeader } from './PartnerMobileHeader';
 import { PartnerMobileBottomNav } from './PartnerMobileBottomNav';
+import { CreatorSecondaryNav } from '../creator/CreatorSecondaryNav';
+import { DistributorSecondaryNav } from '../distributor/DistributorSecondaryNav';
 import { ActionDrawer } from '../shared/ActionDrawer';
 
 export interface PartnerAppShellProps {
@@ -20,14 +19,15 @@ export const PartnerAppShell: React.FC<PartnerAppShellProps> = ({
   activeRoute,
   onRouteChange,
   children,
-  onQuickAction,
   badgeCounts = {},
   onSwitchWorkspace
 }) => {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
-  const notificationsList = kind === 'CREATOR' ? [
+  const isCreator = kind === 'CREATOR';
+  const isOverview = activeRoute === 'overview';
+
+  const notificationsList = isCreator ? [
     { id: '1', title: 'New Campaign Invitation', desc: 'Glow Season 2026 has opened for VIP application.', time: '2h ago', unread: true },
     { id: '2', title: 'PR Package Approved', desc: 'Your Radiant Glow Collection PR box is being packed.', time: '5h ago', unread: true },
     { id: '3', title: 'Commission Cleared', desc: '₦18,400 from client order ORD-LAG-7819 moved to available balance.', time: '1d ago', unread: false },
@@ -40,56 +40,64 @@ export const PartnerAppShell: React.FC<PartnerAppShellProps> = ({
   ];
 
   return (
-    <div className="min-h-screen bg-[#FAF9F6] text-[#0F0F10] flex flex-col md:flex-row antialiased font-body overflow-x-hidden">
-      {/* Desktop Sidebar */}
-      <PartnerSidebar
-        kind={kind}
-        activeRoute={activeRoute}
-        onRouteChange={onRouteChange}
-        collapsed={sidebarCollapsed}
-        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-        badgeCounts={badgeCounts}
-      />
-
+    <div className="min-h-screen bg-[#FFFFFF] text-[#0F0F10] flex flex-col md:flex-row antialiased font-body overflow-x-hidden selection:bg-[#D4AF37]/20 selection:text-[#997A2E]">
       {/* Main Workspace Frame */}
       <div className="flex-1 flex flex-col min-w-0 min-h-screen">
-        {/* Desktop Topbar */}
-        <div className="hidden md:block">
-          <PartnerTopbar
-            kind={kind}
-            onQuickAction={onQuickAction}
-            onOpenNotifications={() => setNotificationsOpen(true)}
-            onSwitchWorkspace={onSwitchWorkspace}
-          />
-        </div>
+        {/* Navigation & Header Strategy:
+            - Overview: No topbar or sidebar; direct full-bleed editorial navigation workspace launchpad.
+            - Child screens (Creator): CreatorSecondaryNav (sticky top sub-header + floating capsule rail).
+            - Child screens (Distributor): DistributorSecondaryNav (sticky top sub-header + floating capsule rail).
+        */}
+        {!isOverview && (
+          isCreator ? (
+            <CreatorSecondaryNav
+              key="creator-secondary-nav"
+              activeRoute={activeRoute}
+              onRouteChange={onRouteChange}
+              onOpenNotifications={() => setNotificationsOpen(true)}
+              onSwitchWorkspace={onSwitchWorkspace}
+              badgeCounts={badgeCounts}
+            />
+          ) : (
+            <DistributorSecondaryNav
+              key="distributor-secondary-nav"
+              activeRoute={activeRoute}
+              onRouteChange={onRouteChange}
+              onOpenNotifications={() => setNotificationsOpen(true)}
+              onSwitchWorkspace={onSwitchWorkspace}
+              badgeCounts={badgeCounts}
+            />
+          )
+        )}
 
-        {/* Mobile Header */}
-        <PartnerMobileHeader
-          kind={kind}
-          onOpenNotifications={() => setNotificationsOpen(true)}
-          onOpenMore={() => onRouteChange('settings')}
-        />
-
-        {/* Main Content Area */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto pb-24 md:pb-8">
+        {/* Main Content Viewport */}
+        <main
+          className={`flex-1 w-full mx-auto pb-24 md:pb-12 ${
+            isOverview
+              ? 'p-4 sm:p-6 lg:p-10 max-w-7xl'
+              : 'p-4 sm:p-6 lg:p-8 max-w-7xl lg:pl-24'
+          }`}
+        >
           {children}
         </main>
 
-        {/* Mobile Bottom Navigation */}
-        <PartnerMobileBottomNav
-          kind={kind}
-          activeRoute={activeRoute}
-          onRouteChange={onRouteChange}
-          badgeCounts={badgeCounts}
-        />
+        {/* Mobile Bottom Navigation (Shown on child routes) */}
+        {!isOverview && (
+          <PartnerMobileBottomNav
+            kind={kind}
+            activeRoute={activeRoute}
+            onRouteChange={onRouteChange}
+            badgeCounts={badgeCounts}
+          />
+        )}
       </div>
 
-      {/* Shared Notifications Drawer */}
+      {/* Shared Activity & Notifications Drawer */}
       <ActionDrawer
         isOpen={notificationsOpen}
         onClose={() => setNotificationsOpen(false)}
         title="Activity & Notifications"
-        subtitle={`${kind === 'CREATOR' ? 'Creator Studio' : 'Distributor Hub'} Updates`}
+        subtitle={`${isCreator ? 'Creator Studio' : 'Distributor Hub'} Updates`}
         width="md"
       >
         <div className="divide-y divide-[#E5E7EB]">

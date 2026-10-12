@@ -29,7 +29,7 @@ export function assertProductionEnv(): void {
   // No in-process limiter can protect a horizontally scaled deployment alone.
   if (process.env.EDGE_RATE_LIMIT_ENABLED !== 'true') throw new Error('Configure edge rate limiting before serving production traffic.');
   // Payment verification must fail closed: never settle against a placeholder.
-  for (const k of ['PAYSTACK_SECRET_KEY', 'FLW_SECRET_KEY', 'FLW_SECRET_HASH'] as const) {
+  for (const k of ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET', 'FLW_SECRET_KEY', 'FLW_SECRET_HASH'] as const) {
     const v = process.env[k] ?? '';
     if (!v || /placeholder/i.test(v)) {
       throw new Error(`${k} must be a real production secret (found placeholder/empty).`);

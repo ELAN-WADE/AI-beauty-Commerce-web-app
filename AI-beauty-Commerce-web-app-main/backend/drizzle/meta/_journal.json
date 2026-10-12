@@ -106,6 +106,20 @@
       "when": 1791417283263,
       "tag": "0014_content_rewards",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1791417992345,
+      "tag": "0015_community_media",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1791637713840,
+      "tag": "0016_ordinary_starfox",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, ilike, inArray, or, lt, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, ilike, inArray, or, lt, sql, type SQL } from 'drizzle-orm';
 import type { AppDb, Db } from '../../db/client';
 import { Errors } from '../../lib/errors';
 import { decodeCursor, encodeCursor, type Cursor } from '../../lib/cursor';
@@ -13,7 +13,7 @@ import {
   productVariants,
   products,
 } from './schema';
-import { stockLevels } from '../inventory/schema';
+import { inventoryLocations, stockLevels } from '../inventory/schema';
 import { getLevels } from '../inventory/service';
 import { computeAvailable } from '../inventory/service';
 import type { ProductCreateInput, ProductQuery, ProductUpdateInput } from './validation';
@@ -137,37 +137,75 @@ export async function listProducts(db: AppDb, q: ProductQuery) {
     return pageFromRows(db, rows, limit, q.inStock, (r) => ({ k: (r.p.createdAt as Date).toISOString(), id: r.p.id }));
   }
 
-  // price-asc / price-desc / rating: computed sort (catalogue scale: fine; revisit with
-  // materialized min_price column when measured slow — the cursor stays opaque).
-  const all = await db
+  // price-asc / price-desc / rating: computed sort pushed into Postgres.
+  // Batch-2 measurement (2k SKUs, PGlite): hydrating the whole catalogue to
+  // sort in memory cost 900–1250ms vs ~100ms for the keyset newest path, and
+  // grows linearly. Now only the requested page is hydrated (limit+1 rows);
+  // the min-price/availability aggregate mirrors hydrate()'s math exactly
+  // (active variants only, per-row floored availability sums). Cursor protocol
+  // ({ k: minPrice|rating, id: slug }), tiebreaks (slug ASC) and sort direction
+  // (rating ASC — preserved as-is) are unchanged.
+  // Availability mirrors inventory.getLevels exactly: PLATFORM pool at active
+  // locations only. Retail-invisible stock (wholesale pool, inactive hubs)
+  // must never make a product look buyable.
+  const agg = db
+    .select({
+      productId: productVariants.productId,
+      minPrice: sql<number>`min(${productVariants.priceKobo})`.as('min_price'),
+      avail: sql<number>`coalesce(sum(case when ${inventoryLocations.id} is null then 0 else greatest(coalesce(${stockLevels.onHand}, 0) - coalesce(${stockLevels.reserved}, 0), 0) end), 0)`.as('avail'),
+    })
+    .from(productVariants)
+    .leftJoin(stockLevels, and(eq(stockLevels.variantId, productVariants.id), eq(stockLevels.pool, 'PLATFORM')))
+    .leftJoin(inventoryLocations, and(eq(inventoryLocations.id, stockLevels.locationId), eq(inventoryLocations.isActive, true)))
+    .where(eq(productVariants.isActive, true))
+    .groupBy(productVariants.productId)
+    .as('agg');
+  const minPrice = sql<number>`coalesce(${agg.minPrice}, 0)`;
+  const avail = sql<number>`coalesce(${agg.avail}, 0)`;
+
+  const sortConds: SQL[] = [];
+  if (q.inStock === 'true') sortConds.push(sql`${avail} > 0`);
+  if (q.inStock === 'false') sortConds.push(sql`${avail} = 0`);
+  // Garbage cursors restart from head (same rule as the newest path).
+  // price-desc orders (price DESC, slug ASC), so its keyset predicate is the
+  // compound form — a plain tuple `<` would wrongly drop same-price rows.
+  const ck = cursor ? Number(cursor.k) : NaN;
+  if (cursor && cursor.id) {
+    if (q.sort === 'rating' && Number.isFinite(ck)) {
+      sortConds.push(sql`(${products.rating}, ${products.slug}) > (${cursor.k}::numeric, ${cursor.id})`);
+    } else if (q.sort !== 'rating' && Number.isSafeInteger(ck)) {
+      sortConds.push(
+        q.sort === 'price-desc'
+          ? sql`(${minPrice} < ${ck} or (${minPrice} = ${ck} and ${products.slug} > ${cursor.id}))`
+          : sql`(${minPrice}, ${products.slug}) > (${ck}, ${cursor.id})`,
+      );
+    }
+  }
+  const orderBy =
+    q.sort === 'price-desc'
+      ? [desc(minPrice), asc(products.slug)]
+      : q.sort === 'rating'
+        ? [asc(products.rating), asc(products.slug)]
+        : [asc(minPrice), asc(products.slug)];
+  const rows = await db
     .select({ p: products, brandName: brands.name, brandSlug: brands.slug, catName: categories.name, catSlug: categories.slug })
     .from(products)
     .innerJoin(brands, eq(products.brandId, brands.id))
     .innerJoin(categories, eq(products.categoryId, categories.id))
-    .where(and(...conds));
-  const withVariants = await hydrate(db, all.map((r) => r.p), all.map((r) => ({ brandName: r.brandName, brandSlug: r.brandSlug, catName: r.catName, catSlug: r.catSlug })));
-  let items = withVariants;
-  if (q.inStock === 'true') items = items.filter((i) => i.totalAvailable > 0);
-  if (q.inStock === 'false') items = items.filter((i) => i.totalAvailable === 0);
-  const key = (i: PublicProduct) => (q.sort === 'rating' ? i.rating : i.minPriceKobo);
-  items.sort((a, b) => {
-    const d = q.sort === 'price-desc' ? key(b) - key(a) : key(a) - key(b);
-    return d !== 0 ? d : a.slug.localeCompare(b.slug);
-  });
-  let start = 0;
-  if (cursor) {
-    const idx = items.findIndex((i) =>
-      q.sort === 'rating' ? String(i.rating) === cursor.k && i.slug > cursor.id : String(i.minPriceKobo) === cursor.k && i.slug > cursor.id,
-    );
-    // Simpler robust rule: drop everything up to and including the cursor item.
-    const exact = items.findIndex((i) => (q.sort === 'rating' ? String(i.rating) : String(i.minPriceKobo)) === cursor.k && i.slug === cursor.id);
-    start = exact >= 0 ? exact + 1 : (idx >= 0 ? idx : 0);
-  }
-  const slice = items.slice(start, start + limit);
-  const last = slice[slice.length - 1];
-  const hasMore = start + limit < items.length;
+    .leftJoin(agg, eq(agg.productId, products.id))
+    .where(and(...conds, ...sortConds))
+    .orderBy(...orderBy)
+    .limit(limit + 1);
+  const hasMore = rows.length > limit;
+  const trimmed = hasMore ? rows.slice(0, limit) : rows;
+  const items = await hydrate(
+    db,
+    trimmed.map((r) => r.p),
+    trimmed.map((r) => ({ brandName: r.brandName, brandSlug: r.brandSlug, catName: r.catName, catSlug: r.catSlug })),
+  );
+  const last = items[items.length - 1];
   return {
-    items: slice,
+    items,
     nextCursor: hasMore && last ? encodeCursor({ k: q.sort === 'rating' ? String(last.rating) : String(last.minPriceKobo), id: last.slug }) : null,
   };
 }

@@ -9,7 +9,7 @@ with Docker + a public URL (webhooks need one — Lightsail/QServers VPS).
 - VPS per proposal §10 (Lightsail $5 demo or QServers VPS-A). Open 443 (+80 for TLS).
 - DNS: `staging.<domain>` → VPS. TLS via Caddy/nginx (compose addition, or
   provider LB terminates TLS).
-- Provider test accounts: Paystack test keys, Flutterwave test keys + secret
+- Provider test accounts: Stripe test keys, Flutterwave test keys + secret
   hash, Opay sandbox merchant (confirm Cashier paths on the dashboard first).
 - MailHog is dev-only; staging needs real SMTP credentials.
 
@@ -31,7 +31,7 @@ cd backend
 # AUTH_EMAIL_ENCRYPTION_KEY=<64 random hex characters>; SMTP_HOST/USER/PASS/FROM=<TLS SMTP>
 # DATABASE_URL=postgres://<user>:<secret>@<private-db-host>:5432/glowly_staging
 # APP_URL=https://staging.<domain>  FRONTEND_URL=https://staging.<domain>
-# PAYSTACK_SECRET_KEY=sk_test_…  FLW_SECRET_KEY=FLWSECK_TEST-…  FLW_SECRET_HASH=<random>
+# STRIPE_SECRET_KEY=sk_test_…  STRIPE_WEBHOOK_SECRET=whsec_…  FLW_SECRET_KEY=FLWSECK_TEST-…  FLW_SECRET_HASH=<random>
 # OPAY_* (sandbox)  BANK_* (business account)  SMTP_* (real)
 # CONTENT_REWARD_BPS=200 (default; 0 pauses the program for settlement testing)
 # CONTENT_REWARD_MIN_MERCHANDISE_KOBO=50000  CONTENT_REWARD_HOLD_DAYS=14
@@ -92,7 +92,7 @@ server {
 3. Guest cart: `POST /api/cart/items` (X-Session-Id) → `POST /api/checkout` with `Idempotency-Key` → 201 PENDING order, totals server-computed
 4. Replay same `Idempotency-Key` → 200 `replay:true`, no duplicate order
 5. `POST /api/payments/init` (provider `transfer`) → bank details → `POST /api/payments/transfer-claim` → admin `POST …/confirm` → order PAID, loyalty credited
-6. Paystack/Flutterwave test flow → hosted page (test card) → webhook → `GET /api/payments/status` → `settled:true`
+6. Stripe/Flutterwave test flow → hosted page (test card) → webhook → `GET /api/payments/status` → `settled:true`
 7. Replay a webhook payload → `replay:true`, single `payments` row
 8. Tampered webhook signature → 401, nothing written
 9. Guest order fetch requires private order token (email alone returns 404); admin without `orders:read:all` → 403
@@ -110,7 +110,7 @@ VITE_API_URL=https://staging.<domain> npm run build   # dist/ served at /
 ```
 
 Verify: catalogue hydrates (console `[glowly] catalogue live`), guest checkout →
-hosted Paystack test page → return lands on confirmation, transfer order shows
+hosted Stripe test page → return lands on confirmation, transfer order shows
 proof form under Orders → Track, loyalty accrues after PAID.
 
 ## 8. Go-live deltas (staging → production)
@@ -125,7 +125,7 @@ frozen mock display strings remain in `src/data/` — confirm none render in liv
 
 | Integration | Status in repo | To activate |
 |---|---|---|
-| Paystack / Flutterwave / Opay | Built + tested (mock HTTP) | Test keys → smoke suite §6 → live keys + webhook URLs |
+| Stripe / Flutterwave / Opay | Built + tested (mock HTTP) | Test keys → smoke suite §6 → live keys + webhook URLs |
 | Termii SMS/WhatsApp | Built + tested; log-falls-back when unset | `TERMII_API_KEY` (+sender ID); flip a template's outbox channel to `sms`/`whatsapp` |
 | Sentry errors | Zero-dep reporter both apps, no-op without DSN | Create project → `SENTRY_DSN` / `VITE_SENTRY_DSN` → confirm first event + alert rule |
 | Gemini AI | Seam built, mock default | `GEMINI_API_KEY` → verify analysis + chat responses + billing alert |

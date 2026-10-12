@@ -19,88 +19,35 @@ export interface StatusBadgeProps {
     | 'issue'
     | 'draft'
     | 'scheduled'
-    | 'published';
+    | 'published'
+    | string;
   label?: string;
   size?: 'sm' | 'md';
+  variant?: 'minimal' | 'badge';
 }
 
-export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, label, size = 'sm' }) => {
-  const getStyles = () => {
-    switch (status) {
-      case 'active':
-      case 'ready':
-      case 'delivered':
-      case 'cleared':
-      case 'paid':
-      case 'optimal':
-      case 'eligible':
-      case 'published':
-        return 'bg-emerald-50 text-emerald-800 border-emerald-200/80';
-
-      case 'pending':
-      case 'processing':
-      case 'awaiting-packing':
-      case 'low-stock':
-      case 'scheduled':
-        return 'bg-amber-50 text-amber-800 border-amber-200/80';
-
-      case 'in-transit':
-        return 'bg-blue-50 text-blue-800 border-blue-200/80';
-
-      case 'out-of-stock':
-      case 'cancelled':
-      case 'issue':
-        return 'bg-rose-50 text-rose-800 border-rose-200/80';
-
-      case 'draft':
-      default:
-        return 'bg-[#FAF9F6] text-[#6B7280] border-[#E5E7EB]';
-    }
-  };
-
-  const getDotColor = () => {
-    switch (status) {
-      case 'active':
-      case 'ready':
-      case 'delivered':
-      case 'cleared':
-      case 'paid':
-      case 'optimal':
-      case 'eligible':
-      case 'published':
-        return 'bg-emerald-500';
-
-      case 'pending':
-      case 'processing':
-      case 'awaiting-packing':
-      case 'low-stock':
-      case 'scheduled':
-        return 'bg-amber-500';
-
-      case 'in-transit':
-        return 'bg-blue-500';
-
-      case 'out-of-stock':
-      case 'cancelled':
-      case 'issue':
-        return 'bg-rose-500';
-
-      case 'draft':
-      default:
-        return 'bg-gray-400';
-    }
-  };
-
+export const StatusBadge: React.FC<StatusBadgeProps> = ({
+  status,
+  label,
+  variant = 'minimal'
+}) => {
   const formattedLabel = label || status.replace(/-/g, ' ');
 
+  // Clean, monochrome minimalist status stamp (no rainbow/multicolor)
+  if (variant === 'minimal') {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#0F0F10] whitespace-nowrap">
+        <span className="w-1.5 h-1.5 rounded-full bg-[#0F0F10] shrink-0" />
+        <span className="capitalize">{formattedLabel}</span>
+      </span>
+    );
+  }
+
+  // Monospace uppercase stamp without unnecessary bulky borders
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 font-mono uppercase tracking-wider font-semibold border rounded-full ${
-        size === 'sm' ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-[11px]'
-      } ${getStyles()}`}
-    >
-      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${getDotColor()}`} />
-      <span className="capitalize">{formattedLabel}</span>
+    <span className="inline-flex items-center gap-1.5 font-mono uppercase tracking-wider font-bold text-[10px] text-[#0F0F10]">
+      <span className="w-1 h-1 rounded-full bg-[#0F0F10] shrink-0" />
+      <span>{formattedLabel}</span>
     </span>
   );
 };

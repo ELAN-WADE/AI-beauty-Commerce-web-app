@@ -15,7 +15,7 @@ export const DistributorSupport: React.FC = () => {
   return (
     <div className="space-y-6 animate-in fade-in duration-200 max-w-2xl mx-auto">
       <div className="pb-2 border-b border-[#E5E7EB] text-center">
-        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-rose-600">
+        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#6B7280]">
           Direct Logistics Dispatch
         </span>
         <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-[#0F0F10]">
@@ -44,7 +44,7 @@ export const DistributorSupport: React.FC = () => {
       <div className="p-6 sm:p-8 rounded-3xl bg-white border border-[#E5E7EB] shadow-xs">
         {submitted ? (
           <div className="text-center py-8 space-y-3">
-            <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto">
+            <div className="w-12 h-12 rounded-full bg-[#FAF9F6] text-[#0F0F10] border border-[#E5E7EB] flex items-center justify-center mx-auto">
               <CheckCircle2 size={24} />
             </div>
             <h3 className="font-heading font-bold text-lg text-[#0F0F10]">

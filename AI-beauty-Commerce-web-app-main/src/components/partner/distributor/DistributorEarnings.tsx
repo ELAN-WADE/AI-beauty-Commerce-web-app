@@ -111,7 +111,7 @@ export const DistributorEarnings: React.FC = () => {
               <h3 className="font-bold text-xs sm:text-sm text-[#0F0F10]">
                 Zenith Bank Plc • 1012345678
               </h3>
-              <span className="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+              <span className="text-[10px] font-mono font-bold text-[#0F0F10] bg-[#FAF9F6] px-2.5 py-0.5 rounded-full border border-[#E5E7EB]">
                 Verified Hub Account ✓
               </span>
             </div>
@@ -159,11 +159,7 @@ export const DistributorEarnings: React.FC = () => {
                   </td>
                   <td className="py-4 text-right font-mono text-[#6B7280]">{tx.grossOrder}</td>
                   <td className="py-4 text-right">
-                    <span
-                      className={`font-mono font-extrabold ${
-                        tx.margin.startsWith('-') ? 'text-rose-600' : 'text-emerald-700'
-                      }`}
-                    >
+                    <span className="font-mono font-extrabold text-[#0F0F10]">
                       {tx.margin}
                     </span>
                   </td>

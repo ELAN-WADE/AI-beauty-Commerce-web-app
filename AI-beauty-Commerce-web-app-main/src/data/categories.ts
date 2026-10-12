@@ -6,7 +6,7 @@ export const categories: Category[] = [
     name: 'Body Care',
     slug: 'body-care',
     itemCount: 32,
-    image: 'https://images.unsplash.com/photo-1608248597359-0c679234b4c7?auto=format&fit=crop&w=600&q=80',
+    image: '/cat_bodycare.jpg',
     isFeatured: true,
     description: 'Nourishing body washes, micro-polishing scrubs, radiant dry oils, and whipped butters.'
   },
@@ -15,7 +15,7 @@ export const categories: Category[] = [
     name: 'Skincare',
     slug: 'skincare',
     itemCount: 14,
-    image: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=600&q=80',
+    image: '/cat_skincare.jpg',
     isFeatured: true,
     description: 'Safe-conscious pH 5.5 face cleansers and 100% invisible SPF50+ broad spectrum defense.'
   },
@@ -24,7 +24,7 @@ export const categories: Category[] = [
     name: 'Haute Fragrance',
     slug: 'fragrance',
     itemCount: 18,
-    image: 'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&w=600&q=80',
+    image: '/cat_fragrance.jpg',
     isFeatured: true,
     description: '10ml concentrated artisanal perfume oils and 50ml luxury unisex Eau de Parfum.'
   },
@@ -33,7 +33,7 @@ export const categories: Category[] = [
     name: 'Makeup & Lips',
     slug: 'makeup',
     itemCount: 45,
-    image: 'https://images.unsplash.com/photo-1586495777744-4413f21062fa?auto=format&fit=crop&w=600&q=80',
+    image: '/cat_makeup.jpg',
     isFeatured: true,
     description: 'High-shine peptide lip glosses, velvet matte lipsticks, and handcrafted faux mink lashes.'
   },
@@ -42,7 +42,7 @@ export const categories: Category[] = [
     name: 'Fashion & Lifestyle',
     slug: 'lifestyle',
     itemCount: 12,
-    image: 'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&w=600&q=80',
+    image: '/cat_lifestyle.jpg',
     isFeatured: false,
     description: 'Unisex loungewear, raw silk head accessories, and minimalist beauty lifestyle essentials.'
   }

@@ -60,6 +60,7 @@ export const PartnerPortal: React.FC<PartnerPortalProps> = ({ kind: initialKind 
             <CreatorOverview
               onNavigate={(routeId) => setActiveRoute(routeId)}
               onOpenCreate={() => setActiveRoute('create')}
+              onSwitchWorkspace={handleSwitchWorkspace}
             />
           );
         case 'create':
@@ -116,6 +117,7 @@ export const PartnerPortal: React.FC<PartnerPortalProps> = ({ kind: initialKind 
                 setActiveRoute('orders');
               }}
               onRestockItem={() => setActiveRoute('restock')}
+              onSwitchWorkspace={handleSwitchWorkspace}
             />
           );
         case 'orders':

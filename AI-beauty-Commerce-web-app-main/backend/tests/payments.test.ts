@@ -4,15 +4,14 @@ import {
   flutterwaveInit,
   flutterwaveVerify,
   hmacSha256Hex,
-  hmacSha512Hex,
   opayCashierInit,
   opaySign,
-  paystackInit,
-  paystackVerify,
   ProviderError,
+  stripeInit,
+  stripeRetrieveSession,
   verifyFlutterwaveWebhook,
   verifyOpayCallback,
-  verifyPaystackWebhook,
+  verifyStripeWebhook,
   type FetchFn,
 } from '@/lib/providers';
 import { allowedTransition } from '@/modules/orders/service';
@@ -44,13 +43,18 @@ describe('webhook signature verification', () => {
     expect(verifyFlutterwaveWebhook(body, { 'verif-hash': hash }, undefined)).toBe(false);
   });
 
-  it('verifies Paystack HMAC-SHA512 webhooks', () => {
-    const secret = 'sk_test_x';
-    const sig = createHmac('sha512', secret).update(body, 'utf8').digest('hex');
-    expect(hmacSha512Hex(secret, body)).toBe(sig);
-    expect(verifyPaystackWebhook(body, sig, secret)).toBe(true);
-    expect(verifyPaystackWebhook(body + ' ', sig, secret)).toBe(false); // tampered body fails
-    expect(verifyPaystackWebhook(body, undefined, secret)).toBe(false);
+  it('verifies Stripe webhook signatures with timestamp tolerance', () => {
+    const secret = 'whsec_test';
+    const t = Math.floor(Date.now() / 1000);
+    const signed = `${t}.${body}`;
+    const v1 = createHmac('sha256', secret).update(signed, 'utf8').digest('hex');
+    const sig = `t=${t},v1=${v1}`;
+    expect(verifyStripeWebhook(body, sig, secret)).toBe(true);
+    expect(verifyStripeWebhook(body + ' ', sig, secret)).toBe(false); // tampered body fails
+    expect(verifyStripeWebhook(body, undefined, secret)).toBe(false);
+    expect(verifyStripeWebhook(body, 't=123,v1=00', secret)).toBe(false); // bad sig fails
+    const stale = `t=${t - 600},v1=${createHmac('sha256', secret).update(`${t - 600}.${body}`, 'utf8').digest('hex')}`;
+    expect(verifyStripeWebhook(body, stale, secret)).toBe(false); // replay window closed
   });
 
   it('verifies Opay HMAC-SHA512 callbacks and rejects tampering', () => {
@@ -86,14 +90,45 @@ describe('provider drivers (mocked HTTP)', () => {
     expect(v).toMatchObject({ ok: true, status: 'successful', amountKobo: 250000, currency: 'NGN', txRef: 'DES-A1' });
   });
 
-  it('paystack init/verify speak kobo natively', async () => {
-    const cfg = { baseUrl: 'https://api.paystack.co', secretKey: 'sk' };
-    const init = await paystackInit(mockFetch({ status: true, data: { authorization_url: 'https://paystack/x' } }), cfg, {
-      email: 'a@b.co', amountKobo: 250000, reference: 'DES-A1', callbackUrl: 'https://x/return',
+  it('stripe checkout init posts form-encoded sessions in kobo', async () => {
+    const cfg = { secretKey: 'sk_test_x', webhookSecret: 'whsec_x' };
+    let seen = { url: '', contentType: '', body: '', headers: {} as Record<string, string> };
+    const capture: FetchFn = (async (url: unknown, init?: unknown) => {
+      const i = init as { headers?: Record<string, string>; body?: string };
+      seen = { url: String(url), contentType: i.headers?.['Content-Type'] ?? '', body: i.body ?? '', headers: i.headers ?? {} };
+      return new Response(JSON.stringify({ id: 'cs_test_123', url: 'https://checkout.stripe.com/x' }));
+    }) as FetchFn;
+    const init = await stripeInit(capture, cfg, {
+      email: 'a@b.co', amountKobo: 250000, reference: 'DES-A1', orderNumber: 'DES-A1',
+      successUrl: 'https://x/return?session_id={CHECKOUT_SESSION_ID}', cancelUrl: 'https://x/cancel',
+      idempotencyKey: 'test-key-1',
     });
-    expect(init.authorizationUrl).toBe('https://paystack/x');
-    const v = await paystackVerify(mockFetch({ status: true, data: { status: 'success', amount: 250000, currency: 'NGN' } }), cfg, 'DES-A1');
-    expect(v).toMatchObject({ ok: true, amountKobo: 250000 });
+    expect(init).toMatchObject({ sessionId: 'cs_test_123', authorizationUrl: 'https://checkout.stripe.com/x' });
+    expect(seen.headers['Idempotency-Key']).toBe('test-key-1');
+    expect(seen.url).toBe('https://api.stripe.com/v1/checkout/sessions');
+    expect(seen.contentType).toBe('application/x-www-form-urlencoded');
+    // URLSearchParams normalizes either raw or percent-encoded brackets.
+    const form = new URLSearchParams(seen.body);
+    expect(form.get('line_items[0][price_data][unit_amount]')).toBe('250000');
+    expect(form.get('line_items[0][price_data][currency]')).toBe('ngn');
+    expect(form.get('mode')).toBe('payment');
+    expect(form.get('metadata[reference]')).toBe('DES-A1');
+  });
+
+  it('stripe retrieve maps paid sessions and metadata reference', async () => {
+    const cfg = { secretKey: 'sk_test_x', webhookSecret: 'whsec_x' };
+    const paid = await stripeRetrieveSession(
+      mockFetch({ payment_status: 'paid', status: 'complete', amount_total: 250000, currency: 'ngn', metadata: { reference: 'DES-A1' }, payment_intent: 'pi_x' }),
+      cfg,
+      'cs_test_123',
+    );
+    expect(paid).toMatchObject({ paid: true, amountKobo: 250000, currency: 'NGN', reference: 'DES-A1', paymentIntent: 'pi_x' });
+    const unpaid = await stripeRetrieveSession(
+      mockFetch({ payment_status: 'unpaid', status: 'open', amount_total: 250000, currency: 'ngn', metadata: {} }),
+      cfg,
+      'cs_test_123',
+    );
+    expect(unpaid.paid).toBe(false);
   });
 
   it('opay cashier init returns hosted URL in kobo; refusal throws', async () => {

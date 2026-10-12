@@ -38,9 +38,17 @@
   <path d="M0 420 C150 360, 280 480, 460 410 C640 340, 780 470, 960 400 C1060 360, 1140 390, 1200 410"
         fill="none" stroke="url(#gold-line-grad)" stroke-width="2.5" stroke-linecap="round" />
 
+  <!-- Luxury Obsidian Contour Accent (Delicate Transparent Black Edge Definition) -->
+  <path d="M0 420 C150 360, 280 480, 460 410 C640 340, 780 470, 960 400 C1060 360, 1140 390, 1200 410"
+        fill="none" stroke="#0F0F10" stroke-width="1.2" stroke-opacity="0.16" stroke-linecap="round" />
+
   <!-- Golden Wave Ribbon 2 (Upper delicate contour line) -->
   <path d="M0 320 C180 260, 320 400, 500 340 C680 280, 820 420, 1020 330 C1120 285, 1180 310, 1200 320"
         fill="none" stroke="#D4AF37" stroke-width="1.5" stroke-opacity="0.45" stroke-dasharray="6 4" stroke-linecap="round" />
+
+  <!-- Secondary Obsidian Crest Contour Accent -->
+  <path d="M0 320 C180 260, 320 400, 500 340 C680 280, 820 420, 1020 330 C1120 285, 1180 310, 1200 320"
+        fill="none" stroke="#0F0F10" stroke-width="1.0" stroke-opacity="0.10" stroke-linecap="round" />
 
   <!-- Golden Wave Ribbon 3 (Lower accent ripple) -->
   <path d="M0 470 C220 430, 400 520, 620 480 C840 440, 1020 530, 1200 480"

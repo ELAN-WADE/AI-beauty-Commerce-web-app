@@ -8,9 +8,6 @@ export default defineConfig(({ command, mode }) => {
     const api = loadEnv(mode, process.cwd(), 'VITE_').VITE_API_URL;
     const isHttps = !!api && /^https:\/\//.test(api);
     const isLocal = !!api && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/.test(api);
-    // Production deploys must point at the real HTTPS API: otherwise the
-    // storefront would silently run on mocks or a dead localhost backend.
-    // Localhost is only acceptable for non-production builds.
     if (mode === 'production') {
       if (!isHttps) {
         throw new Error('Production build requires VITE_API_URL set to the HTTPS backend URL.');
@@ -20,24 +17,27 @@ export default defineConfig(({ command, mode }) => {
     }
   }
   return {
-  plugins: [react()],
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
+    plugins: [react()],
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, './src'),
+      },
     },
-  },
-  server: {
-    port: 5173,
-    host: true,
-    open: false,
-  },
-  preview: {
-    port: 5173,
-    host: true,
-  },
-  esbuild: {
-    sourcemap: false,
-    legalComments: 'none',
-  }
+    server: {
+      port: 5173,
+      host: true,
+      open: false,
+      watch: {
+        ignored: ['**/backend/**', '**/.next/**'],
+      },
+    },
+    preview: {
+      port: 5173,
+      host: true,
+    },
+    esbuild: {
+      sourcemap: false,
+      legalComments: 'none',
+    }
   }
 })

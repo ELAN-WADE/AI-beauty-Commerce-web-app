@@ -103,7 +103,7 @@ SMTP_PASS=<smtp-password>
 AUTH_EMAIL_ENCRYPTION_KEY=<64-hex-chars>
 CLIENT_IP_HEADER=x-verified-client-ip
 EDGE_RATE_LIMIT_ENABLED=false
-PAYSTACK_SECRET_KEY=<sk_test_…>
+STRIPE_SECRET_KEY=<sk_test_…>
 FLW_SECRET_KEY=<FLWSECK_TEST-…>
 FLW_SECRET_HASH=<random-staging-secret>
 BANK_NAME=<business-bank>
@@ -140,7 +140,7 @@ docker compose -f compose.production.yml logs worker --tail 20  # outbox/settlem
 
 Register the first user normally, then grant SUPER_ADMIN via psql (see
 `STAGING.md §4`). Register provider test webhook URLs pointing at
-`https://staging.<domain>/api/webhooks/<paystack|flutterwave|opay>`.
+`https://staging.<domain>/api/webhooks/<stripe|flutterwave|opay>`.
 
 ## 5. Backups (staging-grade)
 

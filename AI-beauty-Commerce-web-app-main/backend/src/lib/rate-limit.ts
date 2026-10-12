@@ -29,6 +29,13 @@ export const Limits = {
   ai: { limit: 20, windowMs: 24 * 60 * 60_000 },
   catalog: { limit: 120, windowMs: 60_000 },
   admin: { limit: 60, windowMs: 60_000 },
+  // Batch-1 abuse limits (Part VII/VII): high-frequency user-content writes.
+  // Money-adjacent loyalty redeem uses the shared DB quota at the call site.
+  cartWrite: { limit: 240, windowMs: 60_000 },
+  wishlist: { limit: 120, windowMs: 60_000 },
+  reviews: { limit: 30, windowMs: 3600_000 },
+  posts: { limit: 60, windowMs: 3600_000 },
+  loyaltyRedeem: { limit: 20, windowMs: 3600_000 },
 } satisfies Record<string, LimitSpec>;
 
 export function checkRateLimit(
@@ -69,6 +76,15 @@ export function sweepRateLimits(now = Date.now()): number {
 /** Test-only reset. */
 export function resetRateLimits(): void {
   buckets.clear();
+}
+
+/** Batch-3 observability: in-process bucket census for /api/admin/metrics. */
+export function rateLimitStats(now = Date.now()): { buckets: number; exhausted: number } {
+  let exhausted = 0;
+  for (const b of buckets.values()) {
+    if (now < b.resetAt && b.tokens <= 0) exhausted += 1;
+  }
+  return { buckets: buckets.size, exhausted };
 }
 
 /** Atomic shared quota for security-critical endpoints across API replicas. */

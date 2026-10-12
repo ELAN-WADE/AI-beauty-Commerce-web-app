@@ -81,7 +81,7 @@ export const Screen09Cart: React.FC = () => {
               Your Shopping Bag is Empty
             </h2>
             <p className="text-xs text-[#6B7280] max-w-sm mx-auto mt-1 leading-relaxed">
-              Explore authentic Desla!™ body care washes, 24K shimmer oils, and clinical shea soufflés.
+              Explore authentic Delsla™ clinical cleansers, barrier creams, and invisible sun defenses.
             </p>
           </div>
 
@@ -151,11 +151,11 @@ export const Screen09Cart: React.FC = () => {
         </div>
 
         {/* DUAL-GRID CART SYSTEM */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* LEFT COLUMN: Items, Sourcing & Discounts (7 cols) */}
-          <div className="lg:col-span-7 space-y-3.5">
+          <div className="lg:col-span-7 min-w-0 space-y-4">
             {/* City Fulfillment Savings Banner */}
-            <div className="p-3.5 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] flex items-center justify-between text-xs shadow-2xs">
+            <div className="p-3.5 rounded-2xl bg-white border border-[#E5E7EB] flex items-center justify-between text-xs shadow-2xs">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-[#FBF5E8] text-[#997A2E] flex items-center justify-center shrink-0 border border-[#D4AF37]/30">
                   <MapPin size={16} />
@@ -165,8 +165,8 @@ export const Screen09Cart: React.FC = () => {
                     <span className="font-bold text-[#0F0F10]">
                       Local Hub: {selectedCity}
                     </span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold">
-                      Save ₦3,000 on delivery
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold">
+                      Save {formatNaira(3000)} on delivery
                     </span>
                   </div>
                   <p className="text-[11px] text-[#6B7280] mt-0.5">
@@ -177,55 +177,58 @@ export const Screen09Cart: React.FC = () => {
 
               <button
                 onClick={() => setIsLocationModalOpen(true)}
-                className="text-xs font-bold text-[#997A2E] hover:underline shrink-0 cursor-pointer active-press"
+                className="text-xs font-bold text-[#997A2E] hover:underline shrink-0 cursor-pointer active-press ml-2"
               >
                 Change
               </button>
             </div>
 
             {/* Cart Items List */}
-            <div className="space-y-2.5">
+            <div className="space-y-3">
               {cartItems.map((item) => (
                 <div
                   key={`${item.productId}-${item.size}`}
-                  className="p-3.5 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] flex items-start gap-3 shadow-2xs"
+                  className="p-4 rounded-2xl bg-white border border-[#E5E7EB] flex items-center sm:items-start gap-4 shadow-2xs hover:border-[#D4AF37]/40 transition-colors"
                 >
                   <img
-                    src={item.product.image}
+                    src={item.product.image || '/product_barrier_cream.jpg'}
                     alt={item.product.name}
-                    className="w-18 h-18 rounded-xl object-cover bg-[#F6F5F2] shrink-0 border border-[#E5E7EB]"
+                    className="w-20 h-20 sm:w-22 sm:h-22 aspect-square rounded-xl object-cover bg-white shrink-0 border border-[#E5E7EB]"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src = '/product_barrier_cream.jpg';
+                    }}
                   />
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <span className="text-[10px] font-mono text-[#997A2E] uppercase font-bold block truncate">
-                          {item.product.sku || 'DESLA!™'}
+                          {item.product.category}
                         </span>
-                        <h4 className="font-heading font-bold text-xs text-[#0F0F10] truncate">
+                        <h4 className="font-heading font-bold text-xs sm:text-sm text-[#0F0F10] truncate mt-0.5">
                           {item.product.name}
                         </h4>
-                        <span className="inline-block mt-0.5 px-2 py-0.2 rounded-md bg-[#F6F5F2] text-[10px] text-[#4B5563] font-medium border border-[#E5E7EB]">
+                        <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full bg-[#FAF9F6] text-[10px] text-[#4B5563] font-medium border border-[#E5E7EB]">
                           Size: {item.size}
                         </span>
                       </div>
 
                       <button
                         onClick={() => removeFromCart(item.id)}
-                        className="text-gray-400 hover:text-rose-500 p-1 active-press transition-colors cursor-pointer"
+                        className="text-gray-400 hover:text-rose-500 p-1.5 active-press transition-colors cursor-pointer rounded-lg hover:bg-gray-50"
                         aria-label="Remove item"
                       >
                         <X size={15} />
                       </button>
                     </div>
 
-                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-[#E5E7EB]">
-                      <span className="font-price font-semibold text-xs sm:text-sm text-[#0F0F10]">
+                    <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-[#F3F4F6]">
+                      <span className="font-price font-bold text-xs sm:text-sm text-[#0F0F10]">
                         {formatNaira(item.unitPrice * item.quantity)}
                       </span>
 
                       {/* Quantity Stepper */}
-                      <div className="flex items-center border border-[#E5E7EB] rounded-full bg-white px-2 py-0.5 shadow-2xs">
+                      <div className="flex items-center border border-[#E5E7EB] rounded-full bg-[#FAF9F6] px-2 py-0.5 shadow-2xs">
                         <button
                           onClick={() => updateQuantity(item.id, item.quantity - 1)}
                           className="p-1 text-gray-500 hover:text-black active-press transition-colors cursor-pointer"
@@ -262,7 +265,7 @@ export const Screen09Cart: React.FC = () => {
                   value={promoInput}
                   onChange={(e) => setPromoInput(e.target.value)}
                   placeholder="e.g. AMARA10 or TIWA10"
-                  className="flex-1 px-3 py-2 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] text-xs text-[#0F0F10] uppercase font-mono tracking-wider focus:outline-none focus:border-[#D4AF37]"
+                  className="flex-1 px-3 py-2 rounded-xl bg-[#F9FAFB] border border-[#E5E7EB] text-xs text-[#0F0F10] uppercase font-mono tracking-wider focus:outline-none focus:border-[#D4AF37]"
                 />
                 <button
                   type="submit"
@@ -295,7 +298,7 @@ export const Screen09Cart: React.FC = () => {
                   value={voucherInput}
                   onChange={(e) => setVoucherInput(e.target.value)}
                   placeholder="e.g. GLW-AB12CD"
-                  className="flex-1 px-3 py-2 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] text-xs text-[#0F0F10] uppercase font-mono tracking-wider focus:outline-none focus:border-[#D4AF37]"
+                  className="flex-1 px-3 py-2 rounded-xl bg-[#F9FAFB] border border-[#E5E7EB] text-xs text-[#0F0F10] uppercase font-mono tracking-wider focus:outline-none focus:border-[#D4AF37]"
                 />
                 <button
                   type="submit"
@@ -319,8 +322,8 @@ export const Screen09Cart: React.FC = () => {
                   onClick={() => setFulfillmentOption('local')}
                   className={`p-3 rounded-xl border cursor-pointer flex flex-col justify-between transition-all active-press ${
                     fulfillmentOption === 'local'
-                      ? 'border-[#D4AF37] bg-[#FBF5E8]/60 shadow-2xs'
-                      : 'border-[#E5E7EB] bg-[#FAF9F6] hover:border-gray-300'
+                      ? 'border-[#D4AF37] bg-[#FBF5E8]/40 shadow-2xs'
+                      : 'border-[#E5E7EB] bg-white hover:border-gray-300'
                   }`}
                 >
                   <div className="flex items-center justify-between">
@@ -340,8 +343,8 @@ export const Screen09Cart: React.FC = () => {
                   onClick={() => setFulfillmentOption('lagos')}
                   className={`p-3 rounded-xl border cursor-pointer flex flex-col justify-between transition-all active-press ${
                     fulfillmentOption === 'lagos'
-                      ? 'border-[#D4AF37] bg-[#FBF5E8]/60 shadow-2xs'
-                      : 'border-[#E5E7EB] bg-[#FAF9F6] hover:border-gray-300'
+                      ? 'border-[#D4AF37] bg-[#FBF5E8]/40 shadow-2xs'
+                      : 'border-[#E5E7EB] bg-white hover:border-gray-300'
                   }`}
                 >
                   <div className="flex items-center justify-between">
@@ -361,9 +364,9 @@ export const Screen09Cart: React.FC = () => {
           </div>
 
           {/* RIGHT COLUMN: Order Summary & Checkout */}
-          <div className="lg:col-span-5 space-y-4 lg:sticky lg:top-20">
-            {/* Price Breakdown */}
-            <div className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] shadow-2xs space-y-2 text-xs">
+          <div className="lg:col-span-5 min-w-0 space-y-4 lg:sticky lg:top-20">
+            {/* Price Breakdown - Clean White Card */}
+            <div className="p-4 rounded-2xl bg-white border border-[#E5E7EB] shadow-2xs space-y-2 text-xs">
               <h3 className="font-heading font-extrabold text-sm text-[#0F0F10] pb-2 border-b border-[#E5E7EB]">
                 Order Summary
               </h3>
@@ -410,12 +413,15 @@ export const Screen09Cart: React.FC = () => {
                   {routineCrossSell.map((product) => (
                     <div
                       key={product.id}
-                      className="p-2 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] flex items-center gap-2.5"
+                      className="p-2.5 rounded-xl bg-white border border-[#E5E7EB] hover:border-gray-300 transition-colors flex items-center gap-2.5"
                     >
                       <img
                         src={product.image}
                         alt={product.name}
                         className="w-10 h-10 rounded-lg object-cover bg-[#F6F5F2] shrink-0 border border-[#E5E7EB]"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = '/product_barrier_cream.jpg';
+                        }}
                       />
                       <div className="flex-1 min-w-0">
                         <h5 className="font-heading font-bold text-xs text-[#0F0F10] truncate">
