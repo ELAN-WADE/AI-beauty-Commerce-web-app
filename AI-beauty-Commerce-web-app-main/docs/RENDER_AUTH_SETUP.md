@@ -1,5 +1,7 @@
 # Google sign-in and account email on the existing Render service
 
+For administrator account provisioning/password recovery, see [RENDER_ADMIN_RECOVERY.md](RENDER_ADMIN_RECOVERY.md). The admin password is a database credential; configuring a private URL does not create/reset that account.
+
 The live service is https://ai-beauty-commerce-web-app.onrender.com. The database readiness check passed on revision 86a9a3a. Google preparation returned HTTP 503 `oauth_configuration` for customer, creator, and distributor intent: this happens before contacting Google, when server configuration is missing or invalid.
 
 ## Configure the existing web service

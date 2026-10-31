@@ -6,6 +6,9 @@ if (check.error || check.status !== 0) process.exit(check.status || 1);
 // Never mark a web process healthy against an empty or outdated database.
 const database = spawnSync(process.execPath, ['scripts/check-postgres.mjs'], { stdio: 'inherit', windowsHide: true });
 if (database.error || database.status !== 0) process.exit(database.status || 1);
+// Render Free has no pre-deploy phase. Provision/recover only the configured admin.
+const admin = spawnSync(process.execPath, ['--import', 'tsx', 'scripts/bootstrap-dev-admin.ts'], { stdio: 'inherit', windowsHide: true });
+if (admin.error || admin.status !== 0) process.exit(admin.status || 1);
 const port = process.env.PORT || '3005';
 if (!/^\d+$/.test(port)) throw new Error('PORT must be numeric.');
 const emailMode = process.env.AUTH_EMAIL_WORKER_MODE || 'external';
