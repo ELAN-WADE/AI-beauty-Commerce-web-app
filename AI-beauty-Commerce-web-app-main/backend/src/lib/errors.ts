@@ -4,7 +4,7 @@ import { captureError } from './observe';
 import { getDb } from '../db/client';
 import { checkSharedRateLimit, Limits } from './rate-limit';
 import { isAllowedApiOrigin } from './origins';
-import { databaseDiagnostics } from './database-diagnostics';
+import { databaseDiagnostics, isTransientDatabaseFailure } from './database-diagnostics';
 
 export interface ErrorEnvelope {
   error: {
@@ -90,6 +90,7 @@ export function toErrorResponse(err: unknown, requestId: string): NextResponse {
   }
       console.error(JSON.stringify({ level: 'error', requestId, err: err instanceof Error ? err.name : 'UnexpectedError', ...databaseDiagnostics(err) }));
       captureError(err, { requestId });
+      if (isTransientDatabaseFailure(err)) return envelope(503, 'service_unavailable', 'The service is temporarily unavailable. Please try again.', requestId, true, undefined, 3);
       return envelope(500, 'internal_error', 'Unable to complete the request.', requestId, true);
 }
 

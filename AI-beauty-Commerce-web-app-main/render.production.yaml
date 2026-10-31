@@ -37,6 +37,10 @@ services:
         value: "x-forwarded-for"
       - key: DATABASE_SSL_MODE
         value: "require"
+      - key: DATABASE_POOL_MAX
+        value: "5"
+      - key: AUTH_EMAIL_DATABASE_POOL_MAX
+        value: "2"
       - key: DATABASE_URL
         sync: false
       - key: APP_URL
@@ -115,6 +119,8 @@ services:
         value: "x-forwarded-for"
       - key: DATABASE_SSL_MODE
         value: "require"
+      - key: DATABASE_POOL_MAX
+        value: "2"
       - key: DATABASE_URL
         fromService:
           type: web

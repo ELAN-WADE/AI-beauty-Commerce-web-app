@@ -5,7 +5,8 @@ export function superviseAccountEmail(root) {
   let worker, timer, stopping = false, attempts = 0;
   function start() {
     if (stopping) return;
-    worker = spawn(process.execPath, ['--import', 'tsx', 'scripts/auth-email-worker.ts'], { cwd: root, stdio: 'inherit', windowsHide: true });
+    worker = spawn(process.execPath, ['--import', 'tsx', 'scripts/auth-email-worker.ts'], { cwd: root, stdio: 'inherit', windowsHide: true,
+      env: { ...process.env, DATABASE_POOL_MAX: process.env.AUTH_EMAIL_DATABASE_POOL_MAX || '2' } });
     const started = Date.now();
     let handled = false;
     function retry() {

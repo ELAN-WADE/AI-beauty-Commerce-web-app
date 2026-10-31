@@ -43,7 +43,7 @@ export function MfaSignIn({ user, request, onComplete }: Props) {
   return <div>
     <div className="text-center mb-6">
       <h1 className="text-2xl font-bold font-heading text-[#0F0F10] tracking-tight">{recoveryCodes.length ? 'Save Your Recovery Codes' : enrolling ? 'Set Up Administrator Verification' : 'Verify Administrator Sign-In'}</h1>
-      <p className="text-xs text-[#6B7280] mt-2">{recoveryCodes.length ? 'Store these one-use codes somewhere safe. They let you sign in if you lose your authenticator.' : `Complete verification for ${user.email}.`}</p>
+      <p className="text-xs text-[#6B7280] mt-2">{recoveryCodes.length ? 'Store these one-use codes somewhere safe. They let you sign in if you lose your authenticator.' : enrolling ? `Set up an authenticator for ${user.email}. No email is sent; the account syncing your authenticator app can be different.` : `Use the authenticator entry you created for ${user.email}. No email is sent; the account syncing your authenticator app can be different.`}</p>
     </div>
     {recoveryCodes.length && verifiedUser ? <div className="space-y-4">
       <div aria-label="Recovery codes" className="grid grid-cols-2 gap-2 rounded-xl bg-[#FAF9F6] p-4 text-xs font-mono">{recoveryCodes.map(value => <code key={value}>{value}</code>)}</div>

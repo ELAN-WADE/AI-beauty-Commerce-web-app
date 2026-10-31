@@ -22,6 +22,7 @@ describe('embedded account-email dispatcher', () => {
     stop = superviseAccountEmail('/srv/backend');
     expect(spawn).toHaveBeenCalledWith(process.execPath, ['--import', 'tsx', 'scripts/auth-email-worker.ts'], expect.objectContaining({ cwd: '/srv/backend', windowsHide: true }));
     expect(children).toHaveLength(1);
+    expect(spawn.mock.calls[0][2].env.DATABASE_POOL_MAX).toBe('2');
   });
   it('restarts after failure with backoff and handles error/exit only once', () => {
     stop = superviseAccountEmail('/srv/backend');

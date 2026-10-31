@@ -14,6 +14,8 @@ const once = process.argv.includes('--once');
 const shutdown = new AbortController();
 process.on('SIGINT', () => shutdown.abort());
 process.on('SIGTERM', () => shutdown.abort());
+// Standalone workers use a smaller pool unless explicitly configured.
+if (!process.env.DATABASE_POOL_MAX) process.env.DATABASE_POOL_MAX = process.env.AUTH_EMAIL_DATABASE_POOL_MAX || '2';
 const db = getDb();
 try {
   const sender = getEmailSender();

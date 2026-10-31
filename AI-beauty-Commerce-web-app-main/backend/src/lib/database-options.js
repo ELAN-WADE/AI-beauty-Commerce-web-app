@@ -21,3 +21,19 @@ export function databaseSslOptions(url, sslMode) {
     ? { ssl: 'require' }
     : {};
 }
+
+/** Bounded per-process pools; the web server and account worker share one DB. */
+export function databasePoolOptions(env = process.env) {
+  const integer = (name, fallback, min, max) => {
+    const raw = env[name];
+    if (raw !== undefined && !/^\d+$/.test(raw)) throw new Error(`${name} must be an integer between ${min} and ${max}.`);
+    const value = raw === undefined ? fallback : Number(raw);
+    if (!Number.isInteger(value) || value < min || value > max) throw new Error(`${name} must be an integer between ${min} and ${max}.`);
+    return value;
+  };
+  return {
+    max: integer('DATABASE_POOL_MAX', env.RENDER === 'true' ? 5 : 10, 1, 50),
+    idle_timeout: integer('DATABASE_IDLE_TIMEOUT_SECONDS', 60, 1, 600),
+    connect_timeout: integer('DATABASE_CONNECT_TIMEOUT_SECONDS', 10, 1, 30),
+  };
+}

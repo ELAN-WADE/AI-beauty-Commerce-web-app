@@ -31,3 +31,7 @@ export function databaseDiagnostics(error) {
   }
   return {};
 }
+
+export function isTransientDatabaseFailure(error) {
+  return new Set(['CONNECT_TIMEOUT', 'ECONNREFUSED', 'ECONNRESET', 'ETIMEDOUT', 'EAI_AGAIN', '53300', '57P03', 'CONNECTION_CLOSED']).has(databaseDiagnostics(error).databaseCode);
+}

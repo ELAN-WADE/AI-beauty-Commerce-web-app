@@ -1,8 +1,19 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { exchangeGoogleCode } from '@/modules/auth/google-oauth';
 import { googleConfig, googleConfigurationStatus } from '@/modules/auth/redirects';
 afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); });
+beforeEach(() => vi.stubEnv('RENDER', 'false'));
 describe('Google server-side exchange failures', () => {
+  it('uses the same derived Render callback during the server-side code exchange', async () => {
+    vi.stubEnv('NODE_ENV', 'production'); vi.stubEnv('RENDER', 'true');
+    vi.stubEnv('APP_URL', 'https://shop.onrender.com'); vi.stubEnv('FRONTEND_URL', 'https://shop.onrender.com');
+    vi.stubEnv('GOOGLE_CLIENT_ID', 'test-client'); vi.stubEnv('GOOGLE_CLIENT_SECRET', 'private-secret');
+    vi.stubEnv('GOOGLE_REDIRECT_URI', 'http://shop.onrender.com/apai/auth/outh/google/callback');
+    const provider = vi.fn().mockResolvedValueOnce(Response.json({ access_token: 'private-access-token' })).mockResolvedValueOnce(Response.json({ sub: '123', email: 'buyer@example.com', email_verified: true, name: 'Buyer' }));
+    await expect(exchangeGoogleCode('private-code', 'private-verifier', provider)).resolves.toMatchObject({ email: 'buyer@example.com' });
+    const body = new URLSearchParams(provider.mock.calls[0][1].body);
+    expect(body.get('redirect_uri')).toBe('https://shop.onrender.com/api/auth/oauth/google/callback');
+  });
   it.each([
     ['invalid_client', 503, 'oauth_configuration'],
     ['invalid_grant', 410, 'gone'],

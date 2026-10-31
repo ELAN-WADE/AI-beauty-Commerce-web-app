@@ -1,10 +1,22 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { NextResponse } from 'next/server';
 import { api, ApiError, Errors } from '@/lib/errors';
 
 // THREAT (info disclosure via stack traces / SQL errors) → CONTROL (envelope +
 // 500 masking) → TEST: clients see stable codes, never internals.
 describe('api() error envelope', () => {
+  it('returns retryable 503 for database connection outages without replaying the handler', async () => {
+    const logger = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const handlerBody = vi.fn(async () => { throw new Error('private SQL and credentials', { cause: { code: 'CONNECT_TIMEOUT' } }); });
+    try {
+      const res = await api(handlerBody)(new Request('http://x/api/thing'));
+      expect(res.status).toBe(503); expect(res.headers.get('Retry-After')).toBe('3');
+      const body = await res.json();
+      expect(body.error).toMatchObject({ code: 'service_unavailable', retryable: true });
+      expect(JSON.stringify(body)).not.toMatch(/CONNECT_TIMEOUT|credentials|SQL/);
+      expect(handlerBody).toHaveBeenCalledTimes(1);
+    } finally { logger.mockRestore(); }
+  });
   it('maps ApiError to status + stable envelope with request_id', async () => {
     const handler = api(async () => {
       throw Errors.forbidden();

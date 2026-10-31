@@ -4,6 +4,7 @@ import { getDb } from '@/db/client';
 import { ApiError } from '@/lib/errors';
 import { consumeOAuthRequest, completeGoogleOAuth } from '@/modules/auth/google-oauth';
 import { safeReturnTo } from '@/modules/auth/redirects';
+import { databaseDiagnostics, isTransientDatabaseFailure } from '@/lib/database-diagnostics';
 
 export async function GET(req: Request) {
   const jar = await cookies();
@@ -23,8 +24,8 @@ export async function GET(req: Request) {
     return NextResponse.redirect(target, { headers: { 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' } });
   } catch (error) {
     const target = new URL(returnTo); target.searchParams.set('auth', 'cancelled');
-    target.searchParams.set('message', error instanceof ApiError ? error.message : 'Sign-in could not be completed. Please try again.');
-    if (!(error instanceof ApiError)) console.error(JSON.stringify({ scope: 'oauth-callback', code: 'internal_error' }));
+    target.searchParams.set('message', error instanceof ApiError ? error.message : isTransientDatabaseFailure(error) ? 'The account service is temporarily unavailable. Please start Google sign-in again.' : 'Sign-in could not be completed. Please try again.');
+    if (!(error instanceof ApiError)) console.error(JSON.stringify({ scope: 'oauth-callback', code: 'internal_error', ...databaseDiagnostics(error) }));
     return NextResponse.redirect(target, { headers: { 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' } });
   } finally {
     jar.set('desla_oauth_browser', '', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/api/auth/oauth/google', maxAge: 0 });

@@ -44,7 +44,12 @@ function readGoogleConfig(callerOrigin?: string | null) {
     // In dev, the backend hosts the OAuth callback at APP_URL while the frontend SPA is on a
     // different port (FRONTEND_URL). In production both should be the same origin.
     setting = 'GOOGLE_REDIRECT_URI';
-    const redirectRaw = process.env.GOOGLE_REDIRECT_URI || '/api/auth/oauth/google/callback';
+    // This Render app serves the callback itself on its storefront origin.
+    // Derive that fixed route rather than accepting a stale localhost/typo override.
+    const renderMonolith = process.env.RENDER === 'true' && process.env.NODE_ENV === 'production' && app.origin === frontend.origin;
+    const redirectRaw = renderMonolith
+      ? new URL('/api/auth/oauth/google/callback', frontend).toString()
+      : process.env.GOOGLE_REDIRECT_URI || '/api/auth/oauth/google/callback';
     const redirect = new URL(redirectRaw, app); // default to APP_URL origin
     const allowedOrigins = new Set([frontend.origin, app.origin]);
     if (process.env.NODE_ENV !== 'production') {
@@ -68,7 +73,7 @@ function readGoogleConfig(callerOrigin?: string | null) {
 
 /** Server-side diagnostics contain setting names, never credential values. */
 export function googleConfigurationStatus() {
-  try { readGoogleConfig(); return { configured: true, settings: [] as string[] }; }
+  try { const config = readGoogleConfig(); return { configured: true, settings: [] as string[], callback: config.redirectUri }; }
   catch (error) { return { configured: false, settings: error instanceof GoogleConfigurationError ? error.settings : ['GOOGLE_OAUTH'] }; }
 }
 
