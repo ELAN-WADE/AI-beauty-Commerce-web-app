@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidateTag } from 'next/cache';
 
 function isAllowedProxyOrigin(origin: string | null, targetOrigin: string): boolean {
   if (!origin || origin === targetOrigin) return true;
@@ -55,6 +56,11 @@ async function proxy(req: NextRequest) {
   try {
     const signal = isSyncStream ? AbortSignal.any([req.signal, handshake.signal]) : AbortSignal.timeout(timeoutMs);
     const response = await fetch(target, { method: req.method, headers, body, redirect: 'manual', cache: 'no-store', signal });
+    if (response.ok && !['GET', 'HEAD', 'OPTIONS'].includes(req.method) && /^\/api\/admin\/(products|catalogue|inventory|storefront|categories|reviews)(\/|$)/.test(target.pathname)) {
+      for (const tag of ['public-catalogue', 'public-editorial']) {
+        try { revalidateTag(tag); } catch { /* A successful backend write must not become an error if a cache is unavailable. */ }
+      }
+    }
     const outgoing = new Headers({ 'Cache-Control': 'no-store' });
     for (const name of ['content-type', 'retry-after', 'x-request-id', 'location']) { const value = response.headers.get(name); if (value) outgoing.set(name, value); }
     for (const cookie of response.headers.getSetCookie()) outgoing.append('set-cookie', cookie);

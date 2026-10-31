@@ -1,4 +1,4 @@
-import type { StorefrontSeed } from '../../backend/src/lib/server-storefront';
+import type { StorefrontSeed } from '../../backend/src/storefront/lib/storefront-seed';
 import React, { createContext, useCallback, useContext, useState, useEffect, useRef, useMemo, ReactNode } from 'react';
 import {
   Product,

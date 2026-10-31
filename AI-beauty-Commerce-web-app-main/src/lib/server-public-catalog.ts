@@ -12,7 +12,7 @@ export const getPublicCatalogue = cache(async () => {
 export const getPublicEditorial = cache(async () => {
   try {
     const response = await fetch(upstream() + '/api/storefront', { next: { revalidate: 60, tags: ['public-editorial'] }, signal: AbortSignal.timeout(10000) });
-    return response.ok ? await response.json() as import('../../backend/src/lib/server-storefront').StorefrontSeed : undefined;
+    return response.ok ? await response.json() as import('../../backend/src/storefront/lib/storefront-seed').StorefrontSeed : undefined;
   } catch { return undefined; }
 });
 export const getPublicProduct = cache(async (slug: string) => {

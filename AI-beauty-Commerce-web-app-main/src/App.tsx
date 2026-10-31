@@ -1,4 +1,6 @@
 import React from 'react';
+import { scheduleBackgroundWarmup } from './lib/background-warmup';
+import { publicScreenLoaders } from './lib/public-screen-preload';
 import { useViewport } from './context/ViewportContext';
 import { StorefrontOverlays } from './components/common/StorefrontOverlays';
 import { CartStatusBanner } from './components/common/CartStatusBanner';
@@ -40,6 +42,7 @@ import { RequireRole } from './components/auth/RequireRole';
 import { isPortalDesignPreview } from './lib/portal-preview';
 
 export const App: React.FC<{ privateAdminEntry?: boolean }> = ({ privateAdminEntry = false }) => {
+  React.useEffect(() => scheduleBackgroundWarmup(Object.values(publicScreenLoaders)), []);
   const { isDesktop } = useViewport();
   const {
     currentScreen,

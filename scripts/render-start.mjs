@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process';
+import { spawn, execSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 
@@ -7,6 +7,18 @@ if (existsSync(path.join(targetDir, 'AI-beauty-Commerce-web-app-main', 'backend'
   targetDir = path.join(targetDir, 'AI-beauty-Commerce-web-app-main', 'backend');
 } else if (existsSync(path.join(targetDir, 'backend'))) {
   targetDir = path.join(targetDir, 'backend');
+}
+
+console.log(`[render-start] Target directory: ${targetDir}`);
+
+// Self-healing: if dependencies or production build don't exist yet, build first
+const nodeModulesExists = existsSync(path.join(targetDir, 'node_modules'));
+const nextBuildExists = existsSync(path.join(targetDir, '.next'));
+
+if (!nodeModulesExists || !nextBuildExists) {
+  console.log('[render-start] No production build or dependencies found. Building now...');
+  execSync('npm install', { cwd: targetDir, stdio: 'inherit' });
+  execSync('npm run build', { cwd: targetDir, stdio: 'inherit' });
 }
 
 console.log(`[render-start] Launching server from: ${targetDir}`);

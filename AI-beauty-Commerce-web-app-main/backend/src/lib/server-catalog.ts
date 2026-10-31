@@ -16,6 +16,7 @@
  */
 import { eq } from 'drizzle-orm';
 import { cache } from 'react';
+import { unstable_cache } from 'next/cache';
 import { getDb, type AppDb } from '@/db/client';
 import {
   getProduct,
@@ -100,7 +101,8 @@ async function readCatalogSeed(limit = 100, db?: AppDb): Promise<StorefrontProdu
   }
 }
 
-export const getCatalogSeed = cache(readCatalogSeed);
+const cachedCatalogue = unstable_cache((limit: number) => readCatalogSeed(limit), ['public-catalogue-v1'], { revalidate: 60, tags: ['public-catalogue'] });
+export const getCatalogSeed = cache((limit = 100, db?: AppDb) => db ? readCatalogSeed(limit, db) : cachedCatalogue(limit));
 
 /** Single-product seed + metadata source. `null` = product unavailable. */
 async function readProductSeed(slug: string, db?: AppDb): Promise<StorefrontProduct | null> {
@@ -114,7 +116,8 @@ async function readProductSeed(slug: string, db?: AppDb): Promise<StorefrontProd
   }
 }
 
-export const getProductSeed = cache(readProductSeed);
+const cachedProduct = unstable_cache((slug: string) => readProductSeed(slug), ['public-product-v1'], { revalidate: 60, tags: ['public-catalogue'] });
+export const getProductSeed = cache((slug: string, db?: AppDb) => db ? readProductSeed(slug, db) : cachedProduct(slug.toLowerCase()));
 
 /** Slugs for `generateStaticParams` (capped; unknown slugs render on demand). */
 export async function listProductSlugs(limit = 1000, db?: AppDb): Promise<string[]> {

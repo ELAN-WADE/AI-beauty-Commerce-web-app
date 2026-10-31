@@ -6,7 +6,7 @@
  * Source of truth for chrome rules: `storefront/App.tsx`
  * (isImmersiveScreen / isAdminScreen / isPartnerWorkspace / showBottomNav).
  */
-import type { ScreenId } from '@/storefront/types';
+import type { ScreenId } from '../storefront/types';
 
 export const SCREEN_PATHS: Record<ScreenId, string> = {
   splash: '/splash',

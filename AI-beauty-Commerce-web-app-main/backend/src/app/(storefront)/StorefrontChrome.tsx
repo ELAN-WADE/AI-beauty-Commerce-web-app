@@ -2,7 +2,8 @@
 
 import React from 'react';
 import dynamic from 'next/dynamic';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { scheduleBackgroundWarmup } from '@/storefront/lib/background-warmup';
 import { useViewport } from '@/storefront/context/ViewportContext';
 import { DesktopNav } from '@/storefront/components/common/DesktopNav';
 import { Header } from '@/storefront/components/common/Header';
@@ -28,6 +29,8 @@ const OfflineStatusBanner = dynamic(() => import('@/storefront/components/common
  * Only change: visibility is driven by URL pathname instead of `currentScreen`.
  */
 export default function StorefrontChrome({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  React.useEffect(() => scheduleBackgroundWarmup(['/catalogue', '/search', '/community', '/categories'].map(path => () => router.prefetch(path))), [router]);
   const pathname = usePathname() ?? '/';
   const [designPreview, setDesignPreview] = React.useState(false);
   React.useEffect(() => { setDesignPreview(isPortalDesignPreview()); }, []);

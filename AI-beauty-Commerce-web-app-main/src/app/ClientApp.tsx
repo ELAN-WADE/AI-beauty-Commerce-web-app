@@ -1,6 +1,6 @@
 'use client';
 
-import type { StorefrontSeed } from '../../backend/src/lib/server-storefront';
+import type { StorefrontSeed } from '../../backend/src/storefront/lib/storefront-seed';
 import React, { useEffect } from 'react';
 import { ViewportProvider } from '../context/ViewportContext';
 import { AppProvider } from '../context/AppContext';

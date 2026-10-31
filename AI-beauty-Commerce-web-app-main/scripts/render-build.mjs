@@ -20,3 +20,4 @@ console.log('[render-build] Compiling production build...');
 execSync('npm run build', { cwd: targetDir, stdio: 'inherit' });
 
 console.log('[render-build] Build completed successfully!');
+

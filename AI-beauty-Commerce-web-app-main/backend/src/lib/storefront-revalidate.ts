@@ -9,7 +9,7 @@
  *
  * All helpers are best-effort and never throw into admin API responses.
  */
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { eq } from 'drizzle-orm';
 import type { AppDb } from '@/db/client';
 import { productVariants, products } from '@/modules/catalog/schema';
@@ -43,6 +43,9 @@ export function broadcastStorefrontSync(slug?: string | null): void {
 }
 
 export function revalidateStorefront(slug?: string | null): void {
+  for (const tag of ['public-catalogue', 'public-editorial']) {
+    try { revalidateTag(tag); } catch { /* TTL remains the fallback outside a Next request. */ }
+  }
   for (const path of ['/', '/catalogue']) {
     try {
       revalidatePath(path);
