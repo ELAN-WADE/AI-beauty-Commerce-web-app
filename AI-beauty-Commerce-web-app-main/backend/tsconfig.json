@@ -40,7 +40,8 @@
     ".next-portal-acceptance/types/**/*.ts",
     ".next/types/**/*.ts",
     ".portal-build/types/**/*.ts",
-    "next-env.d.ts"
+    "next-env.d.ts",
+    ".journey-build/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

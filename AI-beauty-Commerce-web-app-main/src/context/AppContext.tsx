@@ -64,6 +64,7 @@ import {
   subscribeStorefrontSyncApi,
   fetchCategoriesApi,
   fetchCatalogFromOwnedApi,
+  invalidateProductDetails,
   saveAdminCatalogueProduct,
   fetchServerOrder,
   initPayment,
@@ -460,6 +461,7 @@ export const AppProvider: React.FC<{ children: ReactNode; initialScreen?: Screen
   useEffect(() => {
     if (!isOwnedApiConfigured) return;
     const unsubscribe = subscribeStorefrontSyncApi(() => {
+      invalidateProductDetails();
       Promise.all([
         fetchCatalogFromOwnedApi(100, true),
         fetchCategoriesApi(),
@@ -468,6 +470,7 @@ export const AppProvider: React.FC<{ children: ReactNode; initialScreen?: Screen
         .then(([live, liveCats, editorial]) => {
           if (live) {
             setProducts(live);
+            setQuickModalProduct(previous => previous ? live.find(product => product.id === previous.id) ?? null : null);
             setSelectedProduct((prev) => {
               if (!prev) return live[0] ?? null;
               return live.find((p) => p.id === prev.id) ?? live[0] ?? null;

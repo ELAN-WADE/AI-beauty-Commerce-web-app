@@ -3,10 +3,16 @@ import { mapOwned } from './owned-api';
 const upstream = () => (process.env.API_UPSTREAM_URL || process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3005').replace(/\/+$/, '');
 export const getPublicCatalogue = cache(async () => {
   try {
-    const response = await fetch(upstream() + '/api/products?limit=100&sort=newest', { next: { revalidate: 60, tags: ['public-catalogue'] }, signal: AbortSignal.timeout(10000) });
-    if (!response.ok) return undefined;
-    const body = await response.json();
-    return Array.isArray(body.items) ? body.items.map(mapOwned) : undefined;
+    const items: ReturnType<typeof mapOwned>[] = []; let cursor: string | null = null;
+    const signal = AbortSignal.timeout(10000);
+    for (let page = 0; page < 5; page++) {
+      const url = new URL(upstream() + '/api/products'); url.searchParams.set('limit', '100'); url.searchParams.set('sort', 'newest'); if (cursor) url.searchParams.set('cursor', cursor);
+      const response = await fetch(url, { next: { revalidate: 60, tags: ['public-catalogue'] }, signal });
+      if (!response.ok) return undefined;
+      const body = await response.json(); if (!Array.isArray(body.items)) return undefined;
+      items.push(...body.items.map(mapOwned)); cursor = body.nextCursor; if (!cursor) break;
+    }
+    return items;
   } catch { return undefined; }
 });
 export const getPublicEditorial = cache(async () => {
@@ -17,6 +23,8 @@ export const getPublicEditorial = cache(async () => {
 });
 export const getPublicProduct = cache(async (slug: string) => {
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) return null;
+  const seeded = (await getPublicCatalogue())?.find(product => product.id === slug);
+  if (seeded) return seeded;
   const response = await fetch(upstream() + '/api/products/' + encodeURIComponent(slug), { next: { revalidate: 60, tags: ['public-catalogue'] }, signal: AbortSignal.timeout(10000) });
   if (response.status === 404) return null;
   if (!response.ok) throw new Error('The catalogue is temporarily unavailable.');

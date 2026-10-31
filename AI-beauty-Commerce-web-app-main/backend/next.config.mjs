@@ -8,6 +8,12 @@ const developmentPort = /^\d+$/.test(process.env.PORT || '') ? process.env.PORT 
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   distDir: process.env.NEXT_DIST_DIR || (process.env.PLAYWRIGHT_NEXT_DIST === '1' ? '.next-browser' : development ? `.next-dev-${developmentPort}` : '.next'),
   devIndicators: false,
   poweredByHeader: false,

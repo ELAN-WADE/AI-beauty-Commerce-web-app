@@ -1,9 +1,12 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import ClientEntry from '../../ClientEntry';
-import { getPublicProduct } from '../../../lib/server-public-catalog';
+import { getPublicProduct, getPublicCatalogue } from '../../../lib/server-public-catalog';
 import { absoluteAsset, publicSiteOrigin, productStructuredData, safeJsonLd } from '../../../lib/site-seo';
 export const revalidate = 60;
+export async function generateStaticParams() {
+  return ((await getPublicCatalogue()) || []).slice(0, 100).map(product => ({ slug: product.id }));
+}
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const product = await getPublicProduct((await params).slug);
   if (!product) return { title: 'Product not found', robots: { index: false } };

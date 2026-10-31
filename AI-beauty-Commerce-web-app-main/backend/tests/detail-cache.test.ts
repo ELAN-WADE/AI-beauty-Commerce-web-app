@@ -4,7 +4,7 @@
  * failures never poison the cache. `fetch` is stubbed; no network, no DB.
  */
 import { describe, expect, it, beforeEach, vi, afterEach } from 'vitest';
-import { DETAIL_TTL_MS, fetchProductDetail } from '@/storefront/lib/owned-api';
+import { DETAIL_TTL_MS, fetchProductDetail, invalidateProductDetails } from '@/storefront/lib/owned-api';
 
 let calls = 0;
 
@@ -31,6 +31,23 @@ afterEach(() => {
 });
 
 describe('fetchProductDetail cache', () => {
+  it('does not let an old in-flight read repopulate the cache after a live publication', async () => {
+    const releases: ((response: Response) => void)[] = [];
+    const fetcher = vi.fn(() => new Promise<Response>(resolve => releases.push(resolve)));
+    vi.stubGlobal('fetch', fetcher);
+    const old = fetchProductDetail('publication-race');
+    invalidateProductDetails();
+    const fresh = fetchProductDetail('publication-race');
+    releases[0](new Response(JSON.stringify({ ...detail, name: 'Old saved name' })));
+    await old;
+    const concurrent = fetchProductDetail('publication-race');
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    releases[1](new Response(JSON.stringify({ ...detail, name: 'New saved name' })));
+    const [a, b] = await Promise.all([fresh, concurrent]);
+    expect(a?.name).toBe('New saved name'); expect(b).toBe(a);
+    expect((await fetchProductDetail('publication-race'))?.name).toBe('New saved name');
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
   it('shares one request across concurrent renders, then serves cache', async () => {
     const slug = `oil-${Date.now()}`;
     const [a, b, c] = await Promise.all([fetchProductDetail(slug), fetchProductDetail(slug), fetchProductDetail(slug)]);

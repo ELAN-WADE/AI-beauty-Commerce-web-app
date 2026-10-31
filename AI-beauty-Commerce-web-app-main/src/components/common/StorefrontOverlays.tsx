@@ -30,7 +30,10 @@ export const StorefrontOverlays: React.FC = () => {
   const location = useHasOpened(isLocationModalOpen);
   useEffect(() => scheduleBackgroundWarmup(products.slice(0, 12).filter(product => product.image).map(product => async () => {
     const image = new Image();
-    image.decoding = 'async'; image.fetchPriority = 'low'; image.src = product.image;
+    image.decoding = 'async'; image.fetchPriority = 'low';
+    const desired = (window.innerWidth >= 1024 ? 512 : window.innerWidth) * Math.min(window.devicePixelRatio || 1, 3);
+    const width = [640, 750, 828, 1080, 1200, 1920, 2048].find(value => value >= desired) || 2048;
+    image.src = product.image.startsWith('/') && !product.image.startsWith('//') && !/\.svg(?:[?#]|$)/i.test(product.image) ? '/_next/image?url=' + encodeURIComponent(product.image) + '&w=' + width + '&q=75' : product.image;
     if (image.decode) await image.decode().catch(() => {});
   })), [products]);
   return (

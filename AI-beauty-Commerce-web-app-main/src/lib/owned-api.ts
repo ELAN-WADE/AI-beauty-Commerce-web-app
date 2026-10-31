@@ -330,6 +330,10 @@ interface CachedDetailEntry {
 
 const detailCache = new Map<string, CachedDetailEntry>();
 const inflightDetail = new Map<string, Promise<OwnedDetail | null>>();
+let detailGeneration = 0;
+export function invalidateProductDetails() {
+  detailGeneration++; detailCache.clear(); inflightDetail.clear();
+}
 
 export async function fetchProductDetail(slug: string): Promise<OwnedDetail | null> {
   const key = slug.toLowerCase();
@@ -341,19 +345,21 @@ export async function fetchProductDetail(slug: string): Promise<OwnedDetail | nu
   const inflight = inflightDetail.get(key);
   if (inflight) return inflight;
 
-  const req = (async () => {
+  const generation = detailGeneration;
+  const req: Promise<OwnedDetail | null> = (async () => {
     try {
       const detail = await apiFetch<OwnedDetail>(`/api/products/${encodeURIComponent(key)}`);
-      detailCache.set(key, { data: detail, expiresAt: Date.now() + DETAIL_TTL_MS });
+      if (generation === detailGeneration) detailCache.set(key, { data: detail, expiresAt: Date.now() + DETAIL_TTL_MS });
       return detail;
     } catch {
       return null;
-    } finally {
-      inflightDetail.delete(key);
     }
   })();
 
   inflightDetail.set(key, req);
+  req.finally(() => {
+      if (generation === detailGeneration) inflightDetail.delete(key);
+  });
   return req;
 }
 

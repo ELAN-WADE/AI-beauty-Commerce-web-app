@@ -30,7 +30,10 @@ export const ProductQuickModal: React.FC<ProductQuickModalProps> = ({
       setJustAdded(false);
       setIsSubmitting(false);
     }
-  }, [product]);
+  }, [product?.id]);
+  useEffect(() => {
+    if (product) setSelectedSize(previous => product.sizes?.includes(previous) ? previous : product.sizes?.[0] || 'Standard');
+  }, [product?.sizes?.join('|')]);
 
   // Lock body scroll, trap focus, handle Escape key, and return focus on close.
   useEffect(() => {
@@ -131,7 +134,7 @@ export const ProductQuickModal: React.FC<ProductQuickModalProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 overflow-y-auto">
           {/* Full-height product photograph, preserving the original two-column modal */}
           <div className="relative bg-[#FAF9F6] min-h-[320px] sm:min-h-[400px] overflow-hidden">
-            <ProductImage src={product.image} alt={product.name} sizes="(max-width: 640px) 100vw, 50vw" className="absolute inset-0 object-cover object-center" />
+            <ProductImage priority src={product.image} alt={product.name} sizes="(max-width: 1023px) 100vw, 512px" className="absolute inset-0 object-cover object-center" />
 
             {/* Badges */}
             <div className="absolute top-4 left-4 right-4 z-10 flex flex-row flex-wrap items-center gap-2">
