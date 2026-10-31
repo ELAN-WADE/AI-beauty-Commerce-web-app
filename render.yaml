@@ -17,9 +17,9 @@ services:
     plan: free # Upgrade to starter for production traffic
     region: oregon
     rootDir: AI-beauty-Commerce-web-app-main/backend
-    buildCommand: npm install && npm run build
+    buildCommand: node scripts/render-build.mjs
     preDeployCommand: npm run render:deploy
-    startCommand: node scripts/start.mjs
+    startCommand: node scripts/render-start.mjs
     healthCheckPath: /api/ready
     envVars:
       - key: NODE_ENV

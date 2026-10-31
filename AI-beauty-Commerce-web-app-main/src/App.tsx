@@ -13,11 +13,11 @@ import { EditorialBulletin } from './components/common/EditorialBulletin';
 
 // Screens — grouped by feature (see src/screens/README.md)
 const Screen01Splash = React.lazy(() => import('./screens/catalog/Screen01Splash').then(module => ({ default: module.Screen01Splash })));
-const Screen03Home = React.lazy(() => import('./screens/catalog/Screen03Home').then(module => ({ default: module.Screen03Home })));
+import { Screen03Home } from './screens/catalog/Screen03Home';
 const Screen04Search = React.lazy(() => import('./screens/catalog/Screen04Search').then(module => ({ default: module.Screen04Search })));
 const Screen05Categories = React.lazy(() => import('./screens/catalog/Screen05Categories').then(module => ({ default: module.Screen05Categories })));
-const Screen06Catalogue = React.lazy(() => import('./screens/catalog/Screen06Catalogue').then(module => ({ default: module.Screen06Catalogue })));
-const Screen07ProductDetails = React.lazy(() => import('./screens/catalog/Screen07ProductDetails').then(module => ({ default: module.Screen07ProductDetails })));
+import { Screen06Catalogue } from './screens/catalog/Screen06Catalogue';
+import { Screen07ProductDetails } from './screens/catalog/Screen07ProductDetails';
 const Screen09Cart = React.lazy(() => import('./screens/checkout/Screen09Cart').then(module => ({ default: module.Screen09Cart })));
 const Screen10Checkout = React.lazy(() => import('./screens/checkout/Screen10Checkout').then(module => ({ default: module.Screen10Checkout })));
 const Screen11Payment = React.lazy(() => import('./screens/checkout/Screen11Payment').then(module => ({ default: module.Screen11Payment })));
@@ -27,7 +27,7 @@ const Screen14AISkinScan = React.lazy(() => import('./screens/ai/Screen14AISkinS
 const ScreenAskAI = React.lazy(() => import('./screens/ai/ScreenAskAI').then(module => ({ default: module.ScreenAskAI })));
 const Screen16Rewards = React.lazy(() => import('./screens/account/Screen16Rewards').then(module => ({ default: module.Screen16Rewards })));
 const Screen17Account = React.lazy(() => import('./screens/account/Screen17Account').then(module => ({ default: module.Screen17Account })));
-const Screen18DesktopHome = React.lazy(() => import('./screens/catalog/Screen18DesktopHome').then(module => ({ default: module.Screen18DesktopHome })));
+import { Screen18DesktopHome } from './screens/catalog/Screen18DesktopHome';
 const ScreenCommunityChat = React.lazy(() => import('./screens/community/ScreenCommunityChat').then(module => ({ default: module.ScreenCommunityChat })));
 const ScreenDistributors = React.lazy(() => import('./screens/partners/ScreenDistributors').then(module => ({ default: module.ScreenDistributors })));
 const ScreenDistributorPortal = React.lazy(() => import('./screens/partners/ScreenDistributorPortal').then(module => ({ default: module.ScreenDistributorPortal })));

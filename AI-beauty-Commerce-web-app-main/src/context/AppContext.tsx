@@ -1,3 +1,4 @@
+import type { StorefrontSeed } from '../../backend/src/lib/server-storefront';
 import React, { createContext, useCallback, useContext, useState, useEffect, useRef, useMemo, ReactNode } from 'react';
 import {
   Product,
@@ -401,7 +402,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 type ProductActions = Pick<AppContextType, 'addToCart' | 'toggleWishlist' | 'isWishlisted' | 'openQuickModal'>;
 const ProductActionsContext = createContext<ProductActions | undefined>(undefined);
 
-export const AppProvider: React.FC<{ children: ReactNode; initialScreen?: ScreenId; initialProduct?: Product }> = ({ children, initialScreen, initialProduct }) => {
+export const AppProvider: React.FC<{ children: ReactNode; initialScreen?: ScreenId; initialProduct?: Product; initialCatalogue?: Product[]; initialEditorial?: StorefrontSeed }> = ({ children, initialScreen, initialProduct, initialCatalogue, initialEditorial }) => {
   // Navigation State with URL deep linking (?screen=..., #..., or pathname)
   const [currentScreen, setCurrentScreen] = useState<ScreenId>(() => {
     if (initialScreen) return initialScreen;
@@ -428,12 +429,13 @@ export const AppProvider: React.FC<{ children: ReactNode; initialScreen?: Screen
   const [authError, setAuthError] = useState('');
   const liveCheckoutAttempt = useRef<{ fingerprint: string; key: string; guestToken: string; orderId?: string } | null>(null);
 
-  // Products (mock-first paint; upgraded from owned API when VITE_API_URL is set)
-  const [products, setProducts] = useState<Product[]>(initialProduct ? [initialProduct] : []);
+  // Public server seed renders immediately; live updates arrive after hydration.
+  const [products, setProducts] = useState<Product[]>(initialProduct ? [initialProduct, ...(initialCatalogue || []).filter(product => product.id !== initialProduct.id)] : initialCatalogue || []);
+  const hasServerCatalogue = useRef(initialCatalogue !== undefined);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(initialProduct || null);
 
   useEffect(() => {
-    if (!isOwnedApiConfigured) return;
+    if (!isOwnedApiConfigured || hasServerCatalogue.current) return;
     let cancelled = false;
     fetchCatalogFromOwnedApi()
       .then((live) => {
@@ -614,8 +616,8 @@ export const AppProvider: React.FC<{ children: ReactNode; initialScreen?: Screen
   const [isCartBannerDismissed, setIsCartBannerDismissed] = useState(false);
 
   // Storefront & Editorial CMS State
-  const [heroSlides, setHeroSlides] = useState<HeroSlide[]>([]);
-  const [heroSettings, setHeroSettings] = useState<HeroSettings>(DEFAULT_HERO_SETTINGS);
+  const [heroSlides, setHeroSlides] = useState<HeroSlide[]>(initialEditorial?.config?.heroSlides || []);
+  const [heroSettings, setHeroSettings] = useState<HeroSettings>(initialEditorial?.config?.hero || DEFAULT_HERO_SETTINGS);
   const updateHeroSettings = (settings: HeroSettings) => { editorialDraftRevision.current++; setHeroSettings(settings); };
 
   const updateHeroSlides = (slides: React.SetStateAction<HeroSlide[]>) => {
@@ -623,21 +625,21 @@ export const AppProvider: React.FC<{ children: ReactNode; initialScreen?: Screen
     setHeroSlides(slides);
   };
 
-  const [routineSteps, setRoutineSteps] = useState<EditorialRoutineStep[]>([]);
+  const [routineSteps, setRoutineSteps] = useState<EditorialRoutineStep[]>(initialEditorial?.config?.routineSteps || []);
 
   const updateRoutineSteps = (steps: EditorialRoutineStep[]) => {
     editorialDraftRevision.current++;
     setRoutineSteps(steps);
   };
 
-  const [brandStory, setBrandStory] = useState<BrandStoryConfig>({ tagline: '', heading: '', paragraph1: '', paragraph2: '', image: '/brand_story_hero.jpg', badge1: '', badge2: '' });
+  const [brandStory, setBrandStory] = useState<BrandStoryConfig>(initialEditorial?.config?.brandStory || { tagline: '', heading: '', paragraph1: '', paragraph2: '', image: '/brand_story_hero.jpg', badge1: '', badge2: '' });
 
   const updateBrandStory = (config: BrandStoryConfig) => {
     editorialDraftRevision.current++;
     setBrandStory(config);
   };
 
-  const [announcementTicker, setAnnouncementTicker] = useState<AnnouncementTickerConfig>({ text: '', linkText: '', linkRoute: 'catalogue', isActive: false });
+  const [announcementTicker, setAnnouncementTicker] = useState<AnnouncementTickerConfig>(initialEditorial?.config?.announcementTicker || { text: '', linkText: '', linkRoute: 'catalogue', isActive: false });
 
   const updateAnnouncementTicker = (config: AnnouncementTickerConfig) => {
     editorialDraftRevision.current++;
@@ -684,7 +686,7 @@ export const AppProvider: React.FC<{ children: ReactNode; initialScreen?: Screen
   };
 
   // Creator PR & Campaigns
-        const [storefrontVersion, setStorefrontVersion] = useState(0);
+        const [storefrontVersion, setStorefrontVersion] = useState(initialEditorial?.version || 0);
   useEffect(() => {
     if (isPartnerDesignPreview()) return;
     let cancelled = false;

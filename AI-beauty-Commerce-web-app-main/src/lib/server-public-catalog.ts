@@ -1,6 +1,20 @@
 import { cache } from 'react';
 import { mapOwned } from './owned-api';
 const upstream = () => (process.env.API_UPSTREAM_URL || process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3005').replace(/\/+$/, '');
+export const getPublicCatalogue = cache(async () => {
+  try {
+    const response = await fetch(upstream() + '/api/products?limit=100&sort=newest', { next: { revalidate: 60, tags: ['public-catalogue'] }, signal: AbortSignal.timeout(10000) });
+    if (!response.ok) return undefined;
+    const body = await response.json();
+    return Array.isArray(body.items) ? body.items.map(mapOwned) : undefined;
+  } catch { return undefined; }
+});
+export const getPublicEditorial = cache(async () => {
+  try {
+    const response = await fetch(upstream() + '/api/storefront', { next: { revalidate: 60, tags: ['public-editorial'] }, signal: AbortSignal.timeout(10000) });
+    return response.ok ? await response.json() as import('../../backend/src/lib/server-storefront').StorefrontSeed : undefined;
+  } catch { return undefined; }
+});
 export const getPublicProduct = cache(async (slug: string) => {
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) return null;
   const response = await fetch(upstream() + '/api/products/' + encodeURIComponent(slug), { next: { revalidate: 60, tags: ['public-catalogue'] }, signal: AbortSignal.timeout(10000) });

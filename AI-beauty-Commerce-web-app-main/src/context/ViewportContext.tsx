@@ -13,9 +13,7 @@ const ViewportContext = createContext<ViewportContextType | undefined>(undefined
 
 export const ViewportProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [viewportMode, setViewportMode] = useState<ViewportMode>('auto');
-  const [isWindowDesktop, setIsWindowDesktop] = useState<boolean>(
-    typeof window !== 'undefined' ? window.innerWidth >= 1024 : true
-  );
+  const [isWindowDesktop, setIsWindowDesktop] = useState<boolean>(true);
 
   useEffect(() => {
     const media = window.matchMedia('(min-width: 1024px)');

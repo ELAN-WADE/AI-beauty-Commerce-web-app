@@ -2,8 +2,7 @@ import { scheduleBackgroundWarmup } from '../../lib/background-warmup';
 import React, { lazy, Suspense, useEffect, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 
-const loadProductQuickModal = () => import('./ProductQuickModal');
-const ProductQuickModal = lazy(() => loadProductQuickModal().then(module => ({ default: module.ProductQuickModal })));
+import { ProductQuickModal } from './ProductQuickModal';
 const loadFilterSortSheet = () => import('../sheets/FilterSortSheet');
 const FilterSortSheet = lazy(() => loadFilterSortSheet().then(module => ({ default: module.FilterSortSheet })));
 const loadAIAssistantDrawer = () => import('../sheets/AIAssistantDrawer');
@@ -21,7 +20,7 @@ function useHasOpened(open: boolean) {
 }
 
 export const StorefrontOverlays: React.FC = () => {
-  useEffect(() => scheduleBackgroundWarmup([loadProductQuickModal,loadFilterSortSheet,loadAIAssistantDrawer,loadCommunityChatDrawer,loadLocationSelector]), []);
+  useEffect(() => scheduleBackgroundWarmup([loadFilterSortSheet,loadAIAssistantDrawer,loadCommunityChatDrawer,loadLocationSelector]), []);
   const { products, quickModalProduct, closeQuickModal, isFilterSheetOpen,
     isAIAssistantOpen, isCommunityOpen, isLocationModalOpen } = useApp();
   const quick = useHasOpened(!!quickModalProduct);
@@ -36,7 +35,7 @@ export const StorefrontOverlays: React.FC = () => {
   })), [products]);
   return (
     <>
-      <Suspense fallback={null}>{quick && <ProductQuickModal product={quickModalProduct} isOpen={!!quickModalProduct} onClose={closeQuickModal} />}</Suspense>
+      {quick && <ProductQuickModal product={quickModalProduct} isOpen={!!quickModalProduct} onClose={closeQuickModal} />}
       <Suspense fallback={null}>{filters && <FilterSortSheet />}</Suspense>
       <Suspense fallback={null}>{ai && <AIAssistantDrawer />}</Suspense>
       <Suspense fallback={null}>{chat && <CommunityChatDrawer />}</Suspense>
