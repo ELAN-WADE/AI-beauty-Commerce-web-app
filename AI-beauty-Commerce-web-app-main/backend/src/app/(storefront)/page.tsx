@@ -1,11 +1,13 @@
 import type { Metadata } from 'next';
 import { getCatalogSeed } from '@/lib/server-catalog';
 import HomeClient from './HomeClient';
+import { publicSiteOrigin } from '@/storefront/lib/site-seo';
 
 /** Phase 2 — editorial home is ISR-static; seeded so hero grids paint instantly. */
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
+  ...(publicSiteOrigin() ? { alternates: { canonical: publicSiteOrigin()! + '/' } } : {}),
   title: 'Desla!™ Luxury Beauty — Health Before Beauty',
   description:
     'Desla!™ luxury Nigerian skincare, bodycare and fragrance. AI skin scan, creator picks, city-hub pickup and delivery.',

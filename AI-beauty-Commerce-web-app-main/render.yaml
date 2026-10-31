@@ -17,7 +17,7 @@ services:
     plan: free # Upgrade to starter for production traffic
     region: oregon
     rootDir: backend
-    buildCommand: npm ci && npm run build
+    buildCommand: npm install && npm run build
     preDeployCommand: npm run render:deploy
     startCommand: node scripts/start.mjs
     healthCheckPath: /api/ready

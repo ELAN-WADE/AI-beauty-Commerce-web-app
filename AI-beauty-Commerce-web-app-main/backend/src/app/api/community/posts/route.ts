@@ -6,7 +6,7 @@ import { optionalAuth, requireAuth } from '@/modules/auth/require-auth';
 import { getProfile } from '@/modules/users/service';
 import { createPost, listPosts } from '@/modules/community/service';
 import { products } from '@/modules/catalog/schema';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { createPostSchema, postQuerySchema } from '@/modules/community/validation';
 
 export const GET = api(async ({ req }) => {
@@ -25,7 +25,7 @@ export const POST = api(async ({ req }) => {
   let taggedProductSlug: string | undefined;
   if (input.taggedProductId) {
     const byId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input.taggedProductId);
-    const [product] = await db.select({ id: products.id, slug: products.slug }).from(products).where(byId ? eq(products.id, input.taggedProductId) : eq(products.slug, input.taggedProductId)).limit(1);
+    const [product] = await db.select({ id: products.id, slug: products.slug }).from(products).where(and(eq(products.isActive, true), byId ? eq(products.id, input.taggedProductId) : eq(products.slug, input.taggedProductId))).limit(1);
     if (!product) throw Errors.badRequest('Tagged product is unavailable.');
     input.taggedProductId = product.id; taggedProductSlug = product.slug;
   }

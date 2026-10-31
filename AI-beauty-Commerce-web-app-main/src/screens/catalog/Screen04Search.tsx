@@ -6,22 +6,9 @@ import { ProductCard } from '../../components/common/ProductCard';
 export const Screen04Search: React.FC = () => {
   const { products, searchQuery, setSearchQuery, goBack, setSelectedCategory, navigateTo, selectedCity } = useApp();
 
-  const [recentSearches, setRecentSearches] = useState([
-    'Radiant Glow Oil',
-    'Whipped Shea Butter',
-    'Extrait Perfume',
-    'Lip Glaze'
-  ]);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
 
-  const popularSearches = [
-    'Radiant Body Oil',
-    'Whipped Butter',
-    'Exfoliating Scrub',
-    'Perfume Oil',
-    'Lip Glaze',
-    'SPF 50+ Sunscreen',
-    'Body Wash'
-  ];
+  const popularSearches = useMemo(() => products.slice(0, 7).map(product => product.name), [products]);
 
   const categoryShortcuts = [
     { name: 'Body Care', slug: 'body-care' },
@@ -51,6 +38,7 @@ export const Screen04Search: React.FC = () => {
 
   const handleTagClick = (tag: string) => {
     setSearchQuery(tag);
+    setRecentSearches(previous => [tag, ...previous.filter(term => term !== tag)].slice(0, 8));
   };
 
   const handleCategoryClick = (slug: string) => {

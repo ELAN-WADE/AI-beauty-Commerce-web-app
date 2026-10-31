@@ -24,7 +24,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const product = await getProductSeed(slug);
-  if (!product) return { title: 'Product | Desla!™' };
+  if (!product) return { title: 'Product not found | Desla!™', robots: { index: false, follow: false } };
   const base = publicSiteOrigin();
   const image = absoluteAsset(product.image, base);
   const price = `₦${product.price.toLocaleString('en-NG')}`;

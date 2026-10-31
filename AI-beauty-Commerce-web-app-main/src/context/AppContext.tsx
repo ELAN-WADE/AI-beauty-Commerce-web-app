@@ -1281,7 +1281,7 @@ export const AppProvider: React.FC<{ children: ReactNode; initialScreen?: Screen
       try {
         if (typeof window !== 'undefined') {
           const url = new URL(window.location.href);
-          url.searchParams.delete('screen');
+          url.pathname = '/'; url.searchParams.delete('screen');
           window.history.pushState({ screen: 'home' }, '', url.toString());
         }
       } catch { /* ignore */ }

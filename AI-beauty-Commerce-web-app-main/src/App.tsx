@@ -208,7 +208,7 @@ export const App: React.FC<{ privateAdminEntry?: boolean }> = ({ privateAdminEnt
       {/* Mobile Edge-to-Edge Sticky Bottom Navigation (storefront only) */}
       {showBottomNav && <BottomNav />}
 
-      {/* Persistent Global Floating AI Assistant Concierge Button (Desktop only; Mobile has Desla AI in BottomNav) */}
+      {/* Persistent AI assistant; mobile uses a compact floating bar. */}
       {!isAdminScreen && !isPartnerWorkspace && <AIFloatingButton />}
 
 

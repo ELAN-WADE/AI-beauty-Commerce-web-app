@@ -3,11 +3,9 @@
   "private": true,
   "version": "1.0.0",
   "scripts": {
-    "dev": "npm --prefix AI-beauty-Commerce-web-app-main run dev",
-    "build": "npm --prefix AI-beauty-Commerce-web-app-main run build",
-    "preview": "npm --prefix AI-beauty-Commerce-web-app-main run preview"
-  },
-  "dependencies": {
-    "vite": "^6.1.1"
+    "build": "cd AI-beauty-Commerce-web-app-main/backend && npm install && npm run build",
+    "start": "cd AI-beauty-Commerce-web-app-main/backend && node scripts/start.mjs",
+    "render:deploy": "cd AI-beauty-Commerce-web-app-main/backend && npm run render:deploy",
+    "dev": "cd AI-beauty-Commerce-web-app-main/backend && npm run dev"
   }
 }
