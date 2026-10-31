@@ -61,8 +61,8 @@ export const POST = api(async ({ req }) => {
   const filename = `${safeBase || 'packshot'}_${uniqueSuffix}.${ext}`;
   const publicRelativeUrl = `/uploads/products/${filename}`;
 
-  // Ensure directories exist in both current working directory public and ../public if available
-  const targetDirs = [
+  // Local files support development only; production requires durable object storage.
+  const targetDirs = process.env.NODE_ENV === 'production' ? [] : [
     path.resolve(process.cwd(), 'public/uploads/products'),
     path.resolve(process.cwd(), '../public/uploads/products'),
   ];

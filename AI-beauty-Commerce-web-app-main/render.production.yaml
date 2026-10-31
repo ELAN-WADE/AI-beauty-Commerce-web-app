@@ -1,0 +1,201 @@
+# Proposed production services; importing creates paid resources. Review before deployment.
+# Existing PostgreSQL is supplied via DATABASE_URL; no database is provisioned here.
+# rootDir below is relative to the actual Git repository root.
+services:
+  - type: web
+    name: desla-production
+    runtime: node
+    plan: starter
+    rootDir: AI-beauty-Commerce-web-app-main/backend
+    autoDeployTrigger: "off"
+    buildCommand: node scripts/render-build.mjs
+    preDeployCommand: npm run render:deploy
+    startCommand: node scripts/render-start.mjs
+    healthCheckPath: /api/ready
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: "production"
+      - key: RENDER_DEV
+        value: "false"
+      - key: DEV_DEPLOY
+        value: "false"
+      - key: SKIP_PROD_ENV_ASSERT
+        value: "false"
+      - key: SKIP_PREFLIGHT
+        value: "false"
+      - key: ALLOW_LOG_EMAIL
+        value: "false"
+      - key: PAYMENTS_ENABLED
+        value: "false"
+      - key: CLIENT_IP_HEADER
+        value: "x-forwarded-for"
+      - key: DATABASE_SSL_MODE
+        value: "require"
+      - key: DATABASE_URL
+        sync: false
+      - key: APP_URL
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: PUBLIC_SITE_URL
+        sync: false
+      - key: AUTH_EMAIL_ENCRYPTION_KEY
+        sync: false
+      - key: MFA_ENCRYPTION_KEY
+        sync: false
+      - key: ADMIN_ENTRY_PATH
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: S3_ACCESS_KEY
+        sync: false
+      - key: S3_SECRET_KEY
+        sync: false
+      - key: S3_REGION
+        sync: false
+      - key: SCANS_BUCKET
+        sync: false
+      - key: COMMUNITY_BUCKET
+        sync: false
+      - key: COMMUNITY_MEDIA_BASE_URL
+        sync: false
+      - key: ADMIN_BOOTSTRAP_EMAIL
+        sync: false
+      - key: ADMIN_BOOTSTRAP_PASSWORD
+        sync: false
+      - key: ADMIN_GOOGLE_EMAIL
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        sync: false
+
+  - type: worker
+    name: desla-auth-email
+    runtime: node
+    plan: starter
+    rootDir: AI-beauty-Commerce-web-app-main/backend
+    autoDeployTrigger: "off"
+    buildCommand: npm ci
+    startCommand: npm run worker:auth
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: "production"
+      - key: RENDER_DEV
+        value: "false"
+      - key: DEV_DEPLOY
+        value: "false"
+      - key: SKIP_PROD_ENV_ASSERT
+        value: "false"
+      - key: ALLOW_LOG_EMAIL
+        value: "false"
+      - key: PAYMENTS_ENABLED
+        value: "false"
+      - key: CLIENT_IP_HEADER
+        value: "x-forwarded-for"
+      - key: DATABASE_SSL_MODE
+        value: "require"
+      - key: DATABASE_URL
+        fromService:
+          type: web
+          name: desla-production
+          envVarKey: DATABASE_URL
+      - key: APP_URL
+        fromService:
+          type: web
+          name: desla-production
+          envVarKey: APP_URL
+      - key: FRONTEND_URL
+        fromService:
+          type: web
+          name: desla-production
+          envVarKey: FRONTEND_URL
+      - key: PUBLIC_SITE_URL
+        fromService:
+          type: web
+          name: desla-production
+          envVarKey: PUBLIC_SITE_URL
+      - key: AUTH_EMAIL_ENCRYPTION_KEY
+        fromService:
+          type: web
+          name: desla-production
+          envVarKey: AUTH_EMAIL_ENCRYPTION_KEY
+      - key: MFA_ENCRYPTION_KEY
+        fromService:
+          type: web
+          name: desla-production
+          envVarKey: MFA_ENCRYPTION_KEY
+      - key: ADMIN_ENTRY_PATH
+        fromService:
+          type: web
+          name: desla-production
+          envVarKey: ADMIN_ENTRY_PATH
+      - key: SMTP_HOST
+        fromService:
+          type: web
+          name: desla-production
+          envVarKey: SMTP_HOST
+      - key: SMTP_PORT
+        fromService:
+          type: web
+          name: desla-production
+          envVarKey: SMTP_PORT
+      - key: SMTP_FROM
+        fromService:
+          type: web
+          name: desla-production
+          envVarKey: SMTP_FROM
+      - key: SMTP_USER
+        fromService:
+          type: web
+          name: desla-production
+          envVarKey: SMTP_USER
+      - key: SMTP_PASS
+        fromService:
+          type: web
+          name: desla-production
+          envVarKey: SMTP_PASS
+      - key: S3_ACCESS_KEY
+        fromService:
+          type: web
+          name: desla-production
+          envVarKey: S3_ACCESS_KEY
+      - key: S3_SECRET_KEY
+        fromService:
+          type: web
+          name: desla-production
+          envVarKey: S3_SECRET_KEY
+      - key: S3_REGION
+        fromService:
+          type: web
+          name: desla-production
+          envVarKey: S3_REGION
+      - key: SCANS_BUCKET
+        fromService:
+          type: web
+          name: desla-production
+          envVarKey: SCANS_BUCKET
+      - key: COMMUNITY_BUCKET
+        fromService:
+          type: web
+          name: desla-production
+          envVarKey: COMMUNITY_BUCKET
+      - key: COMMUNITY_MEDIA_BASE_URL
+        fromService:
+          type: web
+          name: desla-production
+          envVarKey: COMMUNITY_MEDIA_BASE_URL

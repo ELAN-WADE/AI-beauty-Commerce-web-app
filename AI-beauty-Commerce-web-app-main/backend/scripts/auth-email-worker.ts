@@ -7,7 +7,9 @@ import { claimBatch, discardAuthEmail, markFailed, markSent, recoverStaleSending
 
 // A dedicated dispatcher: no order/payment/inventory tasks or marketing emails.
 const newOnly = process.argv.includes('--new-only');
-const createdAfter = newOnly ? new Date() : undefined;
+const cutoff = process.env.AUTH_EMAIL_CREATED_AFTER;
+const createdAfter = newOnly ? new Date(cutoff || Date.now()) : undefined;
+if (createdAfter && !Number.isFinite(createdAfter.getTime())) throw new Error('AUTH_EMAIL_CREATED_AFTER must be a valid timestamp.');
 const once = process.argv.includes('--once');
 const shutdown = new AbortController();
 process.on('SIGINT', () => shutdown.abort());

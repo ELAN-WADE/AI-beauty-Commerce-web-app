@@ -1,3 +1,4 @@
+import { AccessIllustration } from '../../components/auth/AccessIllustration';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { apiFetch, updateAccountProfile } from '../../lib/owned-api';
 import {
@@ -150,7 +151,7 @@ export const Screen17Account: React.FC = () => {
   const avatarSrc = authUser?.profile?.avatarUrl?.trim();
 
   if (authLoading && !authUser) return <main className="mx-auto max-w-md p-8"><p role="status">Loading your account…</p></main>;
-  if (!authUser) return <main className="mx-auto max-w-md space-y-4 p-8"><h1 className="font-heading text-2xl font-bold">Your account</h1><p>Sign in to view or complete your profile.</p><button onClick={() => navigateTo('login')} className="rounded-full bg-black px-5 py-3 text-white">Sign in</button><button onClick={() => navigateTo('signup')} className="ml-3 underline">Create account</button></main>;
+  if (!authUser) return <main className="mx-auto max-w-md space-y-4 px-8 py-12 text-center"><AccessIllustration /><h1 className="font-heading text-2xl font-bold">Your account</h1><p>Sign in to view or complete your profile.</p><button onClick={() => navigateTo('login')} className="rounded-full bg-black px-5 py-3 text-white">Sign in</button><button onClick={() => navigateTo('signup')} className="ml-3 underline">Create account</button></main>;
 
   return (
     <div className="min-h-screen bg-[#FAF9F6] text-[#0F0F10] pb-28 font-body selection:bg-[#D4AF37]/20 selection:text-[#997A2E]">

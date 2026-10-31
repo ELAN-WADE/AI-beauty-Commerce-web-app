@@ -56,3 +56,7 @@ backend/test-results-journey-signup/
 .performance-dev/
 backend/test-results-rendering/
 .journey-build/
+
+# Runtime uploads are user content, not source assets.
+/public/uploads/
+/backend/public/uploads/

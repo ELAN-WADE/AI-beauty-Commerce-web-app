@@ -36,4 +36,12 @@ For a saved local image, the 384-pixel WebP response was 15,744 bytes compared w
 
 Targeted tests cover detail request deduplication/TTL/failure recovery, invalidation races, publication cache tags and fallback behavior, background warming, auth-proxy boundaries, persisted catalogue/workspace publication and user journeys. Across the relevant batches, 81 distinct tests passed. Mobile search/scan regression checks also passed on both apps without hydration errors.
 
+The admin-only captured-response regression also passed CMS publication, community publication, Hide/Restore moderation and the sticky sidebar, with no browser errors.
+
+Both isolated production builds completed. Root build output confirms prebuilt product routes with one-minute ISR; backend public pages also use a one-minute effective revalidation interval. Separate TypeScript checks passed. A concurrent workspace change enabled skipping backend build lint/type gates, so the independent TypeScript result is recorded separately from build success.
+
+A temporary local production server returned warmed root catalogue HTML in 37–44 ms and a warmed product response in 20–22 ms, including an ISR HIT. The first catalogue request took approximately 4.5 seconds and used the existing development API process; these measurements are not an end-to-end production deployment benchmark. The temporary processes were stopped after the check.
+
+Backend production runtime acceptance is blocked by its existing environment validator: AUTH_EMAIL_ENCRYPTION_KEY is missing from the checked configuration. No encryption key was invented, replaced or bypassed. Build completion alone must not be taken as proof that production services/configuration are ready; runtime provider/security configuration needs to be supplied through deployment settings. This pass does not claim a successful backend production-content benchmark.
+
 Private posts, approval operations, credentials and real-time balances are deliberately not placed into a public shared cache. Multi-instance deployments require a shared Next cache/invalidation setup and a cross-instance sync transport; the existing in-process SSE broadcaster alone does not promise cross-instance delivery.

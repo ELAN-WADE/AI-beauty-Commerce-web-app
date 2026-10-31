@@ -9,7 +9,7 @@
   "scripts": {
     "assets:sync": "node scripts/sync-public-assets.mjs",
     "predev": "npm run assets:sync",
-    "dev": "next dev -p 3005 --hostname 127.0.0.1",
+    "dev": "node scripts/dev-with-email.mjs",
     "prebuild": "npm run assets:sync",
     "build": "next build",
     "start": "node scripts/start.mjs",
@@ -33,7 +33,8 @@
     "auth:check": "tsx scripts/check-auth-config.ts",
     "worker:auth": "tsx scripts/auth-email-worker.ts",
     "admin:bootstrap": "tsx scripts/bootstrap-dev-admin.ts",
-    "render:deploy": "npm run db:migrate && npm run db:seed && npm run db:seed:catalog && npm run db:seed:partners && npm run admin:bootstrap"
+    "render:deploy": "npm run db:migrate && npm run db:seed && npm run admin:bootstrap",
+    "worker:auth:local": "node scripts/dev-with-email.mjs --email-only"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1142.0",

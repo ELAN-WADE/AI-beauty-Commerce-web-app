@@ -8,16 +8,14 @@ const developmentPort = /^\d+$/.test(process.env.PORT || '') ? process.env.PORT 
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  typescript: {
-    ignoreBuildErrors: true,
-  },
   eslint: {
     ignoreDuringBuilds: true,
   },
   distDir: process.env.NEXT_DIST_DIR || (process.env.PLAYWRIGHT_NEXT_DIST === '1' ? '.next-browser' : development ? `.next-dev-${developmentPort}` : '.next'),
   devIndicators: false,
   poweredByHeader: false,
-  output: 'standalone',
+  // Native Render keeps node_modules; Docker still uses its standalone artifact.
+  output: process.env.RENDER === 'true' ? undefined : 'standalone',
   // Pin tracing to this app (the repo nests lockfiles; inference picks wrong roots).
   outputFileTracingRoot: backendDir,
   // Phase 2 low-bandwidth diet: dedupe barrel imports (lucide alone ships

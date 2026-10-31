@@ -145,6 +145,17 @@ async function createAccount() {
 async function outbox() { return db.select().from(schema.notificationOutbox); }
 
 describe('account emails through database outbox and delivery worker', () => {
+  it('keeps historical rows excluded and resumes queued new requests using the same cutoff', async () => {
+    const since = new Date(Date.now() + 86400000);
+    const [old] = await db.insert(schema.notificationOutbox).values({ channel: 'email', template: 'auth.verify-email', payload: {}, createdAt: new Date(since.getTime() - 1000), nextAttemptAt: new Date(0) }).returning();
+    const [fresh] = await db.insert(schema.notificationOutbox).values({ channel: 'email', template: 'auth.verify-email', payload: {}, createdAt: new Date(since.getTime() + 1000), nextAttemptAt: new Date(0) }).returning();
+    const filter = { templates: ACCOUNT_EMAIL_TEMPLATES, createdAfter: since };
+    expect((await claimBatch(db as never, 10, filter)).map(row => row.id)).toEqual([fresh.id]);
+    await db.update(schema.notificationOutbox).set({ nextAttemptAt: new Date(0) }).where(eq(schema.notificationOutbox.id, fresh.id));
+    expect(await recoverStaleSending(db as never, 10, filter)).toBe(1);
+    expect((await claimBatch(db as never, 10, filter)).map(row => row.id)).toEqual([fresh.id]);
+    expect((await db.select().from(schema.notificationOutbox).where(eq(schema.notificationOutbox.id, old.id)))[0].status).toBe('pending');
+  });
   it('recovers and claims account mail without touching commerce or marketing jobs', async () => {
     const account = await createAccount();
     const [auth] = await outbox();

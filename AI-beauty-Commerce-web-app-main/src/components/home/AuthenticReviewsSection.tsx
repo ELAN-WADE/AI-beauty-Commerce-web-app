@@ -16,7 +16,7 @@ export const AuthenticReviewsSection: React.FC = () => {
   }, [productKey, authUser?.id]);
   const testimonialItems: CardSpreadItem[] = publishedReviews;
   if (!authUser) return <section className="border-b bg-[#FAF9F6] px-6 py-8 text-center"><h2 className="font-heading text-xl font-bold">Customer reviews</h2><button onClick={() => requestCustomerSignIn()} className="mt-3 text-sm font-semibold underline">Sign in to read customer reviews</button></section>;
-  if (!testimonialItems.length) return null;
+  if (!testimonialItems.length) return <section className="border-b bg-[#FAF9F6] px-6 py-8 text-center"><h2 className="font-heading text-xl font-bold">Customer reviews</h2><p className="mt-3 text-sm text-[#6B7280]">Published customer experiences will appear here.</p></section>;
 
   return (
     <section

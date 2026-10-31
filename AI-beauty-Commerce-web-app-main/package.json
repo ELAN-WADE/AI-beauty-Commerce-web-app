@@ -10,10 +10,10 @@
     "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start",
-    "render:build": "cd backend && npm ci && npm run build",
-    "render:start": "cd backend && node scripts/start.mjs",
+    "render:build": "cd backend && node scripts/render-build.mjs",
+    "render:start": "cd backend && node scripts/render-start.mjs",
     "render:deploy": "cd backend && npm run render:deploy",
-    "render:migrate": "cd backend && npm run db:migrate && npm run db:seed && npm run db:seed:catalog && npm run db:seed:partners"
+    "render:migrate": "cd backend && npm run db:migrate && npm run db:seed"
   },
   "dependencies": {
     "@hugeicons/react": "^0.3.0",

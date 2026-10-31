@@ -10,6 +10,7 @@ interface EditorialHeroProps { onShopClick: () => void; onScanClick: () => void;
 export const EditorialHero: React.FC<EditorialHeroProps> = ({ onShopClick, onScanClick }) => {
   const { heroSlides, heroSettings: settings, navigateTo, setSelectedCategory } = useApp();
   const published = heroSlides.filter(slide => slide.isActive && slide.image).sort((a, b) => (a.displayOrder ?? a.order ?? 0) - (b.displayOrder ?? b.order ?? 0));
+  const flexImages = published.length ? published.map(slide => ({ src: slide.image, alt: slide.headline || settings.heading })) : [1, 2, 3].map(number => ({ src: '/hero_slide_' + number + '.jpg', alt: 'Desla brand editorial ' + number }));
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -60,8 +61,8 @@ export const EditorialHero: React.FC<EditorialHeroProps> = ({ onShopClick, onSca
         <button type="button" onClick={onScanClick} className="px-4 py-2 rounded-full bg-white border border-[#E5E7EB] text-[#0F0F10] text-xs font-semibold flex items-center gap-1.5"><FaceScanIcon size={13} className="text-[#8B6E27]" />AI Skin Diagnosis</button>
       </div>
     </div>
-    {published.length > 0 && <div className="w-full relative h-[300px] sm:h-[350px] lg:h-[390px] overflow-hidden select-none">
-      <FlexCarousel items={published.map(slide => ({ src: slide.image, alt: slide.headline || settings.heading }))} preset="ribbon" curl="twist" bend={0.34} reach={0.34} lensWidth={0.88} dispersion={0.35} cardHeight={0.64} gap={16} radius={14} fit="portrait" captions={false} autoplay={!reducedMotion && visible} interval={settings.intervalSeconds} squeeze={0.16} className="w-full h-full" />
+    {<div className="w-full relative h-[300px] sm:h-[350px] lg:h-[390px] overflow-hidden select-none">
+      <FlexCarousel items={flexImages} preset="ribbon" curl="twist" bend={0.34} reach={0.34} lensWidth={0.88} dispersion={0.35} cardHeight={0.64} gap={16} radius={14} fit="portrait" captions={false} autoplay={!reducedMotion && visible} interval={settings.intervalSeconds} squeeze={0.16} className="w-full h-full" />
     </div>}
   </section>;
 };

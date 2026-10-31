@@ -33,18 +33,7 @@ export const Screen14AISkinScan: React.FC = () => {
   return (
     <div className="min-h-screen bg-white text-[#0F0F10] pb-32 font-body selection:bg-[#D4AF37]/20 selection:text-[#997A2E]">
       <main className="max-w-xl mx-auto px-4 pt-4 sm:pt-6 space-y-6">
-        {/* Subtle Back Navigation */}
-        <div className="hidden lg:flex items-center justify-between">
-          <button
-            onClick={goBack}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#6B7280] hover:text-[#0F0F10] transition-colors cursor-pointer active-press py-1"
-            aria-label="Back"
-          >
-            <ChevronLeft size={16} />
-            <span>Back</span>
-          </button>
-        </div>
-        {available === false && <p role="status" className="hidden lg:block rounded-2xl border border-[#E5E7EB] bg-[#FAF9F6] p-4 text-xs text-[#6B7280]">Skin analysis is temporarily unavailable while the service is being connected. You can still explore the scan interface and catalogue.</p>}
+        {available === false && <p role="status" className="rounded-2xl border border-[#E5E7EB] bg-[#FAF9F6] p-4 text-xs text-[#6B7280]">Skin analysis is temporarily unavailable while the service is being connected. You can still explore the scan interface and catalogue.</p>}
         {error && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">{error}</p>}
         {/* ============================================================== */}
         {/* STEP 1: INTRO — "Discover What Your Skin Needs"               */}
