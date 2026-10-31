@@ -6,6 +6,7 @@ export const GET = api(async () => {
     ok: true,
     service: 'glowly-backend',
     version: '0.1.0',
+    revision: process.env.RENDER_GIT_COMMIT || undefined,
     time: new Date().toISOString(),
   });
 });

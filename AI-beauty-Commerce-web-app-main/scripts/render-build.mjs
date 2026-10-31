@@ -1,23 +1,12 @@
-import { execSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-console.log('[render-build] Starting Render build...');
-
-let targetDir = process.cwd();
-if (existsSync(path.join(targetDir, 'backend'))) {
-  targetDir = path.join(targetDir, 'backend');
-} else if (existsSync(path.join(targetDir, 'AI-beauty-Commerce-web-app-main', 'backend'))) {
-  targetDir = path.join(targetDir, 'AI-beauty-Commerce-web-app-main', 'backend');
+const root = fileURLToPath(new URL('../backend/', import.meta.url));
+if (!existsSync(root + 'scripts/render-build.mjs')) throw new Error('Backend Render build script was not found in this checkout.');
+console.log('[render-build] Delegating to the validated backend pipeline.');
+if (!process.argv.includes('--check-path')) {
+  const result = spawnSync(process.execPath, ['scripts/render-build.mjs'], { cwd: root, stdio: 'inherit', windowsHide: true });
+  if (result.error || result.status !== 0) process.exit(result.status || 1);
 }
-
-console.log(`[render-build] Resolved target directory: ${targetDir}`);
-
-console.log('[render-build] Installing dependencies...');
-execSync('npm install', { cwd: targetDir, stdio: 'inherit' });
-
-console.log('[render-build] Compiling production build...');
-execSync('npm run build', { cwd: targetDir, stdio: 'inherit' });
-
-console.log('[render-build] Build completed successfully!');
 

@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import { getDb } from './client';
+import { databaseDiagnostics } from '../lib/database-diagnostics';
 
 /** Apply pending ./drizzle migrations. Run order: generate → review → staging → prod. */
 async function main() {
@@ -11,6 +12,12 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error(err);
+  const diagnostic = databaseDiagnostics(err);
+  console.error(JSON.stringify({ event: 'database_migration_failed',
+    ...(diagnostic.databaseCode ? diagnostic : {
+      databaseCode: 'MIGRATION_FAILED',
+      databaseHint: 'Check the configured database and committed migration status.',
+    }),
+  }));
   process.exit(1);
 });

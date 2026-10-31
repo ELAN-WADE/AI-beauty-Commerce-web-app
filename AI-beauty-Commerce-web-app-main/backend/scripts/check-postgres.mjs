@@ -4,10 +4,12 @@ import { fileURLToPath } from 'node:url';
 import { readMigrationFiles } from 'drizzle-orm/migrator';
 import postgres from 'postgres';
 import { databaseDiagnostics } from '../src/lib/database-diagnostics.js';
+import { databaseSslOptions } from '../src/lib/database-options.js';
 
 async function main() {
   if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is required.');
-  const sql = postgres(process.env.DATABASE_URL, { max: 1, connect_timeout: 5 });
+  const sql = postgres(process.env.DATABASE_URL, { max: 1, connect_timeout: 5,
+    ...databaseSslOptions(process.env.DATABASE_URL, process.env.DATABASE_SSL_MODE) });
   try {
     const [server] = await sql`select current_database() as database, current_user as username,
       current_setting('server_version') as version`;
