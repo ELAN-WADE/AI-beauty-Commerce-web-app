@@ -4,6 +4,7 @@ import { captureError } from './observe';
 import { getDb } from '../db/client';
 import { checkSharedRateLimit, Limits } from './rate-limit';
 import { isAllowedApiOrigin } from './origins';
+import { databaseDiagnostics } from './database-diagnostics';
 
 export interface ErrorEnvelope {
   error: {
@@ -87,7 +88,7 @@ export function toErrorResponse(err: unknown, requestId: string): NextResponse {
     // Field names only — never values, never schema internals.
     return envelope(422, 'invalid_input', 'Validation failed.', requestId, false, err.issues.map((i) => ({ path: i.path.join('.'), code: i.code })));
   }
-      console.error(JSON.stringify({ level: 'error', requestId, err: String(err) }));
+      console.error(JSON.stringify({ level: 'error', requestId, err: err instanceof Error ? err.name : 'UnexpectedError', ...databaseDiagnostics(err) }));
       captureError(err, { requestId });
       return envelope(500, 'internal_error', 'Unable to complete the request.', requestId, true);
 }

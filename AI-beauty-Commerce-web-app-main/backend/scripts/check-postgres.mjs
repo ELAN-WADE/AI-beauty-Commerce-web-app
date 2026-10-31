@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { readMigrationFiles } from 'drizzle-orm/migrator';
 import postgres from 'postgres';
+import { databaseDiagnostics } from '../src/lib/database-diagnostics.js';
 
 async function main() {
   if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is required.');
@@ -37,4 +38,9 @@ async function main() {
   }
 }
 
-main().catch(error => { console.error(error.message ?? error); process.exitCode = 1; });
+main().catch(error => {
+  const diagnostic = databaseDiagnostics(error);
+  if (diagnostic.databaseCode) console.error(JSON.stringify(diagnostic));
+  else console.error(JSON.stringify({ databaseCode: 'SCHEMA_CHECK_FAILED', databaseHint: 'Confirm all committed migrations and RBAC seeds were applied.', ...(Number.isInteger(error.expected) ? { expected: error.expected } : {}), ...(Number.isInteger(error.actual) ? { actual: error.actual } : {}) }));
+  process.exitCode = 1;
+});
