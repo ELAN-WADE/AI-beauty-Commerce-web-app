@@ -31,20 +31,18 @@
     }
   },
   "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    ".journey-browser/types/**/*.ts",
-    ".next-browser/types/**/*.ts",
-    ".next-dev-3005/types/**/*.ts",
-    ".next-dev/types/**/*.ts",
-    ".next-portal-acceptance/types/**/*.ts",
-    ".next/types/**/*.ts",
-    ".portal-build/types/**/*.ts",
     "next-env.d.ts",
-    ".journey-build/types/**/*.ts"
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    ".next/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
-    ".local"
+    ".local",
+    "tests",
+    "scripts",
+    "vitest.config.ts",
+    "playwright.config.ts",
+    "drizzle.config.ts"
   ]
 }

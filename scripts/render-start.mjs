@@ -1,43 +1,13 @@
-import { spawn, execSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import path from 'node:path';
-
-let targetDir = process.cwd();
-if (existsSync(path.join(targetDir, 'AI-beauty-Commerce-web-app-main', 'backend'))) {
-  targetDir = path.join(targetDir, 'AI-beauty-Commerce-web-app-main', 'backend');
-} else if (existsSync(path.join(targetDir, 'backend'))) {
-  targetDir = path.join(targetDir, 'backend');
+import { fileURLToPath } from 'node:url';
+const candidates = [new URL('../AI-beauty-Commerce-web-app-main/backend/', import.meta.url), new URL('../backend/', import.meta.url)];
+const root = candidates.map(url => fileURLToPath(url)).find(dir => existsSync(dir + 'scripts/render-start.mjs'));
+if (!root) throw new Error('Backend Render startup script was not found in this checkout.');
+console.log('[render-start] Delegating to the validated backend startup checks.');
+if (!process.argv.includes('--check-path')) {
+  const child = spawn(process.execPath, ['scripts/render-start.mjs'], { cwd: root, stdio: 'inherit', windowsHide: true });
+  for (const signal of ['SIGTERM', 'SIGINT']) process.on(signal, () => child.kill(signal));
+  child.on('error', () => { process.exitCode = 1; });
+  child.on('exit', code => { process.exitCode = code ?? 1; });
 }
-
-console.log(`[render-start] Target directory: ${targetDir}`);
-
-// Self-healing: if dependencies or production build don't exist yet, build first
-const nodeModulesExists = existsSync(path.join(targetDir, 'node_modules'));
-const nextBuildExists = existsSync(path.join(targetDir, '.next'));
-
-if (!nodeModulesExists || !nextBuildExists) {
-  console.log('[render-start] No production build or dependencies found. Building now...');
-  execSync('npm install', { cwd: targetDir, stdio: 'inherit' });
-  execSync('npm run build', { cwd: targetDir, stdio: 'inherit' });
-}
-
-console.log(`[render-start] Launching server from: ${targetDir}`);
-
-const port = process.env.PORT || '3005';
-const child = spawn('node', ['scripts/start.mjs'], {
-  cwd: targetDir,
-  stdio: 'inherit',
-  env: { ...process.env, PORT: port },
-});
-
-process.on('SIGTERM', () => {
-  if (child && !child.killed) child.kill('SIGTERM');
-});
-process.on('SIGINT', () => {
-  if (child && !child.killed) child.kill('SIGINT');
-});
-
-child.on('exit', (code, signal) => {
-  if (code !== null) process.exit(code);
-  if (signal) process.kill(process.pid, signal);
-});
