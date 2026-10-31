@@ -18,11 +18,7 @@ export const NetworkSettings: React.FC<{ data: Overview; refresh: () => Promise<
       setMessage(notice);
       await refresh();
     } catch (e) {
-      if (!isOwnedApiConfigured) {
-        setMessage(notice + ' (Sandbox updated)');
-      } else {
-        setError(e instanceof Error ? e.message : 'Action failed.');
-      }
+      setError(e instanceof Error ? e.message : 'Action failed.');
     } finally {
       setBusy(false);
     }

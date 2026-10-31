@@ -20,11 +20,28 @@ export function getDb(): AppDb {
   assertProductionEnv();
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error('DATABASE_URL is not set (see backend/.env.example).');
+  const sslMode = process.env.DATABASE_SSL_MODE;
+  if (sslMode && !['disable', 'require', 'allow', 'prefer', 'verify-full'].includes(sslMode)) {
+    throw new Error('DATABASE_SSL_MODE must be disable, require, allow, prefer, or verify-full.');
+  }
+  const isRemoteManaged = /render\.com|neon\.tech|supabase\.co|aws\.com/i.test(url);
+  const effectiveSsl = sslMode
+    ? (sslMode === 'disable' ? false : (sslMode as 'require' | 'allow' | 'prefer' | 'verify-full'))
+    : (isRemoteManaged ? 'require' : undefined);
   pg = postgres(url, {
     max: 20, // per instance; PgBouncer in front when multi-instance (§9 proposal)
     idle_timeout: 20,
     connect_timeout: 10,
+    ...(effectiveSsl !== undefined ? { ssl: effectiveSsl } : {}),
   });
   db = drizzle(pg, { schema });
   return db;
+}
+
+/** Release pooled connections on worker shutdown and one-shot completion. */
+export async function closeDb(): Promise<void> {
+  const client = pg;
+  pg = null;
+  db = null;
+  if (client) await client.end({ timeout: 10 });
 }

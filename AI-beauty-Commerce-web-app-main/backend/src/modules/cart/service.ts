@@ -15,14 +15,18 @@ export async function resolveCart(db: Db, owner: CartOwner) {
   if (owner.userId) {
     const found = await db.select().from(carts).where(eq(carts.userId, owner.userId)).limit(1);
     if (found[0]) return found[0];
-    const [created] = await db.insert(carts).values({ userId: owner.userId }).returning();
-    return created;
+    const [created] = await db.insert(carts).values({ userId: owner.userId }).onConflictDoNothing().returning();
+    if (created) return created;
+    const [existing] = await db.select().from(carts).where(eq(carts.userId, owner.userId)).limit(1);
+    return existing;
   }
   if (!owner.sessionId) throw Errors.badRequest('Guest carts require X-Session-Id.');
   const found = await db.select().from(carts).where(eq(carts.sessionId, owner.sessionId)).limit(1);
   if (found[0]) return found[0];
-  const [created] = await db.insert(carts).values({ sessionId: owner.sessionId }).returning();
-  return created;
+  const [created] = await db.insert(carts).values({ sessionId: owner.sessionId }).onConflictDoNothing().returning();
+  if (created) return created;
+  const [existing] = await db.select().from(carts).where(eq(carts.sessionId, owner.sessionId)).limit(1);
+  return existing;
 }
 
 export interface CartLine {

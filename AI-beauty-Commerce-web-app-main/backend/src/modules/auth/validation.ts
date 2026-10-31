@@ -5,7 +5,7 @@ const password = z.string().min(8, 'Password must be at least 8 characters.').ma
 const email = z.string().trim().toLowerCase().email('Enter a valid email address.').max(254);
 
 export const registerSchema = z
-  .object({ email, password })
+  .object({ email, password, intent: z.enum(['CUSTOMER', 'CREATOR', 'DISTRIBUTOR']).default('CUSTOMER') })
   .strict(); // mass-assignment closed: role/isAdmin etc. rejected (§8 API3)
 
 export const loginSchema = z.object({ email, password: z.string().min(1).max(128) }).strict();
@@ -17,6 +17,9 @@ export const requestPasswordResetSchema = z.object({ email }).strict();
 export const resetPasswordSchema = z
   .object({ token: z.string().min(16).max(128), newPassword: password })
   .strict();
+
+export const mfaCodeSchema = z.object({ code: z.string().trim().regex(/^(?:\d{6}|[A-Z0-9]{8}-[A-Z0-9]{8})$/i) }).strict();
+export const mfaSetupSchema = z.object({ password: z.string().min(1).max(128) }).strict();
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;

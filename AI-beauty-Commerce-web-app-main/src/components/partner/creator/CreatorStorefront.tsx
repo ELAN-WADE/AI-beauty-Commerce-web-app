@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ShoppingBag,
   Share2,
   Copy,
   ExternalLink,
   Edit2,
-  Sparkles,
   Check,
   Eye,
   Instagram,
@@ -14,44 +13,109 @@ import {
   TrendingUp,
   Sliders,
   CheckCircle2,
-  Save
+  Save,
+  X,
+  Package
 } from 'lucide-react';
+import { fetchPartnerDashboard, fetchPartnerWorkspace, writePartnerWorkspace } from '../../../lib/owned-api';
 import { useApp } from '../../../context/AppContext';
 
 export const CreatorStorefront: React.FC = () => {
-  const { products, addToCart } = useApp();
+  const {
+    isLiveBackend,
+    products,
+    addToCart,
+    creatorStorefrontProducts: previewProducts,
+    toggleCreatorStorefrontProduct: previewToggle
+  } = useApp();
+
+  const [loading, setLoading] = useState(isLiveBackend);
+  const [saving, setSaving] = useState(false);
+  const [record, setRecord] = useState<any>(null);
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [discount, setDiscount] = useState(0);
+  const creatorStorefrontProducts = isLiveBackend ? selectedProducts : previewProducts;
+  const toggleCreatorStorefrontProduct = (id: string) => isLiveBackend ? setSelectedProducts(prev => prev.includes(id) ? prev.filter(value => value !== id) : [...prev, id]) : previewToggle(id);
   const [viewMode, setViewMode] = useState<'preview' | 'editor'>('preview');
-  const [creatorName, setCreatorName] = useState('Amara Nnadi');
-  const [creatorHandle, setCreatorHandle] = useState('@amara_glows');
-  const [creatorHeadline, setCreatorHeadline] = useState('Clinical Beauty Specialist • Melanin Barrier Health');
+  const [creatorName, setCreatorName] = useState('');
+  const [creatorHandle, setCreatorHandle] = useState('');
+  const [creatorHeadline, setCreatorHeadline] = useState('');
   const [creatorBio, setCreatorBio] = useState(
-    'Everyday clinical glow without the complicated routine. Focused on evidence-based melanin barrier repair, antioxidant protection, and zero-white-cast formulas.'
+    ''
   );
-  const [promoCode, setPromoCode] = useState('AMARA10');
+  const [promoCode, setPromoCode] = useState('');
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
-  const [savedSuccess, setSavedSuccess] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
 
   const handleCopyCode = () => {
     navigator.clipboard?.writeText(promoCode);
     setCopiedCode(true);
+    showToast(`Promo code ${promoCode} copied to clipboard.`);
     setTimeout(() => setCopiedCode(false), 2000);
   };
 
+  const storefrontLink = typeof window === 'undefined' ? '' : `${window.location.origin}/?screen=creator-storefront&ref=${encodeURIComponent(promoCode)}`;
   const handleCopyLink = () => {
-    navigator.clipboard?.writeText(`https://delsla.com/${creatorHandle}`);
-    setCopiedLink(true);
+    navigator.clipboard?.writeText(storefrontLink);
+    setCopiedLink(true); showToast('Creator storefront link copied.');
     setTimeout(() => setCopiedLink(false), 2000);
   };
-
-  const handleSaveEditor = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 2200);
+  useEffect(() => {
+    if (!isLiveBackend) return;
+    let cancelled = false;
+    Promise.all([fetchPartnerDashboard('CREATOR'), fetchPartnerWorkspace('CREATOR')]).then(([dashboard, workspace]) => {
+      if (cancelled) return;
+      setCreatorName(dashboard.profile.name); setCreatorHandle(dashboard.profile.handle); setPromoCode(dashboard.profile.promoCode); setDiscount(dashboard.profile.discountPercent);
+      const collection = workspace.records.find((r: any) => r.kind === 'STOREFRONT');
+      setRecord(collection || null); setSelectedProducts(collection?.data?.productIds || []);
+      setCreatorHeadline(collection?.title || `Natural picks by ${dashboard.profile.name}`); setCreatorBio(collection?.body || '');
+    }).catch(error => { if (!cancelled) showToast(error.message); }).finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [isLiveBackend]);
+  const handleSaveEditor = async (e: React.FormEvent) => {
+    e.preventDefault(); if (saving) return;
+    if (!isLiveBackend) { showToast('Storefront settings saved in preview.'); setViewMode('preview'); return; }
+    setSaving(true);
+    try {
+      const editable = record && ['DRAFT', 'REJECTED'].includes(record.status);
+      const { result } = await writePartnerWorkspace({ action: 'save', kind: 'CREATOR', type: 'STOREFRONT', ...(editable ? { id: record.id, version: record.version } : {}), status: 'SUBMITTED', title: creatorHeadline, body: creatorBio, url: '', productIds: selectedProducts });
+      setRecord(result); showToast('Collection submitted for admin review. It becomes public after approval.'); setViewMode('preview');
+    } catch (error) { showToast(error instanceof Error ? error.message : 'Could not submit collection.'); }
+    finally { setSaving(false); }
   };
 
+  // Curated products according to creatorStorefrontProducts
+  const displayedProducts = products.filter((p) =>
+    creatorStorefrontProducts.includes(p.id)
+  );
+
+  const finalProducts = isLiveBackend ? displayedProducts : displayedProducts.length > 0 ? displayedProducts : products.slice(0, 4);
+
+  if (loading) return <p role="status">Loading your creator collection…</p>;
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-200 pb-16">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed top-6 right-6 z-50 p-4 rounded-2xl bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/30 flex items-center justify-between shadow-2xl animate-in slide-in-from-top duration-300 max-w-md">
+          <div className="flex items-center gap-2.5 text-xs font-mono">
+            <CheckCircle2 size={16} className="shrink-0" />
+            <span>{toastMessage}</span>
+          </div>
+          <button
+            onClick={() => setToastMessage(null)}
+            className="text-white/60 hover:text-white cursor-pointer ml-3"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
       {/* Editorial Header with View Switcher */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E5E7EB]">
         <div>
@@ -112,15 +176,9 @@ export const CreatorStorefront: React.FC = () => {
                 Customization Panel
               </span>
               <h2 className="font-heading font-bold text-lg text-[#0F0F10]">
-                Configure Your Public Profile
+                Configure Your Public Profile &amp; Formulations
               </h2>
             </div>
-            {savedSuccess && (
-              <span className="text-xs font-mono font-bold text-[#0F0F10] bg-[#FAF9F6] px-3 py-1 rounded-full border border-[#E5E7EB] flex items-center gap-1">
-                <Check size={12} />
-                <span>Saved &amp; Published Live</span>
-              </span>
-            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -128,7 +186,7 @@ export const CreatorStorefront: React.FC = () => {
               <label className="text-xs font-bold text-[#0F0F10] block mb-1.5">Display Name</label>
               <input
                 type="text"
-                value={creatorName}
+                readOnly={isLiveBackend} value={creatorName}
                 onChange={(e) => setCreatorName(e.target.value)}
                 className="w-full px-4 py-2.5 rounded-xl border border-[#E5E7EB] text-xs bg-[#FAF9F6] font-medium"
               />
@@ -137,7 +195,7 @@ export const CreatorStorefront: React.FC = () => {
               <label className="text-xs font-bold text-[#0F0F10] block mb-1.5">Creator Handle</label>
               <input
                 type="text"
-                value={creatorHandle}
+                readOnly={isLiveBackend} value={creatorHandle}
                 onChange={(e) => setCreatorHandle(e.target.value)}
                 className="w-full px-4 py-2.5 rounded-xl border border-[#E5E7EB] text-xs bg-[#FAF9F6] font-mono font-bold"
               />
@@ -169,27 +227,75 @@ export const CreatorStorefront: React.FC = () => {
               <label className="text-xs font-bold text-[#0F0F10] block mb-1.5">Affiliate Promo Code</label>
               <input
                 type="text"
-                value={promoCode}
+                readOnly={isLiveBackend} value={promoCode}
                 onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
                 className="w-full px-4 py-2.5 rounded-xl border border-[#E5E7EB] text-xs bg-[#FAF9F6] font-mono font-bold text-[#997A2E]"
               />
-              <span className="text-[10px] text-[#6B7280] mt-1 block">Grants your audience 10% off and attributes 12% commission to you.</span>
+              <span className="text-[10px] text-[#6B7280] mt-1 block">Your assigned referral terms are managed by the administrator.</span>
             </div>
 
             <div className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] text-xs space-y-1">
               <span className="text-[10px] font-mono text-[#9CA3AF] uppercase block font-bold">Live Conversion Pulse</span>
-              <p className="font-extrabold text-base text-[#0F0F10]">148 Attributed Orders</p>
-              <p className="text-[11px] font-mono text-[#0F0F10] font-bold">₦84,620 Earned Commission</p>
+              <p className="font-extrabold text-base text-[#0F0F10]">{isLiveBackend ? 'See earnings ledger' : '148 Attributed Orders'}</p>
+              <p className="text-[11px] font-mono text-[#0F0F10] font-bold">{'Collection status: ' + (record?.status || 'Not submitted')}</p>
+            </div>
+          </div>
+
+          {/* Product Curation Selection Checklist */}
+          <div className="space-y-3 pt-4 border-t border-[#E5E7EB]">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xs font-bold text-[#0F0F10]">
+                  Curate Displayed Formulations
+                </h3>
+                <p className="text-[11px] text-[#6B7280]">
+                  Select the products featured in your "Verified Natural Picks" shelf
+                </p>
+              </div>
+              <span className="text-[11px] font-mono text-[#997A2E] font-bold">
+                {creatorStorefrontProducts.length} Selected
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {products.map((p) => {
+                const isSelected = creatorStorefrontProducts.includes(p.id);
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => toggleCreatorStorefrontProduct(p.id)}
+                    className={`p-3 rounded-2xl border text-left flex items-center justify-between transition-all cursor-pointer ${
+                      isSelected
+                        ? 'border-[#0F0F10] bg-[#FAF9F6]'
+                        : 'border-[#E5E7EB] bg-white opacity-60 hover:opacity-100'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <img src={p.image} alt={p.name} className="w-9 h-9 rounded-lg object-cover shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-[#0F0F10] truncate">{p.name}</p>
+                        <p className="text-[10px] font-mono text-[#6B7280]">₦{p.price.toLocaleString('en-NG')}</p>
+                      </div>
+                    </div>
+                    <span className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold ${
+                      isSelected ? 'bg-[#0F0F10] text-[#D4AF37]' : 'border border-[#E5E7EB] text-transparent'
+                    }`}>
+                      ✓
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           <div className="flex justify-end pt-4 border-t border-[#E5E7EB]">
             <button
-              type="submit"
+              type="submit" disabled={saving || (isLiveBackend && record?.status === 'SUBMITTED')}
               className="px-6 py-2.5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-[0.98] transition-all"
             >
               <Save size={14} className="text-[#D4AF37]" />
-              <span>Save &amp; Update Storefront</span>
+              <span>{saving ? 'Submitting…' : isLiveBackend ? record?.status === 'SUBMITTED' ? 'Awaiting admin review' : 'Submit collection for review' : 'Save & Update Storefront'}</span>
             </button>
           </div>
         </form>
@@ -204,7 +310,7 @@ export const CreatorStorefront: React.FC = () => {
               {/* Creator Portrait */}
               <div className="relative shrink-0">
                 <img
-                  src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80"
+                  src="/desla_logo_dark.svg"
                   alt={creatorName}
                   className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl object-cover shadow-sm ring-4 ring-[#FAF9F6]"
                 />
@@ -220,128 +326,31 @@ export const CreatorStorefront: React.FC = () => {
                     <h2 className="font-heading font-extrabold text-2xl sm:text-3xl text-[#0F0F10] tracking-tight">
                       {creatorName}
                     </h2>
-                    <span className="text-xs font-mono font-bold text-[#997A2E] block mt-0.5">
-                      {creatorHandle} • {creatorHeadline}
+                    <span className="text-xs font-mono font-bold text-[#997A2E] tracking-wide">
+                      {creatorHandle}
                     </span>
                   </div>
 
-                  {/* Promo Code Pill with Copy Action */}
-                  <div
+                  {/* Promo Badge Button */}
+                  <button
                     onClick={handleCopyCode}
-                    className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#FAF9F6] border border-[#E5E7EB] text-xs font-mono self-center sm:self-start cursor-pointer hover:bg-[#F3F4F6] transition-colors"
-                    title="Click to copy promo code"
+                    className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#FAF9F6] border border-[#D4AF37]/50 text-xs font-mono font-bold text-[#0F0F10] hover:bg-[#FBF5E8] transition-colors cursor-pointer self-center sm:self-auto shadow-2xs"
                   >
-                    <span className="text-[#6B7280]">Promo:</span>
-                    <strong className="text-[#0F0F10]">{promoCode}</strong>
-                    <span className="text-[10px] font-mono text-[#0F0F10] font-bold bg-white px-1.5 py-0.5 rounded-full border border-[#E5E7EB]">
-                      10% OFF
+                    <span>Use Code: <strong>{promoCode}</strong></span>
+                    <span className="text-[10px] text-[#997A2E] bg-white px-2 py-0.5 rounded-full border border-[#D4AF37]/30">
+                      {copiedCode ? 'Copied ✓' : '10% OFF'}
                     </span>
-                    <span className="text-[#0F0F10] text-[10px] font-mono font-bold">
-                      {copiedCode ? 'Copied ✓' : 'Copy'}
-                    </span>
-                  </div>
+                  </button>
                 </div>
 
-                <p className="text-xs sm:text-sm text-[#4B5563] leading-relaxed max-w-xl pt-1">
+                <p className="text-xs sm:text-sm font-semibold text-[#0F0F10]">
+                  {creatorHeadline}
+                </p>
+                <p className="text-xs text-[#6B7280] leading-relaxed max-w-2xl">
                   {creatorBio}
                 </p>
-
-                {/* Minimalist Credential Badges */}
-                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 pt-3 text-[11px] font-mono text-[#6B7280]">
-                  <span><strong>148k</strong> Collective Reach</span>
-                  <span>•</span>
-                  <span><strong>4.8k</strong> Verified Formulations Dispatched</span>
-                  <span>•</span>
-                  <span className="text-[#0F0F10] font-bold">● Certified Partner Hub</span>
-                </div>
               </div>
             </div>
-
-            {/* Featured Regimens Shelf */}
-            <div className="space-y-4 pt-2">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
-                    Curated Regimens
-                  </span>
-                  <h3 className="font-heading font-bold text-lg text-[#0F0F10]">
-                    Amara's Signature Regimen Sets
-                  </h3>
-                </div>
-                <span className="text-xs font-mono text-[#997A2E] font-bold">
-                  Auto 10% Off via {promoCode}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Regimen 1 */}
-                <div className="p-5 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] hover:border-[#D4AF37]/50 transition-all space-y-3 flex flex-col justify-between">
-                  <div className="space-y-1.5">
-                    <span className="text-[9.5px] font-mono font-bold uppercase tracking-wider text-[#997A2E] bg-white px-2 py-0.5 rounded-full border border-[#D4AF37]/30 inline-block">
-                      MORNING SHIELD
-                    </span>
-                    <h4 className="font-heading font-bold text-base text-[#0F0F10]">
-                      Morning Glass Skin Barrier Regimen
-                    </h4>
-                    <p className="text-xs text-[#6B7280] leading-relaxed">
-                      Cleanse with Gentle Amino Wash, press 3 drops of Radiant Glow Oil, seal with Sun Defense SPF50+.
-                    </p>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-3 border-t border-[#E5E7EB]/70 text-xs">
-                    <div>
-                      <span className="font-mono text-[10px] text-[#9CA3AF] block line-through">₦42,500</span>
-                      <span className="font-mono font-extrabold text-[#0F0F10] text-sm">₦38,250 Bundle</span>
-                    </div>
-                    <button
-                      onClick={() => {
-                        addToCart(products[0]);
-                        addToCart(products[1]);
-                        alert(`Morning Glass Skin Regimen added to your shopping bag with 10% promo code ${promoCode}!`);
-                      }}
-                      className="px-4 py-2 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-bold cursor-pointer transition-all active:scale-95 shadow-2xs flex items-center gap-1.5"
-                    >
-                      <ShoppingBag size={13} className="text-[#D4AF37]" />
-                      <span>Add Regimen</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Regimen 2 */}
-                <div className="p-5 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] hover:border-[#D4AF37]/50 transition-all space-y-3 flex flex-col justify-between">
-                  <div className="space-y-1.5">
-                    <span className="text-[9.5px] font-mono font-bold uppercase tracking-wider text-[#997A2E] bg-white px-2 py-0.5 rounded-full border border-[#D4AF37]/30 inline-block">
-                      NIGHT RECOVERY
-                    </span>
-                    <h4 className="font-heading font-bold text-base text-[#0F0F10]">
-                      Clinical Barrier Recovery at Night
-                    </h4>
-                    <p className="text-xs text-[#6B7280] leading-relaxed">
-                      Double hydration layer designed specifically to soothe hyper-pigmentation and moisture loss during sleep.
-                    </p>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-3 border-t border-[#E5E7EB]/70 text-xs">
-                    <div>
-                      <span className="font-mono text-[10px] text-[#9CA3AF] block line-through">₦46,000</span>
-                      <span className="font-mono font-extrabold text-[#0F0F10] text-sm">₦41,400 Bundle</span>
-                    </div>
-                    <button
-                      onClick={() => {
-                        addToCart(products[1]);
-                        addToCart(products[2] || products[0]);
-                        alert(`Night Barrier Regimen added to your shopping bag with 10% promo code ${promoCode}!`);
-                      }}
-                      className="px-4 py-2 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-bold cursor-pointer transition-all active:scale-95 shadow-2xs flex items-center gap-1.5"
-                    >
-                      <ShoppingBag size={13} className="text-[#D4AF37]" />
-                      <span>Add Regimen</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
             {/* Curated Standalone Formulations Grid */}
             <div className="space-y-4 pt-4 border-t border-[#E5E7EB]/70">
               <div className="flex items-center justify-between">
@@ -350,7 +359,7 @@ export const CreatorStorefront: React.FC = () => {
                     Daily Holy-Grails
                   </span>
                   <h3 className="font-heading font-bold text-lg text-[#0F0F10]">
-                    Amara's Verified Clinical Picks
+                    {creatorName}'s Natural Picks ({finalProducts.length})
                   </h3>
                 </div>
                 <span className="text-xs text-[#6B7280]">
@@ -359,7 +368,7 @@ export const CreatorStorefront: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-                {products.slice(0, 4).map((p) => (
+                {finalProducts.map((p) => (
                   <div
                     key={p.id}
                     className="p-3.5 rounded-2xl bg-white border border-[#E5E7EB] hover:border-[#D4AF37]/60 shadow-[0_4px_16px_rgb(0,0,0,0.03)] hover:shadow-md transition-all text-center flex flex-col justify-between group"
@@ -384,7 +393,7 @@ export const CreatorStorefront: React.FC = () => {
                     <button
                       onClick={() => {
                         addToCart(p);
-                        alert(`Added ${p.name} to shopping bag with promo ${promoCode}!`);
+                        showToast(`Added ${p.name} to shopping bag with promo ${promoCode}!`);
                       }}
                       className="mt-3 w-full py-1.5 rounded-full bg-[#FAF9F6] group-hover:bg-[#0F0F10] text-[#0F0F10] group-hover:text-white text-xs font-bold transition-colors cursor-pointer active:scale-95 flex items-center justify-center gap-1"
                     >

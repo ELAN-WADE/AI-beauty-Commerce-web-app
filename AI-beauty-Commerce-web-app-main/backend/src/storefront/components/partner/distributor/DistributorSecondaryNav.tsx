@@ -81,7 +81,7 @@ export const DistributorSecondaryNav: React.FC<DistributorSecondaryNavProps> = (
               title="Notifications"
             >
               <Bell size={14} className="text-[#4B5563]" />
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[#D4AF37]" />
+              {(badgeCounts.notifications ?? 0) > 0 && <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[#D4AF37]" />}
             </button>
           )}
         </div>
@@ -135,17 +135,11 @@ export const DistributorSecondaryNav: React.FC<DistributorSecondaryNavProps> = (
       {/* 3. Floating Bottom-Left "Creator Studio" Switch Button */}
       <div className="hidden lg:block fixed left-4 bottom-7 z-40">
         <button
-          onClick={() => {
-            if (onSwitchWorkspace) {
-              onSwitchWorkspace('CREATOR');
-            } else {
-              onRouteChange('settings');
-            }
-          }}
+          onClick={() => onRouteChange('support')}
           className="px-4 py-2 rounded-full bg-[#0F0F10] hover:bg-black text-white text-[11px] font-bold shadow-md cursor-pointer tracking-tight transition-all active:scale-95"
-          title="Switch to Creator Studio"
+          title="Open Hub Support"
         >
-          Creator Studio
+          Hub Support
         </button>
       </div>
     </div>

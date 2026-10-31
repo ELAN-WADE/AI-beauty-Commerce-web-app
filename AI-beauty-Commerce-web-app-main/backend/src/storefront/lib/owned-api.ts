@@ -1,24 +1,19 @@
-// Owned-backend client (Glowly S2+). Strangler pattern: when VITE_API_URL is
+// Owned-backend client (Glowly S2+). Strangler pattern: when NEXT_PUBLIC_API_URL is
 // set, the storefront talks to the owned Next.js API; otherwise it keeps
 // running on local mocks. Reads never throw (null = use fallback); writes
 // throw ApiError so callers can show messages.
-import type { CartItem, Order, Product, AdminOrder, AdminTransferClaim, AdminAuditLog, AdminInventoryItem } from '../types';
-import { publicEnv, isProd } from './env';
-// Phase 5: engagement/community mirrors run as Server Actions first
-// (single-attempt, silent — identical UX to the old swallowed REST failures).
-import { submitReviewAction, toggleWishlistAction, redeemVoucherAction, saveSkinProfileAction } from '@/app/actions/engagement';
-import { createPostAction, likePostAction, sendChatAction } from '@/app/actions/community';
+import type { CartItem, Order, Product, Category, AdminOrder, AdminTransferClaim, AdminAuditLog, AdminInventoryItem } from '../types';
 
-// Next.js (NEXT_PUBLIC_API_URL) + Vite (VITE_API_URL) compatible. Relative '/api'
-// keeps same-origin cookies in the unified Next.js app; absolute URL still works
-// for split Vite-dev against :3001.
-const RAW_BASE =
-  publicEnv('NEXT_PUBLIC_API_URL', 'VITE_API_URL')?.replace(/\/+$/, '') ?? '';
-// '' = same-origin (unified Next.js app). Absolute URL = split Vite-dev vs :3001.
-export const BASE: string = RAW_BASE;
+import { getEnv } from './env';
+import { readAuthIntent } from './auth-flow';
+import { isPartnerDesignPreview } from './partner-preview';
+import { communityPostFromApi, type CommunityPostDto } from './community-data';
+const BASE = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
 
 export const isOwnedApiConfigured = true;
-if (isProd() && !BASE && typeof window !== 'undefined' && process.env.NEXT_PUBLIC_STRICT_API === '1') throw new Error('Production storefront requires NEXT_PUBLIC_API_URL.');
+if (process.env.NODE_ENV === 'production' && !BASE && (getEnv('VITE_STRICT_API') === 'true' || getEnv('VITE_STRICT_API') === '1')) {
+  throw new Error('Production storefront requires NEXT_PUBLIC_API_URL.');
+}
 
 export class ApiError extends Error {
   constructor(
@@ -30,27 +25,23 @@ export class ApiError extends Error {
   }
 }
 
-async function apiFetch<T>(path: string, init: RequestInit = {}, sessionId?: string): Promise<T> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json', ...(init.headers as Record<string, string> | undefined) };
+export async function apiFetch<T>(path: string, init: RequestInit = {}, sessionId?: string): Promise<T> {
+  if (isPartnerDesignPreview()) throw new ApiError(403, 'design_preview', 'Design preview only. Exit preview and sign in to perform live actions.');
+  if (!BASE) throw new ApiError(503, 'api_not_configured', 'Configure NEXT_PUBLIC_API_URL to connect the live backend.');
+  const isFormData = typeof FormData !== 'undefined' && init.body instanceof FormData;
+  const headers: Record<string, string> = { ...(isFormData ? {} : { 'Content-Type': 'application/json' }), ...(init.headers as Record<string, string> | undefined) };
   if (sessionId) headers['X-Session-Id'] = sessionId;
-  const res = await fetch(`${BASE}${path}`, { ...init, headers, credentials: 'include' });
+  let res: Response;
+  try { res = await fetch(`${BASE}${path}`, { cache: 'no-store', ...init, headers, credentials: 'include', signal: init.signal ?? AbortSignal.timeout(process.env.NODE_ENV === 'development' ? 120000 : 25000) }); }
+  catch { throw new ApiError(0, 'network_error', 'Cannot reach the service. Check your connection and try again.'); }
   const body = (await res.json().catch(() => null)) as { error?: { code?: string; message?: string } } | T;
   if (!res.ok) {
+    if (res.status === 401 && path !== '/api/auth/login' && typeof window !== 'undefined') window.dispatchEvent(new Event('desla:session-expired'));
     const err = (body as { error?: { code?: string; message?: string } })?.error;
     throw new ApiError(res.status, err?.code ?? 'request_failed', err?.message ?? `Request failed (${res.status}).`);
   }
+  if (!body) throw new ApiError(502, 'invalid_response', 'The service returned an invalid response. Please try again.');
   return body as T;
-}
-
-function buildQueryString(params: Record<string, string | number | undefined | null>): string {
-  const searchParams = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== null && value !== '') {
-      searchParams.set(key, String(value));
-    }
-  }
-  const q = searchParams.toString();
-  return q ? `?${q}` : '';
 }
 
 /** Guest session id (localStorage). Server carts key off this until login. */
@@ -70,8 +61,62 @@ export function guestOrderToken(id: string): string | null {
   } catch { return null; }
 }
 
-export async function resendVerificationEmail(email: string): Promise<void> {
-  await apiFetch('/api/auth/resend-verification', { method: 'POST', body: JSON.stringify({ email }) });
+
+/**
+ * Live storefront synchronization via Server-Sent Events (SSE).
+ * When an administrator creates, modifies, or toggles inventory/products,
+ * the backend broadcasts an invalidation signal. This function listens and triggers
+ * an automatic refresh callback so open storefront browser tabs stay synchronized
+ * without requiring a manual page refresh.
+ */
+export function subscribeStorefrontSyncApi(onSync: (slug?: string | null) => void): () => void {
+  if (typeof window === 'undefined' || typeof EventSource === 'undefined') {
+    return () => {};
+  }
+  let es: EventSource | null = null;
+  let reconnectTimer: any = null;
+  let active = true;
+
+  const connect = () => {
+    if (!active) return;
+    try {
+      es = new EventSource(`${BASE}/api/storefront/sync`);
+      es.addEventListener('sync', (e: MessageEvent) => {
+        try {
+          const data = JSON.parse(e.data);
+          onSync(data?.slug);
+        } catch {
+          onSync();
+        }
+      });
+      es.onerror = () => {
+        if (es) {
+          es.close();
+          es = null;
+        }
+        if (active) {
+          reconnectTimer = setTimeout(connect, 5000);
+        }
+      };
+    } catch {
+      // EventSource unavailable
+    }
+  };
+
+  connect();
+
+  return () => {
+    active = false;
+    if (reconnectTimer) clearTimeout(reconnectTimer);
+    if (es) {
+      es.close();
+      es = null;
+    }
+  };
+}
+
+export async function resendVerificationEmail(email: string): Promise<{ ok: boolean }> {
+  return apiFetch('/api/auth/resend-verification', { method: 'POST', body: JSON.stringify({ email }) });
 }
 function guestHeaders(id: string, token?: string): Record<string, string> {
   const value = token ?? guestOrderToken(id);
@@ -109,6 +154,7 @@ interface OwnedVariant {
 }
 
 interface OwnedProduct {
+  presentation?: Partial<Product>;
   slug: string;
   name: string;
   brand: { name: string; slug: string };
@@ -129,7 +175,7 @@ interface OwnedProduct {
   variants: OwnedVariant[];
 }
 
-function mapOwned(o: OwnedProduct): Product {
+export function mapOwned(o: OwnedProduct): Product {
   const gallery = o.images.map((i) => i.url);
   return {
     id: o.slug,
@@ -139,13 +185,14 @@ function mapOwned(o: OwnedProduct): Product {
     tagline: o.tagline,
     rating: o.rating,
     reviewsCount: o.reviewsCount,
-    price: Math.round(o.minPriceNgn),
-    originalPrice: undefined,
+    price: o.minPriceNgn,
+    originalPrice: o.variants.find(variant => variant.priceKobo === o.minPriceKobo && variant.compareAtKobo && variant.compareAtKobo > variant.priceKobo)?.compareAtKobo! / 100 || undefined,
     discountPercentage: undefined,
     image: gallery[0] ?? '',
     galleryImages: gallery,
     category: o.category.slug,
     subCategory: o.subCategory,
+    variants: o.variants.map(variant => ({ id: variant.id, sku: variant.sku, sizeLabel: variant.sizeLabel, priceNgn: variant.priceNgn, compareAtNgn: variant.compareAtKobo == null ? null : variant.compareAtKobo / 100, stock: variant.available, isActive: true })),
     sizes: o.variants.map((v) => v.sizeLabel),
     selectedSize: o.variants[0]?.sizeLabel,
     inStock: o.totalAvailable > 0,
@@ -160,19 +207,26 @@ function mapOwned(o: OwnedProduct): Product {
     keyIngredients: [],
     howToUse: { routine: '', step: '', instructions: '', precautions: '' },
     whoItsFor: { skinTypes: [], concerns: [] },
-    brandInfo: { origin: 'Lagos, Nigeria', crueltyFree: true, guarantee: '' },
+    brandInfo: { origin: '', crueltyFree: false, guarantee: '' },
+    ...o.presentation,
   };
 }
 
-export async function fetchCatalogFromOwnedApi(limit = 100): Promise<Product[] | null> {
-  if (BASE === undefined) return null;
+export async function fetchCatalogFromOwnedApi(limit = 100, fresh = false): Promise<Product[] | null> {
+  if (isPartnerDesignPreview()) return null;
+  if (!BASE) return null;
   try {
     const items: Product[] = [];
     let cursor: string | null = null;
+    const revision = fresh ? String(Date.now()) : null;
     // Keyset pages until full (bounded: catalogue-scale loop, max 5 pages here).
     for (let page = 0; page < 5; page++) {
-      const query = buildQueryString({ limit, sort: 'newest', cursor });
-      const res = await fetch(`${BASE}/api/products${query}`);
+      const url = new URL(`${BASE}/api/products`);
+      url.searchParams.set('limit', String(limit));
+      url.searchParams.set('sort', 'newest');
+      if (revision) url.searchParams.set('_refresh', revision);
+      if (cursor) url.searchParams.set('cursor', cursor);
+      const res = await fetch(url.toString(), { cache: fresh ? 'no-store' : 'default' });
       if (!res.ok) return null;
       const body = (await res.json()) as { items: OwnedProduct[]; nextCursor: string | null };
       if (!Array.isArray(body.items)) return null;
@@ -186,6 +240,28 @@ export async function fetchCatalogFromOwnedApi(limit = 100): Promise<Product[] |
   }
 }
 
+
+export async function fetchCategoriesApi(): Promise<Category[] | null> {
+  if (isPartnerDesignPreview()) return null;
+  if (!BASE) return null;
+  try {
+    const res = await apiFetch<{ categories: Array<{ id: string; name: string; slug: string; description?: string; imageUrl?: string; isActive?: boolean }> }>('/api/categories');
+    if (!res || !Array.isArray(res.categories)) return null;
+    return res.categories.map((c) => ({
+      id: c.id,
+      name: c.name,
+      slug: c.slug,
+      description: c.description || 'Natural formulation crafted for skin resilience.',
+      image: c.imageUrl || (c.slug === 'skincare' ? '/product_barrier_cream.jpg' : c.slug === 'body-care' ? '/carousel/photo_6_butter.jpg' : c.slug === 'fragrance' ? '/carousel/photo_3_apothecary.jpg' : c.slug === 'makeup' ? '/carousel/photo_7_application.jpg' : '/product_cleanser.jpg'),
+      itemCount: 0,
+      featured: true,
+      subcategories: [],
+    }));
+  } catch {
+    return null;
+  }
+}
+
 // ---------- Auth (cookie session; no tokens in JS) ----------
 
 export interface AuthUser {
@@ -193,11 +269,16 @@ export interface AuthUser {
   email: string;
   emailVerified: boolean;
   roles: string[];
+  permissions?: string[];
+  signupIntent?: string;
+  adminEntryPath?: string | null;
+  mfaEnabled?: boolean;
+  mfaVerified?: boolean;
   profile: { displayName: string; phone?: string; avatarUrl?: string } | null;
 }
 
-export async function apiRegister(email: string, password: string): Promise<{ ok: boolean; email: string; _devVerificationToken?: string }> {
-  return apiFetch('/api/auth/register', { method: 'POST', body: JSON.stringify({ email, password }) });
+export async function apiRegister(email: string, password: string): Promise<{ ok: boolean; email: string }> {
+  return apiFetch('/api/auth/register', { method: 'POST', body: JSON.stringify({ email, password, intent: readAuthIntent().intent }) });
 }
 
 export async function apiLogin(email: string, password: string): Promise<{ ok: boolean }> {
@@ -217,7 +298,7 @@ export async function apiMe(): Promise<AuthUser | null> {
   }
 }
 
-export async function apiRequestPasswordReset(email: string): Promise<{ ok: boolean; _devResetToken?: string }> {
+export async function apiRequestPasswordReset(email: string): Promise<{ ok: boolean }> {
   return apiFetch('/api/auth/request-password-reset', { method: 'POST', body: JSON.stringify({ email }) });
 }
 
@@ -229,6 +310,10 @@ export async function apiVerifyEmail(token: string): Promise<{ ok: boolean }> {
   return apiFetch('/api/auth/verify-email', { method: 'POST', body: JSON.stringify({ token }) });
 }
 
+export async function updateAccountProfile(input: { displayName?: string; phone?: string }): Promise<void> {
+  await apiFetch('/api/me/profile', { method: 'PATCH', body: JSON.stringify(input) });
+}
+
 // ---------- Catalogue detail (variant resolution for cart sync) ----------
 
 interface OwnedDetail extends OwnedProduct {
@@ -236,41 +321,40 @@ interface OwnedDetail extends OwnedProduct {
   ingredients: { name: string; description: string; detail: string }[];
 }
 
-/**
- * Batch-2 detail cache: 5-minute TTL (buy-box stock accuracy), in-flight
- * sharing (concurrent same-slug renders = 1 request), bounded size.
- * Failures are never cached — the next call retries.
- */
-export const DETAIL_TTL_MS = 5 * 60_000;
-const MAX_DETAIL_ENTRIES = 200;
+export const DETAIL_TTL_MS = 60_000;
 
-const detailCache = new Map<string, { data: OwnedDetail; at: number }>();
-const detailInflight = new Map<string, Promise<OwnedDetail | null>>();
+interface CachedDetailEntry {
+  data: OwnedDetail;
+  expiresAt: number;
+}
+
+const detailCache = new Map<string, CachedDetailEntry>();
+const inflightDetail = new Map<string, Promise<OwnedDetail | null>>();
 
 export async function fetchProductDetail(slug: string): Promise<OwnedDetail | null> {
-  if (BASE === undefined) return null;
   const key = slug.toLowerCase();
   const hit = detailCache.get(key);
-  if (hit && Date.now() - hit.at < DETAIL_TTL_MS) return hit.data;
-  const ongoing = detailInflight.get(key);
-  if (ongoing) return ongoing;
-  const run = (async (): Promise<OwnedDetail | null> => {
+  if (hit && Date.now() < hit.expiresAt) {
+    return hit.data;
+  }
+
+  const inflight = inflightDetail.get(key);
+  if (inflight) return inflight;
+
+  const req = (async () => {
     try {
       const detail = await apiFetch<OwnedDetail>(`/api/products/${encodeURIComponent(key)}`);
-      detailCache.set(key, { data: detail, at: Date.now() });
-      if (detailCache.size > MAX_DETAIL_ENTRIES) {
-        const oldest = detailCache.keys().next().value as string | undefined;
-        if (oldest !== undefined) detailCache.delete(oldest);
-      }
+      detailCache.set(key, { data: detail, expiresAt: Date.now() + DETAIL_TTL_MS });
       return detail;
     } catch {
       return null;
     } finally {
-      detailInflight.delete(key);
+      inflightDetail.delete(key);
     }
   })();
-  detailInflight.set(key, run);
-  return run;
+
+  inflightDetail.set(key, req);
+  return req;
 }
 
 export async function resolveVariantId(productId: string, size: string): Promise<string | null> {
@@ -294,40 +378,13 @@ export interface ServerCartLine {
   available: number;
 }
 
-/** Restore the durable server cart (guest session or login). Null on any failure. */
-export async function fetchServerCart(): Promise<ServerCartLine[] | null> {
-  try {
-    const cart = await apiFetch<{ lines: ServerCartLine[] }>('/api/cart', {}, guestSessionId());
-    return Array.isArray(cart.lines) ? cart.lines : null;
-  } catch {
-    return null;
-  }
-}
-
-export async function syncCartToServer(items: { productId: string; size: string; quantity: number }[]): Promise<void> {
-  if (BASE === undefined) throw new Error('Backend is not configured.');
-  const sessionId = guestSessionId();
-  const expected = new Map<string, number>();
-  for (const item of items) {
-    const variantId = await resolveVariantId(item.productId, item.size);
-    if (!variantId || expected.has(variantId) || item.quantity < 1 || item.quantity > 99) {
-      throw new Error('An item in your bag cannot be checked out. Refresh the catalogue and review your bag.');
-    }
-    expected.set(variantId, item.quantity);
-  }
-  await apiFetch('/api/cart/items', { method: 'DELETE' }, sessionId);
-  for (const [variantId, qty] of expected) {
-    await apiFetch('/api/cart/items', { method: 'POST', body: JSON.stringify({ variantId, qty }) }, sessionId);
-  }
-  const cart = await apiFetch<{ lines: { variantId: string; qty: number }[] }>('/api/cart', {}, sessionId);
-  if (cart.lines.length !== expected.size || cart.lines.some(line => expected.get(line.variantId) !== line.qty)) {
-    throw new Error('Your bag changed during checkout. Please review it before paying.');
-  }
+export async function syncCartToServer(items: { productId: string; size: string; quantity: number }[], expectedUserId?: string): Promise<{ ownerId: string; lines: ServerCartLine[] }> {
+  return apiFetch('/api/cart/sync', { method: 'POST', body: JSON.stringify({ items, expectedUserId }) });
 }
 
 /** Fold the guest cart into the user cart after login (best-effort). */
 export async function mergeServerCart(): Promise<void> {
-  if (BASE === undefined) return;
+  if (!BASE) return;
   await apiFetch('/api/cart/merge', { method: 'POST', body: JSON.stringify({ sessionId: guestSessionId() }) }).catch(() => null);
 }
 
@@ -344,17 +401,18 @@ export interface CheckoutAddressInput {
 }
 
 export interface ServerOrderView {
+  shipment?: { provider: string; trackingReference: string; status: string };
   id: string;
   orderNumber: string;
   status: string;
   paymentStatus: string;
-  createdAt?: string | Date;
-  shippingAddress?: { fullName?: string; name?: string; street?: string; city?: string; state?: string; phone?: string };
-  history?: { toStatus: string; createdAt: string | Date }[];
   subtotalKobo: number;
   deliveryFeeKobo: number;
   totalKobo: number;
   fulfilmentMethod?: string;
+  createdAt?: string;
+  shippingAddress?: { fullName?: string; name?: string; street?: string; city?: string; state?: string; phone?: string };
+  history?: { toStatus: string; createdAt: string }[];
   items: { variantId: string; productName: string; variantLabel: string; sku: string; unitPriceKobo: number; qty: number; lineTotalKobo: number }[];
 }
 
@@ -407,7 +465,7 @@ export async function locateStockApi(input: {
   method: 'DELIVERY' | 'PICKUP';
   items: { variantId: string; qty: number }[];
 }): Promise<{ options: FulfilmentOption[]; recommendedLocationId: string | null; hasFullCart: boolean } | null> {
-  if (BASE === undefined) return null;
+  if (!BASE) return null;
   return apiFetch('/api/routing/locate-stock', { method: 'POST', body: JSON.stringify(input) });
 }
 
@@ -450,8 +508,180 @@ export function clearReferralCode(): void {
 
 // ---------- Partner operations (role-gated, owner-scoped) ----------
 
-export async function fetchPartnerDashboard(kind: 'DISTRIBUTOR' | 'CREATOR'): Promise<unknown | null> {
-  if (BASE === undefined) return null;
+const pendingPartnerWrites = new Map<string, { fingerprint: string; key: string }>();
+async function retryablePartnerWrite(path: string, payload: Record<string, unknown>): Promise<unknown> {
+  const slot = `desla-pending:${path}:${payload.action}:${payload.kind ?? ''}`;
+  const fingerprint = JSON.stringify(payload);
+  let attempt = pendingPartnerWrites.get(slot);
+  try { attempt ??= JSON.parse(sessionStorage.getItem(slot) ?? 'null') ?? undefined; } catch { /* Memory fallback. */ }
+  if (!attempt || attempt.fingerprint !== fingerprint) attempt = { fingerprint, key: newIdempotencyKey() };
+  pendingPartnerWrites.set(slot, attempt);
+  try { sessionStorage.setItem(slot, JSON.stringify(attempt)); } catch { /* Memory fallback. */ }
+  const result = await apiFetch(path, { method: 'POST', headers: { 'Idempotency-Key': attempt.key }, body: fingerprint });
+  pendingPartnerWrites.delete(slot);
+  try { sessionStorage.removeItem(slot); } catch { /* Memory fallback. */ }
+  return result;
+}
+export async function writePartnerWorkspace(payload: Record<string, unknown>): Promise<any> {
+  return retryablePartnerWrite('/api/partner/workspace', payload);
+}
+
+export async function saveAdminCatalogueProduct(product: Partial<Product>, idempotencyKey: string): Promise<void> {
+  const isUuid = (v?: string) => Boolean(v && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v));
+  const payload = {
+    ...(product.serverId ? { serverId: product.serverId, version: product.version } : {}),
+    slug: (product.slug || product.name || product.id || 'item').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 120),
+    name: product.name,
+    brand: product.brand,
+    category: product.category,
+    tagline: product.tagline ?? '',
+    description: product.description ?? '',
+    subCategory: product.subCategory ?? '',
+    hashtag: product.hashtag,
+    isActive: product.isActive ?? product.inStock ?? true,
+    isNew: product.isNew ?? false,
+    isBestseller: product.isBestseller ?? false,
+    isFlashSale: product.isFlashSale ?? false,
+    image: product.image,
+    galleryImages: product.galleryImages ?? [],
+    variants: (product.variants ?? []).map(({ id, sku, sizeLabel, priceNgn, compareAtNgn, stock, isActive }) => ({
+      ...(isUuid(id) ? { id } : {}), sku, sizeLabel, priceNgn, compareAtNgn: compareAtNgn ?? null, stock, isActive,
+    })),
+    whatItDoes: product.whatItDoes ?? [],
+    whoItsFor: product.whoItsFor ?? { skinTypes: [], concerns: [] },
+    keyIngredients: product.keyIngredients ?? [],
+    howToUse: product.howToUse ?? { routine: '', step: '', instructions: '', precautions: '' },
+    brandInfo: product.brandInfo ?? { origin: '', crueltyFree: false, guarantee: '' },
+    customBadge: product.customBadge,
+  };
+  await apiFetch('/api/admin/catalogue', {
+    method: 'POST', headers: { 'Idempotency-Key': idempotencyKey }, body: JSON.stringify(payload),
+  });
+}
+
+export async function uploadProductMediaApi(file: File): Promise<{ url: string; filename: string; size: number; mimeType: string }> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const res = await fetch('/api/admin/media/upload', {
+    method: 'POST',
+    body: formData,
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const errorBody = await res.json().catch(() => ({}));
+    const message = (errorBody && errorBody.error && errorBody.error.message) || ('Upload failed with status ' + res.status);
+    throw new Error(message);
+  }
+  return await res.json();
+}
+
+// ---------- Cryptocurrency API Integration ----------
+
+export type CryptoRatesDto = Record<string, CryptoRateDto>;
+
+export interface CryptoRateDto {
+  asset: 'USDT' | 'BTC' | 'ETH' | 'SOL';
+  name: string;
+  usdPrice: number;
+  ngnPrice: number;
+  change24h: number;
+  networks: string[];
+  decimals: number;
+  networkFee?: string;
+  defaultNetwork?: string;
+  supportedNetworks?: string[];
+}
+
+export interface CryptoInitDto {
+  paymentId: string;
+  attemptId: string;
+  reference: string;
+  orderId: string;
+  asset: string;
+  network: string;
+  amountNgn: number;
+  cryptoAmount: string;
+  networkFeeCrypto: string;
+  totalCrypto: string;
+  exchangeRateNgn: string;
+  depositAddress: string;
+  qrPayload: string;
+  status: string;
+  expiresAt: string;
+  expiresInSeconds: number;
+  replay: boolean;
+}
+
+export interface CryptoStatusDto {
+  id: string;
+  orderId: string;
+  asset: string;
+  network: string;
+  depositAddress: string;
+  amountNgn: number;
+  cryptoAmount: string;
+  networkFeeCrypto: string;
+  totalCrypto: string;
+  txHash: string | null;
+  confirmations: number;
+  requiredConfirmations: number;
+  status: 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'EXPIRED' | 'FAILED';
+  expiresAt: string;
+  verifiedAt: string | null;
+  orderNumber: string;
+  isExpired: boolean;
+  secondsRemaining: number;
+}
+
+export interface CryptoTransactionAdminDto {
+  id: string;
+  orderId: string;
+  orderNumber: string;
+  customerEmail: string;
+  asset: string;
+  network: string;
+  amountNgn: number;
+  totalCrypto: string;
+  depositAddress: string;
+  txHash: string | null;
+  confirmations: number;
+  requiredConfirmations: number;
+  status: string;
+  createdAt: string;
+  verifiedAt: string | null;
+  explorerUrl: string | null;
+}
+
+export async function fetchCryptoRates(): Promise<Record<string, CryptoRateDto>> {
+  return apiFetch('/api/crypto/rates');
+}
+
+export async function initCryptoPayment(orderId: string, asset: string, network: string, idempotencyKey: string): Promise<CryptoInitDto> {
+  return apiFetch('/api/payments/crypto/init', {
+    method: 'POST',
+    headers: { 'Idempotency-Key': idempotencyKey },
+    body: JSON.stringify({ orderId, asset, network }),
+  });
+}
+
+export async function verifyCryptoPayment(paymentId: string, txHash?: string): Promise<{ paymentId: string; orderId: string; orderNumber: string; status: string; txHash: string; verifiedAt: string; alreadySettled: boolean }> {
+  return apiFetch('/api/payments/crypto/verify', {
+    method: 'POST',
+    body: JSON.stringify({ paymentId, txHash }),
+  });
+}
+
+export async function getCryptoPaymentStatus(paymentId: string): Promise<CryptoStatusDto> {
+  return apiFetch(`/api/payments/crypto/verify?paymentId=${encodeURIComponent(paymentId)}`);
+}
+
+export async function fetchAdminCryptoTransactions(): Promise<CryptoTransactionAdminDto[]> {
+  const res = await apiFetch<{ transactions: CryptoTransactionAdminDto[] }>('/api/admin/crypto/transactions');
+  return res.transactions || [];
+}
+
+export async function fetchPartnerDashboard(kind: 'DISTRIBUTOR' | 'CREATOR'): Promise<any> {
+  if (!BASE) return null;
   return apiFetch(`/api/partner?kind=${kind}`);
 }
 
@@ -490,7 +720,7 @@ export function recordWholesaleSale(input: { variantId: string; qty: number; not
 
 export async function partnerOrderTransition(input: {
   orderId: string; transition: 'ACCEPT' | 'DISPATCH' | 'READY_PICKUP' | 'CONFIRM_PICKUP' | 'COMPLETE_DELIVERY'; code?: string; note?: string;
-}): Promise<unknown> {
+}): Promise<{ result: ServerOrderView }> {
   return apiFetch('/api/partner', {
     method: 'POST',
     body: JSON.stringify({ action: 'order', kind: 'DISTRIBUTOR', orderId: input.orderId, transition: input.transition, ...(input.code ? { code: input.code } : {}), note: input.note ?? '' }),
@@ -502,18 +732,19 @@ export async function partnerBankRegister(kind: 'DISTRIBUTOR' | 'CREATOR', bank:
 }
 
 export async function partnerWithdraw(kind: 'DISTRIBUTOR' | 'CREATOR', input: { bankAccountId: string; amountKobo: number }): Promise<unknown> {
-  return apiFetch('/api/partner', {
-    method: 'POST',
-    headers: { 'Idempotency-Key': newIdempotencyKey() },
-    body: JSON.stringify({ action: 'withdraw', kind, ...input }),
-  });
+  return retryablePartnerWrite('/api/partner', { action: 'withdraw', kind, ...input });
 }
 
 export async function partnerRestock(input: { variantId: string; qty: number }): Promise<unknown> {
-  return apiFetch('/api/partner', {
+  return retryablePartnerWrite('/api/partner', { action: 'restock', kind: 'DISTRIBUTOR', ...input });
+}
+
+export async function uploadPartnerMedia(file: File): Promise<{ url: string; fileName: string; size: number }> {
+  const formData = new FormData();
+  formData.append('file', file);
+  return apiFetch<{ url: string; fileName: string; size: number }>('/api/partner/media/upload', {
     method: 'POST',
-    headers: { 'Idempotency-Key': newIdempotencyKey() },
-    body: JSON.stringify({ action: 'restock', kind: 'DISTRIBUTOR', ...input }),
+    body: formData,
   });
 }
 
@@ -522,22 +753,13 @@ export async function partnerReceiveTransfer(transferId: string): Promise<unknow
 }
 
 export async function requestPickupCode(orderId: string, _email?: string): Promise<{ code: string; expiresAt: string } | null> {
-  if (BASE === undefined) return null;
-  try {
-    return await apiFetch(`/api/orders/${encodeURIComponent(orderId)}/pickup-code`, {
-      method: 'POST',
-      headers: guestHeaders(orderId),
-      body: JSON.stringify({}),
-    });
-  } catch {
-    return null;
-  }
+  return apiFetch(`/api/orders/${encodeURIComponent(orderId)}/pickup-code`, { method: 'POST', headers: guestHeaders(orderId), body: JSON.stringify({}) });
 }
 
 // ---------- Admin network (locations, transfers, payouts) ----------
 
 export async function fetchNetworkOverview(): Promise<unknown | null> {
-  if (BASE === undefined) return null;
+  if (!BASE) return null;
   try {
     return await apiFetch('/api/admin/network');
   } catch (e) {
@@ -547,6 +769,7 @@ export async function fetchNetworkOverview(): Promise<unknown | null> {
 }
 
 export async function networkCommand(input: Record<string, unknown>): Promise<unknown> {
+  if (input.action === 'transfer') return retryablePartnerWrite('/api/admin/network', input);
   return apiFetch('/api/admin/network', {
     method: 'POST',
     headers: { 'Idempotency-Key': newIdempotencyKey() },
@@ -610,65 +833,36 @@ export async function fetchServerOrder(orderId: string, token?: string): Promise
 
 /** Map a server order view onto the storefront Order type (tracking UI). */
 export function mapServerOrder(view: ServerOrderView, fallbackItems: CartItem[], paymentMethod: string): Order {
-  const items = view.items.length > 0
-    ? view.items.map((i) => {
-      const local = fallbackItems.find((c) => c.product.name === i.productName);
-      return {
-        productId: i.variantId,
-        productName: i.productName,
-        brand: local?.product.brand ?? 'DESLA!™',
-        size: i.variantLabel,
-        price: Math.round(i.unitPriceKobo / 100),
-        quantity: i.qty,
-        image: local?.product.image ?? '',
-      };
-    })
-    : fallbackItems.map((ci) => ({
-      productId: ci.productId,
-      productName: ci.product.name,
-      brand: ci.product.brand,
-      size: ci.size,
-      price: ci.unitPrice,
-      quantity: ci.quantity,
-      image: ci.product.image,
-    }));
-  const subtotal = Math.round(view.subtotalKobo / 100);
-  const deliveryFee = Math.round(view.deliveryFeeKobo / 100);
+  const statusLabels: Record<string, Order['status']> = { PENDING: 'Processing', PAID: 'Processing', FULFILLING: 'Awaiting Packing', READY_PICKUP: 'Ready for Pickup', SHIPPED: 'In Transit', DELIVERED: 'Delivered', CANCELLED: 'Cancelled', REFUNDED: 'Cancelled' };
+  const labels: Record<string, string> = { PENDING: 'Order placed', PAID: 'Payment confirmed', FULFILLING: 'Preparing order', READY_PICKUP: 'Ready for pickup', SHIPPED: 'Dispatched', DELIVERED: 'Delivered', CANCELLED: 'Cancelled', REFUNDED: 'Refunded' };
+  const address = view.shippingAddress;
+  const history = [...(view.history || [])].sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
   return {
-    id: view.orderNumber,
-    serverId: view.id,
-    paymentStatus: view.paymentStatus,
-    serverStatus: view.status,
-    date: view.createdAt ? new Date(view.createdAt).toLocaleDateString('en-NG') : '',
-    status: view.status === 'DELIVERED' ? 'Delivered' : ['CANCELLED', 'REFUNDED'].includes(view.status) ? 'Cancelled' : view.status === 'SHIPPED' ? 'Shipped' : 'Processing',
-    items,
-    subtotal,
-    deliveryFee,
-    total: Math.round(view.totalKobo / 100),
-    fulfillmentType: 'local',
-    trackingSteps: (view.history ?? []).map(event => ({title: event.toStatus.replace(/_/g, ' '), timestamp: new Date(event.createdAt).toLocaleString('en-NG'), status: 'completed' as const, description: 'Recorded order update'})),
-    shippingAddress: { name: view.shippingAddress?.fullName ?? view.shippingAddress?.name ?? '', street: view.shippingAddress?.street ?? '', city: view.shippingAddress?.city ?? '', state: view.shippingAddress?.state ?? '', phone: view.shippingAddress?.phone ?? '' },
+    id: view.orderNumber, serverId: view.id, serverStatus: view.status, paymentStatus: view.paymentStatus,
+    fulfilmentMethod: view.fulfilmentMethod === 'PICKUP' ? 'PICKUP' : view.fulfilmentMethod === 'DELIVERY' ? 'DELIVERY' : undefined,
+    date: view.createdAt ? new Date(view.createdAt).toLocaleString() : '',
+    status: statusLabels[view.status] || 'Processing',
+    items: view.items.map(item => {
+      const local = fallbackItems.find(cart => cart.product.name === item.productName);
+      return { productId: item.variantId, productName: item.productName, brand: local?.product.brand || '', size: item.variantLabel, price: item.unitPriceKobo / 100, quantity: item.qty, image: local?.product.image || '' };
+    }),
+    subtotal: view.subtotalKobo / 100, deliveryFee: view.deliveryFeeKobo / 100, total: view.totalKobo / 100,
+    trackingSteps: history.map((event, index) => ({ title: labels[event.toStatus] || event.toStatus, timestamp: new Date(event.createdAt).toLocaleString(), status: index === history.length - 1 && !['DELIVERED', 'CANCELLED', 'REFUNDED'].includes(view.status) ? 'current' as const : 'completed' as const, description: labels[event.toStatus] || event.toStatus })),
+    shippingAddress: { name: address?.fullName || address?.name || '', street: address?.street || '', city: address?.city || '', state: address?.state || '', phone: address?.phone || '' },
+    shipment: view.shipment,
     paymentMethod,
   };
 }
 
 // ---------- Reviews / wishlist / loyalty (fire-and-forget mirrors) ----------
 
-export async function submitReviewApi(input: { productId: string; rating: number; title: string; comment: string }): Promise<boolean> {
-  // productId is the storefront slug; the action resolves slug → uuid.
-  // (The old REST zod required uuid-only and 422'd slug submits silently.)
-  // Returns false when the server did not record the review so callers can
-  // say so instead of implying it was published.
-  try {
-    const res = await submitReviewAction(input);
-    return res.ok;
-  } catch {
-    return false;
-  }
+export async function submitReviewApi(input: { productId: string; rating: number; title: string; comment: string }): Promise<{ review: { id: string; status: string } }> {
+  // productId is the storefront slug; the server resolves slug → uuid.
+  return apiFetch('/api/reviews', { method: 'POST', body: JSON.stringify(input) });
 }
 
 export async function fetchLoyalty(): Promise<{ points: number } | null> {
-  if (BASE === undefined) return null;
+  if (!BASE) return null;
   try {
     return await apiFetch('/api/me/loyalty');
   } catch {
@@ -749,7 +943,7 @@ export interface LoyaltyView {
 }
 
 export async function fetchLoyaltyView(): Promise<LoyaltyView | null> {
-  if (BASE === undefined) return null;
+  if (!BASE) return null;
   try {
     return await apiFetch<LoyaltyView>('/api/me/loyalty');
   } catch {
@@ -758,16 +952,7 @@ export async function fetchLoyaltyView(): Promise<LoyaltyView | null> {
 }
 
 export async function redeemLoyaltyVoucher(points: number): Promise<{ voucher: LoyaltyVoucher }> {
-  // Surfaces errors to the caller (rewards screen shows them). No REST
-  // fallback: voucher minting is NOT idempotent — a retry could double-mint.
-  let res: Awaited<ReturnType<typeof redeemVoucherAction>>;
-  try {
-    res = await redeemVoucherAction(points);
-  } catch {
-    throw new ApiError(0, 'request_failed', 'Could not redeem voucher. Check your connection and try again.');
-  }
-  if (!res.ok) throw new ApiError(res.status, res.code, res.message);
-  return { voucher: { code: res.data.code, amountKobo: res.data.amountKobo, status: res.data.status } };
+  return apiFetch('/api/me/loyalty', { method: 'POST', body: JSON.stringify({ points }) });
 }
 
 // ---------- AI concierge (authenticated; mock thread otherwise) ----------
@@ -828,36 +1013,42 @@ export async function aiChat(content: string): Promise<{ user: ChatMsg; assistan
 const SKIN_ENUM = ['oily', 'dry', 'combination', 'sensitive', 'normal'] as const;
 
 export async function mirrorSkinProfile(input: { skinType: string; concerns: string[] }): Promise<void> {
+  if (!BASE) return;
   const skinType = input.skinType.trim().toLowerCase();
   if (!(SKIN_ENUM as readonly string[]).includes(skinType)) return;
-  try {
-    await saveSkinProfileAction({ skinType, concerns: input.concerns.slice(0, 12) });
-  } catch {
-    // silent mirror
-  }
+  await apiFetch('/api/me/skin-profile', {
+    method: 'PUT',
+    body: JSON.stringify({ skinType, concerns: input.concerns.slice(0, 12), notes: '' }),
+  }).catch(() => null);
 }
 
 // ---------- Wishlist mirror (authenticated; silent for guests) ----------
 
-export async function mirrorWishlist(productId: string, size: string | undefined, wishlisted: boolean): Promise<boolean> {
-  // Variant resolution moved server-side (kills the client's detail-fetch
-  // roundtrip). Returns false when the server did not record the change so
-  // callers can roll back optimistic UI instead of lying about saved state.
+export async function mirrorWishlist(productId: string, size: string | undefined, wishlisted: boolean): Promise<void> {
+  if (!BASE) return;
   try {
-    const res = await toggleWishlistAction({ slug: productId, ...(size ? { sizeLabel: size } : {}), wished: wishlisted });
-    return res.ok;
+    const detail = await fetchProductDetail(productId);
+    const variant = detail?.variants.find((v) => v.sizeLabel.toLowerCase() === (size ?? '').toLowerCase()) ?? detail?.variants[0];
+    if (!variant) return;
+    if (wishlisted) {
+      await apiFetch('/api/me/wishlist', { method: 'POST', body: JSON.stringify({ variantId: variant.id }) });
+    } else {
+      await apiFetch(`/api/me/wishlist?variantId=${encodeURIComponent(variant.id)}`, { method: 'DELETE' });
+    }
   } catch {
-    return false;
+    // 401 guests, network blips — local state remains the source of truth
   }
 }
 
 // ---------- Admin Console Operations (STAFF / ADMIN / SUPER_ADMIN) ----------
 
 export async function fetchAdminOrders(status?: string, limit = 50): Promise<{ orders: AdminOrder[] } | null> {
-  if (BASE === undefined) return null;
+  if (!BASE) return null;
   try {
-    const query = buildQueryString({ status, limit });
-    const res = await apiFetch<{ orders: AdminOrder[] }>(`/api/admin/orders${query}`);
+    const url = new URL(`${BASE}/api/admin/orders`);
+    if (status) url.searchParams.set('status', status);
+    url.searchParams.set('limit', String(limit));
+    const res = await apiFetch<{ orders: AdminOrder[] }>(url.pathname + url.search);
     return res;
   } catch (e) {
     if (e instanceof ApiError && (e.status === 401 || e.status === 403)) return null;
@@ -873,10 +1064,11 @@ export async function updateAdminOrderStatus(orderId: string, status: string): P
 }
 
 export async function fetchAdminTransferClaims(status?: 'pending' | 'confirmed' | 'rejected'): Promise<{ claims: AdminTransferClaim[] } | null> {
-  if (BASE === undefined) return null;
+  if (!BASE) return null;
   try {
-    const query = buildQueryString({ status });
-    return await apiFetch<{ claims: AdminTransferClaim[] }>(`/api/admin/transfer-claims${query}`);
+    const url = new URL(`${BASE}/api/admin/transfer-claims`);
+    if (status) url.searchParams.set('status', status);
+    return await apiFetch<{ claims: AdminTransferClaim[] }>(url.pathname + url.search);
   } catch (e) {
     if (e instanceof ApiError && (e.status === 401 || e.status === 403)) return null;
     throw e;
@@ -891,7 +1083,7 @@ export async function confirmAdminTransferClaim(claimId: string, approve: boolea
 }
 
 export async function fetchAdminAudits(limit = 20): Promise<{ audit: AdminAuditLog[] } | null> {
-  if (BASE === undefined) return null;
+  if (!BASE) return null;
   try {
     return await apiFetch<{ audit: AdminAuditLog[] }>(`/api/admin/audit?limit=${limit}`);
   } catch (e) {
@@ -949,7 +1141,7 @@ function mapDistributor(d: OwnedDistributor): Distributor {
 }
 
 export async function fetchDistributors(city?: string): Promise<Distributor[] | null> {
-  if (BASE === undefined) return null;
+  if (!BASE) return null;
     const q = city ? `?limit=100&city=${encodeURIComponent(city)}` : '?limit=100';
     const body = await apiFetch<{ distributors: OwnedDistributor[] }>(`/api/distributors${q}`);
     return body.distributors.map(mapDistributor);
@@ -967,7 +1159,7 @@ export interface CityStock {
 }
 
 export async function fetchStockNearCity(variantId: string, city: string): Promise<CityStock[] | null> {
-  if (BASE === undefined) return null;
+  if (!BASE) return null;
   try {
     const body = await apiFetch<{ stock: CityStock[] }>(
       `/api/distributors/stock?variantId=${encodeURIComponent(variantId)}&city=${encodeURIComponent(city)}`
@@ -978,7 +1170,7 @@ export async function fetchStockNearCity(variantId: string, city: string): Promi
   }
 }
 
-export interface ApplicationReceipt { id: string; status: string }
+export interface ApplicationReceipt { id: string; status: string; reviewNote?: string }
 
 export async function submitDistributorApplication(input: {
   name: string;
@@ -989,7 +1181,7 @@ export async function submitDistributorApplication(input: {
   phone: string;
   whatsapp?: string;
 }): Promise<ApplicationReceipt> {
-  if (BASE === undefined) throw new Error('Connect the live backend to submit an application.');
+  if (!BASE) throw new Error('Connect the live backend to submit an application.');
   const body = await apiFetch<{ application: ApplicationReceipt }>('/api/distributors', { method: 'POST', body: JSON.stringify(input) });
   return body.application;
 }
@@ -1028,7 +1220,7 @@ function mapCreator(c: OwnedCreator): Creator {
 }
 
 export async function fetchCreators(): Promise<Creator[] | null> {
-  if (BASE === undefined) return null;
+  if (!BASE) return null;
   try {
     const body = await apiFetch<{ creators: OwnedCreator[] }>('/api/creators');
     return body.creators.map(mapCreator);
@@ -1045,55 +1237,18 @@ export async function validateCreatorCodeLive(code: string): Promise<{ success: 
 }
 
 export async function submitCreatorApplication(input: { name: string; handle: string; platform: 'Instagram' | 'TikTok' | 'YouTube'; niche: string }): Promise<ApplicationReceipt> {
-  if (BASE === undefined) throw new Error('Connect the live backend to submit an application.');
+  if (!BASE) throw new Error('Connect the live backend to submit an application.');
   const body = await apiFetch<{ application: ApplicationReceipt }>('/api/creators', { method: 'POST', body: JSON.stringify(input) });
   return body.application;
 }
 
 // ---------- Community (posts, likes, chat) ----------
 
-interface OwnedPost {
-  id: string;
-  author_name: string;
-  author_handle: string;
-  author_avatar: string;
-  author_role: string;
-  skin_type?: string;
-  content: string;
-  media_type?: 'image' | 'video';
-  media_url?: string;
-  tagged_product_id?: string;
-  tagged_product_hashtag?: string;
-  likes_count: number;
-  comments_count: number;
-  created_at: string;
-}
-
-function mapPost(p: OwnedPost): CommunityPost {
-  return {
-    id: p.id,
-    authorName: p.author_name,
-    authorHandle: p.author_handle,
-    authorAvatar: p.author_avatar,
-    authorRole: p.author_role,
-    skinType: p.skin_type,
-    timestamp: p.created_at,
-    content: p.content,
-    mediaType: p.media_type,
-    mediaUrl: p.media_url,
-    taggedProductId: p.tagged_product_id,
-    taggedProductHashtag: p.tagged_product_hashtag,
-    likesCount: p.likes_count,
-    commentsCount: p.comments_count,
-    likedByMe: false,
-  } as unknown as CommunityPost;
-}
-
 export async function fetchCommunityPosts(): Promise<CommunityPost[] | null> {
-  if (BASE === undefined) return null;
+  if (!BASE) return null;
   try {
-    const body = await apiFetch<{ posts: OwnedPost[] }>('/api/community/posts?limit=50');
-    return body.posts.map(mapPost);
+    const body = await apiFetch<{ posts: CommunityPostDto[] }>('/api/community/posts?limit=50');
+    return body.posts.map(communityPostFromApi);
   } catch {
     return null;
   }
@@ -1103,38 +1258,39 @@ export async function createCommunityPostApi(input: {
   content: string;
   taggedProductId?: string;
   taggedProductHashtag?: string;
-}): Promise<void> {
-  try {
-    await createPostAction({ content: input.content, ...(input.taggedProductId ? { taggedProductId: input.taggedProductId } : {}), ...(input.taggedProductHashtag ? { taggedHashtag: input.taggedProductHashtag } : {}) });
-  } catch {
-    // silent mirror
-  }
+  mediaType?: 'image' | 'video';
+  mediaUrl?: string;
+  mediaId?: string;
+}): Promise<CommunityPost> {
+  const { taggedProductHashtag, ...fields } = input;
+  const result = await apiFetch<{ post: CommunityPostDto }>('/api/community/posts', { method: 'POST', body: JSON.stringify({ ...fields, taggedHashtag: taggedProductHashtag }) });
+  return communityPostFromApi(result.post);
 }
 
-export async function likeCommunityPostApi(postId: string): Promise<void> {
-  try {
-    await likePostAction(postId);
-  } catch {
-    // silent mirror
-  }
+export async function fetchPartnerWorkspace(kind: 'CREATOR' | 'DISTRIBUTOR'): Promise<any> {
+  return apiFetch(`/api/partner/workspace?kind=${kind}`);
+}
+
+export async function likeCommunityPostApi(postId: string): Promise<{ likesCount: number; liked: boolean }> {
+  return apiFetch(`/api/community/posts/${encodeURIComponent(postId)}/like`, { method: 'POST' });
 }
 
 interface OwnedChatMessage {
   id: string;
-  sender_name: string;
-  sender_avatar: string;
+  senderName: string;
+  senderAvatar: string;
   channel: string;
   message: string;
   likes: number;
-  created_at: string;
+  createdAt: string;
 }
 
 function mapChatMessage(m: OwnedChatMessage): CommunityMessage {
-  return { id: m.id, senderName: m.sender_name, senderAvatar: m.sender_avatar, time: m.created_at, message: m.message, likes: m.likes, channel: m.channel };
+  return { id: m.id, senderName: m.senderName, senderAvatar: m.senderAvatar, time: m.createdAt, message: m.message, likes: m.likes, channel: m.channel };
 }
 
 export async function fetchCommunityChat(channel = 'routine'): Promise<CommunityMessage[] | null> {
-  if (BASE === undefined) return null;
+  if (!BASE) return null;
   try {
     const body = await apiFetch<{ messages: OwnedChatMessage[] }>(`/api/community/chat?channel=${encodeURIComponent(channel)}&limit=50`);
     return body.messages.map(mapChatMessage);
@@ -1143,17 +1299,15 @@ export async function fetchCommunityChat(channel = 'routine'): Promise<Community
   }
 }
 
-export async function sendCommunityChatApi(channel: string, message: string): Promise<void> {
-  try {
-    await sendChatAction(channel, message);
-  } catch {
-    // silent mirror (rate-limit hits included — chat stays usable)
-  }
+export async function sendCommunityChatApi(channel: string, message: string): Promise<CommunityMessage> {
+  const result = await apiFetch<{ message: OwnedChatMessage }>('/api/community/chat', { method: 'POST', body: JSON.stringify({ channel, message }) });
+  return mapChatMessage(result.message);
 }
 
 // ---------- Reviews (approved list per product) ----------
 
 interface OwnedReview {
+  authorName?: string; authorAvatar?: string; verifiedPurchase?: boolean; helpfulCount?: number; createdAt?: string;
   id: string;
   product_id: string;
   product_sku?: string;
@@ -1184,24 +1338,24 @@ function timeAgo(iso: string): string {
 }
 
 export async function fetchProductReviewsApi(productSlug: string): Promise<ProductReview[] | null> {
-  if (BASE === undefined) return null;
+  if (!BASE) return null;
   try {
     const body = await apiFetch<{ reviews: OwnedReview[] }>(`/api/products/${encodeURIComponent(productSlug)}/reviews?limit=20`);
     return body.reviews.map((r) => ({
       id: r.id,
       productId: productSlug,
       productSku: r.product_sku,
-      authorName: r.author_name,
-      authorAvatar: r.author_avatar,
+      authorName: r.authorName ?? r.author_name ?? '',
+      authorAvatar: r.authorAvatar ?? r.author_avatar,
       rating: r.rating,
-      date: timeAgo(r.created_at),
+      date: r.createdAt || r.created_at ? timeAgo(r.createdAt || r.created_at) : '',
       title: r.title,
       comment: r.comment,
-      verifiedPurchase: r.verified_purchase,
+      verifiedPurchase: r.verifiedPurchase ?? r.verified_purchase ?? false,
       city: r.city,
       skinType: r.skin_type,
       photoUrl: r.photo_url,
-      helpfulCount: r.helpful_count,
+      helpfulCount: r.helpfulCount ?? r.helpful_count ?? 0,
     }));
   } catch {
     return null;
@@ -1218,7 +1372,7 @@ export interface InventoryOverviewRow {
 }
 
 export async function fetchInventoryOverview(): Promise<InventoryOverviewRow[] | null> {
-  if (BASE === undefined) return null;
+  if (!BASE) return null;
   try {
     const body = await apiFetch<{ items: InventoryOverviewRow[] }>('/api/admin/inventory/overview?limit=100');
     return body.items;
@@ -1242,7 +1396,7 @@ export interface AdminUserRow {
 }
 
 export async function fetchAdminUsers(): Promise<AdminUserRow[] | null> {
-  if (BASE === undefined) return null;
+  if (!BASE) return null;
   try {
     const body = await apiFetch<{ users: AdminUserRow[] }>('/api/admin/users?limit=100');
     return body.users;
@@ -1250,4 +1404,14 @@ export async function fetchAdminUsers(): Promise<AdminUserRow[] | null> {
     if (e instanceof ApiError && (e.status === 401 || e.status === 403)) return null;
     throw e;
   }
+}
+
+
+export async function uploadCommunityMediaApi(file: File): Promise<string> {
+  const staged = await apiFetch<{ mediaId: string; uploadUrl: string }>('/api/community/media', { method: 'POST', body: JSON.stringify({ mime: file.type, bytes: file.size }) });
+  const target = new URL(staged.uploadUrl);
+  if (target.protocol !== 'https:' && !(process.env.NODE_ENV !== 'production' && target.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(target.hostname))) throw new Error('The upload address is invalid.');
+  const saved = await fetch(target.toString(), { method: 'PUT', body: file, credentials: 'omit', redirect: 'error', headers: { 'Content-Type': file.type } });
+  if (!saved.ok) throw new Error('The media could not be uploaded. Your text is preserved; retry the upload.');
+  return staged.mediaId;
 }

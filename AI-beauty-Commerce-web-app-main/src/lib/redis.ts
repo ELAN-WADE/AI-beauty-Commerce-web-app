@@ -2,8 +2,10 @@
 // Redis is CACHE ONLY: every read-through falls back to Supabase, every miss
 // falls back further to local mocks. Safe to run with no env keys set.
 
-const baseUrl = import.meta.env.VITE_UPSTASH_REDIS_REST_URL as string | undefined;
-const token = import.meta.env.VITE_UPSTASH_REDIS_REST_TOKEN as string | undefined;
+import { getEnv } from './env';
+
+const baseUrl = getEnv('VITE_UPSTASH_REDIS_REST_URL');
+const token = getEnv('VITE_UPSTASH_REDIS_REST_TOKEN');
 
 export const isRedisConfigured = Boolean(baseUrl && token);
 

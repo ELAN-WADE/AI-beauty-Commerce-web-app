@@ -1,4 +1,5 @@
 import React from 'react';
+import { useApp } from '../../../context/AppContext';
 import {
   LayoutDashboard,
   PlusCircle,
@@ -59,7 +60,7 @@ export interface PartnerSidebarProps {
 export interface SidebarNavItem {
   id: string;
   label: string;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
+  icon: React.ComponentType<{ size?: number | string; className?: string } | any>;
   isPrimaryAction?: boolean;
   badge?: number;
 }
@@ -72,6 +73,8 @@ export const PartnerSidebar: React.FC<PartnerSidebarProps> = ({
   badgeCounts = {}
 }) => {
   const isCreator = kind === 'CREATOR';
+  const { authUser } = useApp();
+  const accountName = authUser?.profile?.displayName || authUser?.email || 'Partner account';
 
   const creatorPrimaryNav: SidebarNavItem[] = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
@@ -85,7 +88,7 @@ export const PartnerSidebar: React.FC<PartnerSidebarProps> = ({
   ];
 
   const creatorUtilityNav: SidebarNavItem[] = [
-    { id: 'notifications', label: 'Notifications', icon: Bell, badge: badgeCounts.notifications || 3 },
+    { id: 'notifications', label: 'Notifications', icon: Bell, badge: badgeCounts.notifications ?? 0 },
     { id: 'resources', label: 'Resources', icon: BookOpen },
     { id: 'support', label: 'Support', icon: HelpCircle },
     { id: 'settings', label: 'Settings', icon: Settings }
@@ -93,8 +96,8 @@ export const PartnerSidebar: React.FC<PartnerSidebarProps> = ({
 
   const distributorPrimaryNav: SidebarNavItem[] = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-    { id: 'orders', label: 'Orders', icon: Package, badge: badgeCounts.orders || 7 },
-    { id: 'inventory', label: 'Inventory', icon: Layers, badge: badgeCounts.lowStock || 4 },
+    { id: 'orders', label: 'Orders', icon: Package, badge: badgeCounts.orders ?? 0 },
+    { id: 'inventory', label: 'Inventory', icon: Layers, badge: badgeCounts.lowStock ?? 0 },
     { id: 'restock', label: 'Restock', icon: Truck, isPrimaryAction: true },
     { id: 'sales', label: 'Sales', icon: TrendingUp },
     { id: 'earnings', label: 'Earnings', icon: Wallet },
@@ -229,15 +232,15 @@ export const PartnerSidebar: React.FC<PartnerSidebarProps> = ({
         <div className="flex items-center justify-between gap-2 px-2 py-1.5">
           <div className="flex items-center gap-2.5 overflow-hidden">
             <div className="w-8 h-8 rounded-full bg-[#E5E7EB] flex items-center justify-center text-xs font-bold font-mono text-[#0F0F10] shrink-0 border border-white shadow-2xs">
-              {isCreator ? 'AN' : 'AO'}
+              {accountName.slice(0, 2).toUpperCase()}
             </div>
             {!collapsed && (
               <div className="overflow-hidden">
                 <p className="text-xs font-bold text-[#0F0F10] truncate">
-                  {isCreator ? 'Amara Nnadi' : 'Adewale Okafor'}
+                  {accountName}
                 </p>
                 <p className="text-[10px] text-[#6B7280] truncate font-mono">
-                  {isCreator ? 'Level 3 Luminary' : 'Lagos Central Hub'}
+                  {isCreator ? 'Creator' : 'Distributor'}
                 </p>
               </div>
             )}

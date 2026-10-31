@@ -21,7 +21,7 @@ export const GET = api(async ({ req }) => {
   const db = getDb();
   const auth = await requireAuth(db);
   const kind = z.enum(['DISTRIBUTOR', 'CREATOR']).parse(new URL(req.url).searchParams.get('kind'));
-  return NextResponse.json(await partnerDashboard(db, auth.userId, kind));
+  return NextResponse.json(await partnerDashboard(db, auth.userId, kind), { headers: { 'Cache-Control': 'no-store' } });
 });
 export const POST = api(async ({ req, requestId }) => {
   limit(req);

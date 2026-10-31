@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 /**
  * Phase 4 — Server Actions shared core.
  *
@@ -114,7 +115,7 @@ export interface SyncCartItem {
 /**
  * Replace the server cart with exactly `items` (clear + re-add + verify),
  * resolving slugs→variants via direct DB reads. Identical rules to REST:
- * exact size match else first variant, qty 1–99, no duplicate variants.
+ * exact size match, qty 1–99, no duplicate variants.
  */
 export async function runSyncCart(db: AppDb, owner: CartOwner, items: SyncCartItem[]) {
   if (items.length > 100) throw Errors.badRequest('Too many cart lines.');
@@ -122,16 +123,17 @@ export async function runSyncCart(db: AppDb, owner: CartOwner, items: SyncCartIt
   const expected = new Map<string, number>();
   for (const item of items) {
     if (!Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 99) {
-      throw new Error('An item in your bag cannot be checked out. Refresh the catalogue and review your bag.');
+      throw Errors.badRequest('An item in your bag cannot be checked out. Refresh the catalogue and review your bag.');
     }
     const detail = await getProduct(db, String(item.productId).toLowerCase()).catch(() => null);
     if (!detail || detail.variants.length === 0) {
-      throw new Error('An item in your bag cannot be checked out. Refresh the catalogue and review your bag.');
+      throw Errors.badRequest('An item in your bag cannot be checked out. Refresh the catalogue and review your bag.');
     }
     const exact = detail.variants.find((v) => v.sizeLabel.toLowerCase() === String(item.size).toLowerCase());
-    const variantId = (exact ?? detail.variants[0]).id;
+    if (!exact) throw Errors.badRequest('This product size is no longer available. Review your bag.');
+    const variantId = exact.id;
     if (expected.has(variantId)) {
-      throw new Error('An item in your bag cannot be checked out. Refresh the catalogue and review your bag.');
+      throw Errors.badRequest('An item in your bag cannot be checked out. Refresh the catalogue and review your bag.');
     }
     expected.set(variantId, item.quantity);
   }
@@ -139,6 +141,9 @@ export async function runSyncCart(db: AppDb, owner: CartOwner, items: SyncCartIt
   // mid-sync failure (or concurrent sync) can never leave a partial bag.
   return db.transaction(async (tx) => {
     const t = tx as unknown as AppDb;
+    const { resolveCart } = await import('@/modules/cart/service');
+    const cartToReplace = await resolveCart(t, who);
+    await tx.execute(sql`select id from carts where id = ${cartToReplace.id} for update`);
     await clearCart(t, who);
     for (const [variantId, qty] of expected) {
       const parsed = cartItemSchema.parse({ variantId, qty });
@@ -146,7 +151,7 @@ export async function runSyncCart(db: AppDb, owner: CartOwner, items: SyncCartIt
     }
     const cart = await resolveCartView(t, who);
     if (cart.lines.length !== expected.size || cart.lines.some((l) => expected.get(l.variantId) !== l.qty)) {
-      throw new Error('Your bag changed during checkout. Please review it before paying.');
+      throw Errors.conflict('Your bag changed during checkout. Please review it before paying.');
     }
     return cart;
   });

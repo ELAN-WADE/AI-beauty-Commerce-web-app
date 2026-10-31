@@ -16,7 +16,7 @@
  */
 import { z } from 'zod';
 import { getDb } from '@/db/client';
-import { checkRateLimit, checkSharedRateLimit, Limits } from '@/lib/rate-limit';
+import { checkSharedRateLimit, Limits } from '@/lib/rate-limit';
 import { requireAuth } from '@/modules/auth/require-auth';
 import { getProfile } from '@/modules/users/service';
 import { createReview, resolveProductId } from '@/modules/reviews/service';
@@ -45,7 +45,7 @@ export async function submitReviewAction(input: {
     const db = getDb();
     const ctx = await requireAuth(db);
     // User-keyed (shared mobile NATs must not throttle innocent neighbors).
-    if (!checkRateLimit(`action:review:${ctx.userId}`, Limits.reviews).allowed) {
+    if (!(await checkSharedRateLimit(db, `action:review:${ctx.userId}`, Limits.reviews)).allowed) {
       return { ok: false, status: 429, code: 'rate_limited', message: 'Too many reviews. Slow down and try again.' };
     }
     const parsed = createReviewSchema
@@ -75,7 +75,7 @@ export async function toggleWishlistAction(input: {
   try {
     const db = getDb();
     const ctx = await requireAuth(db);
-    if (!checkRateLimit(`action:wishlist:${ctx.userId}`, Limits.wishlist).allowed) {
+    if (!(await checkSharedRateLimit(db, `action:wishlist:${ctx.userId}`, Limits.wishlist)).allowed) {
       return { ok: false, status: 429, code: 'rate_limited', message: 'Too many requests. Slow down and try again.' };
     }
     const slug = z.string().trim().min(1).max(120).parse(input.slug);
@@ -123,7 +123,7 @@ export async function saveSkinProfileAction(input: {
   try {
     const db = getDb();
     const ctx = await requireAuth(db);
-    if (!checkRateLimit(`action:skin:${ctx.userId}`, Limits.reviews).allowed) {
+    if (!(await checkSharedRateLimit(db, `action:skin:${ctx.userId}`, Limits.reviews)).allowed) {
       return { ok: false, status: 429, code: 'rate_limited', message: 'Too many requests. Slow down and try again.' };
     }
     const parsed = skinProfileSchema.parse({ skinType: input.skinType.trim().toLowerCase(), concerns: input.concerns.slice(0, 12), notes: '' });

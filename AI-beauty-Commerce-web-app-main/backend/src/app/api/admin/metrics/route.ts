@@ -10,10 +10,13 @@ import { notificationOutbox } from '@/modules/notifications/schema';
 import { orders } from '@/modules/orders/schema';
 import { paymentAttempts } from '@/modules/payments/schema';
 import { userSessions } from '@/modules/auth/schema';
+import { outboxHealth } from '@/modules/notifications/service';
+import { workerHeartbeats } from '@/modules/ops/schema';
+import { desc } from 'drizzle-orm';
 
 /**
  * Batch-3 (Part X): ops metrics before any OTel spend. Admin-gated
- * (`audit:read`), cheap indexed counts only, 60s edge-cacheable.
+ * (`audit:read` plus MFA). Operational responses are never shared-cacheable.
  * Worker depth, checkout health and payment failures in one place.
  */
 export const GET = api(async ({ req }) => {
@@ -25,7 +28,7 @@ export const GET = api(async ({ req }) => {
   const dayAgo = new Date(Date.now() - 24 * 3600_000);
   const now = new Date();
   const t0 = Date.now();
-  const [outbox, recentOrders, failedAttempts, sessions] = await Promise.all([
+  const [outbox, recentOrders, failedAttempts, sessions, backlog] = await Promise.all([
     db
       .select({ status: notificationOutbox.status, n: sql<number>`count(*)`.mapWith(Number) })
       .from(notificationOutbox)
@@ -44,13 +47,18 @@ export const GET = api(async ({ req }) => {
       .select({ n: sql<number>`count(*)`.mapWith(Number) })
       .from(userSessions)
       .where(and(isNull(userSessions.revokedAt), gt(userSessions.expiresAt, now))),
+    outboxHealth(db),
   ]);
   const roundtripMs = Date.now() - t0;
   const mem = process.memoryUsage();
+  const workers = await db.select().from(workerHeartbeats).orderBy(desc(workerHeartbeats.heartbeatAt)).limit(20);
 
   const res = NextResponse.json({
-    db: { roundtripMs },
+    // Retain the legacy field; this is combined query wall time, not pool or p95 latency.
+    db: { roundtripMs, metricsQueriesMs: roundtripMs },
     outbox24h: Object.fromEntries(outbox.map((r) => [r.status, r.n])),
+    outboxBacklog: backlog,
+    workers: workers.map(worker => ({ ...worker, stale: Date.now() - worker.heartbeatAt.getTime() > 5 * 60_000 })),
     orders24h: Object.fromEntries(recentOrders.map((r) => [r.status, r.n])),
     paymentAttemptsFailed24h: failedAttempts[0]?.n ?? 0,
     sessionsActive: sessions[0]?.n ?? 0,
@@ -58,6 +66,6 @@ export const GET = api(async ({ req }) => {
     bulkheads: bulkheadDepth(),
     process: { uptimeSec: Math.round(process.uptime()), rssMb: Math.round(mem.rss / 1048576) },
   });
-  res.headers.set('Cache-Control', 'private, max-age=60');
+  res.headers.set('Cache-Control', 'no-store');
   return res;
 });

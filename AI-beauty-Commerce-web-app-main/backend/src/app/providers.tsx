@@ -5,6 +5,7 @@ import { ViewportProvider } from '@/storefront/context/ViewportContext';
 import { AppProvider } from '@/storefront/context/AppContext';
 import { initErrorReporting } from '@/storefront/lib/observe';
 import type { Product } from '@/storefront/types';
+import type { StorefrontSeed } from '@/lib/server-storefront';
 
 /**
  * Client providers — identical tree to Vite `src/main.tsx`. No UI change.
@@ -14,16 +15,18 @@ import type { Product } from '@/storefront/types';
 export default function Providers({
   children,
   initialCatalogue,
+  initialEditorial,
 }: {
   children: React.ReactNode;
   initialCatalogue?: Product[];
+  initialEditorial?: StorefrontSeed;
 }) {
   React.useEffect(() => {
     initErrorReporting();
   }, []);
   return (
     <ViewportProvider>
-      <AppProvider initialCatalogue={initialCatalogue}>{children}</AppProvider>
+      <AppProvider initialCatalogue={initialCatalogue} initialEditorial={initialEditorial}>{children}</AppProvider>
     </ViewportProvider>
   );
 }

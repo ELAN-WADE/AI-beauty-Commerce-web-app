@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { usePartnerRecords } from '../../../lib/use-partner-records';
 import { PartnerMobileBottomNav } from './PartnerMobileBottomNav';
 import { CreatorSecondaryNav } from '../creator/CreatorSecondaryNav';
 import { DistributorSecondaryNav } from '../distributor/DistributorSecondaryNav';
 import { ActionDrawer } from '../shared/ActionDrawer';
+import { useApp } from '../../../context/AppContext';
 
 export interface PartnerAppShellProps {
   kind: 'CREATOR' | 'DISTRIBUTOR';
@@ -23,21 +25,12 @@ export const PartnerAppShell: React.FC<PartnerAppShellProps> = ({
   onSwitchWorkspace
 }) => {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const { records } = usePartnerRecords(kind);
 
   const isCreator = kind === 'CREATOR';
   const isOverview = activeRoute === 'overview';
 
-  const notificationsList = isCreator ? [
-    { id: '1', title: 'New Campaign Invitation', desc: 'Glow Season 2026 has opened for VIP application.', time: '2h ago', unread: true },
-    { id: '2', title: 'PR Package Approved', desc: 'Your Radiant Glow Collection PR box is being packed.', time: '5h ago', unread: true },
-    { id: '3', title: 'Commission Cleared', desc: '₦18,400 from client order ORD-LAG-7819 moved to available balance.', time: '1d ago', unread: false },
-    { id: '4', title: 'New Formulation Launched', desc: 'Clinical Barrier Cream SPF50+ now available to tag in routines.', time: '2d ago', unread: false }
-  ] : [
-    { id: '1', title: '7 New Pickup Orders', desc: 'Clients have chosen your hub for same-day delivery today.', time: '15m ago', unread: true },
-    { id: '2', title: 'Low Stock Alert', desc: 'Radiant Glow Oil has reached 8 remaining units (threshold: 20).', time: '1h ago', unread: true },
-    { id: '3', title: 'Wholesale Restock Dispatched', desc: 'Central Lab batch #LAB-409 is in transit to Lagos Central.', time: '4h ago', unread: false },
-    { id: '4', title: 'Settlement Cleared', desc: '₦320,450 wholesale margin transferred to your bank account.', time: '1d ago', unread: false }
-  ];
+  const notificationsList = records.filter(record => record.kind === 'ANNOUNCEMENT' && record.status === 'PUBLISHED').map(record => ({ id: record.id, title: record.title, desc: record.body, time: new Date(record.updatedAt).toLocaleString(), unread: false }));
 
   return (
     <div className="min-h-screen bg-[#FFFFFF] text-[#0F0F10] flex flex-col md:flex-row antialiased font-body overflow-x-hidden selection:bg-[#D4AF37]/20 selection:text-[#997A2E]">
@@ -101,6 +94,7 @@ export const PartnerAppShell: React.FC<PartnerAppShellProps> = ({
         width="md"
       >
         <div className="divide-y divide-[#E5E7EB]">
+          {notificationsList.length === 0 && <button className="text-sm underline" onClick={() => { setNotificationsOpen(false); onRouteChange(isCreator ? 'notifications' : 'orders'); }}>Open live workspace activity</button>}
           {notificationsList.map((n) => (
             <div key={n.id} className="py-3.5 first:pt-0 last:pb-0">
               <div className="flex items-start justify-between gap-2">

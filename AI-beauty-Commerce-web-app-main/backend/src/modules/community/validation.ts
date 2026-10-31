@@ -18,7 +18,7 @@ export const createPostSchema = z
     mediaUrl: z.string().trim().url().max(500).optional(),
     // Verified-upload path: server-staged media, consumed at post time.
     mediaId: uuid.optional(),
-    taggedProductId: uuid.optional(),
+    taggedProductId: z.string().trim().min(1).max(120).optional(),
     taggedHashtag: z.string().trim().max(80).optional(),
   })
   .strict()

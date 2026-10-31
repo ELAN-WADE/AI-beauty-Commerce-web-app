@@ -89,7 +89,7 @@ export const FaceScannerCanvas: React.FC<FaceScannerCanvasProps> = ({
       } else if (scanProgress < 75) {
         setActiveZone('Assessing Sebum Secretion & Pore Elasticity...');
       } else {
-        setActiveZone('Evaluating UV Melanin Dispersion & Barrier Health...');
+        setActiveZone('Evaluating UV Natural Dispersion & Barrier Health...');
       }
 
       // 1. Draw Mesh Lines with subtle pulsation (Imperial Gold Palette)

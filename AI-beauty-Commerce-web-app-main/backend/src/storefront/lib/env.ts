@@ -9,3 +9,8 @@ export function publicEnv(key: string, _legacyKey?: string): string | undefined 
 export function isProd(): boolean { return process.env.NODE_ENV === 'production'; }
 export function isDev(): boolean { return process.env.NODE_ENV === 'development'; }
 export function appMode(): string { return process.env.NODE_ENV ?? 'development'; }
+
+export function getEnv(key: string, fallback?: string): string | undefined {
+  const nextKey = key.startsWith('VITE_') ? key.replace('VITE_', 'NEXT_PUBLIC_') : key;
+  return values[nextKey] || fallback;
+}

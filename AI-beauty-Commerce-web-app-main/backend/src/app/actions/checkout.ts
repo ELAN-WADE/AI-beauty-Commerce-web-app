@@ -30,6 +30,7 @@ export async function checkoutAction(
     const db = getDb();
     const ip = await actionClientIp();
     const owner = await resolveActionShopper(db, args.sessionId);
+    if (!owner.userId) return { ok: false, status: 401, code: 'unauthorized', message: 'Sign in before checkout.' };
     // Shared namespace with POST /api/checkout: one budget per shopper
     // regardless of transport (REST or Server Action).
     const rl = await checkSharedRateLimit(db, `checkout:${owner.userId ?? ip}`, Limits.checkoutInit);

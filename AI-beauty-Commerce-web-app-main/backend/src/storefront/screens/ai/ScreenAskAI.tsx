@@ -77,24 +77,18 @@ export const ScreenAskAI: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  const activeTrackingId = activeOrder?.id || orders?.[0]?.id || 'DES-829104';
+  const activeTrackingId = activeOrder?.id || '';
 
   const quickPrompts = [
     { label: 'Track My Package', icon: Package, query: `Where is my package #${activeTrackingId}?` },
-    { label: 'Hyperpigmentation Routine', icon: CheckCircle2, query: 'Recommend a targeted clinical routine for hyperpigmentation on melanin skin' },
+    { label: 'Hyperpigmentation Routine', icon: CheckCircle2, query: 'Recommend a targeted natural routine for hyperpigmentation on natural skin' },
     { label: 'Whipped Shea vs 24K Oil', icon: Flame, query: 'Which body butter or oil is best for 24-hour dry skin hydration?' },
     { label: 'NAFDAC Authenticity', icon: ShieldCheck, query: 'How does Desla verify 100% NAFDAC authentic batch formulation?' },
-    { label: 'Payment Gateways', icon: HelpCircle, query: 'What payment methods are supported: Flutterwave, Stripe, or bank transfer?' },
+    { label: 'Payment Gateways', icon: HelpCircle, query: 'What payment methods are supported on Stripe and Flutterwave?' },
     { label: 'Customer Care WhatsApp', icon: PhoneCall, query: 'Connect me with the Desla VIP Customer Service Concierge' }
   ];
 
-  const recentConsultations = [
-    { id: '1', title: `Track Package #${activeTrackingId}`, time: 'Today', category: 'tracking' },
-    { id: '2', title: 'Melanin Hyperpigmentation Protocol', time: 'Yesterday', category: 'skincare' },
-    { id: '3', title: 'Whipped Shea Butter & 24K Glow Oil', time: '2 days ago', category: 'body' },
-    { id: '4', title: 'NAFDAC Batch Seal Verification', time: '3 days ago', category: 'authenticity' },
-    { id: '5', title: `${selectedCity} Same-Day Courier Dispatch`, time: 'Last week', category: 'logistics' }
-  ];
+  const recentConsultations = (liveMode ? liveMsgs : aiMessages).filter(message => message.sender === 'user').slice(-5).reverse().map(message => ({ id: message.id, title: message.text, time: message.timestamp || '', category: 'conversation' }));
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -131,7 +125,7 @@ export const ScreenAskAI: React.FC = () => {
   };
 
   const handleAddToCartWithToast = (product: any) => {
-    addToCart(product, product?.sizes?.[0] || 'Standard', 1);
+    if (!addToCart(product, product?.sizes?.[0] || 'Standard', 1)) return;
     setAddedItemNotification(product.name);
     setTimeout(() => setAddedItemNotification(null), 2500);
   };
@@ -178,39 +172,7 @@ export const ScreenAskAI: React.FC = () => {
         })}
 
         {/* Live Interactive Package Card for Tracking Inquiries */}
-        {isTracking && (
-          <div className="mt-3 p-3.5 rounded-xl bg-white border border-[#D4AF37]/50 shadow-sm space-y-2.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-[#FAF9F6] border border-[#E5E7EB] text-[#997A2E] flex items-center justify-center">
-                  <Package size={14} />
-                </div>
-                <div>
-                  <span className="font-mono font-bold text-xs text-[#0F0F10]">#{activeTrackingId}</span>
-                  <span className="text-[10px] text-[#6B7280] block">Local City Partner • {selectedCity}</span>
-                </div>
-              </div>
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
-                Out for Delivery
-              </span>
-            </div>
-
-            <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
-              <div className="bg-[#D4AF37] h-full rounded-full w-3/4 animate-pulse" />
-            </div>
-
-            <div className="flex items-center justify-between pt-1">
-              <span className="text-[11px] text-[#6B7280]">Courier ETA: <strong>25–40 mins</strong></span>
-              <button
-                onClick={() => navigateTo('orders')}
-                className="text-[11px] font-bold text-[#0F0F10] hover:text-[#997A2E] flex items-center gap-1 cursor-pointer"
-              >
-                <span>Live Route Map</span>
-                <ArrowRight size={12} />
-              </button>
-            </div>
-          </div>
-        )}
+        {isTracking && <button onClick={() => navigateTo('orders')} className="mt-3 text-sm font-semibold underline">Open your saved order status</button>}
       </div>
     );
   };
@@ -263,7 +225,7 @@ export const ScreenAskAI: React.FC = () => {
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" title="System Online" />
                 </div>
                 <p className="text-[9.5px] text-[#6B7280]">
-                  Clinical Formulations &amp; Courier Telemetry
+                  Natural Formulations &amp; Courier Telemetry
                 </p>
               </div>
             </div>
@@ -320,7 +282,7 @@ export const ScreenAskAI: React.FC = () => {
             {/* New Consultation CTA */}
             <button
               onClick={() => {
-                sendAIMessage('Hello! What clinical recommendations, orders, or package tracking can you assist me with today?');
+                sendAIMessage('Hello! What natural recommendations, orders, or package tracking can you assist me with today?');
                 if (window.innerWidth < 1024) setSidebarOpen(false);
               }}
               className="w-full py-2.5 px-3.5 rounded-xl bg-[#0F0F10] text-white hover:bg-[#1F1D22] text-xs font-heading font-bold flex items-center justify-between active:scale-[0.98] transition-all cursor-pointer shadow-xs"
@@ -346,7 +308,7 @@ export const ScreenAskAI: React.FC = () => {
                     3D AI Face Scan
                   </h4>
                   <p className="text-[10px] text-[#6B7280] truncate">
-                    Camera melanin diagnostic
+                    Camera natural diagnostic
                   </p>
                 </div>
               </div>
@@ -402,7 +364,7 @@ export const ScreenAskAI: React.FC = () => {
 
             <div className="flex items-center gap-2 text-[10px] text-[#6B7280]">
               <ShieldCheck size={14} className="text-[#997A2E] shrink-0" />
-              <span>NAFDAC Reg No. A8-9042L • Clinical GMP</span>
+              <span>Cosmetic product information • Check published product details</span>
             </div>
           </div>
         </aside>
@@ -574,7 +536,7 @@ export const ScreenAskAI: React.FC = () => {
             </form>
 
             <p className="text-[10px] text-center text-[#9CA3AF] mt-2 max-w-xl mx-auto">
-              Desla!™ AI Concierge provides clinical formulation insights &amp; tracking. For medical dermatological advice, consult a physician.
+              Desla!™ AI Concierge provides natural formulation insights &amp; tracking. For medical dermatological advice, consult a physician.
             </p>
           </div>
         </main>

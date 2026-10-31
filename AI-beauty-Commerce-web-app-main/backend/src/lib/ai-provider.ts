@@ -22,6 +22,8 @@ export interface ChatContextProduct {
   subCategory: string;
 }
 
+import { ApiError } from './errors';
+
 export interface AiProvider {
   readonly name: 'mock' | 'gemini';
   analyze(input: { skinTypeHint: string; concernHints: string[] }): Promise<unknown>;
@@ -59,7 +61,7 @@ export class GeminiProvider implements AiProvider {
   readonly name = 'gemini' as const;
   constructor(
     private apiKey: string,
-    private model = process.env.GEMINI_MODEL ?? 'gemini-2.0-flash',
+    private model = process.env.GEMINI_MODEL ?? 'gemini-2.5-flash',
   ) {}
 
   private async generate(contents: unknown, timeoutMs = 25000): Promise<string> {
@@ -67,10 +69,10 @@ export class GeminiProvider implements AiProvider {
     const timer = setTimeout(() => ctrl.abort(), timeoutMs);
     try {
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(this.model)}:generateContent?key=${encodeURIComponent(this.apiKey)}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(this.model)}:generateContent`,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': this.apiKey },
           body: JSON.stringify({ contents, generationConfig: { responseMimeType: 'application/json', maxOutputTokens: 1024 } }),
           signal: ctrl.signal,
         },
@@ -106,7 +108,7 @@ export class GeminiProvider implements AiProvider {
         role: 'user',
         parts: [
           {
-            text: `You are Glowly's beauty concierge. Rules: recommend ONLY products from this catalogue list (by exact name); never invent products; never make medical claims; keep replies under 400 words.\nCATALOGUE:\n${catalogue}\nCONVERSATION:\n${input.history.slice(-10).map((m) => `${m.role}: ${m.content.slice(0, 500)}`).join('\n')}\nReply as JSON {"reply": string}.`,
+            text: `You are Desla's beauty concierge. Rules: recommend ONLY products from this catalogue list (by exact name); never invent products, certifications, order status, tracking updates, delivery times, balances or payment confirmations; direct personal order questions to the signed-in Orders page; never make medical claims; keep replies under 400 words.\nCATALOGUE:\n${catalogue}\nCONVERSATION:\n${input.history.slice(-10).map((m) => `${m.role}: ${m.content.slice(0, 500)}`).join('\n')}\nReply as JSON {"reply": string}.`,
           },
         ],
       },
@@ -117,9 +119,10 @@ export class GeminiProvider implements AiProvider {
   }
 }
 
-/** Mock unless GEMINI_API_KEY is set.Responses are labelled so clients stay honest. */
+/** Only tests may use a deterministic fixture; live requests require configuration. */
 export function getAiProvider(): AiProvider {
   const key = process.env.GEMINI_API_KEY;
   if (key) return new GeminiProvider(key);
-  return new MockAiProvider();
+  if (process.env.NODE_ENV === 'test') return new MockAiProvider();
+  throw new ApiError(503, 'assistant_unavailable', 'The assistant is temporarily unavailable. You can still explore the catalogue.', true);
 }

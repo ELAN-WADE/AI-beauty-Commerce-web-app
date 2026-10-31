@@ -1,78 +1,20 @@
-import React from 'react';
-import { BarChart2, Download, FileText, Calendar } from 'lucide-react';
-
+import React, { useEffect, useState } from 'react';
+import { Download, FileText } from 'lucide-react';
+import { apiFetch } from '../../../lib/owned-api';
+function cell(value: unknown) { const text = String(value ?? ''); return `"${(/^[=+@-]/.test(text) ? "'" : '') + text.replace(/"/g, '""')}"`; }
 export const DistributorReports: React.FC = () => {
-  const reports = [
-    {
-      id: 'rep-1',
-      title: 'Weekly Same-Day Fulfilment Speed & SLA Report',
-      period: '1 Oct - 7 Oct 2026',
-      size: 'CSV (140 KB)',
-      desc: 'Average dispatch time: 1.8 hours. Courier handoff compliance: 98.4%.'
-    },
-    {
-      id: 'rep-2',
-      title: 'Monthly Inventory Valuation & Stock Movement Audit',
-      period: 'September 2026',
-      size: 'Excel (420 KB)',
-      desc: 'Complete SKU breakdown of incoming cartons, retail deliveries, and damaged batch logs.'
-    },
-    {
-      id: 'rep-3',
-      title: 'Wholesale Profit Margin & Tax Reconciliation',
-      period: 'Q3 2026 (Jul - Sep)',
-      size: 'PDF (1.2 MB)',
-      desc: 'Formal financial statement of 32% wholesale distribution margins earned.'
-    }
-  ];
-
-  return (
-    <div className="space-y-6 animate-in fade-in duration-200">
-      <div className="pb-2 border-b border-[#E5E7EB]">
-        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
-          Accounting &amp; Auditing
-        </span>
-        <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-[#0F0F10]">
-          Exportable Operational Reports
-        </h1>
-        <p className="text-xs sm:text-sm text-[#6B7280] mt-0.5">
-          Download CSV and Excel statements of your stock turnover, courier fulfilment SLAs, and tax margins.
-        </p>
-      </div>
-
-      <div className="space-y-4">
-        {reports.map((rep) => (
-          <div
-            key={rep.id}
-            className="p-5 rounded-3xl bg-white border border-[#E5E7EB] hover:border-[#D4AF37] transition-all shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-          >
-            <div className="flex items-start gap-3.5">
-              <div className="w-10 h-10 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] text-[#997A2E] flex items-center justify-center shrink-0">
-                <FileText size={20} />
-              </div>
-              <div className="space-y-1">
-                <h3 className="font-heading font-bold text-sm sm:text-base text-[#0F0F10]">
-                  {rep.title}
-                </h3>
-                <p className="text-xs text-[#6B7280]">{rep.desc}</p>
-                <div className="flex items-center gap-3 text-[11px] font-mono text-[#9CA3AF]">
-                  <span>{rep.period}</span>
-                  <span>•</span>
-                  <span>{rep.size}</span>
-                </div>
-              </div>
-            </div>
-
-            <button
-              onClick={() => alert(`Exporting: ${rep.title}`)}
-              className="px-5 py-2.5 rounded-full bg-[#FAF9F6] hover:bg-[#0F0F10] hover:text-white border border-[#E5E7EB] text-xs font-bold text-[#0F0F10] transition-colors flex items-center justify-center gap-2 cursor-pointer self-start sm:self-auto shrink-0"
-            >
-              <Download size={13} />
-              <span>Download Report</span>
-            </button>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+  const [data, setData] = useState<any>(null);
+  const [error, setError] = useState('');
+  useEffect(() => { let cancelled = false; apiFetch<any>('/api/partner?kind=DISTRIBUTOR').then(value => { if (!cancelled) setData(value); }).catch(error => { if (!cancelled) setError(error.message); }); return () => { cancelled = true; }; }, []);
+  const reports = data ? [
+    { id: 'orders', title: 'Assigned orders', headers: ['Order','Status','Payment status','Total NGN','Created at'], rows: data.orders.map((row: any) => [row.orderNumber,row.status,row.paymentStatus,row.totalKobo / 100,row.createdAt]) },
+    { id: 'inventory', title: 'Owned stock', headers: ['SKU','Product','Size','Pool','On hand','Reserved'], rows: data.inventory.map((row: any) => [row.sku,row.name,row.size,row.pool,row.onHand,row.reserved]) },
+    { id: 'ledger', title: 'Wallet ledger entries', headers: ['Reference','Bucket','Amount NGN','Description','Created at'], rows: data.wallet.entries.map((row: any) => [row.id,row.bucket,row.amountKobo / 100,row.description,row.createdAt]) },
+  ] : [];
+  const download = (report: typeof reports[number]) => {
+    const csv = [report.headers,...report.rows].map(row => row.map(cell).join(',')).join('\r\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+    const link = document.createElement('a'); link.href = url; link.download = `desla-${report.id}-${new Date().toISOString().slice(0,10)}.csv`; link.click(); window.setTimeout(() => URL.revokeObjectURL(url),1000);
+  };
+  return <div className="space-y-6"><div className="border-b pb-2"><h1 className="font-heading text-2xl font-extrabold">Exportable Operational Reports</h1><p className="text-sm text-[#6B7280]">Exports contain the current records returned for your account.</p></div>{error && <p role="alert">{error}</p>}{!data && !error && <p role="status">Loading reports…</p>}<div className="grid gap-4 md:grid-cols-2">{reports.map(report => <article key={report.id} className="space-y-4 rounded-3xl border bg-white p-6"><FileText className="text-[#997A2E]" /><h2 className="font-bold">{report.title}</h2><p className="text-sm">{report.rows.length} records</p><button disabled={!report.rows.length} onClick={() => download(report)} className="inline-flex items-center gap-2 rounded-full bg-black px-4 py-2 text-sm text-white disabled:opacity-40"><Download size={16} />Download CSV</button></article>)}</div></div>;
 };

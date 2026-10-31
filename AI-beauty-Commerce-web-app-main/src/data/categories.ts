@@ -1,52 +1,6 @@
 import { Category } from '../types';
 
-export const categories: Category[] = [
-  {
-    id: 'body-care',
-    name: 'Body Care',
-    slug: 'body-care',
-    itemCount: 32,
-    image: '/cat_bodycare.jpg',
-    isFeatured: true,
-    description: 'Nourishing body washes, micro-polishing scrubs, radiant dry oils, and whipped butters.'
-  },
-  {
-    id: 'skincare',
-    name: 'Skincare',
-    slug: 'skincare',
-    itemCount: 14,
-    image: '/cat_skincare.jpg',
-    isFeatured: true,
-    description: 'Safe-conscious pH 5.5 face cleansers and 100% invisible SPF50+ broad spectrum defense.'
-  },
-  {
-    id: 'fragrance',
-    name: 'Haute Fragrance',
-    slug: 'fragrance',
-    itemCount: 18,
-    image: '/cat_fragrance.jpg',
-    isFeatured: true,
-    description: '10ml concentrated artisanal perfume oils and 50ml luxury unisex Eau de Parfum.'
-  },
-  {
-    id: 'makeup',
-    name: 'Makeup & Lips',
-    slug: 'makeup',
-    itemCount: 45,
-    image: '/cat_makeup.jpg',
-    isFeatured: true,
-    description: 'High-shine peptide lip glosses, velvet matte lipsticks, and handcrafted faux mink lashes.'
-  },
-  {
-    id: 'lifestyle',
-    name: 'Fashion & Lifestyle',
-    slug: 'lifestyle',
-    itemCount: 12,
-    image: '/cat_lifestyle.jpg',
-    isFeatured: false,
-    description: 'Unisex loungewear, raw silk head accessories, and minimalist beauty lifestyle essentials.'
-  }
-];
+export const categories: Category[] = [];
 
 export const desktopNavCategories = [
   {
@@ -61,13 +15,13 @@ export const desktopNavCategories = [
     ]
   },
   {
-    title: 'Clinical Skincare',
+    title: 'Natural Skincare',
     slug: 'skincare',
     items: [
       { name: 'Face Cleanser (150ml)', sku: 'DES-FC' },
       { name: 'Invisible SPF50+ Sunscreen', sku: 'DES-SS' },
       { name: 'Barrier Restorative Care', sku: 'DES-SK' },
-      { name: 'Clinical Serums', sku: 'DES-SR' }
+      { name: 'Natural Serums', sku: 'DES-SR' }
     ]
   },
   {

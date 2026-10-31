@@ -10,11 +10,12 @@
  * - NEVER import this file from a `'use client'` component (it pulls in the
  *   DB driver). Server `page.tsx` files map the result onto the storefront
  *   `Product` type and pass plain JSON down as props.
- * - Every function degrades to an empty result when the DB is unreachable so
- *   `next build` / prerender never fails without Postgres; the client then
- *   falls back to mocks exactly as before (zero UI change).
+ * - React cache coalesces identical layout/page/metadata reads within a server
+ *   render. It does not keep prices or availability across requests.
+ * - An unavailable DB produces an empty result, never fabricated products.
  */
 import { eq } from 'drizzle-orm';
+import { cache } from 'react';
 import { getDb, type AppDb } from '@/db/client';
 import {
   getProduct,
@@ -35,13 +36,14 @@ export function toStorefrontProduct(o: PublicProduct): StorefrontProduct {
     tagline: o.tagline,
     rating: o.rating,
     reviewsCount: o.reviewsCount,
-    price: Math.round(o.minPriceNgn),
-    originalPrice: undefined,
+    price: o.minPriceNgn,
+    originalPrice: o.variants.find(variant => variant.priceKobo === o.minPriceKobo && variant.compareAtKobo && variant.compareAtKobo > variant.priceKobo)?.compareAtKobo! / 100 || undefined,
     discountPercentage: undefined,
     image: gallery[0] ?? '',
     galleryImages: gallery,
     category: o.category.slug,
     subCategory: o.subCategory,
+    variants: o.variants.map(variant => ({ id: variant.id, sku: variant.sku, sizeLabel: variant.sizeLabel, priceNgn: variant.priceNgn, compareAtNgn: variant.compareAtKobo == null ? null : variant.compareAtKobo / 100, stock: variant.available, isActive: true })),
     sizes: o.variants.map((v) => v.sizeLabel),
     selectedSize: o.variants[0]?.sizeLabel,
     inStock: o.totalAvailable > 0,
@@ -56,7 +58,8 @@ export function toStorefrontProduct(o: PublicProduct): StorefrontProduct {
     keyIngredients: [],
     howToUse: { routine: '', step: '', instructions: '', precautions: '' },
     whoItsFor: { skinTypes: [], concerns: [] },
-    brandInfo: { origin: 'Lagos, Nigeria', crueltyFree: true, guarantee: '' },
+    brandInfo: { origin: '', crueltyFree: false, guarantee: '' },
+    ...o.presentation,
   };
 }
 
@@ -75,7 +78,7 @@ function resolveDb(explicit?: AppDb): AppDb | null {
  * newest-first, max 5 pages × `limit`). Plain JSON, safe to pass as props.
  * Pass `db` in tests; pages omit it and use the pooled client.
  */
-export async function getCatalogSeed(limit = 100, db?: AppDb): Promise<StorefrontProduct[]> {
+async function readCatalogSeed(limit = 100, db?: AppDb): Promise<StorefrontProduct[]> {
   try {
     const client = resolveDb(db);
     if (!client) return [];
@@ -97,8 +100,10 @@ export async function getCatalogSeed(limit = 100, db?: AppDb): Promise<Storefron
   }
 }
 
-/** Single-product seed + metadata source. `null` = render with mocks. */
-export async function getProductSeed(slug: string, db?: AppDb): Promise<StorefrontProduct | null> {
+export const getCatalogSeed = cache(readCatalogSeed);
+
+/** Single-product seed + metadata source. `null` = product unavailable. */
+async function readProductSeed(slug: string, db?: AppDb): Promise<StorefrontProduct | null> {
   try {
     const client = resolveDb(db);
     if (!client) return null;
@@ -108,6 +113,8 @@ export async function getProductSeed(slug: string, db?: AppDb): Promise<Storefro
     return null;
   }
 }
+
+export const getProductSeed = cache(readProductSeed);
 
 /** Slugs for `generateStaticParams` (capped; unknown slugs render on demand). */
 export async function listProductSlugs(limit = 1000, db?: AppDb): Promise<string[]> {

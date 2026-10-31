@@ -1,8 +1,11 @@
+import { AdminContentComposer } from '../../components/admin/AdminContentComposer';
+import { HeroCmsEditor } from '../../components/admin/HeroCmsEditor';
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   LayoutGrid,
   ShoppingBag,
   CreditCard,
+  Coins,
   Boxes,
   ShieldCheck,
   Search,
@@ -14,6 +17,7 @@ import {
   XCircle,
   AlertTriangle,
   Clock,
+  Loader2,
   MapPin,
   RefreshCw,
   LogOut,
@@ -28,7 +32,7 @@ import {
   Edit2,
   Eye,
   SlidersHorizontal,
-  Sparkles,
+  ArrowRight,
   Tag,
   Check,
   Truck,
@@ -70,6 +74,7 @@ import {
   LogisticsIncidentTicket
 } from '../../types';
 import {
+  apiFetch,
   fetchAdminOrders,
   updateAdminOrderStatus,
   fetchAdminTransferClaims,
@@ -79,12 +84,13 @@ import {
   adjustStockApi,
   isOwnedApiConfigured
 } from '../../lib/owned-api';
+import { AdminAccessPanel } from '../../components/admin/AdminAccessPanel';
+import { AdminReviewQueue } from '../../components/admin/AdminReviewQueue';
+import { PartnerApplicationsPanel, type ApplicationQueue } from '../../components/admin/PartnerApplicationsPanel';
 import { NetworkPanel } from '../../components/admin/NetworkPanel';
 import { ProductDrawer } from '../../components/admin/ProductDrawer';
-import { products as initialProducts } from '../../data/products';
-import { categories as initialCategories } from '../../data/categories';
-import { creators as initialCreators } from '../../data/creators';
-import { reviews as initialReviews } from '../../data/reviews';
+import { AdminInventoryConsole } from '../../components/admin/AdminInventoryConsole';
+// Cleaned: Mock data imports purged for production
 
 interface CreatorApplication {
   id: string;
@@ -133,7 +139,10 @@ export const ScreenAdminConsole: React.FC = () => {
     isLiveBackend,
     isPreviewMode,
     products: appProducts,
+    adminCatalogueProducts,
+    publishStorefront,
     saveProductFromAdmin,
+    refreshAdminCatalogue,
     deleteProductFromAdmin,
     toggleProductStock,
     heroSlides,
@@ -144,7 +153,7 @@ export const ScreenAdminConsole: React.FC = () => {
     updateBrandStory,
     announcementTicker,
     updateAnnouncementTicker,
-    categories: appCategories,
+    categories: appCategories = [],
     addCategory,
     deleteCategory,
     prBoxes,
@@ -163,18 +172,87 @@ export const ScreenAdminConsole: React.FC = () => {
   } = useApp();
 
   // Active navigation tab
+  // Cryptocurrency ledger state
+  const [cryptoTransactions, setCryptoTransactions] = useState<any[]>([]);
+  const [cryptoFilter, setCryptoFilter] = useState<'ALL' | 'PENDING' | 'COMPLETED' | 'EXPIRED'>('ALL');
+  const [cryptoSearch, setCryptoSearch] = useState('');
+  const [manualVerifyPaymentId, setManualVerifyPaymentId] = useState<string | null>(null);
+  const [manualVerifyTxHash, setManualVerifyTxHash] = useState('');
+  const [isVerifyingAdminCrypto, setIsVerifyingAdminCrypto] = useState(false);
+  const [adminCryptoError, setAdminCryptoError] = useState<string | null>(null);
+  const [adminCryptoSuccess, setAdminCryptoSuccess] = useState<string | null>(null);
+
+  const pendingCryptoCount = cryptoTransactions.filter(t => t.status === 'PENDING').length;
+
+  const filteredCryptoTransactions = useMemo(() => {
+    return cryptoTransactions.filter((tx) => {
+      if (cryptoFilter !== 'ALL' && tx.status !== cryptoFilter) return false;
+      if (cryptoSearch.trim()) {
+        const q = cryptoSearch.toLowerCase();
+        const matches =
+          (tx.orderNumber && tx.orderNumber.toLowerCase().includes(q)) ||
+          (tx.customerEmail && tx.customerEmail.toLowerCase().includes(q)) ||
+          (tx.depositAddress && tx.depositAddress.toLowerCase().includes(q)) ||
+          (tx.txHash && tx.txHash.toLowerCase().includes(q)) ||
+          (tx.asset && tx.asset.toLowerCase().includes(q));
+        if (!matches) return false;
+      }
+      return true;
+    });
+  }, [cryptoTransactions, cryptoFilter, cryptoSearch]);
+
+  const handleManualVerifyCrypto = async (paymentId: string, txHash?: string) => {
+    setIsVerifyingAdminCrypto(true);
+    setAdminCryptoError(null);
+    setAdminCryptoSuccess(null);
+    try {
+      if (isLiveBackend) {
+        const res = await apiFetch<any>('/api/payments/crypto/verify', {
+          method: 'POST',
+          body: JSON.stringify({ paymentId, txHash: txHash?.trim() || undefined }),
+        });
+        setAdminCryptoSuccess(`Payment settled successfully! Order #${res.orderNumber} is marked PAID.`);
+      } else {
+        setAdminCryptoSuccess('Payment marked settled! Order settled in local ledger.');
+      }
+      setCryptoTransactions((prev) =>
+        prev.map((t) => (t.id === paymentId ? { ...t, status: 'COMPLETED', txHash: txHash || t.txHash || 'ADMIN_VERIFIED_ON_CHAIN' } : t))
+      );
+      setManualVerifyPaymentId(null);
+      setManualVerifyTxHash('');
+    } catch (err: any) {
+      setAdminCryptoError(err?.message || 'Verification failed');
+    } finally {
+      setIsVerifyingAdminCrypto(false);
+    }
+  };
+
   const [activeTab, setActiveTab] = useState<
     | 'overview'
     | 'products'
     | 'cms'
     | 'orders'
+    | 'applications'
     | 'creators'
     | 'customers'
     | 'inventory'
     | 'claims'
+    | 'crypto'
     | 'audit'
     | 'network'
-  >('overview');
+  >(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get('tab');
+      if (
+        tabParam &&
+        ['overview', 'products', 'cms', 'orders', 'applications', 'creators', 'customers', 'inventory', 'claims', 'crypto', 'audit', 'network'].includes(tabParam)
+      ) {
+        return tabParam as any;
+      }
+    }
+    return 'overview';
+  });
 
   // Chart range toggle in Overview
   const [chartRange, setChartRange] = useState<'monthly' | 'annually'>('monthly');
@@ -191,45 +269,10 @@ export const ScreenAdminConsole: React.FC = () => {
   const [newCatDesc, setNewCatDesc] = useState('');
 
   // CMS Sub-Tabs
-  const [cmsSubTab, setCmsSubTab] = useState<'hero' | 'routine' | 'story' | 'ticker'>('hero');
-  const [editingSlideId, setEditingSlideId] = useState<string | null>(null);
-  const [newSlideForm, setNewSlideForm] = useState<Partial<HeroSlide>>({
-    headline: '',
-    subtext: '',
-    tag: 'Clinical Formulation',
-    image: '/hero_slide_1.jpg',
-    actionLabel: 'Shop Formulations',
-    actionRoute: 'catalogue',
-    secondaryActionText: 'AI Skin Scan',
-    secondaryRoute: 'ai-scan'
-  });
-
+  const [cmsSubTab, setCmsSubTab] = useState<'hero' | 'routine' | 'story' | 'ticker' | 'posts'>('hero');
   // Creator state
-  const [creatorsList, setCreatorsList] = useState<Creator[]>(initialCreators);
-  const [creatorApps, setCreatorApps] = useState<CreatorApplication[]>([
-    {
-      id: 'app-01',
-      name: 'Dr. Chioma Ike',
-      handle: '@dermatology_chi',
-      platform: 'Instagram',
-      followers: '84.5K',
-      niche: 'Clinical Barrier Repair & Hyperpigmentation',
-      city: 'Lagos Island',
-      status: 'PENDING',
-      appliedAt: '2 hours ago'
-    },
-    {
-      id: 'app-02',
-      name: 'Kenzy Glam',
-      handle: '@kenzy_artistry',
-      platform: 'TikTok',
-      followers: '120K',
-      niche: 'Editorial Melanin Makeup & Glow Prep',
-      city: 'Abuja (Maitama)',
-      status: 'PENDING',
-      appliedAt: 'Yesterday'
-    }
-  ]);
+  const [creatorsList, setCreatorsList] = useState<Creator[]>([]);
+  const [creatorApps, setCreatorApps] = useState<CreatorApplication[]>([]);
   const [payingCreatorId, setPayingCreatorId] = useState<string | null>(null);
 
   // Creator Sub-Workspace & PR Gifting Suite
@@ -237,26 +280,27 @@ export const ScreenAdminConsole: React.FC = () => {
   const [prTrackingInput, setPrTrackingInput] = useState<Record<string, string>>({});
   const [isAddPRBoxModalOpen, setIsAddPRBoxModalOpen] = useState(false);
   const [newPRBoxForm, setNewPRBoxForm] = useState({
+    audience: 'CREATOR' as 'CREATOR' | 'DISTRIBUTOR' | 'ALL', productIds: [] as string[],
     title: '',
-    category: 'Clinical PR Gifting',
-    retailValue: '₦125,000',
-    spotsLeft: 10,
-    thumbnail: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=600&q=80',
-    description: 'Curated clinical collection for editorial content creators.',
-    includedProducts: 'Radiant Glow Oil, Melanin Defense SPF 50+, Amino Cleanser',
+    category: 'Natural PR Gifting',
+    retailValue: '',
+    spotsLeft: 0,
+    thumbnail: '',
+    description: '',
+    includedProducts: '',
     eligibleTiers: ['Verified', 'Icon'] as ('Rising' | 'Verified' | 'Icon')[]
   });
   const [isAddCampaignModalOpen, setIsAddCampaignModalOpen] = useState(false);
   const [newCampaignForm, setNewCampaignForm] = useState({
     title: '',
     category: 'Seasonal Campaign',
-    commissionRate: '15%',
-    bonus: '+₦30,000',
-    deadline: 'May 30, 2026',
-    description: 'Create high-fidelity 4K editorial content showcasing barrier health.',
-    heroImage: 'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&w=600&q=80',
-    deliverables: '1 4K Reel + 2 Stories + Link in Bio',
-    slots: '10 Spots Remaining',
+    commissionRate: '',
+    bonus: '',
+    deadline: '',
+    description: '',
+    heroImage: '',
+    deliverables: '',
+    slots: '',
     status: 'ACTIVE' as 'ACTIVE' | 'DRAFT' | 'COMPLETED'
   });
   const [prRequests, setPrRequests] = useState<{
@@ -267,35 +311,10 @@ export const ScreenAdminConsole: React.FC = () => {
     boxTitle: string;
     shippingAddress: string;
     requestedAt: string;
-    status: 'PENDING' | 'DISPATCHED' | 'DELIVERED';
+    status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'DISPATCHED' | 'DELIVERED';
     courier?: string;
     trackingNumber?: string;
-  }[]>([
-    {
-      id: 'pr-req-01',
-      creatorName: 'Amara Nnadi',
-      creatorHandle: '@amara_luxe',
-      creatorTier: 'Verified',
-      boxTitle: 'Radiant Glow Clinical Collection',
-      shippingAddress: 'Plot 12 Admiralty Way, Lekki Phase 1, Lagos',
-      requestedAt: '3 hours ago',
-      status: 'PENDING',
-      courier: 'GIG Logistics',
-      trackingNumber: 'GIG-NG-889104'
-    },
-    {
-      id: 'pr-req-02',
-      creatorName: 'Kenzy Glam',
-      creatorHandle: '@kenzy_artistry',
-      creatorTier: 'Icon',
-      boxTitle: 'Melanin Barrier Kit',
-      shippingAddress: '14 Mississippi St, Maitama, Abuja',
-      requestedAt: 'Yesterday',
-      status: 'DISPATCHED',
-      courier: 'DHL Express Nigeria',
-      trackingNumber: 'DHL-ABJ-449102'
-    }
-  ]);
+  }[]>([]);
   const [ugcSubmissions, setUgcSubmissions] = useState<{
     id: string;
     creatorName: string;
@@ -308,295 +327,134 @@ export const ScreenAdminConsole: React.FC = () => {
     submittedAt: string;
     status: 'PENDING' | 'APPROVED' | 'FLAGGED';
     featuredOnPDP: boolean;
-  }[]>([
-    {
-      id: 'ugc-01',
-      creatorName: 'Amara Nnadi',
-      creatorHandle: '@amara_luxe',
-      title: 'Glass Skin Melanin Morning Barrier Routine',
-      category: 'Clinical Hydration',
-      thumbnail: 'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&w=600&q=80',
-      duration: '0:58',
-      productsTagged: ['Radiant Glow Clinical Oil', 'Bio-Active Barrier Cream'],
-      submittedAt: 'Today, 10:14 AM',
-      status: 'APPROVED',
-      featuredOnPDP: true
-    },
-    {
-      id: 'ugc-02',
-      creatorName: 'Kenzy Glam',
-      creatorHandle: '@kenzy_artistry',
-      title: 'No-White-Cast Melanin SPF 50 Prep for Shoot Day',
-      category: 'Sun & Climate Defense',
-      thumbnail: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=600&q=80',
-      duration: '1:15',
-      productsTagged: ['Melanin Defense SPF 50+'],
-      submittedAt: 'Yesterday',
-      status: 'PENDING',
-      featuredOnPDP: false
-    }
-  ]);
+  }[]>([]);
 
   // Customers & Reviews state
-  const [customerReviews, setCustomerReviews] = useState<ProductReview[]>(initialReviews);
-  const [customersList] = useState<CustomerProfileSummary[]>([
-    {
-      id: 'cust-01',
-      name: 'Amina Bello',
-      email: 'amina.bello@example.com',
-      phone: '+234 803 234 5678',
-      city: 'Lagos (Ikeja)',
-      totalSpentNgn: 148500,
-      ordersCount: 4,
-      skinType: 'Combination',
-      concerns: ['Hyperpigmentation', 'Moisture Barrier'],
-      loyaltyPoints: 1250,
-      tier: 'Platinum',
-      lastActive: '12 mins ago'
-    },
-    {
-      id: 'cust-02',
-      name: 'Emeka Okafor',
-      email: 'emeka.okafor@example.com',
-      phone: '+234 812 987 6543',
-      city: 'Abuja (Wuse II)',
-      totalSpentNgn: 89000,
-      ordersCount: 2,
-      skinType: 'Oily',
-      concerns: ['Harmattan Dehydration', 'Uneven Texture'],
-      loyaltyPoints: 680,
-      tier: 'Gold',
-      lastActive: '34 mins ago'
-    },
-    {
-      id: 'cust-03',
-      name: 'Nana Poku',
-      email: 'nana.poku@example.com',
-      phone: '+233 24 123 4567',
-      city: 'Accra (Airport Residential)',
-      totalSpentNgn: 210000,
-      ordersCount: 5,
-      skinType: 'Fitzpatrick V',
-      concerns: ['Dullness', 'Barrier Repair'],
-      loyaltyPoints: 2100,
-      tier: 'Diamond',
-      lastActive: '1 hr ago'
-    },
-    {
-      id: 'cust-04',
-      name: 'Folake Adeleke',
-      email: 'folake.ade@example.com',
-      phone: '+234 802 333 4444',
-      city: 'Port Harcourt (GRA)',
-      totalSpentNgn: 112000,
-      ordersCount: 3,
-      skinType: 'Dry',
-      concerns: ['Moisture Loss', 'Fine Lines'],
-      loyaltyPoints: 940,
-      tier: 'Platinum',
-      lastActive: '4 hrs ago'
-    }
-  ]);
+  const [customerReviews, setCustomerReviews] = useState<ProductReview[]>([]);
+  const [customersList, setCustomersList] = useState<CustomerProfileSummary[]>([]);
 
-  const [skinScanLogs] = useState<SkinScanRecord[]>([
-    {
-      id: 'scan-101',
-      customerName: 'Amina Bello',
-      email: 'amina.bello@example.com',
-      timestamp: 'Today, 08:30 AM',
-      fitzpatrick: 'Type V',
-      hydrationPercent: 42,
-      barrierHealthScore: 68,
-      primaryConcern: 'Compromised Moisture Barrier',
-      recommendedRoutine: '01 Cleanse -> 03 Barrier Cream -> 04 SPF50+'
-    },
-    {
-      id: 'scan-102',
-      customerName: 'Folake Adeleke',
-      email: 'folake.ade@example.com',
-      timestamp: 'Yesterday, 14:15 PM',
-      fitzpatrick: 'Type VI',
-      hydrationPercent: 35,
-      barrierHealthScore: 54,
-      primaryConcern: 'Harmattan Dehydration & Flaking',
-      recommendedRoutine: '01 Milky Cleanse -> 02 Azelaic Elixir -> 03 Whipped Shea'
-    }
-  ]);
+  const [skinScanLogs, setSkinScanLogs] = useState<SkinScanRecord[]>([]);
 
   // Orders State
   const [ordersViewMode, setOrdersViewMode] = useState<'all' | 'delivery_requests'>('all');
-  const [orders, setOrders] = useState<AdminOrder[]>([
-    {
-      id: 'ord-101',
-      orderNumber: 'DES-829104',
-      createdAt: '12 mins ago',
-      status: 'PROCESSING',
-      paymentStatus: 'PAID',
-      totalKobo: 3850000,
-      totalNgn: 38500,
-      customerEmail: 'amina.bello@example.com',
-      customerName: 'Amina Bello',
-      customerCity: 'Lagos (Ikeja Hub)',
-      itemsCount: 3,
-      fulfillmentType: 'local'
-    },
-    {
-      id: 'ord-102',
-      orderNumber: 'DES-829103',
-      createdAt: '34 mins ago',
-      status: 'PENDING',
-      paymentStatus: 'UNPAID',
-      totalKobo: 1420000,
-      totalNgn: 14200,
-      customerEmail: 'emeka.okafor@example.com',
-      customerName: 'Emeka Okafor',
-      customerCity: 'Abuja (Wuse Hub)',
-      itemsCount: 1,
-      fulfillmentType: 'local'
-    },
-    {
-      id: 'ord-103',
-      orderNumber: 'DES-829102',
-      createdAt: '1 hr ago',
-      status: 'DELIVERED',
-      paymentStatus: 'PAID',
-      totalKobo: 2700000,
-      totalNgn: 27000,
-      customerEmail: 'nana.poku@example.com',
-      customerName: 'Nana Poku',
-      customerCity: 'Accra (Airport Hub)',
-      itemsCount: 2,
-      fulfillmentType: 'central'
-    },
-    {
-      id: 'ord-104',
-      orderNumber: 'DES-829101',
-      createdAt: '2 hrs ago',
-      status: 'SHIPPED',
-      paymentStatus: 'PAID',
-      totalKobo: 4900000,
-      totalNgn: 49000,
-      customerEmail: 'folake.ade@example.com',
-      customerName: 'Folake Adeleke',
-      customerCity: 'Port Harcourt (GRA Hub)',
-      itemsCount: 4,
-      fulfillmentType: 'local'
-    }
-  ]);
+  const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [orderUpdatingId, setOrderUpdatingId] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
 
   // NIP Bank Transfer Claims
-  const [transferClaims, setTransferClaims] = useState<AdminTransferClaim[]>([
-    {
-      id: 'clm-01',
-      orderId: 'ord-102',
-      orderNumber: 'DES-829103',
-      senderName: 'Emeka Okafor',
-      bankName: 'Guaranty Trust Bank (GTCO)',
-      amountKobo: 1420000,
-      amountNgn: 14200,
-      narration: 'NIP/GTB/DES-829103/OKA-EMEK',
-      status: 'PENDING',
-      createdAt: '30 mins ago'
-    },
-    {
-      id: 'clm-02',
-      orderId: 'ord-101',
-      orderNumber: 'DES-829104',
-      senderName: 'Amina Bello',
-      bankName: 'Access Bank Plc',
-      amountKobo: 3850000,
-      amountNgn: 38500,
-      narration: 'TXN:98129038 AMINA BELLO BEAUTY',
-      status: 'APPROVED',
-      createdAt: '1 hr ago',
-      reviewedBy: 'Central Finance Lead',
-      reviewedAt: '45 mins ago'
-    }
-  ]);
+  const [transferClaims, setTransferClaims] = useState<AdminTransferClaim[]>([]);
   const [claimProcessingId, setClaimProcessingId] = useState<string | null>(null);
 
   // Regional Hub Inventory Matrix
-  const [inventoryItems, setInventoryItems] = useState<AdminInventoryItem[]>([
-    {
-      id: 'inv-1',
-      sku: 'DES-RGO-100',
-      productName: 'Radiant Glow Clinical Oil (100ml)',
-      category: 'Body Care',
-      centralStock: 380,
-      lagosHub: 120,
-      abujaHub: 95,
-      phHub: 45,
-      kanoHub: 28,
-      lowStockThreshold: 20,
-      isLowStock: false
-    },
-    {
-      id: 'inv-2',
-      sku: 'DES-GPC-200',
-      productName: 'Gentle Purifying Amino Cleanser (200ml)',
-      category: 'Skincare',
-      centralStock: 240,
-      lagosHub: 80,
-      abujaHub: 65,
-      phHub: 18,
-      kanoHub: 22,
-      lowStockThreshold: 20,
-      isLowStock: true
-    },
-    {
-      id: 'inv-3',
-      sku: 'DES-SUN-50',
-      productName: 'Melanin Defense Sun Shield SPF 50+',
-      category: 'Skincare',
-      centralStock: 490,
-      lagosHub: 160,
-      abujaHub: 140,
-      phHub: 60,
-      kanoHub: 40,
-      lowStockThreshold: 25,
-      isLowStock: false
-    }
-  ]);
+  const [inventoryItems, setInventoryItems] = useState<AdminInventoryItem[]>([]);
 
   // Security Audit Logs
-  const [auditLogs] = useState<AdminAuditLog[]>([
-    {
-      id: 'aud-1',
-      timestamp: '10 mins ago',
-      action: 'NIP Claim Approved',
-      actor: 'Selena Thorne',
-      role: 'SUPER_ADMIN',
-      details: 'Approved ₦38,500 manual transfer claim for Order #DES-829104 (Access Bank)',
-      ipAddress: '102.89.44.12'
-    },
-    {
-      id: 'aud-2',
-      timestamp: '45 mins ago',
-      action: 'Stock Allocation Updated',
-      actor: 'System Automation',
-      role: 'LOGISTICS_SERVICE',
-      details: 'Dispatched 50 units SPF 50+ to Abuja Wuse 2 Distribution Hub',
-      ipAddress: '197.210.65.8'
-    },
-    {
-      id: 'aud-3',
-      timestamp: '2 hours ago',
-      action: 'Catalog Formulation Edited',
-      actor: 'Dr. Alabi',
-      role: 'FORMULATION_DIRECTOR',
-      details: 'Updated active percentage on Azelaic Elixir (10% bio-ferment)',
-      ipAddress: '105.112.98.41'
-    }
-  ]);
+  const [auditLogs, setAuditLogs] = useState<AdminAuditLog[]>([]);
 
   const [actionNotice, setActionNotice] = useState<string | null>(null);
+  const [refreshTick, setRefreshTick] = useState(0);
+  const [loadingLive, setLoadingLive] = useState(isLiveBackend);
+  const [workspaceRows, setWorkspaceRows] = useState<any[]>([]);
+  const loadedOwner = React.useRef<string | undefined>(undefined);
+  const can = (permission: string) => !isLiveBackend || Boolean(authUser?.roles.includes('SUPER_ADMIN') || authUser?.permissions?.includes(permission));
+  const tabPermission: Record<string, string> = { overview: 'audit:read', products: 'products:write', cms: 'products:write', orders: 'orders:read:all', applications: 'partners:review', creators: 'partners:review', customers: 'users:read:all', inventory: 'inventory:write', network: 'network:manage', claims: 'payments:confirm', crypto: 'payments:confirm', audit: 'audit:read' };
+  const canOpen = (tab: string) => can(tabPermission[tab]);
+  const [pendingApplications, setPendingApplications] = useState({ creators: 0, distributors: 0 });
+  const [applicationsError, setApplicationsError] = useState('');
+  useEffect(() => {
+    if (!isLiveBackend || !can('partners:review')) return;
+    let cancelled = false;
+    const load = () => Promise.all([
+      apiFetch<ApplicationQueue>('/api/admin/creators?status=pending'),
+      apiFetch<ApplicationQueue>('/api/admin/distributors?status=pending'),
+    ]).then(([creators, distributors]) => {
+      if (!cancelled) { setPendingApplications({ creators: creators.counts.pending, distributors: distributors.counts.pending }); setApplicationsError(''); }
+    }).catch(error => { if (!cancelled) setApplicationsError(error instanceof Error ? error.message : 'Could not load partner requests.'); });
+    void load();
+    window.addEventListener('focus', load);
+    const timer = window.setInterval(load, 30000);
+    return () => { cancelled = true; window.clearInterval(timer); window.removeEventListener('focus', load); };
+  }, [isLiveBackend, authUser?.id, authUser?.permissions?.join('|'), refreshTick]);
+  const pendingApplicationCount = pendingApplications.creators + pendingApplications.distributors;
+
+  useEffect(() => {
+    if (!isLiveBackend) return;
+    let cancelled = false;
+    setLoadingLive(true);
+    if (loadedOwner.current !== authUser?.id) {
+      loadedOwner.current = authUser?.id;
+    setOrders([]); setTransferClaims([]); setAuditLogs([]); setCreatorsList([]); setCreatorApps([]); setPrRequests([]); setUgcSubmissions([]); setCustomerReviews([]); setCustomersList([]); setSkinScanLogs([]); setInventoryItems([]);
+      setWorkspaceRows([]);
+    }
+    if (!canOpen(activeTab)) setActiveTab((Object.keys(tabPermission).find(canOpen) || 'orders') as typeof activeTab);
+    const neededPaths = ({ overview: ['/api/admin/orders', '/api/admin/transfer-claims', '/api/admin/inventory/overview', '/api/admin/crypto/transactions'], orders: ['/api/admin/orders'], claims: ['/api/admin/transfer-claims'], crypto: ['/api/admin/crypto/transactions'], audit: ['/api/admin/audit'], creators: ['/api/admin/creators', '/api/admin/workspace', '/api/admin/reviews'], customers: ['/api/admin/users'], products: [], cms: [], inventory: [], network: [] } as Record<string, string[]>)[activeTab] || [];
+    const tasks: Promise<unknown>[] = [];
+    const read = (permission: string, path: string, apply: (data: any) => void) => {
+      if (can(permission) && neededPaths.some(prefix => path.startsWith(prefix))) tasks.push(apiFetch<any>(path).then(data => { if (!cancelled) apply(data); }));
+    };
+    if (can('products:write') && ['products', 'cms'].includes(activeTab)) tasks.push(refreshAdminCatalogue());
+    read('orders:read:all', '/api/admin/orders?limit=100', data => setOrders(data.orders.map((o: any) => ({ ...o, totalNgn: o.totalKobo / 100, customerName: o.customerName || o.customerEmail || 'Customer', customerCity: o.shippingAddress?.city || '', itemsCount: o.itemsCount || 0, fulfillmentType: o.fulfillmentType }))));
+    read('payments:confirm', '/api/admin/transfer-claims', data => setTransferClaims(data.claims.map((c: any) => ({ ...c, amountNgn: c.amountKobo / 100, orderNumber: c.orderId, status: c.status === 'confirmed' ? 'APPROVED' : c.status.toUpperCase() }))));
+    read('audit:read', '/api/admin/audit?limit=100', data => setAuditLogs(data.audit.map((a: any) => ({ ...a, timestamp: a.createdAt, actor: a.actorId || 'System', role: '', details: JSON.stringify(a.after || {}), ipAddress: a.ip || '' }))));
+    read('partners:review', '/api/admin/creators', data => {
+      setCreatorApps(data.applications.map((a: any) => ({ ...a, status: a.status.toUpperCase(), followers: '—', city: '', appliedAt: a.createdAt })));
+      setCreatorsList(data.creators.map((c: any) => ({ ...c, avatar: c.avatarUrl, totalSalesNgn: c.totalSalesKobo / 100, commissionEarnedNgn: c.commissionEarnedKobo / 100, totalSales: c.totalSalesKobo / 100, earnings: c.commissionEarnedKobo / 100, status: c.verified ? 'active' : 'pending' })));
+    });
+    read('users:read:all', '/api/admin/users?limit=100', data => setCustomersList(data.users.map((u: any) => ({ ...u, name: u.displayName || u.email, phone: u.phone || '—', city: u.city || '', totalSpentNgn: u.totalSpentNgn || 0, ordersCount: u.ordersCount || 0, skinType: u.skinType || '', concerns: u.concerns || [], loyaltyPoints: u.loyaltyPoints ?? 0, tier: u.tier || 'Member', lastActive: u.createdAt }))));
+    read('inventory:write', '/api/admin/inventory/overview?limit=100', data => {
+      const locations = data.locations || [];
+      const matrix = data.matrix || [];
+      const cityKey = (locationId: string) => {
+        if (locationId === '00000000-0000-4000-8000-000000000001') return 'centralStock';
+        const city = locations.find((l: any) => l.id === locationId)?.city?.toLowerCase();
+        return ({ lagos: 'lagosHub', abuja: 'abujaHub', 'port harcourt': 'phHub', kano: 'kanoHub' } as Record<string,string>)[city] || 'centralStock';
+      };
+      const grouped = new Map<string, AdminInventoryItem>();
+      for (const row of matrix) {
+        const item = grouped.get(row.variantId) || { id: row.variantId, sku: row.sku, productName: row.productName, category: '', centralStock: 0, lagosHub: 0, abujaHub: 0, phHub: 0, kanoHub: 0, lowStockThreshold: 10, isLowStock: false };
+        if (row.pool === 'PLATFORM') (item as any)[cityKey(row.locationId)] = ((item as any)[cityKey(row.locationId)] || 0) + (row.onHand || 0);
+        item.isLowStock = item.centralStock + item.lagosHub + item.abujaHub + item.phHub + item.kanoHub <= 10;
+        grouped.set(row.variantId, item);
+      }
+      setInventoryItems([...grouped.values()]);
+    });
+    read('orders:read', '/api/admin/crypto/transactions', data => setCryptoTransactions(data.transactions || []));
+    read('reviews:moderate', '/api/admin/reviews', data => setCustomerReviews(data.reviews.map((r: any) => ({ ...r, date: r.createdAt }))));
+    read('products:write', '/api/admin/workspace', data => {
+      setWorkspaceRows(data.records);
+      setPrRequests(data.records.filter((r: any) => r.kind === 'PR_REQUEST').map((r: any) => ({ ...r, creatorName: r.ownerId, creatorHandle: '', creatorTier: 'Verified', boxTitle: r.title, shippingAddress: r.body, requestedAt: r.createdAt, status: r.status === 'SUBMITTED' ? 'PENDING' : r.status, trackingNumber: r.data?.shipping?.trackingReference || (r.status === 'DISPATCHED' ? r.reviewNote : undefined) })));
+      setUgcSubmissions(data.records.filter((r: any) => r.kind === 'CONTENT').map((r: any) => ({ ...r, creatorName: r.ownerId, creatorHandle: '', category: 'Creator content', thumbnail: '', duration: '', productsTagged: r.data?.productIds || [], submittedAt: r.createdAt, status: r.status === 'APPROVED' ? 'APPROVED' : r.status === 'REJECTED' ? 'FLAGGED' : 'PENDING', featuredOnPDP: false })));
+      updatePRBoxes(data.records.filter((r: any) => r.kind === 'PR_BOX').map((r: any) => ({ id: r.id, title: r.title, category: 'PR Box', retailValue: '', openSpots: 'Subject to approval', spotsLeft: -1, thumbnail: r.url, description: r.body, includedProducts: r.data?.productIds || [], eligibleTiers: ['Rising', 'Verified', 'Icon'], ...r.data?.details, isActive: r.status === 'PUBLISHED' })));
+      updateCreatorCampaigns(data.records.filter((r: any) => r.kind === 'CAMPAIGN').map((r: any) => ({ id: r.id, title: r.title, category: 'Campaign', commissionRate: '', bonus: '', deadline: '', description: r.body, heroImage: r.url, deliverables: [], slots: '', ...r.data?.details, status: r.status === 'PUBLISHED' ? 'ACTIVE' : 'DRAFT' })));
+    });
+    Promise.allSettled(tasks).then(results => { if (!cancelled) { const failed = results.find(r => r.status === 'rejected') as PromiseRejectedResult | undefined; if (failed) setActionNotice(failed.reason?.message || 'Could not load admin data.'); setLoadingLive(false); } });
+    return () => { cancelled = true; };
+  }, [isLiveBackend, refreshAdminCatalogue, authUser?.id, authUser?.permissions?.join('|'), refreshTick, activeTab]);
+
+  const pendingWrites = React.useRef(new Map<string, { key: string; busy: boolean }>());
+  const persist = async (path: string, payload: unknown, message: string, method = 'POST') => {
+    const body = JSON.stringify(payload), identity = method + ':' + path + ':' + body;
+    let write = pendingWrites.current.get(identity);
+    if (write?.busy) return false;
+    if (!write) { write = { key: crypto.randomUUID(), busy: false }; pendingWrites.current.set(identity, write); }
+    write.busy = true;
+    try {
+      await apiFetch(path, { method, body, headers: { 'Idempotency-Key': write.key } });
+      pendingWrites.current.delete(identity);
+      setActionNotice(message); setRefreshTick(value => value + 1); return true;
+    } catch (error) { setActionNotice(error instanceof Error ? error.message : 'Could not save changes.'); return false; }
+    finally { write.busy = false; }
+  };
+  const reviewWorkspace = (id: string, status: string, note: string) => {
+    const record = workspaceRows.find(r => r.id === id);
+    if (!record) { setActionNotice('Refresh the review queue before continuing.'); return; }
+    return persist('/api/admin/workspace', { action: 'review', id, version: record.version, status, note }, 'Review saved.');
+  };
 
   // --------------------------------------------------------------------------
   // PRODUCTS FILTERING & HANDLERS
   // --------------------------------------------------------------------------
-  const productsList = appProducts.length > 0 ? appProducts : initialProducts;
+  const productsList = isLiveBackend ? adminCatalogueProducts : appProducts;
 
   const filteredProducts = useMemo(() => {
     return productsList.filter((p) => {
@@ -639,43 +497,80 @@ export const ScreenAdminConsole: React.FC = () => {
       setTimeout(() => setActionNotice(null), 3500);
     } catch (err: any) {
       setActionNotice(`Error saving formulation: ${err.message || 'Unknown error'}`);
+      throw err;
     }
   };
 
-  const handleToggleProductStock = (id: string) => {
-    toggleProductStock(id);
-    setActionNotice('Catalog stock availability toggled.');
+  const handleToggleProductStock = async (id: string) => {
+    try { await toggleProductStock(id); setActionNotice('Catalogue publication updated.'); }
+    catch (error) { setActionNotice(error instanceof Error ? error.message : 'Could not update product.'); }
     setTimeout(() => setActionNotice(null), 2500);
   };
 
-  const handleDeleteProduct = (id: string) => {
+  const handleDeleteProduct = async (id: string) => {
     if (confirm('Are you sure you want to remove this formulation from the catalog?')) {
-      deleteProductFromAdmin(id);
-      setActionNotice('Formulation removed from catalog.');
+      try { await deleteProductFromAdmin(id); setActionNotice('Formulation removed from public catalogue.'); }
+      catch (error) { setActionNotice(error instanceof Error ? error.message : 'Could not remove product.'); }
+      setTimeout(() => setActionNotice(null), 2500);
+    }
+  };
+
+  const exportOperationalLedgerCsv = () => {
+    try {
+      const headers = ['OrderNumber', 'CustomerName', 'CustomerCity', 'TotalNgn', 'Status', 'PaymentStatus', 'CreatedAt'];
+      const rows = orders.map((o) => [
+        o.orderNumber,
+        `"${o.customerName || ''}"`,
+        `"${o.customerCity || ''}"`,
+        o.totalNgn,
+        o.status,
+        o.paymentStatus,
+        `"${o.createdAt}"`
+      ]);
+      const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement('a');
+      link.setAttribute('href', encodedUri);
+      link.setAttribute('download', `delsla_operations_ledger_${Date.now()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setActionNotice('✓ Operational CSV ledger exported successfully.');
+      setTimeout(() => setActionNotice(null), 3000);
+    } catch (err: any) {
+      setActionNotice('Export failed. Please retry.');
       setTimeout(() => setActionNotice(null), 2500);
     }
   };
 
   // Add Category Handler
-  const handleCreateCategory = (e: React.FormEvent) => {
+  const handleCreateCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCatName.trim() || !newCatSlug.trim()) return;
+    if (isLiveBackend) {
+      if (await persist('/api/admin/categories', { name: newCatName.trim(), slug: newCatSlug.trim().toLowerCase().replace(/\s+/g, '-'), description: newCatDesc.trim() }, 'Category saved.')) { setIsCategoryModalOpen(false); setNewCatName(''); setNewCatSlug(''); }
+      return;
+    }
     const newCat: Category = {
       id: `cat-${Date.now()}`,
       name: newCatName.trim(),
       slug: newCatSlug.trim().toLowerCase().replace(/\s+/g, '-'),
       itemCount: 0,
       image: '/cat_skincare.jpg',
-      description: newCatDesc.trim() || 'Clinical formulation category.',
+      description: newCatDesc.trim() || 'Natural formulation category.',
       isFeatured: true
     };
-    addCategory(newCat);
-    setNewCatName('');
-    setNewCatSlug('');
-    setNewCatDesc('');
-    setIsCategoryModalOpen(false);
-    setActionNotice(`Category added: ${newCat.name}`);
-    setTimeout(() => setActionNotice(null), 3000);
+    try {
+      await addCategory(newCat);
+      setNewCatName('');
+      setNewCatSlug('');
+      setNewCatDesc('');
+      setIsCategoryModalOpen(false);
+      setActionNotice(`Category added: ${newCat.name}`);
+      setTimeout(() => setActionNotice(null), 3000);
+    } catch (err: any) {
+      setActionNotice(err?.message || 'Failed to create category on backend.');
+    }
   };
 
   // --------------------------------------------------------------------------
@@ -726,156 +621,47 @@ export const ScreenAdminConsole: React.FC = () => {
 
   // Creator App Review
   const handleReviewCreatorApp = (appId: string, approved: boolean) => {
-    setCreatorApps((prev) =>
-      prev.map((app) => (app.id === appId ? { ...app, status: approved ? 'APPROVED' : 'REJECTED' } : app))
-    );
-    if (approved) {
-      const app = creatorApps.find((a) => a.id === appId);
-      if (app) {
-        const promoCode = app.name.split(' ')[0].toUpperCase() + '10';
-        setCreatorsList((prev) => [
-          ...prev,
-          {
-            id: `creator-${Date.now()}`,
-            name: app.name,
-            handle: app.handle,
-            tier: 'Verified Partner',
-            followers: app.followers,
-            commissionRate: 15,
-            promoCode,
-            totalSalesNgn: 0,
-            commissionEarnedNgn: 0,
-            totalSales: 0,
-            earnings: 0,
-            status: 'active'
-          } as any
-        ]);
-        setActionNotice(`Creator approved with promo code ${promoCode} and 15% commission.`);
-      }
-    } else {
-      setActionNotice('Creator application marked as declined.');
-    }
-    setTimeout(() => setActionNotice(null), 3500);
+    setActiveTab('applications');
+    setActionNotice('Select the application to review its details and set its actual promo code, discount and commission.');
   };
 
   const handlePayCreator = (creatorId: string) => {
-    setPayingCreatorId(creatorId);
-    setTimeout(() => {
-      setPayingCreatorId(null);
-      setCreatorsList((prev) =>
-        prev.map((c) => (c.id === creatorId ? { ...c, commissionEarnedNgn: 0, earnings: 0 } : c))
-      );
-      setActionNotice('Creator commission payout initiated via NIP.');
-      setTimeout(() => setActionNotice(null), 3000);
-    }, 1200);
+    setActionNotice('Review the creator withdrawal request in the payment workflow. No funds have been sent.');
   };
 
   // Creator PR Package Dispatch
   const handleDispatchPRRequest = (reqId: string) => {
-    const tracking = prTrackingInput[reqId] || `GIG-NG-${Math.floor(100000 + Math.random() * 900000)}`;
-    setPrRequests((prev) =>
-      prev.map((r) =>
-        r.id === reqId
-          ? { ...r, status: 'DISPATCHED', courier: 'GIG Logistics Express', trackingNumber: tracking }
-          : r
-      )
-    );
-    setActionNotice(`PR Box dispatched with tracking: ${tracking}`);
-    setTimeout(() => setActionNotice(null), 3500);
+    const tracking = prTrackingInput[reqId]?.trim();
+    if (!tracking) { setActionNotice('Enter the actual courier and tracking reference.'); return; }
+    void reviewWorkspace(reqId, 'DISPATCHED', tracking);
   };
 
   // Create PR Box Offering Handler
-  const handleCreatePRBox = (e: React.FormEvent) => {
+  const handleCreatePRBox = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPRBoxForm.title.trim()) return;
-    addPRBox({
-      id: 'pr-box-' + Date.now(),
-      title: newPRBoxForm.title.trim(),
-      category: newPRBoxForm.category,
-      retailValue: newPRBoxForm.retailValue,
-      openSpots: `${newPRBoxForm.spotsLeft} Spots`,
-      spotsLeft: Number(newPRBoxForm.spotsLeft),
-      thumbnail: newPRBoxForm.thumbnail,
-      description: newPRBoxForm.description,
-      includedProducts: newPRBoxForm.includedProducts.split(',').map((p) => p.trim()),
-      eligibleTiers: newPRBoxForm.eligibleTiers,
-      isActive: true
-    });
-    setIsAddPRBoxModalOpen(false);
-    setNewPRBoxForm({
-      title: '',
-      category: 'Clinical PR Gifting',
-      retailValue: '₦125,000',
-      spotsLeft: 10,
-      thumbnail: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=600&q=80',
-      description: 'Curated clinical collection for editorial content creators.',
-      includedProducts: 'Radiant Glow Oil, Melanin Defense SPF 50+, Amino Cleanser',
-      eligibleTiers: ['Verified', 'Icon']
-    });
-    setActionNotice('New PR Gift Box published to Creator Press Room.');
-    setTimeout(() => setActionNotice(null), 3500);
+      const saved = await persist('/api/admin/workspace', { action: 'publish', type: 'PR_BOX', audience: newPRBoxForm.audience, active: true, title: newPRBoxForm.title.trim(), body: newPRBoxForm.description, url: newPRBoxForm.thumbnail || appProducts.find(product => newPRBoxForm.productIds.includes(product.id))?.image || '', details: { category: newPRBoxForm.category, retailValue: newPRBoxForm.retailValue, spotsLeft: Number(newPRBoxForm.spotsLeft), includedProducts: appProducts.filter(product => newPRBoxForm.productIds.includes(product.id)).map(product => product.name), eligibleTiers: newPRBoxForm.eligibleTiers }, productIds: newPRBoxForm.productIds }, 'Publication saved for creators.');
+      if (saved) { setIsAddPRBoxModalOpen(false); setNewPRBoxForm(previous => ({ ...previous, title: '', description: '', thumbnail: '', productIds: [], spotsLeft: 0 })); }
+
   };
 
   // Create Creator Campaign Brief Handler
-  const handleCreateCampaign = (e: React.FormEvent) => {
+  const handleCreateCampaign = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCampaignForm.title.trim()) return;
-    addCreatorCampaign({
-      id: 'camp-' + Date.now(),
-      title: newCampaignForm.title.trim(),
-      category: newCampaignForm.category,
-      commissionRate: newCampaignForm.commissionRate,
-      bonus: newCampaignForm.bonus,
-      deadline: newCampaignForm.deadline,
-      description: newCampaignForm.description,
-      heroImage: newCampaignForm.heroImage,
-      deliverables: newCampaignForm.deliverables.split('+').map((d) => d.trim()),
-      slots: newCampaignForm.slots,
-      status: newCampaignForm.status
-    });
-    setIsAddCampaignModalOpen(false);
-    setNewCampaignForm({
-      title: '',
-      category: 'Seasonal Campaign',
-      commissionRate: '15%',
-      bonus: '+₦30,000',
-      deadline: 'May 30, 2026',
-      description: 'Create high-fidelity 4K editorial content showcasing barrier health.',
-      heroImage: 'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&w=600&q=80',
-      deliverables: '1 4K Reel + 2 Stories + Link in Bio',
-      slots: '10 Spots Remaining',
-      status: 'ACTIVE'
-    });
-    setActionNotice('New Brand Campaign brief published to Creator Press Room.');
-    setTimeout(() => setActionNotice(null), 3500);
+      const saved = await persist('/api/admin/workspace', { action: 'publish', type: 'CAMPAIGN', audience: 'CREATOR', active: newCampaignForm.status === 'ACTIVE', title: newCampaignForm.title.trim(), body: newCampaignForm.description, url: newCampaignForm.heroImage, details: { category: newCampaignForm.category, commissionRate: newCampaignForm.commissionRate, bonus: newCampaignForm.bonus, deadline: newCampaignForm.deadline, deliverables: newCampaignForm.deliverables.split('+').map(d => d.trim()), slots: newCampaignForm.slots }, productIds: [] }, 'Publication saved for creators.');
+      if (saved) { setIsAddCampaignModalOpen(false); setNewCampaignForm(previous => ({ ...previous, title: '', description: '', heroImage: '' })); }
+
   };
 
   // Creator UGC Routine Moderation
   const handleModerateUGC = (id: string, action: 'approve' | 'flag') => {
-    setUgcSubmissions((prev) =>
-      prev.map((u) =>
-        u.id === id
-          ? {
-              ...u,
-              status: action === 'approve' ? 'APPROVED' : 'FLAGGED',
-              featuredOnPDP: action === 'approve'
-            }
-          : u
-      )
-    );
-    setActionNotice(action === 'approve' ? 'UGC approved & featured on Storefront PDP.' : 'UGC content flagged.');
-    setTimeout(() => setActionNotice(null), 3000);
+    void reviewWorkspace(id, action === 'approve' ? 'APPROVED' : 'REJECTED', action === 'approve' ? 'Approved for the community feed.' : 'Please revise this submission.');
   };
 
   // Review Moderation
   const handleModerateReview = (reviewId: string, approve: boolean) => {
-    setCustomerReviews((prev) =>
-      prev.map((r) =>
-        r.id === reviewId ? { ...r, verifiedPurchase: approve } : r
-      )
-    );
-    setActionNotice(approve ? 'Review approved for PDP display.' : 'Review flagged.');
-    setTimeout(() => setActionNotice(null), 2500);
+    void persist('/api/admin/reviews/' + reviewId, { status: approve ? 'approved' : 'rejected' }, 'Review moderation saved.', 'PATCH');
   };
 
   // Filtered orders
@@ -890,12 +676,14 @@ export const ScreenAdminConsole: React.FC = () => {
   const pendingClaimsCount = transferClaims.filter((c) => c.status === 'PENDING').length;
   const pendingCreatorAppsCount = creatorApps.filter((a) => a.status === 'PENDING').length;
 
+  if (loadingLive) return <div role="status" className="p-10 text-center">Loading your admin workspace…</div>;
+
   return (
     <div className="min-h-screen bg-[#FAF9F6] text-[#0F0F10] font-body flex selection:bg-[#D4AF37]/20 selection:text-[#997A2E]">
       {/* ======================================================== */}
       {/* 1. LEFT MINIMALIST ICON DOCK                              */}
       {/* ======================================================== */}
-      <aside className="hidden lg:flex flex-col items-center justify-between w-20 m-4 py-6 bg-white border border-[#EAE8E3] rounded-3xl shadow-[0_4px_24px_rgba(15,15,16,0.04)] z-20">
+      <aside className="hidden lg:flex sticky top-4 self-start h-[calc(100dvh-2rem)] shrink-0 flex-col items-center justify-between w-20 m-4 py-6 bg-white border border-[#EAE8E3] rounded-3xl shadow-[0_4px_24px_rgba(15,15,16,0.04)] z-20">
         <div className="flex flex-col items-center gap-6">
           {/* Brand Monogram */}
           <button
@@ -907,19 +695,21 @@ export const ScreenAdminConsole: React.FC = () => {
           </button>
 
           {/* Navigation Icon List */}
-          <nav className="flex flex-col items-center gap-2.5">
+          <nav className="flex flex-col items-center gap-2.5 overflow-y-auto min-h-0 max-h-[calc(100dvh-15rem)] py-1 px-2">
             {[
               { id: 'overview', icon: LayoutGrid, label: 'Overview' },
               { id: 'products', icon: Package, label: 'Formulations & Taxonomy', badge: productsList.length },
               { id: 'cms', icon: Palette, label: 'Editorial CMS' },
               { id: 'orders', icon: ShoppingBag, label: 'Orders & Dispatch', badge: orders.filter((o) => o.status === 'PENDING').length },
-              { id: 'creators', icon: Sparkles, label: 'Creator Press Room', badge: pendingCreatorAppsCount },
+              { id: 'applications', icon: UserCheck, label: 'Partner Applications', badge: pendingApplicationCount },
+              { id: 'creators', icon: Award, label: 'Creator Press Room', badge: pendingCreatorAppsCount },
               { id: 'customers', icon: UserCheck, label: 'Customer Intelligence' },
-              { id: 'inventory', icon: Boxes, label: 'Logistics & Wholesale' },
+              { id: 'inventory', icon: Boxes, label: 'Inventory Management', badge: inventoryItems.filter((i) => i.isLowStock).length || undefined },
               { id: 'network', icon: Building2, label: 'Distributor Hubs' },
               { id: 'claims', icon: CreditCard, label: 'NIP Claims', badge: pendingClaimsCount },
+              { id: 'crypto', icon: Coins, label: 'Crypto Ledger', badge: pendingCryptoCount },
               { id: 'audit', icon: ShieldCheck, label: 'Security & Audit' }
-            ].map((tab) => {
+            ].filter(tab => canOpen(tab.id)).map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
               return (
@@ -970,7 +760,7 @@ export const ScreenAdminConsole: React.FC = () => {
       {/* ======================================================== */}
       {/* 2. MAIN WORKSPACE CONTAINER                               */}
       {/* ======================================================== */}
-      <div className="flex-1 flex flex-col p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto w-full">
+      <div className="flex-1 min-w-0 flex flex-col p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto w-full">
         {/* TOP HEADER BAR */}
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div>
@@ -988,9 +778,25 @@ export const ScreenAdminConsole: React.FC = () => {
           </div>
 
           <div className="flex items-center flex-wrap gap-2.5">
+            {/* Direct Inventory Console Button */}
+            <button
+              onClick={() => setActiveTab('inventory')}
+              className={`px-4 py-2 rounded-full border text-xs font-bold shadow-xs flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer ${
+                activeTab === 'inventory'
+                  ? 'bg-[#0F0F10] text-[#D4AF37] border-[#0F0F10]'
+                  : 'bg-white text-[#0F0F10] border-[#D4AF37]/50 hover:bg-[#FAF9F6]'
+              }`}
+            >
+              <Boxes className="w-3.5 h-3.5 text-[#997A2E]" />
+              <span>Inventory Management</span>
+              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-[#FAF9F6] border border-[#EAE8E3] text-[#0F0F10]">
+                5 Hubs
+              </span>
+            </button>
+
             {/* Quick Export CSV */}
             <button
-              onClick={() => alert('Exporting live operational ledger to CSV…')}
+              onClick={exportOperationalLedgerCsv}
               className="px-4 py-2 rounded-full bg-white border border-[#EAE8E3] hover:bg-[#FAF9F6] text-xs font-semibold text-[#0F0F10] shadow-xs flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer"
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-[#0F0F10]" />
@@ -1033,16 +839,18 @@ export const ScreenAdminConsole: React.FC = () => {
         <div className="lg:hidden flex items-center gap-2 overflow-x-auto pb-2 mb-4 scrollbar-none">
           {[
             { id: 'overview', label: 'Overview' },
+            { id: 'inventory', label: 'Inventory Management' },
             { id: 'products', label: `Catalog (${productsList.length})` },
             { id: 'cms', label: 'Editorial CMS' },
             { id: 'orders', label: `Orders (${orders.length})` },
+            { id: 'applications', label: `Partner Applications (${pendingApplicationCount})` },
             { id: 'creators', label: `Creators (${creatorsList.length})` },
             { id: 'customers', label: `Customers (${customersList.length})` },
-            { id: 'inventory', label: 'Logistics Matrix' },
             { id: 'claims', label: `Claims (${pendingClaimsCount})` },
+            { id: 'crypto', label: `Crypto (${pendingCryptoCount})` },
             { id: 'network', label: 'Partner Network' },
             { id: 'audit', label: 'Security Audit' }
-          ].map((tab) => (
+          ].filter(tab => canOpen(tab.id)).map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
@@ -1060,6 +868,11 @@ export const ScreenAdminConsole: React.FC = () => {
         {/* ======================================================== */}
         {/* WORKSPACE 1: EXECUTIVE OVERVIEW                           */}
         {/* ======================================================== */}
+        {activeTab === 'applications' && <PartnerApplicationsPanel onReviewed={() => setRefreshTick(value => value + 1)} />}
+        {activeTab === 'overview' && can('partners:review') && <section aria-label="Pending partner applications" className="mb-5 flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-[#EAE8E3] bg-white p-5">
+          <div><h2 className="font-heading text-lg font-bold">Partner Applications</h2><p className="text-sm text-[#71717A]">{pendingApplications.creators} creator requests · {pendingApplications.distributors} distributor requests awaiting review</p>{applicationsError && <p role="alert" className="text-sm text-rose-700">{applicationsError}</p>}</div>
+          <button type="button" onClick={() => setActiveTab('applications')} className="rounded-full bg-[#0F0F10] px-5 py-3 text-sm text-white">Review partner applications</button>
+        </section>}
         {activeTab === 'overview' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in fade-in duration-200">
             {/* Left 4 Cols: Obsidian Vault Card & Liquidity */}
@@ -1071,10 +884,10 @@ export const ScreenAdminConsole: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-heading font-black tracking-wider text-[#D4AF37]">
-                        DELSLA!™ VAULT
+                        DESLA!™ SALES
                       </span>
                       <span className="text-[9.5px] font-mono bg-white/10 px-2 py-0.5 rounded-full border border-white/10 text-white/90">
-                        NAFDAC TIER-1
+                        ORDER RECORDS
                       </span>
                     </div>
                     <span className="font-heading font-bold tracking-widest text-sm text-[#D4AF37]">
@@ -1085,17 +898,17 @@ export const ScreenAdminConsole: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-6 rounded bg-gradient-to-r from-[#D4AF37] to-[#E6CA65] border border-amber-300 shadow-xs" />
                     <span className="text-[11px] font-mono text-[#D4AF37]/90 tracking-wider">
-                      •••• 909090
+                      RECENT PAID ORDER VOLUME
                     </span>
                   </div>
 
                   <div className="flex items-end justify-between">
                     <div>
                       <span className="block text-[10px] uppercase font-mono text-white/60">
-                        Settled Net Volume
+                        Recent paid order volume
                       </span>
                       <span className="text-2xl font-mono font-bold tracking-tight text-white">
-                        ₦28,495,200
+                        {isLiveBackend ? `₦${orders.filter(o => o.paymentStatus === 'PAID').reduce((sum, o) => sum + o.totalNgn, 0).toLocaleString()}` : '₦0'}
                       </span>
                     </div>
                     <span className="text-[10px] font-mono bg-white/10 px-2.5 py-1 rounded-full border border-white/10 text-[#D4AF37]">
@@ -1111,34 +924,48 @@ export const ScreenAdminConsole: React.FC = () => {
                   <h3 className="text-sm font-heading font-bold text-[#0F0F10]">
                     Inflow Channels
                   </h3>
-                  <span className="text-[10px] font-mono text-[#71717A]">Rolling 30 Days</span>
+                  <span className="text-[10px] font-mono text-[#71717A]">Loaded operational records</span>
                 </div>
 
-                <div className="space-y-3 text-xs">
-                  <div className="flex items-center justify-between p-3 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3]">
-                    <div className="flex items-center gap-2.5">
-                      <CreditCard className="w-4 h-4 text-[#0F0F10]" />
-                      <span className="font-medium text-[#0F0F10]">Paystack / Cards</span>
-                    </div>
-                    <span className="font-mono font-bold text-[#0F0F10]">₦19,420,000</span>
-                  </div>
+                {(() => {
+                  const cardInflow = orders
+                    .filter(o => o.paymentStatus === 'PAID' && !(o.paymentMethod?.toLowerCase().includes('transfer') || o.paymentMethod?.toLowerCase().includes('crypto')))
+                    .reduce((sum, o) => sum + (o.totalNgn || 0), 0);
+                  const transferInflow = orders
+                    .filter(o => o.paymentStatus === 'PAID' && (o.paymentMethod?.toLowerCase().includes('transfer') || o.paymentMethod?.toLowerCase().includes('nip')))
+                    .reduce((sum, o) => sum + (o.totalNgn || 0), 0);
+                  const cryptoInflow = cryptoTransactions
+                    .filter(t => t.status === 'COMPLETED' || t.status === 'PAID')
+                    .reduce((sum, t) => sum + (t.amountNgn || 0), 0);
 
-                  <div className="flex items-center justify-between p-3 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3]">
-                    <div className="flex items-center gap-2.5">
-                      <Building2 className="w-4 h-4 text-[#0F0F10]" />
-                      <span className="font-medium text-[#0F0F10]">NIP Bank Transfers</span>
-                    </div>
-                    <span className="font-mono font-bold text-[#0F0F10]">₦6,850,200</span>
-                  </div>
+                  return (
+                    <div className="space-y-3 text-xs">
+                      <div className="flex items-center justify-between p-3 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3]">
+                        <div className="flex items-center gap-2.5">
+                          <CreditCard className="w-4 h-4 text-[#0F0F10]" />
+                          <span className="font-medium text-[#0F0F10]">Hosted Gateway (Cards / Online)</span>
+                        </div>
+                        <span className="font-mono font-bold text-[#0F0F10]">₦{cardInflow.toLocaleString()}</span>
+                      </div>
 
-                  <div className="flex items-center justify-between p-3 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3]">
-                    <div className="flex items-center gap-2.5">
-                      <Truck className="w-4 h-4 text-[#0F0F10]" />
-                      <span className="font-medium text-[#0F0F10]">Hub Cash on Delivery</span>
+                      <div className="flex items-center justify-between p-3 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3]">
+                        <div className="flex items-center gap-2.5">
+                          <Building2 className="w-4 h-4 text-[#0F0F10]" />
+                          <span className="font-medium text-[#0F0F10]">NIP Bank Transfers</span>
+                        </div>
+                        <span className="font-mono font-bold text-[#0F0F10]">₦{transferInflow.toLocaleString()}</span>
+                      </div>
+
+                      <div className="flex items-center justify-between p-3 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3]">
+                        <div className="flex items-center gap-2.5">
+                          <Coins className="w-4 h-4 text-[#D4AF37]" />
+                          <span className="font-medium text-[#0F0F10]">Web3 Escrow (Crypto)</span>
+                        </div>
+                        <span className="font-mono font-bold text-[#0F0F10]">₦{cryptoInflow.toLocaleString()}</span>
+                      </div>
                     </div>
-                    <span className="font-mono font-bold text-[#0F0F10]">₦2,225,000</span>
-                  </div>
-                </div>
+                  );
+                })()}
               </div>
             </div>
 
@@ -1147,12 +974,12 @@ export const ScreenAdminConsole: React.FC = () => {
               {/* Stat Metrics Row */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="p-4 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs">
-                  <span className="text-[10px] font-mono uppercase text-[#71717A] block">Gross Sales</span>
+                  <span className="text-[10px] font-mono uppercase text-[#71717A] block">Paid sales in loaded orders</span>
                   <span className="text-xl font-heading font-extrabold text-[#0F0F10] mt-1 block">
-                    ₦32.6M
+                    {isLiveBackend ? `₦${orders.filter(o => o.paymentStatus === 'PAID').reduce((sum, o) => sum + o.totalNgn, 0).toLocaleString()}` : '₦0'}
                   </span>
                   <span className="text-[10px] font-mono text-[#0F0F10] flex items-center gap-1 mt-0.5">
-                    <TrendingUp className="w-3 h-3 text-[#D4AF37]" /> +18.4% MoM
+                    <TrendingUp className="w-3 h-3 text-[#D4AF37]" /> {isLiveBackend ? 'Latest 100 orders' : 'No historical comparison'}
                   </span>
                 </div>
 
@@ -1220,35 +1047,38 @@ export const ScreenAdminConsole: React.FC = () => {
                 </div>
 
                 {/* Minimalist SVG Curve */}
-                <div className="h-36 w-full my-3">
-                  <svg className="w-full h-full overflow-visible" viewBox="0 0 400 100" preserveAspectRatio="none">
-                    <defs>
-                      <linearGradient id="velocityGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" stopColor="#D4AF37" stopOpacity="0.25" />
-                        <stop offset="100%" stopColor="#D4AF37" stopOpacity="0.0" />
-                      </linearGradient>
-                    </defs>
-                    <path
-                      d="M0,80 Q50,30 100,55 T200,35 T300,60 T400,20 L400,100 L0,100 Z"
-                      fill="url(#velocityGrad)"
-                    />
-                    <path
-                      d="M0,80 Q50,30 100,55 T200,35 T300,60 T400,20"
-                      fill="none"
-                      stroke="#0F0F10"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                </div>
+                {(() => {
+                  const now = Date.now();
+                  const weekMs = (chartRange === 'annually' ? 91.3125 : 7) * 24 * 60 * 60 * 1000;
+                  const paidOrders = orders.filter(order => order.paymentStatus === 'PAID');
+                  const w1 = paidOrders.filter(o => now - new Date(o.createdAt || 0).getTime() <= weekMs);
+                  const w2 = paidOrders.filter(o => { const d = now - new Date(o.createdAt || 0).getTime(); return d > weekMs && d <= 2 * weekMs; });
+                  const w3 = paidOrders.filter(o => { const d = now - new Date(o.createdAt || 0).getTime(); return d > 2 * weekMs && d <= 3 * weekMs; });
+                  const w4 = paidOrders.filter(o => { const d = now - new Date(o.createdAt || 0).getTime(); return d > 3 * weekMs && d <= 4 * weekMs; });
 
-                <div className="flex items-center justify-between text-[11px] font-mono text-[#71717A] pt-2 border-t border-[#EAE8E3]">
-                  <span>WK 01</span>
-                  <span>WK 02</span>
-                  <span>WK 03</span>
-                  <span>WK 04</span>
-                  <span className="font-bold text-[#0F0F10]">CURRENT RUN RATE: ₦1.08M / DAY</span>
-                </div>
+                  return (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-4 gap-2 pt-2 text-center">
+                        {[
+                          { label: (chartRange === 'annually' ? 'Q ' : 'WK ') + '1', count: w1.length, vol: w1.reduce((s, o) => s + (o.totalNgn || 0), 0) },
+                          { label: (chartRange === 'annually' ? 'Q ' : 'WK ') + '2', count: w2.length, vol: w2.reduce((s, o) => s + (o.totalNgn || 0), 0) },
+                          { label: (chartRange === 'annually' ? 'Q ' : 'WK ') + '3', count: w3.length, vol: w3.reduce((s, o) => s + (o.totalNgn || 0), 0) },
+                          { label: (chartRange === 'annually' ? 'Q ' : 'WK ') + '4', count: w4.length, vol: w4.reduce((s, o) => s + (o.totalNgn || 0), 0) },
+                        ].map((w) => (
+                          <div key={w.label} className="p-3 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3]">
+                            <span className="text-[10px] font-mono text-[#71717A] block">{w.label}</span>
+                            <span className="text-sm font-bold font-mono text-[#0F0F10] block mt-0.5">{w.count} orders</span>
+                            <span className="text-[10px] font-mono text-[#D4AF37] block">₦{w.vol.toLocaleString()}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] font-mono text-[#71717A] pt-2 border-t border-[#EAE8E3]">
+                        <span>Multi-channel fulfillment</span>
+                        <span className="font-bold text-[#0F0F10]">Active velocity tracked across {orders.length} orders</span>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Recent Orders Overview */}
@@ -1283,6 +1113,85 @@ export const ScreenAdminConsole: React.FC = () => {
                   ))}
                 </div>
               </div>
+
+              {/* Regional Multi-Hub Inventory Health & Live Reorder Matrix */}
+              <div className="p-6 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-[#997A2E] font-bold">
+                        Stock Telemetry
+                      </span>
+                      <span className="text-[9.5px] font-mono px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        ● 5 Regional Hubs Operational
+                      </span>
+                    </div>
+                    <h3 className="text-base font-heading font-bold text-[#0F0F10]">
+                      Multi-Hub Inventory Distribution &amp; Health
+                    </h3>
+                  </div>
+
+                  <button
+                    onClick={() => setActiveTab('inventory')}
+                    className="px-4 py-2 rounded-full bg-[#0F0F10] text-[#D4AF37] hover:bg-[#27272A] text-xs font-bold font-mono flex items-center gap-1.5 self-start sm:self-auto cursor-pointer shadow-xs active:scale-95 transition-all"
+                  >
+                    <Boxes className="w-3.5 h-3.5 text-[#D4AF37]" />
+                    <span>Open Full 5-Hub Matrix</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-1">
+                  {[
+                    { hub: 'Central Lab', units: inventoryItems.reduce((acc, i) => acc + i.centralStock, 0), badge: 'Master Lab' },
+                    { hub: 'Lagos Hub', units: inventoryItems.reduce((acc, i) => acc + i.lagosHub, 0), badge: 'High Velocity' },
+                    { hub: 'Abuja Wuse', units: inventoryItems.reduce((acc, i) => acc + i.abujaHub, 0), badge: 'Healthy' },
+                    { hub: 'Port Harcourt', units: inventoryItems.reduce((acc, i) => acc + i.phHub, 0), badge: 'Low Buffer' },
+                    { hub: 'Kano Hub', units: inventoryItems.reduce((acc, i) => acc + i.kanoHub, 0), badge: 'Reorder Due' }
+                  ].map((h) => (
+                    <div key={h.hub} className="p-3 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] text-center">
+                      <span className="text-[10px] font-mono text-[#71717A] block truncate">{h.hub}</span>
+                      <span className="text-lg font-heading font-extrabold text-[#0F0F10] block mt-0.5">
+                        {h.units}
+                      </span>
+                      <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded-full inline-block mt-1 ${
+                        h.badge === 'Reorder Due' || h.badge === 'Low Buffer'
+                          ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                          : 'bg-white text-[#71717A] border border-[#EAE8E3]'
+                      }`}>
+                        {h.badge}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="divide-y divide-[#EAE8E3] pt-1">
+                  {inventoryItems.map((item) => (
+                    <div key={item.id} className="py-2.5 flex items-center justify-between text-xs">
+                      <div>
+                        <span className="font-bold text-[#0F0F10] block">{item.productName}</span>
+                        <span className="font-mono text-[10px] text-[#71717A]">
+                          SKU: {item.sku} • Central: {item.centralStock} • Lagos: {item.lagosHub} • Abuja: {item.abujaHub} • PH: {item.phHub} • Kano: {item.kanoHub}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="font-mono font-bold text-[#0F0F10] block">
+                          {item.centralStock + item.lagosHub + item.abujaHub + item.phHub + item.kanoHub} Units Total
+                        </span>
+                        {item.isLowStock ? (
+                          <span className="text-[9px] font-mono text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.2 rounded-full">
+                            Low Buffer Warning
+                          </span>
+                        ) : (
+                          <span className="text-[9px] font-mono text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.2 rounded-full">
+                            Optimal Stock
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -1299,13 +1208,13 @@ export const ScreenAdminConsole: React.FC = () => {
                 <span className="text-xl font-heading font-extrabold text-[#0F0F10] mt-1 block">
                   {productsList.length}
                 </span>
-                <span className="text-[10px] font-mono text-[#0F0F10]">Clinical Formulations</span>
+                <span className="text-[10px] font-mono text-[#0F0F10]">Natural Formulations</span>
               </div>
 
               <div className="p-4 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs">
                 <span className="text-[10px] font-mono text-[#71717A] block uppercase">Published Live</span>
                 <span className="text-xl font-heading font-extrabold text-[#0F0F10] mt-1 block">
-                  {productsList.filter((p) => p.inStock).length}
+                  {productsList.filter((p) => isLiveBackend ? p.isActive : p.inStock).length}
                 </span>
                 <span className="text-[10px] font-mono text-[#71717A]">Active on Storefront</span>
               </div>
@@ -1405,7 +1314,7 @@ export const ScreenAdminConsole: React.FC = () => {
                                 {p.name}
                               </strong>
                               <span className="text-[10px] text-[#71717A] line-clamp-1">
-                                {p.tagline || p.subCategory || 'Clinical Formulation'}
+                                {p.tagline || p.subCategory || 'Natural Formulation'}
                               </span>
                             </div>
                           </div>
@@ -1437,7 +1346,7 @@ export const ScreenAdminConsole: React.FC = () => {
                                 : 'bg-white text-[#71717A] border-[#EAE8E3]'
                             }`}
                           >
-                            {p.inStock ? 'Published' : 'Draft'}
+                            {(isLiveBackend ? p.isActive : p.inStock) ? 'Published' : 'Draft'}
                           </button>
                         </td>
                         <td className="py-3.5 px-4 text-right">
@@ -1482,7 +1391,7 @@ export const ScreenAdminConsole: React.FC = () => {
                   Editorial &amp; Marketing Customizer
                 </h2>
                 <p className="text-xs text-[#71717A]">
-                  Changes made here update the Customer Home, PDP, and Storefront pages instantly.
+                  Edit your content, then publish all editorial changes to the storefront.
                 </p>
               </div>
 
@@ -1491,7 +1400,8 @@ export const ScreenAdminConsole: React.FC = () => {
                   { id: 'hero', label: '1. Hero Slideshow' },
                   { id: 'routine', label: '2. 3-Chapter Ritual' },
                   { id: 'story', label: '3. Brand Story' },
-                  { id: 'ticker', label: '4. Announcement Ticker' }
+                  { id: 'ticker', label: '4. Announcement Ticker' },
+                  ...(can('reviews:moderate') ? [{ id: 'posts', label: '5. Posts & Videos' }] : [])
                 ].map((st) => (
                   <button
                     key={st.id}
@@ -1508,199 +1418,10 @@ export const ScreenAdminConsole: React.FC = () => {
               </div>
             </div>
 
-            {/* Sub-Tab 1: Hero Slideshow */}
-            {cmsSubTab === 'hero' && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                  {heroSlides.map((slide, idx) => (
-                    <div
-                      key={slide.id}
-                      className="p-5 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs flex flex-col justify-between space-y-4"
-                    >
-                      <div className="space-y-3">
-                        <div className="relative aspect-video rounded-2xl overflow-hidden bg-[#FAF9F6] border border-[#EAE8E3]">
-                          <img
-                            src={slide.image}
-                            alt={slide.headline}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = '/hero_slide_1.jpg';
-                            }}
-                          />
-                          <span className="absolute top-2 left-2 text-[9px] font-mono uppercase bg-[#0F0F10]/80 text-[#D4AF37] px-2 py-0.5 rounded-full backdrop-blur-xs font-bold">
-                            Slide {idx + 1}
-                          </span>
-                        </div>
+            <button type="button" onClick={async () => { try { await publishStorefront(); setActionNotice('Editorial changes published to the storefront.'); } catch (error) { setActionNotice(error instanceof Error ? error.message : 'Publication failed.'); } }} className="rounded-full bg-[#0F0F10] px-6 py-3 text-sm text-white">Publish editorial changes</button>
 
-                        <div>
-                          <span className="text-[10px] font-mono uppercase tracking-wider text-[#997A2E] font-bold">
-                            {slide.tag}
-                          </span>
-                          <h4 className="text-sm font-heading font-extrabold text-[#0F0F10] leading-snug mt-0.5">
-                            {slide.headline}
-                          </h4>
-                          <p className="text-[11px] text-[#71717A] mt-1 line-clamp-2">
-                            {slide.subtext}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="pt-3 border-t border-[#EAE8E3] flex items-center justify-between text-xs">
-                        <span className="text-[10px] font-mono text-[#71717A]">
-                          Route: /{slide.actionRoute || 'catalogue'}
-                        </span>
-                        <button
-                          onClick={() => {
-                            setEditingSlideId(slide.id);
-                            setNewSlideForm(slide);
-                          }}
-                          className="px-3 py-1 rounded-full bg-[#FAF9F6] border border-[#EAE8E3] hover:bg-[#0F0F10] hover:text-[#D4AF37] transition font-mono font-bold cursor-pointer"
-                        >
-                          Edit Slide
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Edit / Add Slide Form */}
-                <div className="p-6 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs space-y-4">
-                  <h3 className="text-base font-heading font-bold text-[#0F0F10]">
-                    {editingSlideId ? 'Edit Hero Slide' : 'Add New Editorial Hero Slide'}
-                  </h3>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                    <div>
-                      <label className="block font-mono text-[10px] uppercase text-[#71717A] mb-1 font-bold">
-                        Tag Badge (e.g. Clinical Formulation)
-                      </label>
-                      <input
-                        type="text"
-                        value={newSlideForm.tag || ''}
-                        onChange={(e) => setNewSlideForm({ ...newSlideForm, tag: e.target.value })}
-                        className="w-full px-4 py-2.5 rounded-xl border border-[#EAE8E3] bg-[#FAF9F6] outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block font-mono text-[10px] uppercase text-[#71717A] mb-1 font-bold">
-                        Photography Image URL
-                      </label>
-                      <input
-                        type="text"
-                        value={newSlideForm.image || ''}
-                        onChange={(e) => setNewSlideForm({ ...newSlideForm, image: e.target.value })}
-                        className="w-full px-4 py-2.5 rounded-xl border border-[#EAE8E3] bg-[#FAF9F6] outline-none"
-                        placeholder="/hero_slide_1.jpg or Unsplash URL"
-                      />
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label className="block font-mono text-[10px] uppercase text-[#71717A] mb-1 font-bold">
-                        Headline
-                      </label>
-                      <input
-                        type="text"
-                        value={newSlideForm.headline || ''}
-                        onChange={(e) => setNewSlideForm({ ...newSlideForm, headline: e.target.value })}
-                        className="w-full px-4 py-2.5 rounded-xl border border-[#EAE8E3] bg-[#FAF9F6] outline-none font-medium"
-                      />
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label className="block font-mono text-[10px] uppercase text-[#71717A] mb-1 font-bold">
-                        Editorial Subtext
-                      </label>
-                      <textarea
-                        rows={2}
-                        value={newSlideForm.subtext || ''}
-                        onChange={(e) => setNewSlideForm({ ...newSlideForm, subtext: e.target.value })}
-                        className="w-full px-4 py-2.5 rounded-xl border border-[#EAE8E3] bg-[#FAF9F6] outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block font-mono text-[10px] uppercase text-[#71717A] mb-1 font-bold">
-                        Primary CTA Label
-                      </label>
-                      <input
-                        type="text"
-                        value={newSlideForm.actionLabel || ''}
-                        onChange={(e) => setNewSlideForm({ ...newSlideForm, actionLabel: e.target.value })}
-                        className="w-full px-4 py-2.5 rounded-xl border border-[#EAE8E3] bg-[#FAF9F6] outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block font-mono text-[10px] uppercase text-[#71717A] mb-1 font-bold">
-                        Primary Route Target
-                      </label>
-                      <input
-                        type="text"
-                        value={newSlideForm.actionRoute || ''}
-                        onChange={(e) => setNewSlideForm({ ...newSlideForm, actionRoute: e.target.value })}
-                        className="w-full px-4 py-2.5 rounded-xl border border-[#EAE8E3] bg-[#FAF9F6] outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end gap-2 pt-2">
-                    {editingSlideId && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditingSlideId(null);
-                          setNewSlideForm({
-                            headline: '',
-                            subtext: '',
-                            tag: 'Clinical Formulation',
-                            image: '/hero_slide_1.jpg',
-                            actionLabel: 'Shop Formulations',
-                            actionRoute: 'catalogue'
-                          });
-                        }}
-                        className="px-4 py-2 rounded-full border border-[#EAE8E3] text-xs font-bold text-[#71717A] cursor-pointer"
-                      >
-                        Cancel
-                      </button>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!newSlideForm.headline) return;
-                        if (editingSlideId) {
-                          const updated = heroSlides.map((s) =>
-                            s.id === editingSlideId ? ({ ...s, ...newSlideForm } as HeroSlide) : s
-                          );
-                          updateHeroSlides(updated);
-                          setActionNotice('Hero slideshow updated live on storefront.');
-                          setEditingSlideId(null);
-                        } else {
-                          const newSlide: HeroSlide = {
-                            id: `slide-${Date.now()}`,
-                            headline: newSlideForm.headline || 'Untitled',
-                            subtext: newSlideForm.subtext || '',
-                            tag: newSlideForm.tag || 'Clinical Formulation',
-                            image: newSlideForm.image || '/hero_slide_1.jpg',
-                            actionLabel: newSlideForm.actionLabel || 'Shop Formulations',
-                            actionRoute: newSlideForm.actionRoute || 'catalogue',
-                            isActive: true,
-                            displayOrder: heroSlides.length + 1
-                          };
-                          updateHeroSlides([...heroSlides, newSlide]);
-                          setActionNotice('New hero slide added to carousel.');
-                        }
-                        setTimeout(() => setActionNotice(null), 3000);
-                      }}
-                      className="px-6 py-2.5 rounded-full bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/30 text-xs font-bold hover:bg-[#27272A] cursor-pointer"
-                    >
-                      {editingSlideId ? 'Save & Update Slide' : 'Publish New Slide to Carousel'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
+            {cmsSubTab === 'hero' && <HeroCmsEditor />}
+            {cmsSubTab === 'posts' && <AdminContentComposer />}
 
             {/* Sub-Tab 2: 3-Chapter Everyday Routine */}
             {cmsSubTab === 'routine' && (
@@ -1746,7 +1467,7 @@ export const ScreenAdminConsole: React.FC = () => {
                     Customize 3-Chapter Everyday Regimen Steps
                   </h3>
                   <p className="text-xs text-[#71717A]">
-                    Edit the formulation assignments, copy, and clinical benefit bullets for the customer home ritual.
+                    Edit the formulation assignments, copy, and natural benefit bullets for the customer home ritual.
                   </p>
 
                   <div className="space-y-4">
@@ -1796,7 +1517,7 @@ export const ScreenAdminConsole: React.FC = () => {
 
                         <div>
                           <label className="block text-[10px] font-mono uppercase text-[#71717A] font-bold mb-1">
-                            Clinical Key Benefit &amp; Image
+                            Natural Key Benefit &amp; Image
                           </label>
                           <input
                             type="text"
@@ -1913,7 +1634,7 @@ export const ScreenAdminConsole: React.FC = () => {
                 <div className="pt-3 border-t border-[#EAE8E3] flex justify-end">
                   <button
                     onClick={() => {
-                      setActionNotice('Brand story updated successfully on live storefront.');
+                      void publishStorefront().then(() => setActionNotice('Brand story published.')).catch(error => setActionNotice(error.message));
                       setTimeout(() => setActionNotice(null), 3000);
                     }}
                     className="px-6 py-2.5 rounded-full bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/30 text-xs font-bold cursor-pointer hover:bg-[#27272A]"
@@ -2083,16 +1804,13 @@ export const ScreenAdminConsole: React.FC = () => {
                         </td>
                         <td className="py-3.5 px-4 text-right">
                           <select
-                            disabled={orderUpdatingId === order.id}
+                            disabled={orderUpdatingId === order.id || !can('orders:update:status')}
                             value={order.status}
                             onChange={(e) => handleStatusChange(order.id, e.target.value as any)}
                             className="bg-[#FAF9F6] border border-[#EAE8E3] rounded-full px-3 py-1 text-xs font-mono font-bold text-[#0F0F10] outline-none cursor-pointer"
                           >
-                            <option value="PENDING">Pending</option>
-                            <option value="PROCESSING">Processing</option>
-                            <option value="SHIPPED">Dispatch Courier</option>
-                            <option value="DELIVERED">Delivered</option>
-                            <option value="CANCELLED">Cancel</option>
+                            <option value={order.status}>{order.status}</option>
+                            {(({ PENDING: ['CANCELLED'], PAID: ['FULFILLING'], FULFILLING: ['READY_PICKUP', 'SHIPPED'], READY_PICKUP: ['DELIVERED'], SHIPPED: ['DELIVERED'] } as Record<string, string[]>)[order.status] || []).map(status => <option key={status} value={status}>{status}</option>)}
                           </select>
                         </td>
                       </tr>
@@ -2109,6 +1827,7 @@ export const ScreenAdminConsole: React.FC = () => {
         {/* ======================================================== */}
         {activeTab === 'creators' && (
           <div className="space-y-6 animate-in fade-in duration-200">
+            {isLiveBackend && <AdminReviewQueue records={workspaceRows} review={reviewWorkspace} />}
             {/* Creator Sub-Navigation Bar */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs">
               <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] text-xs font-mono">
@@ -2150,7 +1869,7 @@ export const ScreenAdminConsole: React.FC = () => {
                       : 'text-[#71717A] hover:text-[#0F0F10]'
                   }`}
                 >
-                  <Sparkles className="w-3.5 h-3.5" /> Campaign Briefs ({creatorCampaigns.length})
+                  <Award className="w-3.5 h-3.5" /> Campaign Briefs ({creatorCampaigns.length})
                 </button>
                 <button
                   onClick={() => setCreatorSubTab('ugc')}
@@ -2190,23 +1909,23 @@ export const ScreenAdminConsole: React.FC = () => {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="p-4 rounded-2xl bg-white border border-[#EAE8E3] shadow-xs">
                     <span className="text-[10px] font-mono uppercase text-[#71717A] block font-bold">Total Creator GMV</span>
-                    <strong className="text-lg font-mono font-black text-[#0F0F10] mt-1 block">₦14,850,000</strong>
-                    <span className="text-[10px] text-[#997A2E] font-medium">+18.4% vs last cycle</span>
+                    <strong className="text-lg font-mono font-black text-[#0F0F10] mt-1 block">{`₦${creatorsList.reduce((sum, creator) => sum + (creator.totalSalesNgn || 0), 0).toLocaleString()}`}</strong>
+                    <span className="text-[10px] text-[#997A2E] font-medium">Recorded attributed orders</span>
                   </div>
                   <div className="p-4 rounded-2xl bg-white border border-[#EAE8E3] shadow-xs">
                     <span className="text-[10px] font-mono uppercase text-[#71717A] block font-bold">Commissions Settled</span>
-                    <strong className="text-lg font-mono font-black text-[#0F0F10] mt-1 block">₦2,180,000</strong>
-                    <span className="text-[10px] text-[#71717A]">Via Automated NIP</span>
+                    <strong className="text-lg font-mono font-black text-[#0F0F10] mt-1 block">Ledger only</strong>
+                    <span className="text-[10px] text-[#71717A]">No automated payout claimed</span>
                   </div>
                   <div className="p-4 rounded-2xl bg-white border border-[#EAE8E3] shadow-xs">
                     <span className="text-[10px] font-mono uppercase text-[#71717A] block font-bold">Outstanding Balances</span>
-                    <strong className="text-lg font-mono font-black text-[#997A2E] mt-1 block">₦645,000</strong>
+                    <strong className="text-lg font-mono font-black text-[#997A2E] mt-1 block">Ledger only</strong>
                     <span className="text-[10px] text-[#71717A]">Pending withdrawal</span>
                   </div>
                   <div className="p-4 rounded-2xl bg-white border border-[#EAE8E3] shadow-xs">
                     <span className="text-[10px] font-mono uppercase text-[#71717A] block font-bold">Active Roster Size</span>
                     <strong className="text-lg font-mono font-black text-[#0F0F10] mt-1 block">{creatorsList.length} Partners</strong>
-                    <span className="text-[10px] text-[#71717A]">100% verified KYC</span>
+                    <span className="text-[10px] text-[#71717A]">Approved partner roster</span>
                   </div>
                 </div>
 
@@ -2309,7 +2028,7 @@ export const ScreenAdminConsole: React.FC = () => {
                             onClick={() => handleReviewCreatorApp(app.id, true)}
                             className="py-1.5 px-3 rounded-full bg-[#0F0F10] text-[#D4AF37] text-xs font-bold border border-[#D4AF37]/30 hover:bg-[#27272A] cursor-pointer"
                           >
-                            Approve (15% Code)
+                            Approve application
                           </button>
                           <button
                             onClick={() => handleReviewCreatorApp(app.id, false)}
@@ -2332,14 +2051,15 @@ export const ScreenAdminConsole: React.FC = () => {
             {/* SUBTAB 3: PR SAMPLING PRESS GIFTING ROOM */}
             {creatorSubTab === 'pr_boxes' && (
               <div className="space-y-6">
+                <AdminReviewQueue records={workspaceRows.filter(record => record.kind === 'PR_REQUEST')} review={reviewWorkspace} />
                 {/* 3A: PR Box Requests Queue */}
                 <div className="p-6 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs space-y-4">
                   <div>
                     <h3 className="text-base font-heading font-bold text-[#0F0F10]">
-                      Creator PR Package Dispatch Queue ({prRequests.length})
+                      Partner PR Package Dispatch Queue ({prRequests.length})
                     </h3>
                     <p className="text-xs text-[#71717A]">
-                      Packages requested by approved creators in their PR Room. Assign courier tracking numbers and dispatch.
+                      Review requests from approved creators and distributors, then record the actual dispatch reference.
                     </p>
                   </div>
 
@@ -2372,7 +2092,7 @@ export const ScreenAdminConsole: React.FC = () => {
                           </span>
                         </div>
 
-                        {req.status === 'PENDING' ? (
+                        {req.status === 'APPROVED' ? (
                           <div className="flex gap-2 pt-1">
                             <input
                               value={prTrackingInput[req.id] ?? ''}
@@ -2414,7 +2134,7 @@ export const ScreenAdminConsole: React.FC = () => {
                       <div key={box.id} className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] space-y-3 flex flex-col justify-between">
                         <div className="space-y-2">
                           <img
-                            src={box.thumbnail}
+                            src={box.thumbnail || undefined}
                             alt={box.title}
                             className="w-full h-32 object-cover rounded-xl border border-[#EAE8E3]"
                           />
@@ -2463,7 +2183,7 @@ export const ScreenAdminConsole: React.FC = () => {
                     <div key={camp.id} className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] space-y-3 flex flex-col justify-between">
                       <div className="space-y-2">
                         <img
-                          src={camp.heroImage}
+                          src={camp.heroImage || undefined}
                           alt={camp.title}
                           className="w-full h-36 object-cover rounded-xl border border-[#EAE8E3]"
                         />
@@ -2597,6 +2317,7 @@ export const ScreenAdminConsole: React.FC = () => {
         {/* ======================================================== */}
         {activeTab === 'customers' && (
           <div className="space-y-6 animate-in fade-in duration-200">
+            {isLiveBackend && can('roles:grant') && <AdminAccessPanel />}
             {/* Customer Directory */}
             <div className="rounded-3xl bg-white border border-[#EAE8E3] shadow-xs overflow-hidden">
               <div className="p-5 border-b border-[#EAE8E3]">
@@ -2731,113 +2452,7 @@ export const ScreenAdminConsole: React.FC = () => {
         {/* ======================================================== */}
         {/* WORKSPACE 7: INVENTORY & WHOLESALE LOGISTICS             */}
         {/* ======================================================== */}
-        {activeTab === 'inventory' && (
-          <div className="space-y-6 animate-in fade-in duration-200">
-            {/* Regional Hub Stock Breakdown */}
-            <div className="p-6 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs space-y-4">
-              <h3 className="text-base font-heading font-bold text-[#0F0F10]">
-                Regional Hub Stock Allocations
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {inventoryItems.map((item) => (
-                  <div key={item.id} className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] space-y-3">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <strong className="text-xs font-bold text-[#0F0F10] block">{item.productName}</strong>
-                        <span className="text-[10px] font-mono text-[#71717A]">SKU: {item.sku}</span>
-                      </div>
-                      {item.isLowStock && (
-                        <span className="text-[9px] font-mono uppercase bg-[#0F0F10] text-[#D4AF37] px-2 py-0.5 rounded-full font-bold">
-                          Low Stock
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-4 gap-2 text-center font-mono text-xs pt-2 border-t border-[#EAE8E3]">
-                      <div>
-                        <span className="text-[9px] text-[#71717A] block">Lagos</span>
-                        <strong className="text-[#0F0F10]">{item.lagosHub}</strong>
-                      </div>
-                      <div>
-                        <span className="text-[9px] text-[#71717A] block">Abuja</span>
-                        <strong className="text-[#0F0F10]">{item.abujaHub}</strong>
-                      </div>
-                      <div>
-                        <span className="text-[9px] text-[#71717A] block">PH</span>
-                        <strong className="text-[#0F0F10]">{item.phHub}</strong>
-                      </div>
-                      <div>
-                        <span className="text-[9px] text-[#71717A] block">Kano</span>
-                        <strong className="text-[#0F0F10]">{item.kanoHub}</strong>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Wholesale Master Carton Price Book */}
-            <div className="rounded-3xl bg-white border border-[#EAE8E3] shadow-xs overflow-hidden">
-              <div className="p-5 border-b border-[#EAE8E3]">
-                <h3 className="text-base font-heading font-bold text-[#0F0F10]">
-                  Wholesale Master Carton Price Book (Distributor Silver / Gold Tiers)
-                </h3>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-[#FAF9F6] text-[#71717A] font-mono text-[10px] uppercase border-b border-[#EAE8E3]">
-                    <tr>
-                      <th className="py-3 px-4">Master Carton Formulation</th>
-                      <th className="py-3 px-4 font-mono">SKU</th>
-                      <th className="py-3 px-4 text-center">Carton Units</th>
-                      <th className="py-3 px-4 text-right">Wholesale Price</th>
-                      <th className="py-3 px-4 text-right">Retail Carton GMV</th>
-                      <th className="py-3 px-4 text-center">Margin %</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#EAE8E3]">
-                    {wholesaleCartons.map((wc) => (
-                      <tr key={wc.id} className="hover:bg-[#FAF9F6]/50 transition-colors">
-                        <td className="py-3.5 px-4 font-bold text-[#0F0F10]">{wc.name}</td>
-                        <td className="py-3.5 px-4 font-mono text-[#71717A]">{wc.sku}</td>
-                        <td className="py-3.5 px-4 text-center font-mono font-bold text-[#0F0F10]">{wc.cartonUnits} Units</td>
-                        <td className="py-3.5 px-4 text-right font-mono font-bold text-[#0F0F10]">₦{wc.wholesalePrice.toLocaleString()}</td>
-                        <td className="py-3.5 px-4 text-right font-mono font-bold text-[#71717A]">₦{wc.retailCartonValue.toLocaleString()}</td>
-                        <td className="py-3.5 px-4 text-center font-mono font-bold text-[#997A2E]">{wc.marginPercent}%</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Central Lab Restock Tracker */}
-            <div className="p-6 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs space-y-4">
-              <h3 className="text-base font-heading font-bold text-[#0F0F10]">
-                Central Laboratory Batch Restock Shipments (#LAB-409)
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {labShipments.map((ship) => (
-                  <div key={ship.id} className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] space-y-2 text-xs">
-                    <div className="flex items-center justify-between font-mono">
-                      <strong className="text-[#0F0F10]">{ship.batchNumber}</strong>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#0F0F10] text-[#D4AF37]">
-                        {ship.status}
-                      </span>
-                    </div>
-                    <p className="text-[#71717A]">
-                      Destination: <strong className="text-[#0F0F10]">{ship.destinationHub}</strong> ({ship.itemCount} Units)
-                    </p>
-                    <div className="flex items-center justify-between text-[11px] font-mono text-[#71717A] pt-2 border-t border-[#EAE8E3]">
-                      <span>Courier: {ship.courier}</span>
-                      <span>Track: {ship.trackingNumber}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
+        {activeTab === 'inventory' && <AdminInventoryConsole />}
 
         {/* ======================================================== */}
         {/* WORKSPACE 8: NIP BANK CLAIMS                             */}
@@ -2907,6 +2522,284 @@ export const ScreenAdminConsole: React.FC = () => {
         )}
 
         {/* ======================================================== */}
+        {/* ======================================================== */}
+        {/* WORKSPACE: CRYPTO OPERATIONS LEDGER                     */}
+        {/* ======================================================== */}
+        {activeTab === 'crypto' && (
+          <div className="p-6 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs space-y-6 animate-in fade-in duration-200">
+            {/* Header & Metrics */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#EAE8E3]">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-heading font-bold text-[#0F0F10]">
+                    Cryptocurrency Escrow &amp; On-Chain Ledger
+                  </h3>
+                  <span className="px-2.5 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#997A2E] text-[11px] font-mono font-bold">
+                    Web3 Settlement
+                  </span>
+                </div>
+                <p className="text-xs text-[#71717A] mt-0.5">
+                  Track, verify, and reconcile decentralized multi-chain customer payments in real-time.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    if (isLiveBackend) {
+                      apiFetch<any>('/api/admin/crypto/transactions')
+                        .then(d => setCryptoTransactions(d.transactions || []))
+                        .catch(() => {});
+                    }
+                  }}
+                  className="px-3.5 py-2 rounded-xl bg-[#FAF9F6] border border-[#EAE8E3] hover:bg-gray-100 text-xs font-semibold text-[#0F0F10] flex items-center gap-1.5 cursor-pointer"
+                >
+                  <RefreshCw size={14} />
+                  <span>Refresh Ledger</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Metrics Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3]">
+                <span className="text-[11px] font-semibold text-[#71717A] block">Total Transactions</span>
+                <span className="text-lg font-bold font-price text-[#0F0F10] mt-1 block">
+                  {cryptoTransactions.length}
+                </span>
+              </div>
+              <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200/60">
+                <span className="text-[11px] font-semibold text-amber-800 block">Pending Escrow</span>
+                <span className="text-lg font-bold font-price text-amber-900 mt-1 block">
+                  {cryptoTransactions.filter(t => t.status === 'PENDING').length}
+                </span>
+              </div>
+              <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200/60">
+                <span className="text-[11px] font-semibold text-emerald-800 block">Settled On-Chain</span>
+                <span className="text-lg font-bold font-price text-emerald-900 mt-1 block">
+                  {cryptoTransactions.filter(t => t.status === 'COMPLETED').length}
+                </span>
+              </div>
+              <div className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3]">
+                <span className="text-[11px] font-semibold text-[#71717A] block">Total Volume (NGN)</span>
+                <span className="text-lg font-bold font-price text-[#0F0F10] mt-1 block">
+                  ₦{cryptoTransactions.reduce((acc, t) => acc + (Number(t.amountNgn) || 0), 0).toLocaleString()}
+                </span>
+              </div>
+            </div>
+
+            {/* Success / Error notification */}
+            {adminCryptoSuccess && (
+              <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2 font-medium">
+                <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                <span>{adminCryptoSuccess}</span>
+              </div>
+            )}
+            {adminCryptoError && (
+              <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-center gap-2 font-medium">
+                <AlertTriangle size={16} className="shrink-0" />
+                <span>{adminCryptoError}</span>
+              </div>
+            )}
+
+            {/* Filter and Search Bar */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="relative w-full sm:w-80">
+                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#71717A]" />
+                <input
+                  type="text"
+                  placeholder="Search by Order #, email, txHash, or address…"
+                  value={cryptoSearch}
+                  onChange={(e) => setCryptoSearch(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 rounded-xl border border-[#EAE8E3] text-xs focus:outline-hidden focus:ring-2 focus:ring-[#D4AF37]/50"
+                />
+              </div>
+
+              <div className="flex items-center gap-1.5 self-start sm:self-auto overflow-x-auto w-full sm:w-auto">
+                {(['ALL', 'PENDING', 'COMPLETED', 'EXPIRED'] as const).map((filter) => (
+                  <button
+                    key={filter}
+                    onClick={() => setCryptoFilter(filter)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                      cryptoFilter === filter
+                        ? 'bg-[#0F0F10] text-[#D4AF37]'
+                        : 'bg-[#FAF9F6] text-[#71717A] hover:bg-gray-100'
+                    }`}
+                  >
+                    {filter}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Transactions Table */}
+            <div className="overflow-x-auto rounded-2xl border border-[#EAE8E3]">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-[#FAF9F6] border-b border-[#EAE8E3] text-[#71717A] uppercase text-[10px] font-mono tracking-wider">
+                  <tr>
+                    <th className="py-3 px-4">Order / Time</th>
+                    <th className="py-3 px-4">Customer</th>
+                    <th className="py-3 px-4">Asset &amp; Network</th>
+                    <th className="py-3 px-4">Crypto Amount</th>
+                    <th className="py-3 px-4">NGN Value</th>
+                    <th className="py-3 px-4">TxHash / Explorer</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#EAE8E3]">
+                  {filteredCryptoTransactions.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="py-8 text-center text-xs text-[#71717A]">
+                        No cryptocurrency transactions match the selected criteria.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredCryptoTransactions.map((tx) => (
+                      <tr key={tx.id} className="hover:bg-[#FAF9F6]/60 transition-colors">
+                        <td className="py-3 px-4 font-mono">
+                          <span className="font-bold text-[#0F0F10] block">
+                            #{tx.orderNumber || tx.orderId?.slice(0, 8)}
+                          </span>
+                          <span className="text-[10px] text-[#71717A]">
+                            {new Date(tx.createdAt || Date.now()).toLocaleDateString('en-NG', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="font-medium text-[#0F0F10] block truncate max-w-[140px]">
+                            {tx.customerEmail || 'Guest Buyer'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                            tx.asset === 'USDT' ? 'bg-emerald-100 text-emerald-800' :
+                            tx.asset === 'BTC' ? 'bg-amber-100 text-amber-800' :
+                            tx.asset === 'ETH' ? 'bg-indigo-100 text-indigo-800' :
+                            'bg-purple-100 text-purple-800'
+                          }`}>
+                            {tx.asset} • {tx.network}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 font-mono font-bold text-[#0F0F10]">
+                          {tx.totalCrypto || tx.cryptoAmount} {tx.asset}
+                        </td>
+                        <td className="py-3 px-4 font-price font-semibold text-[#0F0F10]">
+                          ₦{(Number(tx.amountNgn) || 0).toLocaleString()}
+                        </td>
+                        <td className="py-3 px-4 font-mono text-[11px]">
+                          {tx.txHash ? (
+                            <a
+                              href={
+                                tx.network === 'TRC20' ? `https://tronscan.org/#/transaction/${tx.txHash}` :
+                                tx.asset === 'BTC' ? `https://mempool.space/tx/${tx.txHash}` :
+                                tx.asset === 'SOL' ? `https://solscan.io/tx/${tx.txHash}` :
+                                `https://etherscan.io/tx/${tx.txHash}`
+                              }
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-[#997A2E] hover:underline flex items-center gap-1"
+                              title="View on block explorer"
+                            >
+                              <span>{tx.txHash.slice(0, 8)}…{tx.txHash.slice(-6)}</span>
+                              <ExternalLink size={11} />
+                            </a>
+                          ) : (
+                            <span className="text-[#71717A] italic">Awaiting TXID</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                            tx.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-800' :
+                            tx.status === 'PENDING' ? 'bg-amber-100 text-amber-800' :
+                            'bg-gray-100 text-gray-700'
+                          }`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${
+                              tx.status === 'COMPLETED' ? 'bg-emerald-500' :
+                              tx.status === 'PENDING' ? 'bg-amber-500 animate-pulse' :
+                              'bg-gray-400'
+                            }`} />
+                            {tx.status}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          {tx.status === 'PENDING' ? (
+                            <button
+                              onClick={() => {
+                                setManualVerifyPaymentId(tx.id);
+                                setManualVerifyTxHash(tx.txHash || '');
+                              }}
+                              className="py-1 px-3 rounded-lg bg-[#0F0F10] text-[#D4AF37] hover:bg-[#27272A] text-xs font-semibold cursor-pointer"
+                            >
+                              Verify
+                            </button>
+                          ) : (
+                            <span className="text-[#71717A] text-[11px] font-medium">Settled</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Manual Verify Modal */}
+            {manualVerifyPaymentId && (
+              <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+                <div className="bg-white rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl border border-[#EAE8E3] animate-in zoom-in-95">
+                  <div className="flex items-center justify-between pb-2 border-b border-[#EAE8E3]">
+                    <h4 className="font-heading font-bold text-sm text-[#0F0F10]">
+                      Staff Manual On-Chain Verification
+                    </h4>
+                    <button
+                      onClick={() => setManualVerifyPaymentId(null)}
+                      className="text-[#71717A] hover:text-[#0F0F10] text-xs cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <p className="text-xs text-[#71717A]">
+                    Enter or confirm the blockchain transaction hash to mark this payment settled and unlock the order for fulfilment.
+                  </p>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-[#0F0F10] block">
+                      Transaction Hash (TxHash / TXID)
+                    </label>
+                    <input
+                      type="text"
+                      value={manualVerifyTxHash}
+                      onChange={(e) => setManualVerifyTxHash(e.target.value)}
+                      placeholder="e.g. 0xabc... or tron hash"
+                      className="w-full px-3 py-2 rounded-xl border border-[#EAE8E3] font-mono text-xs focus:ring-2 focus:ring-[#D4AF37]/50"
+                    />
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      type="button"
+                      disabled={isVerifyingAdminCrypto}
+                      onClick={() => handleManualVerifyCrypto(manualVerifyPaymentId, manualVerifyTxHash)}
+                      className="flex-1 py-2.5 rounded-xl bg-[#0F0F10] hover:bg-[#27272A] text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
+                    >
+                      {isVerifyingAdminCrypto ? <Loader2 size={14} className="animate-spin text-[#D4AF37]" /> : <CheckCircle2 size={14} className="text-[#D4AF37]" />}
+                      <span>Confirm &amp; Settle Order</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setManualVerifyPaymentId(null)}
+                      className="px-4 py-2.5 rounded-xl bg-white border border-[#EAE8E3] text-xs font-semibold text-[#71717A] hover:bg-gray-50 cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* WORKSPACE 9: SECURITY AUDIT & LOGS                       */}
         {/* ======================================================== */}
         {activeTab === 'audit' && (
@@ -2993,7 +2886,7 @@ export const ScreenAdminConsole: React.FC = () => {
                         <span className="text-[10px] font-mono text-[#71717A]">slug: {cat.slug}</span>
                       </div>
                       <button
-                        onClick={() => deleteCategory(cat.id)}
+                        onClick={() => isLiveBackend ? void persist('/api/admin/categories', { id: cat.id }, 'Category deleted.', 'DELETE') : deleteCategory(cat.id)}
                         className="text-xs font-mono text-[#71717A] hover:text-[#0F0F10] p-1.5 cursor-pointer"
                         title="Delete Category"
                       >
@@ -3101,7 +2994,7 @@ export const ScreenAdminConsole: React.FC = () => {
                   required
                   value={newPRBoxForm.title}
                   onChange={(e) => setNewPRBoxForm((f) => ({ ...f, title: e.target.value }))}
-                  placeholder="e.g. Melanin Climate Defense Press Kit"
+                  placeholder="e.g. Natural Climate Defense Press Kit"
                   className="w-full px-3 py-2 rounded-xl border border-[#EAE8E3] bg-[#FAF9F6] outline-none"
                 />
               </div>
@@ -3138,16 +3031,12 @@ export const ScreenAdminConsole: React.FC = () => {
 
               <div>
                 <label className="block text-[10px] font-mono uppercase text-[#71717A] mb-1 font-bold">
-                  Included Formulations (Comma separated)
+                  Included catalogue products
                 </label>
-                <input
-                  type="text"
-                  required
-                  value={newPRBoxForm.includedProducts}
-                  onChange={(e) => setNewPRBoxForm((f) => ({ ...f, includedProducts: e.target.value }))}
-                  placeholder="Radiant Glow Oil, Melanin Defense SPF 50+, Amino Cleanser"
-                  className="w-full px-3 py-2 rounded-xl border border-[#EAE8E3] bg-[#FAF9F6] outline-none"
-                />
+                <select multiple required aria-label="PR kit products" value={newPRBoxForm.productIds} onChange={event => setNewPRBoxForm(form => ({ ...form, productIds: Array.from(event.target.selectedOptions, option => option.value) }))} className="w-full rounded-xl border p-3 text-sm">
+                  {appProducts.map(product => <option key={product.id} value={product.id}>{product.name}</option>)}
+                </select>
+                <label className="mt-3 block text-xs font-semibold">Partner audience<select aria-label="PR kit audience" value={newPRBoxForm.audience} onChange={event => setNewPRBoxForm(form => ({ ...form, audience: event.target.value as 'CREATOR' | 'DISTRIBUTOR' | 'ALL' }))} className="mt-1 w-full rounded-xl border p-3"><option value="CREATOR">Creators</option><option value="DISTRIBUTOR">Distributors</option><option value="ALL">Creators and distributors</option></select></label>
               </div>
 
               <div>
@@ -3167,7 +3056,7 @@ export const ScreenAdminConsole: React.FC = () => {
                 type="submit"
                 className="w-full py-2.5 rounded-full bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/30 text-xs font-bold hover:bg-[#27272A] cursor-pointer"
               >
-                Publish to Creator PR Room
+                Publish PR kit
               </button>
             </form>
           </div>

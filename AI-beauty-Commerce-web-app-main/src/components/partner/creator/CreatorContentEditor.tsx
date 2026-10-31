@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import { useSocialConnections } from '../../../lib/use-social-connections';
+import React, { useState, useRef } from 'react';
 import {
   Video,
-  Sparkles,
   Star,
   BookOpen,
   Plus,
@@ -22,8 +22,12 @@ import {
   MessageCircle,
   Copy,
   Layers,
-  Sparkle
+  Image as ImageIcon,
+  X,
+  AlertCircle
 } from 'lucide-react';
+import { buildCreatorSubmission } from '../../../lib/creator-submission';
+import { writePartnerWorkspace, uploadPartnerMedia } from '../../../lib/owned-api';
 import { useApp } from '../../../context/AppContext';
 
 export interface CreatorContentEditorProps {
@@ -37,33 +41,40 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
   onPublishSuccess,
   onCancel
 }) => {
-  const { products, createCommunityPost, navigateTo, addToCart } = useApp();
+  const { products, createCommunityPost, authUser, navigateTo, addToCart, isLiveBackend } = useApp();
+  const [saving, setSaving] = useState(false);
+  const [savedRecord, setSavedRecord] = useState<{id: string; version: number} | null>(null);
   const [selectedFormat, setSelectedFormat] = useState<ContentFormat>('video');
-  const [isPublished, setIsPublished] = useState(false);
-  const [publishedPostId, setPublishedPostId] = useState<string>('');
 
   // ----------------------------------------------------
-  // 1. Short Video / Reel State
+  // 1. Short Video / Reel State & Media Engine
   // ----------------------------------------------------
-  const [videoTitle, setVideoTitle] = useState('Morning 3-Drop Radiance Routine for Lekki Sun');
-  const [videoCaption, setVideoCaption] = useState(
-    'Never skip antioxidant barrier protection! The lightweight botanical absorption gives zero white cast even in Lagos humidity. Tagged formulations below 👇'
-  );
-  const [videoFilter, setVideoFilter] = useState('Clinical Radiance 4K');
-  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([
-    products[0]?.id || 'prod-1',
-    products[1]?.id || 'prod-2'
-  ]);
-  const [videoFileName, setVideoFileName] = useState('CapCut_Glow_Prep_Final_1080p.mp4');
-  const [videoPreviewUrl, setVideoPreviewUrl] = useState(
-    'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&w=600&q=80'
-  );
+  const [videoTitle, setVideoTitle] = useState('');
+  const [videoCaption, setVideoCaption] = useState('');
+  const [videoFilter, setVideoFilter] = useState('Natural Radiance 4K');
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  const [videoFileName, setVideoFileName] = useState('');
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState('');
+  const mediaPreviewUrl = videoPreviewUrl.trim();
+  const [mediaType, setMediaType] = useState<'video' | 'image'>('video');
+  const [mediaFileSize, setMediaFileSize] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [copyFeedback, setCopyFeedback] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Social Connections & OAuth
+  const [socialModal, setSocialModal] = useState<'tiktok' | 'instagram' | null>(null);
+  const social = useSocialConnections(authUser?.id);
+  const tiktokAccount = social.account('tiktok'), instagramAccount = social.account('instagram');
+  const isAuthorizing = social.authorizing;
+  const modalAccount = socialModal === 'tiktok' ? tiktokAccount : instagramAccount;
+  const modalHandle = modalAccount.handle, modalFollowers = modalAccount.followers;
+
   const [postToCommunity, setPostToCommunity] = useState(true);
-  const [tiktokConnected, setTiktokConnected] = useState(true);
-  const [instagramConnected, setInstagramConnected] = useState(true);
   const [selectedHashtags, setSelectedHashtags] = useState<string[]>([
     '#DelslaBeauty',
-    '#MelaninGlow',
+    '#NaturalGlow',
     '#NigerianSkincare',
     '#CleanBeautyAfrica'
   ]);
@@ -71,69 +82,29 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
   // ----------------------------------------------------
   // 2. Routine Builder State
   // ----------------------------------------------------
-  const [routineTitle, setRoutineTitle] = useState('Morning Melanin Barrier Shield');
-  const [routineCategory, setRoutineCategory] = useState('Hydration & Barrier Repair');
-  const [routineSkinType, setRoutineSkinType] = useState('Combination & Melanin-Rich');
+  const [routineTitle, setRoutineTitle] = useState('');
+  const [routineCategory, setRoutineCategory] = useState('');
+  const [routineSkinType, setRoutineSkinType] = useState('');
   const [routineTimeOfDay, setRoutineTimeOfDay] = useState<'morning' | 'evening' | 'both'>('morning');
-  const [routineSteps, setRoutineSteps] = useState([
-    {
-      id: 'step-1',
-      stepNumber: 1,
-      name: 'Gentle Amino Acid Cleanse',
-      productId: products[0]?.id || 'prod-1',
-      proTip: 'Massage gently into damp skin for 60 seconds with lukewarm water. Rinse thoroughly.'
-    },
-    {
-      id: 'step-2',
-      stepNumber: 2,
-      name: 'Hydrating Botanical Mist',
-      productId: products[2]?.id || 'prod-3',
-      proTip: 'Mist 3 pumps across face and neck while skin is slightly damp to prime barrier pores.'
-    },
-    {
-      id: 'step-3',
-      stepNumber: 3,
-      name: 'Antioxidant Radiance Treatment',
-      productId: products[1]?.id || 'prod-2',
-      proTip: 'Warm 3 drops between clean palms and press gently into cheekbones and forehead.'
-    }
-  ]);
+  const [routineSteps, setRoutineSteps] = useState([{ id: 'step-1', stepNumber: 1, name: '', productId: '', proTip: '' }]);
 
   // ----------------------------------------------------
   // 3. Product Review State
   // ----------------------------------------------------
-  const [reviewProductId, setReviewProductId] = useState(products[0]?.id || 'prod-1');
-  const [reviewVerdict, setReviewVerdict] = useState(
-    'Incredible barrier relief. Absorbs within 30 seconds without any sticky residue. Completely healed dry flaking along my jawline within 10 days of continuous morning use.'
-  );
-  const [testingDuration, setTestingDuration] = useState('14 Days Clinical Wear Test');
+  const [reviewProductId, setReviewProductId] = useState('');
+  const [reviewVerdict, setReviewVerdict] = useState('');
+  const [testingDuration, setTestingDuration] = useState('');
   const [reviewRating, setReviewRating] = useState(5);
-  const [textureScore, setTextureScore] = useState(5);
-  const [absorptionScore, setAbsorptionScore] = useState(5);
-  const [longevityScore, setLongevityScore] = useState(5);
+  const [textureScore, setTextureScore] = useState(0);
+  const [absorptionScore, setAbsorptionScore] = useState(0);
+  const [longevityScore, setLongevityScore] = useState(0);
 
   // ----------------------------------------------------
   // 4. Technique Tutorial State
   // ----------------------------------------------------
-  const [tutorialTitle, setTutorialTitle] = useState('60-Second Facial Lymphatic Drainage & Oil Press');
+  const [tutorialTitle, setTutorialTitle] = useState('');
   const [tutorialDifficulty, setTutorialDifficulty] = useState<'Beginner' | 'Intermediate' | 'Masterclass'>('Beginner');
-  const [tutorialSteps, setTutorialSteps] = useState([
-    {
-      id: 'tut-1',
-      title: 'Warm 3 Drops of Formulation Oil',
-      detail: 'Rub clean palms together for 5 seconds to activate botanical actives before touching face.'
-    },
-    {
-      id: 'tut-2',
-      title: 'Upward Contouring Along Jawline',
-      detail: 'Glide knuckles from chin towards earlobes with light, rhythmic upwards pressure.'
-    },
-    {
-      id: 'tut-3',
-      title: 'Temple Drainage & Seal',
-      detail: 'Sweep outward from center of forehead towards hairline, releasing facial tension.'
-    }
-  ]);
+  const [tutorialSteps, setTutorialSteps] = useState([{ id: 'tut-1', title: '', detail: '' }]);
 
   const formats = [
     {
@@ -146,14 +117,14 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
     {
       id: 'routine',
       label: 'Beauty Routine',
-      icon: Sparkles,
+      icon: Layers,
       desc: 'Step-by-step shoppable regimen'
     },
     {
       id: 'review',
       label: 'Product Review',
       icon: Star,
-      desc: 'Clinical scorecard & verified wear test'
+      desc: 'Natural scorecard & verified wear test'
     },
     {
       id: 'tutorial',
@@ -181,138 +152,64 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
     }
   };
 
-  const handlePublish = () => {
-    const taggedFirstProd = products.find((p) =>
-      selectedFormat === 'review'
-        ? p.id === reviewProductId
-        : selectedProductIds.includes(p.id)
-    ) || products[0];
+  const handleFileSelect = (file: File) => {
+    const isVideo = file.type.startsWith('video/') || /\.(mp4|mov|webm|m4v)$/i.test(file.name);
+    const isImage = file.type.startsWith('image/') || /\.(jpg|jpeg|png|webp|gif)$/i.test(file.name);
 
-    const contentSummary =
-      selectedFormat === 'video'
-        ? videoCaption
-        : selectedFormat === 'routine'
-        ? `${routineTitle} • ${routineSteps.length}-Step Regimen (${routineSkinType})`
-        : selectedFormat === 'review'
-        ? `★ ${reviewRating}.0 / 5.0 Review: ${reviewVerdict}`
-        : `${tutorialTitle} • ${tutorialDifficulty} Technique Guide`;
-
-    // 1. Post directly into the Community Feed
-    if (postToCommunity || selectedFormat === 'video' || selectedFormat === 'routine') {
-      createCommunityPost({
-        authorName: 'Amara Nnadi',
-        authorHandle: '@amara_glows',
-        authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
-        authorRole: 'Creator / MUA',
-        skinType: selectedFormat === 'routine' ? routineSkinType : 'Melanin Barrier',
-        content: contentSummary,
-        mediaType: selectedFormat === 'video' ? 'video' : 'image',
-        mediaUrl: videoPreviewUrl,
-        videoDuration: selectedFormat === 'video' ? '0:42' : undefined,
-        taggedProductId: taggedFirstProd?.id,
-        taggedProductSku: taggedFirstProd?.sku,
-        taggedProductHashtag: taggedFirstProd?.hashtag || '#RadiantGlow',
-        taggedProductName: taggedFirstProd?.name,
-        isTransformation: selectedFormat === 'review'
-      });
+    if (!isVideo && !isImage) {
+      setToastMessage('Please select a valid video (.mp4, .mov, .webm) or high-res image.');
+      setTimeout(() => setToastMessage(null), 4000);
+      return;
     }
 
-    setPublishedPostId(`post-${Date.now()}`);
-    setIsPublished(true);
+    const objectUrl = URL.createObjectURL(file);
+    const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+
+    setVideoPreviewUrl(objectUrl);
+    setVideoFileName(file.name);
+    setMediaType(isVideo ? 'video' : 'image');
+    setMediaFileSize(`${sizeMb} MB`);
+
+    setToastMessage(`✓ ${file.name} loaded (${sizeMb} MB) • Uploading media…`);
+    uploadPartnerMedia(file).then(res => {
+      if (res?.url) {
+        setVideoPreviewUrl(res.url);
+        setToastMessage(`✓ ${file.name} uploaded successfully`);
+      }
+    }).catch(() => {
+      setToastMessage(`Upload failed. ${file.name} is a local preview only. Select the file again to retry or enter a hosted HTTPS URL.`);
+    }).finally(() => setTimeout(() => setToastMessage(null), 4000));
   };
 
-  // ----------------------------------------------------
-  // PUBLISHED SUCCESS MODAL / VIEW
-  // ----------------------------------------------------
-  if (isPublished) {
-    return (
-      <div className="p-8 sm:p-12 rounded-3xl bg-white border border-[#E5E7EB] text-center max-w-xl mx-auto shadow-md animate-in zoom-in-95 duration-200">
-        <div className="w-16 h-16 rounded-full bg-[#FAF9F6] text-[#0F0F10] border border-[#E5E7EB] flex items-center justify-center mx-auto mb-4">
-          <CheckCircle2 size={32} />
-        </div>
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFileSelect(e.dataTransfer.files[0]);
+    }
+  };
 
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#0F0F10] bg-[#FAF9F6] px-3 py-1 rounded-full border border-[#E5E7EB]">
-            Live on Community Feed &amp; Storefront
-          </span>
-        </div>
+  const openSocialConnect = (platform: 'tiktok' | 'instagram') => setSocialModal(platform);
+  const handleSaveSocialChannel = () => { if (socialModal) void social.connect(socialModal); };
+  const handleDisconnectSocial = (platform: 'tiktok' | 'instagram') => { void social.disconnect(platform); };
 
-        <h2 className="font-heading font-extrabold text-2xl text-[#0F0F10] mt-2">
-          {selectedFormat === 'video'
-            ? videoTitle
-            : selectedFormat === 'routine'
-            ? routineTitle
-            : selectedFormat === 'review'
-            ? `Review: ${products.find((p) => p.id === reviewProductId)?.name}`
-            : tutorialTitle}
-        </h2>
+  const saveContent = async (status: 'DRAFT' | 'SUBMITTED') => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      const content = buildCreatorSubmission({ format: selectedFormat, videoTitle, videoCaption, mediaUrl: videoPreviewUrl, selectedProductIds, routineTitle, routineCategory, routineSkinType, routineTimeOfDay, routineSteps, reviewProductId, reviewVerdict, testingDuration, textureScore, absorptionScore, longevityScore, tutorialTitle, tutorialDifficulty, tutorialSteps }, products, status === 'SUBMITTED');
+      const { result: saved } = await writePartnerWorkspace({ action: 'save', kind: 'CREATOR', type: 'CONTENT', ...savedRecord, status, ...content });
+      setSavedRecord({ id: saved.id, version: saved.version });
+      setToastMessage(status === 'DRAFT' ? 'Draft saved to your content library.' : 'Submitted for administrator review.');
+      if (status === 'SUBMITTED') onPublishSuccess?.();
+    } catch (error) { setToastMessage(error instanceof Error ? error.message : 'Content could not be saved.'); }
+    finally { setSaving(false); }
+  };
 
-        <p className="text-xs sm:text-sm text-[#6B7280] mt-2 max-w-md mx-auto leading-relaxed">
-          Your content has been broadcasted to the <strong>Desla! Collective Community</strong> and added to your creator library. Customers who purchase through your tagged formulations earn you <strong>12% commission</strong> automatically.
-        </p>
-
-        {/* Shareable Link Box */}
-        <div className="mt-6 p-4 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] text-xs font-mono flex items-center justify-between gap-3 text-left">
-          <div className="truncate">
-            <span className="text-[10px] text-[#9CA3AF] uppercase block font-sans font-bold">Public Shoppable Link</span>
-            <span className="text-[#0F0F10] font-bold">delsla.com/@amara_glows/c/{publishedPostId}</span>
-          </div>
-          <button
-            onClick={() => alert('Link & promo caption copied to clipboard!')}
-            className="px-3.5 py-1.5 rounded-full bg-[#0F0F10] text-white hover:bg-[#27272A] font-bold text-[11px] shrink-0 cursor-pointer flex items-center gap-1 active:scale-95 transition-all"
-          >
-            <Copy size={12} />
-            <span>Copy</span>
-          </button>
-        </div>
-
-        {/* Cross-Posting Confirmation Badges */}
-        <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-[11px] font-mono text-[#6B7280]">
-          <span className="inline-flex items-center gap-1 bg-[#FAF9F6] text-[#0F0F10] px-2.5 py-1 rounded-full border border-[#E5E7EB] font-bold">
-            ● Community Feed Live
-          </span>
-          {tiktokConnected && (
-            <span className="inline-flex items-center gap-1 bg-[#FAF9F6] text-[#0F0F10] px-2.5 py-1 rounded-full border border-[#E5E7EB]">
-              ● Ready for TikTok Cross-Post
-            </span>
-          )}
-          {instagramConnected && (
-            <span className="inline-flex items-center gap-1 bg-[#FAF9F6] text-[#0F0F10] px-2.5 py-1 rounded-full border border-[#E5E7EB]">
-              ● Ready for IG Reels
-            </span>
-          )}
-        </div>
-
-        {/* Action CTAs */}
-        <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
-          <button
-            onClick={() => navigateTo('community')}
-            className="px-6 py-2.5 rounded-full bg-[#0F0F10] text-[#D4AF37] hover:bg-[#27272A] font-bold text-xs shadow-md cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 transition-all"
-          >
-            <span>View in Community Feed</span>
-            <ArrowRight size={13} />
-          </button>
-
-          <button
-            onClick={() => {
-              if (onPublishSuccess) {
-                onPublishSuccess();
-              } else if (onCancel) {
-                onCancel();
-              }
-            }}
-            className="px-6 py-2.5 rounded-full border border-[#E5E7EB] bg-white hover:bg-[#FAF9F6] text-[#0F0F10] font-semibold text-xs cursor-pointer"
-          >
-            Back to Content Library
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const handlePublish = async () => { await saveContent('SUBMITTED'); };
 
   // ----------------------------------------------------
-  // MAIN STUDIO BUILDER INTERFACE
-  // ----------------------------------------------------
+  // Content is submitted for administrator review through saveContent.
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-200 pb-16">
       {/* Top Header */}
@@ -325,7 +222,7 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
             Create New Content
           </h1>
           <p className="text-xs sm:text-sm text-[#6B7280] mt-0.5">
-            Craft high-converting short video reels, step-by-step regimens, and verified clinical reviews.
+            Craft high-converting short video reels, step-by-step regimens, and verified natural reviews.
           </p>
         </div>
 
@@ -339,16 +236,16 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
             </button>
           )}
           <button
-            onClick={() => alert('Draft saved successfully to My Content Library!')}
+            disabled={saving} onClick={() => void saveContent('DRAFT')}
             className="px-4 py-2 rounded-full border border-[#D4AF37] bg-[#FBF5E8] hover:bg-[#F3EEE3] text-xs font-bold text-[#997A2E] cursor-pointer active:scale-95 transition-all"
           >
             Save Draft
           </button>
           <button
-            onClick={handlePublish}
+            disabled={saving} onClick={handlePublish}
             className="px-6 py-2 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-[#D4AF37] text-xs font-bold shadow-md cursor-pointer flex items-center gap-1.5 active:scale-95 transition-all"
           >
-            <span>Publish Content</span>
+            <span>Submit for review</span>
             <ArrowRight size={13} />
           </button>
         </div>
@@ -413,104 +310,176 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                   </h3>
                 </div>
                 <span className="text-[10px] font-mono font-bold text-[#0F0F10] bg-[#FAF9F6] px-2.5 py-0.5 rounded-full border border-[#E5E7EB]">
-                  ● 2 CHANNELS SYNCED
+                  ● {Number(tiktokAccount.connected) + Number(instagramAccount.connected)} CHANNELS ACTIVE
                 </span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                 {/* TikTok Account */}
-                <div className="p-3 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full bg-[#0F0F10] text-white flex items-center justify-center font-bold text-xs">
-                      TT
+                <div className="p-3 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] flex flex-col justify-between gap-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center font-bold text-xs shadow-xs">
+                        TT
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1">
+                          <span className="font-bold text-xs text-[#0F0F10]">{tiktokAccount.handle}</span>
+                          {tiktokAccount.connected && <CheckCircle2 size={11} className="text-[#997A2E]" />}
+                        </div>
+                        <span className="text-[10px] text-[#6B7280]">{tiktokAccount.followers}</span>
+                      </div>
                     </div>
-                    <div>
-                      <span className="font-bold text-xs text-[#0F0F10] block">@amara_glows</span>
-                      <span className="text-[10px] text-[#6B7280]">148.4k Followers</span>
-                    </div>
+                    {tiktokAccount.connected && (
+                      <a
+                        href={tiktokAccount.profileUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[#9CA3AF] hover:text-[#0F0F10] p-1"
+                        title="Open TikTok Profile"
+                      >
+                        <ExternalLink size={12} />
+                      </a>
+                    )}
                   </div>
-                  <button
-                    onClick={() => setTiktokConnected(!tiktokConnected)}
-                    className={`text-[11px] font-bold px-2.5 py-1 rounded-full cursor-pointer transition-colors ${
-                      tiktokConnected
-                        ? 'bg-[#0F0F10] text-white'
-                        : 'bg-[#E5E7EB] text-[#6B7280]'
-                    }`}
-                  >
-                    {tiktokConnected ? 'Synced ✓' : 'Connect'}
-                  </button>
+
+                  <div className="flex items-center justify-between pt-1 border-t border-[#E5E7EB]/60">
+                    <span className="text-[9.5px] font-mono text-[#6B7280]">
+                      {tiktokAccount.connected ? 'Account Connected' : 'Not Connected'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => openSocialConnect('tiktok')}
+                      className={`text-[11px] font-bold px-3 py-1 rounded-full cursor-pointer transition-all ${
+                        tiktokAccount.connected
+                          ? 'bg-[#0F0F10] text-white hover:bg-[#27272A]'
+                          : 'bg-[#0F0F10] text-[#D4AF37] hover:bg-[#27272A]'
+                      }`}
+                    >
+                      {tiktokAccount.connected ? 'Configure' : '+ Connect TikTok'}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Instagram Reels Account */}
-                <div className="p-3 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full bg-[#0F0F10] text-white flex items-center justify-center font-bold text-xs">
-                      IG
+                <div className="p-3 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] flex flex-col justify-between gap-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-[#0F0F10] text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                        IG
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1">
+                          <span className="font-bold text-xs text-[#0F0F10]">{instagramAccount.handle}</span>
+                          {instagramAccount.connected && <CheckCircle2 size={11} className="text-[#997A2E]" />}
+                        </div>
+                        <span className="text-[10px] text-[#6B7280]">{instagramAccount.followers}</span>
+                      </div>
                     </div>
-                    <div>
-                      <span className="font-bold text-xs text-[#0F0F10] block">@amara_skincare</span>
-                      <span className="text-[10px] text-[#6B7280]">112.8k Followers</span>
-                    </div>
+                    {instagramAccount.connected && (
+                      <a
+                        href={instagramAccount.profileUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[#9CA3AF] hover:text-[#0F0F10] p-1"
+                        title="Open Instagram Profile"
+                      >
+                        <ExternalLink size={12} />
+                      </a>
+                    )}
                   </div>
-                  <button
-                    onClick={() => setInstagramConnected(!instagramConnected)}
-                    className={`text-[11px] font-bold px-2.5 py-1 rounded-full cursor-pointer transition-colors ${
-                      instagramConnected
-                        ? 'bg-[#0F0F10] text-white'
-                        : 'bg-[#E5E7EB] text-[#6B7280]'
-                    }`}
-                  >
-                    {instagramConnected ? 'Synced ✓' : 'Connect'}
-                  </button>
+
+                  <div className="flex items-center justify-between pt-1 border-t border-[#E5E7EB]/60">
+                    <span className="text-[9.5px] font-mono text-[#6B7280]">
+                      {instagramAccount.connected ? 'Account Connected' : 'Not Connected'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => openSocialConnect('instagram')}
+                      className={`text-[11px] font-bold px-3 py-1 rounded-full cursor-pointer transition-all ${
+                        instagramAccount.connected
+                          ? 'bg-[#0F0F10] text-white hover:bg-[#27272A]'
+                          : 'bg-[#0F0F10] text-[#D4AF37] hover:bg-[#27272A]'
+                      }`}
+                    >
+                      {instagramAccount.connected ? 'Configure' : '+ Connect Instagram'}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Video File Uploader (CapCut / Phone) */}
+            {/* Video & Media File Uploader (Native HTML5 Drag & Drop) */}
             <div className="p-5 rounded-3xl bg-white border border-[#E5E7EB] shadow-xs space-y-4">
-              <div>
-                <label className="text-xs font-bold text-[#0F0F10] block mb-1">
-                  Upload Video Clip (CapCut / Phone / Camera)
-                </label>
-                <p className="text-[11px] text-[#6B7280]">
-                  Record on your phone, edit in CapCut, and drag &amp; drop your 9:16 vertical MP4 or WebM video.
-                </p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="video/mp4,video/quicktime,video/webm,video/x-m4v,image/png,image/jpeg,image/webp"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    handleFileSelect(e.target.files[0]);
+                  }
+                }}
+                className="hidden"
+              />
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="text-xs font-bold text-[#0F0F10] block mb-0.5">
+                    Upload Reel Media (CapCut / Phone / Camera)
+                  </label>
+                  <p className="text-[11px] text-[#6B7280]">
+                    Select from device or drag &amp; drop your vertical 9:16 MP4, MOV, or photography.
+                  </p>
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#FAF9F6] border border-[#E5E7EB] text-[#6B7280]">
+                  {mediaType === 'video' ? 'VIDEO ENGINE' : 'PHOTO ENGINE'}
+                </span>
               </div>
 
-              <div className="border border-dashed border-[#D4AF37]/50 rounded-2xl p-6 text-center bg-[#FAF9F6]/80 hover:bg-[#FAF9F6] transition-colors cursor-pointer flex flex-col items-center justify-center gap-2">
-                <div className="w-10 h-10 rounded-full bg-[#FBF5E8] text-[#997A2E] flex items-center justify-center">
-                  <Film size={20} />
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDragging(true);
+                }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+                className={`border-2 border-dashed rounded-2xl p-6 text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-2 ${
+                  isDragging
+                    ? 'border-[#D4AF37] bg-[#FBF5E8]'
+                    : 'border-[#D4AF37]/50 bg-[#FAF9F6]/80 hover:bg-[#FAF9F6] hover:border-[#D4AF37]'
+                }`}
+              >
+                <div className="w-12 h-12 rounded-full bg-[#FBF5E8] text-[#997A2E] flex items-center justify-center shadow-xs">
+                  {mediaType === 'video' ? <Film size={22} /> : <ImageIcon size={22} />}
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-[#0F0F10]">
-                    Current File: <span className="font-mono text-[#997A2E]">{videoFileName}</span>
+                  <p className="text-xs font-bold text-[#0F0F10] flex items-center justify-center gap-1.5">
+                    <span>Active File:</span>
+                    <span className="font-mono text-[#997A2E] underline underline-offset-2">{videoFileName}</span>
                   </p>
-                  <p className="text-[10px] text-[#6B7280] mt-0.5">
-                    MP4, MOV up to 250MB • Vertical 1080x1920 (9:16)
+                  <p className="text-[10px] text-[#6B7280] mt-1 font-mono">
+                    Size: {mediaFileSize} • {mediaType === 'video' ? 'Vertical 1080x1920 (9:16) MP4/WebM' : 'High-Res Regimen Image'}
                   </p>
                 </div>
-                <div className="flex items-center gap-2 mt-1">
-                  <button
-                    onClick={() => {
-                      setVideoFileName('Morning_Barrier_CapCut_v2.mp4');
-                      alert('Uploaded sample phone video: Morning_Barrier_CapCut_v2.mp4');
-                    }}
-                    className="px-3 py-1 rounded-full bg-white border border-[#E5E7EB] text-[11px] font-semibold text-[#0F0F10] hover:bg-[#FAF9F6]"
-                  >
-                    Replace Video
-                  </button>
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="px-3 py-1.5 rounded-full bg-white border border-[#E5E7EB] text-[11px] font-bold text-[#0F0F10] hover:bg-[#FAF9F6] shadow-xs flex items-center gap-1.5">
+                    <Upload size={12} className="text-[#997A2E]" />
+                    <span>Choose File from Device</span>
+                  </span>
                 </div>
               </div>
 
               {/* Beauty Filter Preset */}
               <div>
                 <label className="text-xs font-bold text-[#0F0F10] block mb-1.5 flex items-center gap-1.5">
-                  <Sparkle size={13} className="text-[#997A2E]" />
-                  <span>Beauty Lighting &amp; Filter Grading Preset</span>
+                  <Sliders size={13} className="text-[#997A2E]" />
+                  <span>Beauty Lighting &amp; Color Grading Preset</span>
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                   {[
-                    'Clinical Radiance 4K',
+                    'Natural Radiance 4K',
                     'Warm Golden Hour',
                     'Dewy Glass Skin',
                     'Natural Daylight'
@@ -568,7 +537,7 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                 <div className="flex flex-wrap gap-1.5">
                   {[
                     '#DelslaBeauty',
-                    '#MelaninGlow',
+                    '#NaturalGlow',
                     '#NigerianSkincare',
                     '#CleanBeautyAfrica',
                     '#GlassSkinLagos',
@@ -628,7 +597,7 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                   </h3>
                 </div>
                 <span className="text-[10px] font-mono font-bold text-[#997A2E]">
-                  12% Commission
+                  Your assigned commission
                 </span>
               </div>
 
@@ -686,11 +655,29 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
 
               {/* 9:16 Reel Container */}
               <div className="relative aspect-[9/16] w-full max-w-[260px] mx-auto rounded-3xl overflow-hidden bg-black shadow-lg border border-black/10">
-                <img
-                  src={videoPreviewUrl}
-                  alt="Reel preview"
-                  className="w-full h-full object-cover opacity-90"
-                />
+                {!mediaPreviewUrl ? (
+                  <div className="relative z-10 flex h-full flex-col items-center justify-center gap-3 p-6 text-center text-white/80">
+                    <Video size={28} aria-hidden="true" />
+                    <p className="text-sm">Choose a video or image to preview.</p>
+                  </div>
+                ) : mediaType === 'video' ? (
+                  <video
+                    key={mediaPreviewUrl}
+                    src={mediaPreviewUrl || undefined}
+                    controls
+                    playsInline
+                    autoPlay
+                    loop
+                    muted
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <img
+                    src={mediaPreviewUrl || undefined}
+                    alt="Reel preview"
+                    className="w-full h-full object-cover opacity-90"
+                  />
+                )}
 
                 {/* Ambient Scrim Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/30 pointer-events-none" />
@@ -701,12 +688,12 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                 </div>
 
                 {/* Right Reel Action Icons (TikTok / IG style) */}
-                <div className="absolute right-2.5 bottom-16 flex flex-col items-center gap-3 text-white">
+                <div className="absolute right-2.5 bottom-16 flex flex-col items-center gap-3 text-white pointer-events-none">
                   <div className="flex flex-col items-center">
                     <div className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-rose-500">
                       <Heart size={16} fill="currentColor" />
                     </div>
-                    <span className="text-[9px] font-mono mt-0.5">2.4k</span>
+                    <span className="text-[9px] font-mono mt-0.5">Preview</span>
                   </div>
                   <div className="flex flex-col items-center">
                     <div className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center">
@@ -723,10 +710,12 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                 </div>
 
                 {/* Bottom Creator Info & Shoppable Tag */}
-                <div className="absolute bottom-3 left-3 right-12 text-white space-y-1.5">
+                <div className="absolute bottom-3 left-3 right-12 text-white space-y-1.5 pointer-events-none">
                   <div className="flex items-center gap-1.5">
-                    <span className="font-bold text-xs">@amara_glows</span>
-                    <span className="text-[9px] font-mono text-[#D4AF37] bg-[#D4AF37]/20 px-1.5 py-0.2 rounded-full">VIP</span>
+                    <span className="font-bold text-xs">{tiktokAccount.handle || ''}</span>
+                    <span className="text-[9px] font-mono text-[#D4AF37] bg-[#D4AF37]/20 px-1.5 py-0.2 rounded-full border border-[#D4AF37]/30">
+                      {tiktokAccount.connected ? 'CONNECTED' : 'DELSLA'}
+                    </span>
                   </div>
 
                   <p className="text-[10px] text-white/90 line-clamp-2 leading-snug">
@@ -764,7 +753,7 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                   type="text"
                   value={routineTitle}
                   onChange={(e) => setRoutineTitle(e.target.value)}
-                  placeholder="e.g. Morning Melanin Barrier Shield"
+                  placeholder="e.g. Morning Natural Barrier Shield"
                   className="w-full px-4 py-2.5 rounded-xl border border-[#E5E7EB] text-xs text-[#0F0F10] focus:outline-none focus:border-[#D4AF37] bg-[#FAF9F6] font-medium"
                 />
               </div>
@@ -780,7 +769,7 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                 >
                   <option>Hydration &amp; Barrier Repair</option>
                   <option>Dark Spot &amp; Hyperpigmentation</option>
-                  <option>Melanin UV Defense &amp; Glow</option>
+                  <option>Natural UV Defense &amp; Glow</option>
                   <option>Gentle Clarifying &amp; Texture</option>
                 </select>
               </div>
@@ -795,7 +784,7 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                   type="text"
                   value={routineSkinType}
                   onChange={(e) => setRoutineSkinType(e.target.value)}
-                  placeholder="e.g. Combination & Melanin-Rich"
+                  placeholder="e.g. Combination & Natural"
                   className="w-full px-4 py-2.5 rounded-xl border border-[#E5E7EB] text-xs text-[#0F0F10] bg-[#FAF9F6] font-medium"
                 />
               </div>
@@ -852,7 +841,7 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
             </div>
 
             {routineSteps.map((step, idx) => {
-              const matchedProduct = products.find((p) => p.id === step.productId) || products[0];
+              const matchedProduct = products.find((p) => p.id === step.productId);
               return (
                 <div
                   key={step.id}
@@ -885,6 +874,7 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                           }}
                           className="px-2.5 py-1 rounded-lg border border-[#E5E7EB] bg-[#FAF9F6] text-xs font-medium cursor-pointer"
                         >
+                          <option value="">Choose a formulation</option>
                           {products.map((p) => (
                             <option key={p.id} value={p.id}>
                               {p.name} (₦{p.price.toLocaleString('en-NG')})
@@ -929,7 +919,7 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
       )}
 
       {/* ==================================================== */}
-      {/* 3. CLINICAL PRODUCT REVIEW INTERFACE */}
+      {/* 3. NATURAL PRODUCT REVIEW INTERFACE */}
       {/* ==================================================== */}
       {selectedFormat === 'review' && (
         <section className="space-y-6">
@@ -954,13 +944,13 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
 
               <div>
                 <label className="text-xs font-bold text-[#0F0F10] block mb-1.5">
-                  Clinical Wear Duration
+                  Natural Wear Duration
                 </label>
                 <input
                   type="text"
                   value={testingDuration}
                   onChange={(e) => setTestingDuration(e.target.value)}
-                  placeholder="e.g. 14 Days Clinical Wear Test"
+                  placeholder="e.g. 14 Days Natural Wear Test"
                   className="w-full px-4 py-2.5 rounded-xl border border-[#E5E7EB] text-xs text-[#0F0F10] bg-[#FAF9F6] font-medium"
                 />
               </div>
@@ -1020,10 +1010,10 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
               </div>
             </div>
 
-            {/* Written Clinical Verdict */}
+            {/* Written Natural Verdict */}
             <div>
               <label className="text-xs font-bold text-[#0F0F10] block mb-1.5">
-                Detailed Clinical Verdict &amp; Skin Transformation
+                Detailed Natural Verdict &amp; Skin Transformation
               </label>
               <textarea
                 rows={4}
@@ -1050,6 +1040,7 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                 </label>
                 <input
                   type="text"
+                  aria-label="Tutorial title"
                   value={tutorialTitle}
                   onChange={(e) => setTutorialTitle(e.target.value)}
                   placeholder="e.g. 60-Second Facial Lymphatic Drainage & Oil Press"
@@ -1087,6 +1078,7 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                   <div className="flex-1 space-y-1">
                     <input
                       type="text"
+                      aria-label={`Tutorial step ${i + 1} title`}
                       value={tut.title}
                       onChange={(e) => {
                         const copy = [...tutorialSteps];
@@ -1097,6 +1089,7 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                     />
                     <input
                       type="text"
+                      aria-label={`Tutorial step ${i + 1} instructions`}
                       value={tut.detail}
                       onChange={(e) => {
                         const copy = [...tutorialSteps];
@@ -1111,6 +1104,157 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
             </div>
           </div>
         </section>
+      )}
+
+      {isLiveBackend && <label className="block rounded-2xl border bg-white p-4 text-xs">Hosted media URL (HTTPS)
+        <input aria-label="Hosted media URL" className="mt-2 w-full rounded-xl border p-3" value={videoPreviewUrl} onChange={event => setVideoPreviewUrl(event.target.value)} />
+      </label>}
+      {/* Toast Notification Banner */}
+      {toastMessage && (
+        <div className="fixed top-6 right-6 z-50 p-4 rounded-2xl bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/30 flex items-center justify-between shadow-2xl animate-in slide-in-from-top duration-300 max-w-md">
+          <div className="flex items-center gap-2.5 text-xs font-mono">
+            <CheckCircle2 size={16} className="shrink-0 text-emerald-400" />
+            <span className="text-white">{toastMessage}</span>
+          </div>
+          <button
+            onClick={() => setToastMessage(null)}
+            className="text-white/60 hover:text-white cursor-pointer ml-3"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
+      {/* Social Account Linking Modal */}
+      {socialModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-[#E5E7EB] space-y-4 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center font-bold text-xs shadow-xs">
+                  {socialModal === 'tiktok' ? 'TT' : 'IG'}
+                </div>
+                <div>
+                  <h3 className="font-heading font-bold text-sm text-[#0F0F10]">
+                    {socialModal === 'tiktok' ? 'TikTok Creator Connection' : 'Instagram Reels API'}
+                  </h3>
+                  <span className="text-[10px] font-mono text-[#6B7280]">
+                    OAuth 2.0 Partner Integration
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => setSocialModal(null)}
+                className="w-8 h-8 rounded-full bg-[#FAF9F6] border border-[#E5E7EB] text-[#6B7280] hover:text-[#0F0F10] flex items-center justify-center cursor-pointer"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            <p className="text-xs text-[#6B7280] leading-relaxed">
+              Authorize your {socialModal === 'tiktok' ? 'TikTok' : 'Instagram professional'} account to read its profile. Instagram uses Facebook Login and requires a linked Facebook Page. Channel connection does not publish content automatically.
+            </p>
+
+            {/* Direct Web Authentication Link */}
+            <div className="p-3 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] flex items-center justify-between">
+              <div>
+                <span className="text-xs font-bold text-[#0F0F10] block">
+                  Authenticate on {socialModal === 'tiktok' ? 'TikTok.com' : 'Facebook.com'}
+                </span>
+                <span className="text-[10px] text-[#6B7280]">
+                  Opens official login page in a new window
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleSaveSocialChannel}
+                disabled={isAuthorizing || !modalAccount.configured}
+                className="px-3 py-1.5 rounded-full bg-white border border-[#E5E7EB] hover:bg-[#FAF9F6] text-xs font-bold text-[#0F0F10] flex items-center gap-1 shadow-2xs cursor-pointer active:scale-95 transition-all"
+              >
+                <span>Open Login</span>
+                <ExternalLink size={12} />
+              </button>
+            </div>
+
+            {/* Form Fields */}
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-bold text-[#0F0F10] block mb-1">
+                  Creator Vanity Handle
+                </label>
+                <input
+                  type="text"
+                  value={modalHandle}
+                  readOnly
+                  placeholder="Available after authorization"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#E5E7EB] text-xs text-[#0F0F10] bg-[#FAF9F6] font-mono focus:outline-none focus:border-[#D4AF37]"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[#0F0F10] block mb-1">
+                  Verified Follower Community
+                </label>
+                <input
+                  type="text"
+                  value={modalFollowers}
+                  readOnly
+                  placeholder="Not provided by the channel"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#E5E7EB] text-xs text-[#0F0F10] bg-[#FAF9F6] font-medium focus:outline-none focus:border-[#D4AF37]"
+                />
+              </div>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-[#FBF5E8]/60 border border-[#D4AF37]/30 space-y-2 text-xs">
+              <p>{modalAccount.configured ? 'Profile access is requested on the provider’s consent screen.' : 'Developer app credentials and callback URLs have not been configured yet.'}</p>
+              <p>No social passwords are collected by Desla.</p>
+              {social.error && <p role="alert">{social.error}</p>}
+              {social.pending.filter(item => item.provider === socialModal).map(item => <div key={item.grant}>
+                <p>Choose the Instagram account to connect:</p>
+                {item.accounts.map(account => <button key={account.accountId} type="button" className="block underline py-2" onClick={() => { void social.select(item.provider, item.grant, account.accountId); }}>{account.handle} — {account.displayName}</button>)}
+              </div>)}
+              {isAuthorizing && <button type="button" className="underline" onClick={social.cancel}>Stop waiting</button>}
+            </div>
+
+            {/* CTAs */}
+            <div className="flex items-center justify-between gap-3 pt-2">
+              {(socialModal === 'tiktok' ? tiktokAccount.connected : instagramAccount.connected) ? (
+                <button
+                  type="button"
+                  onClick={() => handleDisconnectSocial(socialModal)}
+                  className="px-4 py-2 rounded-full border border-rose-200 text-rose-600 hover:bg-rose-50 text-xs font-bold cursor-pointer transition-colors"
+                >
+                  Disconnect
+                </button>
+              ) : <div />}
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSocialModal(null)}
+                  className="px-4 py-2 rounded-full border border-[#E5E7EB] bg-white text-xs font-bold text-[#6B7280] hover:text-[#0F0F10] cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isAuthorizing || !modalAccount.configured}
+                  onClick={handleSaveSocialChannel}
+                  className="px-5 py-2 rounded-full bg-[#0F0F10] text-[#D4AF37] hover:bg-[#27272A] text-xs font-bold cursor-pointer shadow-sm active:scale-95 transition-all flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  {isAuthorizing ? (
+                    <span>Authorizing API…</span>
+                  ) : (
+                    <>
+                      <Check size={13} />
+                      <span>Authorize &amp; Link Channel</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

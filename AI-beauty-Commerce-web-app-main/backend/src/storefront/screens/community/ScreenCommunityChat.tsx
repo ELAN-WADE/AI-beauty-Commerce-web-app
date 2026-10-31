@@ -1,3 +1,4 @@
+import { uploadCommunityMediaApi } from '../../lib/owned-api';
 import React, { useState } from 'react';
 import {
   ChevronLeft,
@@ -20,10 +21,11 @@ import {
   MapPin
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { CustomerAccess } from '../../components/auth/CustomerAccess';
 import { CommunityPost } from '../../types';
 import { ProductCard } from '../../components/common/ProductCard';
 
-export const ScreenCommunityChat: React.FC = () => {
+const ScreenCommunityChatContent: React.FC = () => {
   const {
     communityPosts,
     createCommunityPost,
@@ -39,7 +41,8 @@ export const ScreenCommunityChat: React.FC = () => {
     selectedCity,
     getDistributorsForCity,
     addToCart,
-    loginAsDemoRole
+    loginWithGoogle,
+    authUser
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'feed' | 'transformations' | 'chat'>('feed');
@@ -49,9 +52,18 @@ export const ScreenCommunityChat: React.FC = () => {
   // New Post Form State
   const [postContent, setPostContent] = useState('');
   const [postSkinType, setPostSkinType] = useState('Combination Skin');
-  const [selectedProductTagId, setSelectedProductTagId] = useState(products[0]?.id || '');
-  const [postMediaType, setPostMediaType] = useState<'image' | 'video'>('image');
+  const [selectedProductTagId, setSelectedProductTagId] = useState('');
+  const [uploadedMedia, setUploadedMedia] = useState<{ id: string; name: string } | null>(null);
+  const [uploading, setUploading] = useState(false), [posting, setPosting] = useState(false), [postError, setPostError] = useState('');
+  const uploadMedia = async (file?: File) => {
+    if (!file || uploading || posting) return;
+    setUploading(true); setPostError('');
+    try { setUploadedMedia({ id: await uploadCommunityMediaApi(file), name: file.name }); }
+    catch (error) { setPostError(error instanceof Error ? error.message : 'Upload failed. Your text is preserved.'); }
+    finally { setUploading(false); }
+  };
 
+  React.useEffect(() => { setPostContent(''); setUploadedMedia(null); setSelectedProductTagId(''); setPostError(''); }, [authUser?.id]);
   // Direct chat input
   const [chatInput, setChatInput] = useState('');
 
@@ -59,45 +71,32 @@ export const ScreenCommunityChat: React.FC = () => {
   const flashSaleItems = products.filter((p) => p.isFlashSale || p.discountPercentage).slice(0, 3);
   const trendingItems = products.filter((p) => p.isBestseller).slice(0, 3);
 
-  const handleCreatePost = (e: React.FormEvent) => {
+  const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!postContent.trim()) return;
 
-    const taggedProd = products.find((p) => p.id === selectedProductTagId);
-
-    createCommunityPost({
-      authorName: userProfile.name,
-      authorHandle: '@' + userProfile.name.toLowerCase().replace(/\s+/g, '_'),
-      authorAvatar: userProfile.avatar,
-      authorRole: 'Verified Buyer',
-      skinType: postSkinType,
-      content: postContent,
-      mediaType: postMediaType,
-      mediaUrl:
-        postMediaType === 'video'
-          ? 'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&w=600&q=80'
-          : 'https://images.unsplash.com/photo-1608248597359-0c679234b4c7?auto=format&fit=crop&w=600&q=80',
-      videoDuration: postMediaType === 'video' ? '0:35' : undefined,
-      taggedProductId: taggedProd?.id,
-      taggedProductSku: taggedProd?.sku,
-      taggedProductHashtag: taggedProd?.hashtag,
-      taggedProductName: taggedProd?.name,
-      isTransformation: activeTab === 'transformations'
-    });
-
-    setPostContent('');
-    setIsCreateModalOpen(false);
+    if (posting || uploading) return;
+    setPosting(true); setPostError('');
+    try {
+      await createCommunityPost({
+        authorName: authUser?.profile?.displayName || '', authorHandle: '', authorAvatar: authUser?.profile?.avatarUrl || '', authorRole: 'Member',
+        content: postContent.trim(), ...(selectedProductTagId ? { taggedProductId: selectedProductTagId } : {}),
+        ...(uploadedMedia ? { mediaId: uploadedMedia.id } : {}),
+      });
+      setPostContent(''); setUploadedMedia(null); setSelectedProductTagId(''); setIsCreateModalOpen(false);
+    } catch (error) { setPostError(error instanceof Error ? error.message : 'Your post could not be published. Your draft is preserved.'); }
+    finally { setPosting(false); }
   };
 
-  const handleSendChat = (e: React.FormEvent) => {
+  const handleSendChat = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
-    sendCommunityMessage(chatInput);
+    try { await sendCommunityMessage(chatInput); } catch (error) { setPostError(error instanceof Error ? error.message : 'The message could not be sent.'); return; }
     setChatInput('');
   };
 
   const displayedPosts = communityPosts.filter((p) => {
-    if (activeTab === 'transformations') return p.isTransformation;
+    if (activeTab === 'transformations') return p.mediaType === 'video';
     return true;
   });
 
@@ -109,13 +108,6 @@ export const ScreenCommunityChat: React.FC = () => {
       <div className="lg:hidden sticky top-0 z-30 w-full bg-white/95 backdrop-blur-md border-b border-[#E5E7EB] px-4 lg:px-8 py-3.5">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button
-              onClick={goBack}
-              className="p-2 -ml-2 rounded-full text-[#0F0F10] hover:bg-gray-100 active:scale-95 transition-colors cursor-pointer"
-              aria-label="Go back"
-            >
-              <ChevronLeft size={22} strokeWidth={2} />
-            </button>
             <div>
               <div className="flex items-center gap-2">
                 <Users size={18} className="text-[#D4AF37]" />
@@ -123,9 +115,7 @@ export const ScreenCommunityChat: React.FC = () => {
                   Desla!™ Collective
                 </h1>
               </div>
-              <p className="text-xs text-[#6B7280]">
-                Real routines, verified video transformations &amp; peer consultations
-              </p>
+
             </div>
           </div>
 
@@ -139,7 +129,7 @@ export const ScreenCommunityChat: React.FC = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 lg:px-8 pt-6">
+      <div className="max-w-7xl mx-auto px-4 lg:px-8 pt-3 lg:pt-6">
         {/* 3-COLUMN RESPONSIVE LAYOUT (Left: Hubs & Routines, Center: Reels Feed, Right: Flash Sales) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* LEFT COLUMN: Nearest Hub, Trending & Routine Guides (3 cols) */}
@@ -155,10 +145,10 @@ export const ScreenCommunityChat: React.FC = () => {
               </p>
               <div className="p-2.5 rounded-xl bg-white border border-[#E5E7EB] text-xs">
                 <span className="font-bold text-[#0F0F10] block">
-                  {cityDistributors[0]?.businessName || 'Maitama Central Hub'}
+                  {cityDistributors[0]?.businessName || 'No local hub listed'}
                 </span>
                 <span className="text-[10.5px] text-[#6B7280] mt-0.5 block truncate">
-                  {cityDistributors[0]?.address || 'Aminu Kano Crescent, Wuse 2'}
+                  {cityDistributors[0]?.address || ''}
                 </span>
               </div>
               <button
@@ -183,7 +173,7 @@ export const ScreenCommunityChat: React.FC = () => {
                   className="p-2 rounded-xl bg-[#FAF9F6] hover:bg-[#F3EEE3] cursor-pointer transition-all"
                 >
                   <span className="font-bold text-[#0F0F10] block text-[11.5px]">
-                    #MelaninGlowRoutine
+                    #NaturalGlowRoutine
                   </span>
                   <span className="text-[10px] text-[#6B7280]">
                     Radiant Body Oil + Whipped Butter
@@ -238,8 +228,14 @@ export const ScreenCommunityChat: React.FC = () => {
 
           {/* CENTER COLUMN: Feed, Reels & Live Chat (6 cols) */}
           <div className="lg:col-span-6 space-y-5">
+            <label className="lg:hidden flex items-center gap-2 text-xs">
+              <span className="sr-only">Community sections</span>
+              <select aria-label="Community sections" value={activeTab} onChange={event => { const value = event.target.value; if (['feed', 'transformations', 'chat'].includes(value)) setActiveTab(value as typeof activeTab); else navigateTo(value as 'catalogue' | 'distributors' | 'creators'); }} className="min-h-11 bg-transparent py-2 pr-6 font-semibold">
+                <option value="feed">Community Feed</option><option value="transformations">Video Reels</option><option value="chat">Conversations</option><option value="catalogue">Shop formulations</option><option value="distributors">Find a distributor</option><option value="creators">Creator Studio</option>
+              </select>
+            </label>
             {/* Navigation Tabs Bar with Desktop Share Routine CTA */}
-            <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-3 gap-2">
+            <div className="hidden lg:flex items-center justify-between border-b border-[#E5E7EB] pb-3 gap-2">
               <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
                 <button
                   onClick={() => setActiveTab('feed')}
@@ -297,11 +293,17 @@ export const ScreenCommunityChat: React.FC = () => {
                       {/* Author Header */}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2.5">
-                          <img
-                            src={post.authorAvatar}
-                            alt={post.authorName}
-                            className="w-10 h-10 rounded-full object-cover border border-[#E5E7EB]"
-                          />
+                          {post.authorAvatar ? (
+                            <img
+                              src={post.authorAvatar}
+                              alt={post.authorName || 'Author'}
+                              className="w-10 h-10 rounded-full object-cover border border-[#E5E7EB]"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-[#E5E7EB] text-[#4B5563] flex items-center justify-center font-bold text-xs uppercase border border-[#E5E7EB]">
+                              {post.authorName ? post.authorName.charAt(0) : 'U'}
+                            </div>
+                          )}
                           <div>
                             <div className="flex items-center gap-1.5">
                               <span className="font-heading font-bold text-xs sm:text-sm text-[#0F0F10]">
@@ -346,23 +348,8 @@ export const ScreenCommunityChat: React.FC = () => {
                       {/* Media (TikTok/Reels style video or image preview) */}
                       {post.mediaUrl && (
                         <div className="relative rounded-2xl overflow-hidden bg-black aspect-video max-h-72 border border-[#E5E7EB]">
-                          <img
-                            src={post.mediaUrl}
-                            alt="Routine reel preview"
-                            className="w-full h-full object-cover"
-                          />
-                          {post.mediaType === 'video' && (
-                            <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                              <div className="w-12 h-12 rounded-full bg-white/90 text-black flex items-center justify-center shadow-lg active:scale-95 cursor-pointer">
-                                <Video size={20} className="ml-0.5 text-[#0F0F10]" />
-                              </div>
-                              {post.videoDuration && (
-                                <span className="absolute bottom-3 right-3 px-2 py-0.5 rounded-md bg-black/70 text-white font-mono text-[10px]">
-                                  {post.videoDuration}
-                                </span>
-                              )}
-                            </div>
-                          )}
+                          {post.mediaType === 'video' ? <video src={post.mediaUrl} controls playsInline preload="metadata" className="w-full h-full object-contain" /> : <img src={post.mediaUrl} alt="Shared routine" loading="lazy" className="w-full h-full object-cover" />}
+
                         </div>
                       )}
 
@@ -423,6 +410,7 @@ export const ScreenCommunityChat: React.FC = () => {
                   ))}
                 </div>
 
+                {postError && <p role="alert" className="text-xs text-rose-700">{postError}</p>}
                 <form onSubmit={handleSendChat} className="flex gap-2 pt-2">
                   <input
                     type="text"
@@ -433,6 +421,7 @@ export const ScreenCommunityChat: React.FC = () => {
                   />
                   <button
                     type="submit"
+                  disabled={!chatInput.trim()}
                     className="px-5 py-2.5 rounded-full bg-[#0F0F10] hover:bg-[#1F1D22] text-white text-xs font-bold active:scale-95 transition-all cursor-pointer"
                   >
                     Send
@@ -499,20 +488,20 @@ export const ScreenCommunityChat: React.FC = () => {
                 Creator Affiliate Desk
               </span>
               <p className="text-[11px] text-[#6B7280] leading-snug">
-                Earn 10% commission on every verified referral routine post.
+                Apply to the Creator Studio to request a reviewed affiliate account.
               </p>
-              <div className="p-2.5 rounded-xl bg-[#F3EEE3] flex items-center justify-between">
-                <span className="font-mono font-bold text-xs text-[#0F0F10]">AMARA10</span>
-                <span className="text-[10px] text-[#6B7280]">10% Off Routine</span>
-              </div>
+
               <button
-                onClick={() => {
-                  loginAsDemoRole('CREATOR');
-                  navigateTo('creators');
-                }}
-                className="w-full py-2 px-3 rounded-xl bg-[#0F0F10] hover:bg-[#1F1D22] text-white text-[11px] font-bold active:scale-95 transition-all cursor-pointer text-center block"
+                onClick={() => navigateTo('creators')}
+                className="w-full py-2.5 px-3 rounded-xl bg-[#0F0F10] hover:bg-[#1F1D22] text-white text-[11px] font-bold active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2 shadow-xs"
               >
-                Join Creator Hub →
+                <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                </svg>
+                <span>Join Creator Studio</span>
               </button>
             </div>
           </div>
@@ -522,12 +511,16 @@ export const ScreenCommunityChat: React.FC = () => {
       {/* Share Routine Modal */}
       {isCreateModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-[#E5E7EB] space-y-4 animate-in zoom-in-95">
+          <div className="w-full max-w-md max-h-[90dvh] overflow-y-auto bg-white rounded-3xl p-6 shadow-2xl border border-[#E5E7EB] space-y-4 animate-in zoom-in-95">
             <h3 className="font-heading font-bold text-base text-[#0F0F10]">
-              Post a Community Routine Reel
+              Share a routine
             </h3>
 
             <form onSubmit={handleCreatePost} className="space-y-3">
+              <label className="block text-xs">Optional photo or video<input aria-label="Routine media" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm" disabled={posting || uploading} onChange={event => { void uploadMedia(event.target.files?.[0]); event.target.value = ''; }} className="block mt-2 w-full" /></label>
+              {uploading && <p role="status" className="text-xs">Uploading your media…</p>}
+              {uploadedMedia && <p className="text-xs">{uploadedMedia.name} <button type="button" disabled={posting} className="underline" onClick={() => setUploadedMedia(null)}>Remove</button></p>}
+              {postError && <p role="alert" className="text-xs text-rose-700">{postError}</p>}
               <div>
                 <label className="text-[11px] font-bold text-[#4B5563] block mb-1">Tag Formulation</label>
                 <select
@@ -535,6 +528,7 @@ export const ScreenCommunityChat: React.FC = () => {
                   onChange={(e) => setSelectedProductTagId(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] text-xs text-[#0F0F10]"
                 >
+                  <option value="">No product tag</option>
                   {products.map((p) => (
                     <option key={p.id} value={p.id}>{p.name} ({p.sku})</option>
                   ))}
@@ -563,9 +557,10 @@ export const ScreenCommunityChat: React.FC = () => {
                 </button>
                 <button
                   type="submit"
+                  disabled={posting || uploading || !postContent.trim()}
                   className="flex-1 py-2.5 rounded-full bg-[#0F0F10] text-white text-xs font-bold"
                 >
-                  Publish Reel
+                  {posting ? 'Publishing…' : 'Publish routine'}
                 </button>
               </div>
             </form>
@@ -575,3 +570,4 @@ export const ScreenCommunityChat: React.FC = () => {
     </div>
   );
 };
+export const ScreenCommunityChat: React.FC = () => <CustomerAccess title="Sign in to join the community"><ScreenCommunityChatContent /></CustomerAccess>;

@@ -1,7 +1,7 @@
 /**
- * Token-bucket rate limiter (single-instance, in-process).
- * Interface is deliberately Redis-shaped so the multi-instance swap (§9) only
- * changes this file's internals — call sites stay identical.
+ * Per-process token buckets remain a lightweight supplemental throttle.
+ * Mutating REST requests also use the atomic PostgreSQL quota below, which is
+ * shared by application replicas; sensitive operations keep narrower budgets.
  */
 import { createHash } from 'node:crypto';
 import { sql } from 'drizzle-orm';
@@ -36,6 +36,11 @@ export const Limits = {
   reviews: { limit: 30, windowMs: 3600_000 },
   posts: { limit: 60, windowMs: 3600_000 },
   loyaltyRedeem: { limit: 20, windowMs: 3600_000 },
+  // Cross-replica baseline for every mutating REST request. More restrictive
+  // domain limits remain in place at sensitive call sites.
+  apiMutation: { limit: 120, windowMs: 60_000 },
+  adminMutation: { limit: 60, windowMs: 60_000 },
+  mfa: { limit: 10, windowMs: 15 * 60_000 },
 } satisfies Record<string, LimitSpec>;
 
 export function checkRateLimit(

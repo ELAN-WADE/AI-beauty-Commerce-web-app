@@ -21,7 +21,7 @@ export interface PartnerMobileBottomNavProps {
 export interface PartnerTabItem {
   id: string;
   label: string;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
+  icon: React.ComponentType<{ size?: number | string; className?: string } | any>;
   isElevated?: boolean;
   badge?: number;
 }
@@ -53,7 +53,7 @@ export const PartnerMobileBottomNav: React.FC<PartnerMobileBottomNavProps> = ({
       id: 'orders',
       label: 'Orders',
       icon: Package,
-      badge: badgeCounts.orders || 7
+      badge: badgeCounts.orders || 0
     },
     {
       id: 'restock',
@@ -65,7 +65,7 @@ export const PartnerMobileBottomNav: React.FC<PartnerMobileBottomNavProps> = ({
       id: 'inventory',
       label: 'Inventory',
       icon: Layers,
-      badge: badgeCounts.lowStock || 4
+      badge: badgeCounts.lowStock || 0
     },
     { id: 'settings', label: 'More', icon: MoreHorizontal }
   ];

@@ -69,11 +69,12 @@ describe('cart sync core (runSyncCart)', () => {
   it('replaces the server cart with exactly the given lines (slug→variant, verified)', async () => {
     const cart = await runSyncCart(pg(), guest, [
       { productId: 'action-body-oil', size: '50ml', quantity: 2 },
-      { productId: 'ACTION-BODY-OIL', size: 'unknown-size', quantity: 1 }, // falls back to first variant… but dupes!
+      { productId: 'ACTION-BODY-OIL', size: 'unknown-size', quantity: 1 },
     ]).catch((e) => e as Error);
-    // Both lines resolve to the 50ml variant → duplicate guard fires (same as REST).
+    // A removed/unknown size must never silently become a different purchasable size.
     expect(cart).toBeInstanceOf(Error);
-    expect((cart as Error).message).toMatch(/cannot be checked out/);
+    expect((cart as Error).message).toMatch(/size is no longer available/);
+    expect(cart).toMatchObject({ status: 400 });
 
     const ok = await runSyncCart(pg(), guest, [
       { productId: 'action-body-oil', size: '50ml', quantity: 2 },

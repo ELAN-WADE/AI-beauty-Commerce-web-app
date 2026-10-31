@@ -14,7 +14,7 @@ describe('account email transport configuration', () => {
     vi.stubEnv('NODE_ENV', 'development');
     vi.stubEnv('FRONTEND_URL', '');
     vi.stubEnv('APP_URL', 'http://localhost:3001');
-    expect(authEmailLink('auth.verify-email', 'abc')).toBe('http://localhost:5173/verify-email?token=abc');
+    expect(authEmailLink('auth.verify-email', 'abc')).toBe('http://localhost:3000/verify-email?token=abc');
   });
 
   it('requires an HTTPS storefront origin in production', () => {

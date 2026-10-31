@@ -1,260 +1,64 @@
-import React, { useEffect } from 'react';
-import {
-  CheckCircle2,
-  Package,
-  Truck,
-  MapPin,
-  Award,
-  ArrowRight,
-  ShoppingBag,
-  ExternalLink,
-  ShieldCheck,
-  ChevronLeft
-} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { CheckCircle2, Package, MapPin, ShoppingBag } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useApp } from '../../context/AppContext';
-import { useViewport } from '../../context/ViewportContext';
+import { fetchServerOrder, lastPaymentReference, mapServerOrder, paymentStatus, paymentTokenFor } from '../../lib/owned-api';
 
 export const Screen12OrderConfirmed: React.FC = () => {
-  const { isDesktop } = useViewport();
-  const { activeOrder, navigateTo, goBack, selectedCity, checkoutAddress } = useApp();
-
+  const { activeOrder, setActiveOrder, authUser, navigateTo, isLiveBackend } = useApp();
+  const [restoring, setRestoring] = useState(!activeOrder);
+  const [restoreError, setRestoreError] = useState('');
   useEffect(() => {
-    // Launch celebratory confetti burst
-    try {
-      if (typeof window !== 'undefined' && confetti) {
-        confetti({
-          particleCount: 80,
-          spread: 70,
-          origin: { y: 0.6 },
-          colors: ['#D4AF37', '#F6E7C1', '#0F0F10', '#FB7701']
-        });
-      }
-    } catch (e) {
-      // Safe fallback
-    }
-  }, []);
-
-  const orderId = activeOrder?.id || 'DES-829104';
-  const formatNaira = (amt: number) => '₦' + (amt || 0).toLocaleString('en-NG');
-
-  const shippingInfo = activeOrder?.shippingAddress || checkoutAddress;
-
-  return (
-    <div className="min-h-screen bg-white text-[#0F0F10] pb-32 font-body selection:bg-[#D4AF37]/20 selection:text-[#997A2E]">
-      {/* Mobile Top Header (Desktop already has DesktopNav) */}
-      {false && (
-        <div className="sticky top-0 z-30 w-full bg-white/95 backdrop-blur-md border-b border-[#E5E7EB] px-4 py-3.5">
-          <div className="flex items-center justify-between max-w-7xl mx-auto">
-            <h1 className="font-heading font-extrabold tracking-tight text-base text-[#0F0F10]">
-              Order Confirmed
-            </h1>
-            <span className="text-xs font-mono font-bold text-emerald-600">
-              Payment Authorized
-            </span>
-          </div>
-        </div>
-      )}
-
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 pt-6 sm:pt-10 space-y-6">
-        {/* Celebration Header Card */}
-        <div className="p-8 rounded-3xl bg-white border border-[#E5E7EB] shadow-lg text-center flex flex-col items-center">
-          <div className="w-20 h-20 rounded-full bg-[#FAF9F6] border-2 border-[#D4AF37]/40 text-[#D4AF37] flex items-center justify-center mb-4 shadow-sm animate-in zoom-in-75 duration-300">
-            <CheckCircle2 size={40} strokeWidth={2.2} />
-          </div>
-
-          <span className="text-[11px] font-mono font-bold text-[#997A2E] uppercase tracking-widest px-3 py-1 rounded-full bg-[#FAF9F6] border border-[#D4AF37]/30 mb-2">
-            Order Confirmed #{orderId}
-          </span>
-
-          <h2 className="font-heading font-semibold text-2xl sm:text-3xl text-[#0F0F10] tracking-tight">
-            Thank You for Your Order
-          </h2>
-
-          <p className="text-xs sm:text-sm text-[#6B7280] mt-1.5 leading-relaxed max-w-md">
-            Your payment has been successfully authorized via Paystack. A digital formulation batch certificate and invoice receipt have been sent to your email.
-          </p>
-
-          {/* Loyalty points earned */}
-          <div className="mt-5 p-3 rounded-2xl bg-[#FAF9F6] border border-[#D4AF37]/30 text-[#0F0F10] flex items-center gap-2.5 text-xs font-semibold">
-            <Award size={16} className="text-[#D4AF37] shrink-0" />
-            <span>+510 Desla!™ Club Loyalty Points credited to your account!</span>
-          </div>
-        </div>
-
-        {/* Bank-transfer next step (live orders placed without hosted checkout) */}
-        {activeOrder?.paymentMethod?.startsWith('Bank transfer') && (
-          <div className="p-4 rounded-2xl bg-[#FBF5E8] border border-[#D4AF37]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-            <span className="text-[#0F0F10]">
-              Complete your transfer, then submit proof under <strong>Orders → Track</strong> for confirmation.
-            </span>
-            <button
-              onClick={() => navigateTo('orders')}
-              className="shrink-0 px-5 py-2.5 rounded-full bg-[#0F0F10] text-[#D4AF37] font-bold active:scale-95 transition-all cursor-pointer"
-            >
-              Submit proof
-            </button>
-          </div>
-        )}
-
-                {/* Real-time Order Status Milestone Tracker */}
-        <div className="p-6 rounded-3xl bg-white border border-[#E5E7EB] shadow-xs space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
-            <span className="font-heading font-bold text-xs uppercase tracking-wider text-[#0F0F10]">
-              Order Journey &amp; Fulfillment Milestones
-            </span>
-            <span className="text-[10px] font-mono font-bold text-[#997A2E] bg-[#FBF5E8] px-2.5 py-0.5 rounded-full border border-[#D4AF37]/30">
-              Live Progression
-            </span>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-1">
-            <div className="flex flex-col items-center text-center p-3 rounded-2xl bg-[#FBF5E8] border border-[#D4AF37]/40 space-y-1">
-              <div className="w-7 h-7 rounded-full bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center text-xs font-bold shadow-2xs">
-                âœ“
-              </div>
-              <span className="text-xs font-bold text-[#0F0F10]">Placed</span>
-              <span className="text-[10px] text-[#6B7280]">Received</span>
-            </div>
-
-            <div className="flex flex-col items-center text-center p-3 rounded-2xl bg-[#FBF5E8] border border-[#D4AF37]/40 space-y-1">
-              <div className="w-7 h-7 rounded-full bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center text-xs font-bold shadow-2xs">
-                âœ“
-              </div>
-              <span className="text-xs font-bold text-[#0F0F10]">Confirmed</span>
-              <span className="text-[10px] text-[#6B7280]">Paystack Paid</span>
-            </div>
-
-            <div className="flex flex-col items-center text-center p-3 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] space-y-1">
-              <div className="w-7 h-7 rounded-full bg-[#D4AF37] text-white flex items-center justify-center text-xs font-bold animate-pulse">
-                3
-              </div>
-              <span className="text-xs font-bold text-[#0F0F10]">Processing</span>
-              <span className="text-[10px] text-[#997A2E] font-medium">Batch Verified</span>
-            </div>
-
-            <div className="flex flex-col items-center text-center p-3 rounded-2xl bg-white border border-[#E5E7EB] opacity-60 space-y-1">
-              <div className="w-7 h-7 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center text-xs font-bold">
-                4
-              </div>
-              <span className="text-xs font-bold text-[#0F0F10]">Dispatched</span>
-              <span className="text-[10px] text-[#6B7280]">City Hub Node</span>
-            </div>
-
-            <div className="flex flex-col items-center text-center p-3 rounded-2xl bg-white border border-[#E5E7EB] opacity-60 space-y-1 col-span-2 sm:col-span-1">
-              <div className="w-7 h-7 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center text-xs font-bold">
-                5
-              </div>
-              <span className="text-xs font-bold text-[#0F0F10]">Delivered</span>
-              <span className="text-[10px] text-[#6B7280]">Client Handover</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Courier Dispatch & Delivery Timeline */}
-        <div className="p-6 rounded-3xl bg-white border border-[#E5E7EB] shadow-xs space-y-4 text-xs">
-          <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
-            <div className="flex items-center gap-2 font-heading font-semibold text-sm text-[#0F0F10]">
-              <Truck size={17} className="text-[#D4AF37]" />
-              <span>Fulfillment &amp; Courier Dispatch</span>
-            </div>
-            <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
-              Same-Day Dispatch
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-            <div className="p-3 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB]">
-              <span className="text-[10px] text-[#6B7280] uppercase tracking-wider block">Estimated Delivery</span>
-              <strong className="text-xs text-[#0F0F10] font-semibold mt-0.5 block">Today, by 16:30</strong>
-            </div>
-
-            <div className="p-3 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB]">
-              <span className="text-[10px] text-[#6B7280] uppercase tracking-wider block">Dispatch Partner</span>
-              <span className="text-xs text-[#0F0F10] font-semibold mt-0.5 block">Verified {selectedCity} Hub Courier</span>
-            </div>
-
-            <div className="p-3 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB]">
-              <span className="text-[10px] text-[#6B7280] uppercase tracking-wider block">Tracking Reference</span>
-              <span className="text-xs font-mono font-bold text-[#997A2E] mt-0.5 block">DES-{selectedCity.toUpperCase().slice(0, 3)}-{Math.floor(100000 + Math.random() * 900000)}</span>
-            </div>
-          </div>
-
-          <div className="pt-2 border-t border-[#E5E7EB] flex items-start gap-2.5 text-[#4B5563]">
-            <MapPin size={16} className="text-[#D4AF37] shrink-0 mt-0.5" />
-            <div>
-              <strong className="text-[#0F0F10] block text-xs">
-                {((shippingInfo as any)?.fullName || (shippingInfo as any)?.name || 'Valued Client')} • {shippingInfo?.phone || '+234 814 812 0642'}
-              </strong>
-              <span className="text-[11px] leading-snug">
-                {shippingInfo?.street || 'Plot 742, Aminu Kano Crescent, Wuse 2'}, {shippingInfo?.city || selectedCity}, {shippingInfo?.state || 'Abuja FCT'}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Ordered Items Preview */}
-        {activeOrder && activeOrder.items && activeOrder.items.length > 0 && (
-          <div className="p-6 rounded-3xl bg-white border border-[#E5E7EB] shadow-xs space-y-3">
-            <div className="flex items-center justify-between text-xs font-semibold text-[#0F0F10] uppercase tracking-wider pb-2 border-b border-[#E5E7EB]">
-              <span>Purchased Formulations ({activeOrder.items.length})</span>
-              <span className="font-price font-extrabold text-sm text-[#0F0F10]">{formatNaira(activeOrder.total)}</span>
-            </div>
-
-            <div className="space-y-3 pt-1">
-              {activeOrder.items.map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between gap-3 text-xs py-1.5 border-b border-[#E5E7EB]/50 last:border-0">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <img
-                      src={item.image}
-                      alt={item.productName}
-                      className="w-12 h-12 rounded-xl object-cover bg-[#F6F5F2] border border-[#E5E7EB] shrink-0"
-                    />
-                    <div className="min-w-0">
-                      <h4 className="font-semibold text-[#0F0F10] truncate text-xs">
-                        {item.productName}
-                      </h4>
-                      <span className="text-[10px] text-[#6B7280]">
-                        Qty: {item.quantity} • {item.size}
-                      </span>
-                    </div>
-                  </div>
-                  <span className="font-price font-semibold text-[#0F0F10] shrink-0">
-                    {formatNaira(item.price * item.quantity)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Clinical Sourcing & Batch Verification Badge */}
-        <div className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] flex items-center gap-3 text-xs text-[#6B7280]">
-          <ShieldCheck size={20} className="text-[#D4AF37] shrink-0" />
-          <span className="text-[11px] leading-relaxed">
-            100% NAFDAC certified formulation. Look for the sealed holographic batch QR sticker on your box upon delivery to verify lab authenticity.
-          </span>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-          <button
-            onClick={() => navigateTo('orders')}
-            className="w-full py-4 rounded-full bg-[#0F0F10] hover:bg-[#1F1D22] active:scale-[0.98] text-white font-heading font-semibold text-xs tracking-wide shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer"
-          >
-            <Package size={16} />
-            <span>Track Order Status</span>
-          </button>
-
-          <button
-            onClick={() => navigateTo('home')}
-            className="w-full py-4 rounded-full bg-white hover:bg-[#FAF9F6] active:scale-[0.98] text-[#0F0F10] font-heading font-semibold text-xs border border-[#E5E7EB] shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
-          >
-            <ShoppingBag size={16} />
-            <span>Continue Shopping</span>
-          </button>
-        </div>
-      </main>
-    </div>
-  );
+    if (activeOrder || !isLiveBackend) { setRestoring(false); return; }
+    let cancelled = false;
+    const reference = lastPaymentReference();
+    if (!reference) { setRestoring(false); return; }
+    setRestoring(true); setRestoreError('');
+    void paymentStatus(reference).then(async payment => {
+      const order = await fetchServerOrder(payment.orderId, paymentTokenFor(reference) || undefined);
+      if (!order) throw new Error('The order could not be restored. Open your orders or use guest order lookup.');
+      if (!cancelled) setActiveOrder(mapServerOrder(order, [], payment.provider));
+    }).catch(() => { if (!cancelled) setRestoreError('The order could not be restored. Open your orders or use guest order lookup.'); })
+      .finally(() => { if (!cancelled) setRestoring(false); });
+    return () => { cancelled = true; };
+  }, [activeOrder, isLiveBackend, setActiveOrder]);
+  useEffect(() => {
+    if (activeOrder?.paymentStatus !== 'PAID') return;
+    try { confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 }, colors: ['#D4AF37', '#F6E7C1', '#0F0F10'] }); } catch { /* Motion is optional. */ }
+  }, [activeOrder?.serverId, activeOrder?.paymentStatus]);
+  const openOrders = () => navigateTo(authUser ? 'orders' : 'guest-order-lookup');
+  if (restoring && !activeOrder) return <section role="status" className="mx-auto max-w-3xl p-8">Loading your order…</section>;
+  if (!activeOrder) return <section className="mx-auto max-w-xl space-y-5 p-8"><h1 className="text-2xl font-bold">No order to display</h1><p>{restoreError || 'Open your orders or use guest order lookup to view a placed order.'}</p><button onClick={openOrders} className="rounded-full bg-black px-6 py-3 text-white">{authUser ? 'Open my orders' : 'Look up a guest order'}</button><button onClick={() => navigateTo('catalogue')} className="ml-4 underline">Continue shopping</button></section>;
+  const paid = activeOrder.paymentStatus === 'PAID';
+  const closed = ['CANCELLED', 'REFUNDED'].includes(activeOrder.serverStatus || '');
+  const pickup = activeOrder.fulfilmentMethod === 'PICKUP';
+  const address = activeOrder.shippingAddress;
+  const money = (amount: number) => amount.toLocaleString('en-NG', { style: 'currency', currency: 'NGN' });
+  return <div className="min-h-screen bg-white pb-32 font-body text-[#0F0F10]">
+    <main className="mx-auto max-w-3xl space-y-6 px-4 pt-6 sm:px-6 sm:pt-10">
+      <section className="flex flex-col items-center rounded-3xl border border-[#E5E7EB] bg-white p-8 text-center shadow-lg">
+        <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full border-2 border-[#D4AF37]/40 bg-[#FAF9F6] text-[#D4AF37]">{paid ? <CheckCircle2 size={40} /> : <Package size={40} />}</div>
+        <p className="mb-2 rounded-full border border-[#D4AF37]/30 bg-[#FAF9F6] px-3 py-1 font-mono text-xs text-[#997A2E]">Order #{activeOrder.id}</p>
+        <h1 className="font-heading text-2xl font-semibold sm:text-3xl">{closed ? 'Order update' : paid ? 'Payment confirmed' : 'Order received — payment pending'}</h1>
+        <p className="mt-2 text-sm text-[#6B7280]">{closed ? 'Check the recorded order and payment status below.' : paid ? 'The server has confirmed payment. Fulfilment updates will appear in your order history.' : 'Your order is recorded. Fulfilment begins after payment is confirmed.'}</p>
+        <p className="mt-4 text-sm">Payment: {activeOrder.paymentStatus || 'Not confirmed'} · Order: {activeOrder.status}</p>
+      </section>
+      {!closed && !paid && activeOrder.paymentMethod.startsWith('Bank transfer') && <p className="rounded-2xl border border-[#D4AF37]/40 bg-[#FBF5E8] p-4 text-sm">Complete your transfer, then submit proof from Orders. A submitted transfer is reviewed before payment is confirmed.</p>}
+      <section className="space-y-4 rounded-3xl border border-[#E5E7EB] p-6 shadow-xs">
+        <h2 className="font-heading font-bold">Order history</h2>
+        {activeOrder.trackingSteps.length ? <ol className="space-y-3">{activeOrder.trackingSteps.map((step, index) => <li key={index} className="rounded-xl border border-[#E5E7EB] bg-[#FAF9F6] p-3"><p className="text-sm font-semibold">{step.title}</p><p className="mt-1 text-xs text-[#6B7280]">{step.timestamp}</p></li>)}</ol> : <p className="text-sm text-[#6B7280]">No shipment updates have been recorded yet.</p>}
+      </section>
+      <section className="space-y-3 rounded-3xl border border-[#E5E7EB] p-6 shadow-xs">
+        <h2 className="flex items-center gap-2 font-bold"><MapPin size={18} />{pickup ? 'Pickup order contact' : 'Delivery address'}</h2>
+        <p className="text-sm">{[address.name, address.phone].filter(Boolean).join(' · ') || 'Contact details are available in your order record.'}</p>
+        {!pickup && <p className="text-sm text-[#6B7280]">{[address.street, address.city, address.state].filter(Boolean).join(', ') || 'No address is recorded.'}</p>}
+        {pickup && <p className="text-sm text-[#6B7280]">Open Orders for the selected pickup location. When the order is ready, request your six-digit collection code there.</p>}
+      </section>
+      <section className="space-y-3 rounded-3xl border border-[#E5E7EB] p-6 shadow-xs">
+        <div className="flex items-center justify-between"><h2 className="font-bold">Order items ({activeOrder.items.length})</h2><p className="font-bold">{money(activeOrder.total)}</p></div>
+        {activeOrder.items.map((item, index) => <div key={index} className="flex items-center justify-between gap-3 border-t border-[#E5E7EB] py-3 text-sm"><div className="flex items-center gap-3">{item.image && <img src={item.image} alt={item.productName} className="h-12 w-12 rounded-xl object-cover" />}<div><p className="font-semibold">{item.productName}</p><p className="text-xs text-[#6B7280]">Qty: {item.quantity} · {item.size}</p></div></div><span>{money(item.price * item.quantity)}</span></div>)}
+      </section>
+      <div className="grid gap-3 sm:grid-cols-2"><button onClick={openOrders} className="flex items-center justify-center gap-2 rounded-full bg-[#0F0F10] p-4 text-sm font-bold text-white"><Package size={16} />Track order status</button><button onClick={() => navigateTo('home')} className="flex items-center justify-center gap-2 rounded-full border border-[#E5E7EB] p-4 text-sm"><ShoppingBag size={16} />Continue shopping</button></div>
+    </main>
+  </div>;
 };

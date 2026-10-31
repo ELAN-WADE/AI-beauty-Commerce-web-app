@@ -80,7 +80,7 @@ export const CreatorSecondaryNav: React.FC<CreatorSecondaryNavProps> = ({
               title="Notifications"
             >
               <Bell size={14} className="text-[#4B5563]" />
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[#D4AF37]" />
+              {(badgeCounts.notifications ?? 0) > 0 && <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[#D4AF37]" />}
             </button>
           )}
         </div>
@@ -131,20 +131,14 @@ export const CreatorSecondaryNav: React.FC<CreatorSecondaryNavProps> = ({
         })}
       </aside>
 
-      {/* 3. Floating Bottom "Admin Portal" Pill Matching Screenshot 2 & 5 */}
+      {/* 3. Creator-only support shortcut in the original floating pill. */}
       <div className="hidden lg:block fixed left-4 bottom-7 z-40">
         <button
-          onClick={() => {
-            if (onSwitchWorkspace) {
-              onSwitchWorkspace('DISTRIBUTOR');
-            } else {
-              onRouteChange('settings');
-            }
-          }}
+          onClick={() => onRouteChange('support')}
           className="px-4 py-2 rounded-full bg-[#0F0F10] hover:bg-black text-white text-[11px] font-bold shadow-md cursor-pointer tracking-tight transition-all active:scale-95"
-          title="Switch to Distributor & Admin Operations"
+          title="Open Creator Support"
         >
-          Admin Portal
+          Creator Support
         </button>
       </div>
     </div>

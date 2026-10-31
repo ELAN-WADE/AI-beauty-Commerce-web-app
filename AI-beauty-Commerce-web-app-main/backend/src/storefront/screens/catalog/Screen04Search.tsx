@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useDeferredValue } from 'react';
 import { Search as SearchIcon, X, Clock, TrendingUp, ChevronLeft, Layers } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { ProductCard } from '../../components/common/ProductCard';
@@ -31,9 +31,10 @@ export const Screen04Search: React.FC = () => {
     { name: 'Lifestyle', slug: 'lifestyle' }
   ];
 
-  const searchResults = products.filter((p) => {
-    if (!searchQuery.trim()) return false;
-    const query = searchQuery.toLowerCase();
+  const deferredQuery = useDeferredValue(searchQuery);
+  const searchResults = useMemo(() => products.filter((p) => {
+    if (!deferredQuery.trim()) return false;
+    const query = deferredQuery.toLowerCase();
     return (
       p.name.toLowerCase().includes(query) ||
       (p.sku && p.sku.toLowerCase().includes(query)) ||
@@ -42,7 +43,7 @@ export const Screen04Search: React.FC = () => {
       p.description.toLowerCase().includes(query) ||
       p.keyIngredients?.some((i) => i.name.toLowerCase().includes(query))
     );
-  });
+  }), [products, deferredQuery]);
 
   const handleClearRecent = () => {
     setRecentSearches([]);

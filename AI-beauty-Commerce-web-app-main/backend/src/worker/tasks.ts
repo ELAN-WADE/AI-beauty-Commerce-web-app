@@ -2,8 +2,10 @@ import { and, asc, eq, inArray, isNotNull, lt, or, sql } from 'drizzle-orm';
 import { DeleteObjectCommand } from '@aws-sdk/client-s3';
 import type { AppDb } from '../db/client';
 import { users } from '../modules/auth/schema';
+import { workerHeartbeats } from '../modules/ops/schema';
 import { emailVerificationTokens, passwordResetTokens, userSessions } from '../modules/auth/schema';
 import { pendingAuthEmail } from '../modules/auth/email';
+import { ACCOUNT_EMAIL_TEMPLATES, pendingAccountEmail } from '../modules/notifications/account-email';
 import { cartItems, carts } from '../modules/cart/schema';
 import { getCartView } from '../modules/cart/service';
 import { releaseExpired } from '../modules/inventory/service';
@@ -22,6 +24,7 @@ import { earnForOrder } from '../modules/loyalty/service';
 import { communityMedia } from '../modules/community/schema';
 import { communityBucket, deleteObject, s3, scansBucket } from '../lib/storage';
 import { openAuthUrl } from '../lib/outbox-crypto';
+import { pendingNewsletterEmail } from '../modules/newsletter/service';
 import { isTermiiConfigured, smsCartAbandoned, smsOrderPaid, smsShipmentUpdate, termiiConfig, termiiSend } from '../lib/termii';
 import {
   getEmailSender,
@@ -74,8 +77,8 @@ export async function processOutbox(db: AppDb, sender: EmailSender = getEmailSen
   for (const row of rows) {
     try {
       const payload = row.payload as Record<string, unknown>;
-      if (row.template.startsWith('auth.')) {
-        const message = row.channel === 'email' ? await pendingAuthEmail(db, row) : null;
+      if (ACCOUNT_EMAIL_TEMPLATES.includes(row.template) || row.template.startsWith('newsletter.')) {
+        const message = row.channel === 'email' ? await (row.template.startsWith('newsletter.') ? pendingNewsletterEmail(db, row) : pendingAccountEmail(db, row)) : null;
         if (!message) {
           await discardAuthEmail(db, row.id);
           discarded += 1;
@@ -273,6 +276,9 @@ export async function purgeOldScans(db: AppDb): Promise<TaskResult> {
 
 /** Reconcile stranded payments: webhook received but settle failed transiently. */
 export async function reconcilePayments(db: AppDb): Promise<TaskResult> {
+  if (process.env.PAYMENTS_ENABLED !== 'true') {
+    return { task: 'payment-reconcile', ok: true, detail: 'disabled until payment integration is enabled' };
+  }
   const cutoff = new Date(Date.now() - 5 * 60_000);
   const pending = await db
     .select({ reference: paymentAttempts.reference, provider: paymentAttempts.provider, providerRef: paymentAttempts.providerRef })
@@ -312,6 +318,7 @@ export async function reconcilePayments(db: AppDb): Promise<TaskResult> {
 }
 
 export async function purgeExpiredOperationalData(db: AppDb): Promise<TaskResult> {
+  await db.delete(workerHeartbeats).where(lt(workerHeartbeats.heartbeatAt, new Date(Date.now() - 7 * 24 * 3600_000)));
   await db.execute(sql`delete from request_quotas where reset_at < now() - interval '1 day'`);
   // An auth email older than its one-hour reset token is no longer useful.
   await db.execute(sql`update notification_outbox set payload = '{}'::jsonb, status = 'failed' where status in ('pending','sending') and ((template = 'auth.reset-password' and created_at < now() - interval '1 hour') or (template = 'auth.verify-email' and created_at < now() - interval '24 hours'))`);
@@ -344,7 +351,7 @@ export async function purgeStaleCommunityMedia(db: AppDb): Promise<TaskResult> {
   return { task: 'community-media-purge', ok: true, detail: `purged=${purged}` };
 }
 
-export async function runAllTasks(db: AppDb): Promise<TaskResult[]> {
+export async function runAllTasks(db: AppDb, heartbeat?: () => Promise<void>): Promise<TaskResult[]> {
   const results: TaskResult[] = [];
   const clearEarnings = async (db: AppDb): Promise<TaskResult> => ({ task: 'commission-release', ok: true, detail: `released=${await releaseCommissions(db)}` });
   const settleContent = async (db: AppDb): Promise<TaskResult> => {
@@ -353,6 +360,7 @@ export async function runAllTasks(db: AppDb): Promise<TaskResult[]> {
     return { task: 'content-rewards', ok: true, detail: `settled=${s.settled} released=${r}` };
   };
   for (const task of [processOutbox, sweepReservations, sweepAbandonedCarts, purgeOldScans, purgeStaleCommunityMedia, clearEarnings, settleContent, reconcilePayments, purgeExpiredOperationalData]) {
+    await heartbeat?.();
     try {
       results.push(await task(db));
     } catch (err) {

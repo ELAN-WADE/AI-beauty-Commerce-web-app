@@ -14,7 +14,7 @@ const ScreenDistributorPortal = dynamic(
 export default function DistributorPage() {
   return (
     <RequireRole
-      allowedRoles={['DISTRIBUTOR', 'STAFF', 'ADMIN', 'SUPER_ADMIN']}
+      allowedRoles={['DISTRIBUTOR']}
       title="Distributor City Hub"
       description="Manage your regional city hub inventory, customer order pickups, and restock requests."
     >

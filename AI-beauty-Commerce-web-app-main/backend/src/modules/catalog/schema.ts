@@ -3,6 +3,7 @@ import {
   check,
   index,
   integer,
+  jsonb,
   numeric,
   pgTable,
   text,
@@ -63,6 +64,9 @@ export const products = pgTable(
     description: text('description').notNull().default(''),
     subCategory: text('sub_category').notNull().default(''),
     hashtag: text('hashtag'),
+    presentation: jsonb('presentation').$type<Record<string, unknown>>().notNull().default({}),
+    version: integer('version').notNull().default(1),
+    publicationKey: text('publication_key').unique(),
     // Denormalized review counters (reviews module S5 maintains these in-tx).
     rating: numeric('rating', { precision: 3, scale: 2 }).notNull().default('0'),
     reviewsCount: integer('reviews_count').notNull().default(0),

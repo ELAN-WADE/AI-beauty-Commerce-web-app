@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { apiFetch, updateAccountProfile } from '../../lib/owned-api';
 import {
   User,
   Package,
@@ -23,6 +24,7 @@ import {
   X,
   Check
 } from 'lucide-react';
+import { useCustomerOrders } from '../../lib/use-customer-orders';
 import { useApp } from '../../context/AppContext';
 import { ProductCard } from '../../components/common/ProductCard';
 import { BotanicalSprig, HandDrawnLoop, ApothecaryPuritySeal } from '../../components/common/HandDrawnAccents';
@@ -39,38 +41,13 @@ export interface SavedAddress {
   isDefault: boolean;
 }
 
-const initialSavedAddresses: SavedAddress[] = [
-  {
-    id: 'addr-abuja-1',
-    fullName: 'Amina Bello',
-    phone: '+234 814 812 0642',
-    street: 'Suite 14, Purity Crescent, Off Amazon Street',
-    area: 'Maitama',
-    city: 'Abuja (FCT)',
-    state: 'Federal Capital Territory',
-    postalCode: '900271',
-    isDefault: true
-  },
-  {
-    id: 'addr-lagos-2',
-    fullName: 'Amina Bello',
-    phone: '+234 803 123 4567',
-    street: 'Plot 4, Admiralty Way',
-    area: 'Lekki Phase 1',
-    city: 'Lagos',
-    state: 'Lagos State',
-    postalCode: '101233',
-    isDefault: false
-  }
-];
-
 export const Screen17Account: React.FC = () => {
   const {
     userProfile,
     navigateTo,
     openAIAssistant,
-    orders,
     wishlist,
+    vouchers,
     products,
     selectedCity,
     setIsLocationModalOpen,
@@ -80,18 +57,41 @@ export const Screen17Account: React.FC = () => {
     isLiveBackend,
     authUser,
     authLoading,
+    refreshAuth,
     logout
   } = useApp();
 
-  // Saved Addresses State with LocalStorage persistence
-  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>(() => {
-    try {
-      const saved = localStorage.getItem('desla_saved_addresses');
-      return saved ? JSON.parse(saved) : initialSavedAddresses;
-    } catch {
-      return initialSavedAddresses;
-    }
-  });
+  const { orders, loading: ordersLoading, error: ordersError, refresh: refreshOrders } = useCustomerOrders(authUser?.id);
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [addressError, setAddressError] = useState('');
+  const [addressBusy, setAddressBusy] = useState(false);
+  const [addressesLoading, setAddressesLoading] = useState(false);
+  const [profileForm, setProfileForm] = useState({ displayName: '', phone: '' });
+  const [profileBusy, setProfileBusy] = useState(false);
+  const [profileNotice, setProfileNotice] = useState('');
+  const [profileError, setProfileError] = useState('');
+  useEffect(() => {
+    setProfileForm({ displayName: authUser?.profile?.displayName || '', phone: authUser?.profile?.phone || '' });
+    setProfileNotice(''); setProfileError('');
+  }, [authUser?.id]);
+  const accountOwner = useRef(authUser?.id);
+  accountOwner.current = authUser?.id;
+  const refreshAddresses = useCallback(async () => {
+    if (!authUser) { setSavedAddresses([]); return; }
+    const owner = authUser.id;
+    setAddressesLoading(true);
+    try { const result = await apiFetch<{ addresses: Omit<SavedAddress, 'area'>[] }>('/api/me/addresses'); if (accountOwner.current !== owner) return; setSavedAddresses(result.addresses.map(address => ({ ...address, area: '' }))); setAddressError(''); }
+    catch (error) { if (accountOwner.current === owner) setAddressError(error instanceof Error ? error.message : 'Could not load your addresses.'); }
+    finally { if (accountOwner.current === owner) setAddressesLoading(false); }
+  }, [authUser?.id]);
+  useEffect(() => { setSavedAddresses([]); void refreshAddresses(); }, [refreshAddresses]);
+  const saveProfile = async (event: React.FormEvent) => {
+    event.preventDefault(); if (profileBusy) return;
+    setProfileBusy(true); setProfileError(''); setProfileNotice('');
+    try { await updateAccountProfile({ displayName: profileForm.displayName.trim(), ...(profileForm.phone.trim() ? { phone: profileForm.phone.trim() } : {}) }); await refreshAuth(); setProfileNotice('Profile saved.'); }
+    catch (error) { setProfileError(error instanceof Error ? error.message : 'Could not save your profile.'); }
+    finally { setProfileBusy(false); }
+  };
 
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [isAddingNewAddress, setIsAddingNewAddress] = useState(false);
@@ -100,83 +100,57 @@ export const Screen17Account: React.FC = () => {
     phone: '',
     street: '',
     area: '',
-    city: 'Abuja (FCT)',
-    state: 'Federal Capital Territory',
+    city: '',
+    state: '',
     postalCode: '',
     isDefault: false
   });
 
-  const persistAddresses = (newList: SavedAddress[]) => {
-    setSavedAddresses(newList);
-    try {
-      localStorage.setItem('desla_saved_addresses', JSON.stringify(newList));
-    } catch (e) {
-      console.warn('Failed to save addresses to localStorage', e);
-    }
+  const activeDefaultAddress = savedAddresses.find(address => address.isDefault) || savedAddresses[0];
+  const handleSetDefaultAddress = async (id: string) => {
+    if (addressBusy) return; setAddressBusy(true); setAddressError('');
+    try { await apiFetch(`/api/me/addresses/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify({ isDefault: true }) }); await refreshAddresses(); }
+    catch (error) { setAddressError(error instanceof Error ? error.message : 'Could not update your default address.'); }
+    finally { setAddressBusy(false); }
   };
-
-  const activeDefaultAddress = savedAddresses.find((a) => a.isDefault) || savedAddresses[0];
-
-  const handleSetDefaultAddress = (id: string) => {
-    const updated = savedAddresses.map((a) => ({
-      ...a,
-      isDefault: a.id === id
-    }));
-    persistAddresses(updated);
-  };
-
-  const handleDeleteAddress = (id: string) => {
-    if (savedAddresses.length <= 1) {
-      alert('You must retain at least one saved delivery address.');
-      return;
-    }
-    const filtered = savedAddresses.filter((a) => a.id !== id);
-    if (!filtered.some((a) => a.isDefault) && filtered.length > 0) {
-      filtered[0].isDefault = true;
-    }
-    persistAddresses(filtered);
+  const handleDeleteAddress = async (id: string) => {
+    if (addressBusy) return; setAddressBusy(true); setAddressError('');
+    try { await apiFetch(`/api/me/addresses/${encodeURIComponent(id)}`, { method: 'DELETE' }); await refreshAddresses(); }
+    catch (error) { setAddressError(error instanceof Error ? error.message : 'Could not delete your address.'); }
+    finally { setAddressBusy(false); }
   };
 
   const handleOpenAddForm = () => {
     setIsAddingNewAddress(true);
     setAddressForm({
-      fullName: authUser?.email ? 'Amina Bello' : userProfile.name,
-      phone: userProfile.phone || '+234 814 812 0642',
+      fullName: authUser?.profile?.displayName || '',
+      phone: authUser?.profile?.phone || '',
       street: '',
-      area: selectedCity || 'Maitama',
-      city: selectedCity === 'Lagos' ? 'Lagos' : 'Abuja (FCT)',
-      state: selectedCity === 'Lagos' ? 'Lagos State' : 'Federal Capital Territory',
+      area: '',
+      city: '',
+      state: '',
       postalCode: '',
       isDefault: savedAddresses.length === 0
     });
   };
 
-  const handleSaveAddressSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!addressForm.street.trim() || !addressForm.fullName.trim()) {
-      alert('Please provide recipient name and street address.');
-      return;
-    }
-
-    const newAddr: SavedAddress = {
-      id: 'addr-' + Date.now(),
-      ...addressForm
-    };
-
-    let updated: SavedAddress[];
-    if (addressForm.isDefault) {
-      updated = [...savedAddresses.map((a) => ({ ...a, isDefault: false })), newAddr];
-    } else {
-      updated = [...savedAddresses, newAddr];
-    }
-
-    persistAddresses(updated);
-    setIsAddingNewAddress(false);
+  const handleSaveAddressSubmit = async (event: React.FormEvent) => {
+    event.preventDefault(); if (addressBusy) return;
+    setAddressBusy(true); setAddressError('');
+    try {
+      await apiFetch('/api/me/addresses', { method: 'POST', body: JSON.stringify({ fullName: addressForm.fullName.trim(), phone: addressForm.phone.trim(), street: [addressForm.street.trim(), addressForm.area.trim()].filter(Boolean).join(', '), city: addressForm.city.trim(), state: addressForm.state.trim(), postalCode: addressForm.postalCode.trim(), isDefault: addressForm.isDefault, label: 'Delivery' }) });
+      await refreshAddresses(); setIsAddingNewAddress(false);
+    } catch (error) { setAddressError(error instanceof Error ? error.message : 'Could not save your address.'); }
+    finally { setAddressBusy(false); }
   };
 
   // Wishlist products
   const wishlistedProducts = products.filter((p) => wishlist.includes(p.id));
-  const displayWishlist = wishlistedProducts.length > 0 ? wishlistedProducts.slice(0, 5) : products.slice(0, 5);
+  const displayWishlist = wishlistedProducts.slice(0, 5);
+  const avatarSrc = authUser?.profile?.avatarUrl?.trim();
+
+  if (authLoading && !authUser) return <main className="mx-auto max-w-md p-8"><p role="status">Loading your account…</p></main>;
+  if (!authUser) return <main className="mx-auto max-w-md space-y-4 p-8"><h1 className="font-heading text-2xl font-bold">Your account</h1><p>Sign in to view or complete your profile.</p><button onClick={() => navigateTo('login')} className="rounded-full bg-black px-5 py-3 text-white">Sign in</button><button onClick={() => navigateTo('signup')} className="ml-3 underline">Create account</button></main>;
 
   return (
     <div className="min-h-screen bg-[#FAF9F6] text-[#0F0F10] pb-28 font-body selection:bg-[#D4AF37]/20 selection:text-[#997A2E]">
@@ -188,24 +162,30 @@ export const Screen17Account: React.FC = () => {
             {/* User Profile Card */}
             <div className="p-6 rounded-2xl bg-white/90 backdrop-blur-xl border border-[#E5E7EB] shadow-xs space-y-4 text-center relative overflow-hidden">
               <div className="relative w-20 h-20 mx-auto rounded-full overflow-hidden border-2 border-[#D4AF37] shadow-sm">
-                <img
-                  src={userProfile.avatar}
-                  alt={userProfile.name}
-                  className="w-full h-full object-cover"
-                />
+                {avatarSrc ? (
+                  <img
+                    src={avatarSrc}
+                    alt={userProfile.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div role="img" aria-label={userProfile.name || 'Account avatar'} className="w-full h-full flex items-center justify-center bg-[#FAF9F6] text-[#997A2E]">
+                    <User className="w-10 h-10" aria-hidden="true" />
+                  </div>
+                )}
               </div>
 
               <div className="relative z-10 space-y-1">
                 <h3 className="font-heading font-extrabold text-xl text-[#0F0F10]">
-                  {authUser?.email ? 'Amina Bello' : userProfile.name}
+                  {authUser.profile?.displayName || 'Complete your profile'}
                 </h3>
-                
+
                 <p className="text-xs text-[#997A2E] font-medium tracking-wide">
-                  Gold Tier Member • Verified Customer
+                  {authUser.emailVerified ? 'Email verified' : 'Email verification required'}
                 </p>
 
-                <p className="text-xs text-[#6B7280] mt-1 font-mono">{authUser?.email || 'amina.bello@example.com'}</p>
-                <p className="text-xs text-[#6B7280] font-mono">{userProfile.phone}</p>
+                <p className="text-xs text-[#6B7280] mt-1 font-mono">{authUser.email}</p>
+                <p className="text-xs text-[#6B7280] font-mono">{authUser.profile?.phone || ''}</p>
 
                 {/* Direct Partner Portal Shortcuts */}
                 {authUser?.roles?.some((r) => ['STAFF', 'ADMIN', 'SUPER_ADMIN'].includes(r)) && (
@@ -219,26 +199,8 @@ export const Screen17Account: React.FC = () => {
                     </button>
                   </div>
                 )}
-                {authUser?.roles?.includes('CREATOR') && (
-                  <div className="pt-1">
-                    <button
-                      onClick={() => navigateTo('creators')}
-                      className="w-full px-3.5 py-1.5 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] hover:border-[#D4AF37] text-xs font-bold text-[#0F0F10] transition-all cursor-pointer"
-                    >
-                      Creator Studio
-                    </button>
-                  </div>
-                )}
-                {authUser?.roles?.includes('DISTRIBUTOR') && (
-                  <div className="pt-1">
-                    <button
-                      onClick={() => navigateTo('distributor-portal')}
-                      className="w-full px-3.5 py-1.5 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] hover:border-[#D4AF37] text-xs font-bold text-[#0F0F10] transition-all cursor-pointer"
-                    >
-                      Distributor Hub
-                    </button>
-                  </div>
-                )}
+
+                {/* Partner Workspaces */}
 
                 {/* Understated Sign Out or Sign In action */}
                 <div className="pt-1.5">
@@ -260,6 +222,15 @@ export const Screen17Account: React.FC = () => {
                 </div>
               </div>
 
+              <form aria-label="Complete your profile" onSubmit={saveProfile} className="space-y-3 rounded-xl border border-[#E5E7EB] p-4 text-left">
+                <h2 className="font-heading font-bold">Profile details</h2>
+                <label className="block text-xs">Name<input aria-label="Profile name" autoComplete="name" required maxLength={80} value={profileForm.displayName} onChange={event => setProfileForm(form => ({ ...form, displayName: event.target.value }))} className="mt-1 w-full rounded-xl border p-2.5 text-base" /></label>
+                <label className="block text-xs">Email<input aria-label="Account email" readOnly value={authUser.email} className="mt-1 w-full rounded-xl border bg-gray-50 p-2.5 text-base" /></label>
+                <label className="block text-xs">Phone<input aria-label="Profile phone" type="tel" autoComplete="tel" maxLength={16} value={profileForm.phone} onChange={event => setProfileForm(form => ({ ...form, phone: event.target.value }))} className="mt-1 w-full rounded-xl border p-2.5 text-base" /></label>
+                {profileError && <p role="alert" className="text-xs text-rose-700">{profileError}</p>}{profileNotice && <p role="status" className="text-xs text-emerald-700">{profileNotice}</p>}
+                <button type="submit" disabled={profileBusy} className="rounded-full bg-black px-4 py-2 text-xs font-bold text-white disabled:opacity-50">{profileBusy ? 'Saving…' : 'Save profile'}</button>
+              </form>
+              {addressError && <p role="alert" className="text-sm text-rose-700">{addressError}</p>}
               {/* Desla Club Loyalty Points */}
               <div className="p-4 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] flex items-center justify-between text-left relative z-10">
                 <div>
@@ -290,7 +261,7 @@ export const Screen17Account: React.FC = () => {
                       Sourcing City
                     </span>
                     <span className="font-heading font-bold text-sm text-[#0F0F10]">
-                      {selectedCity} (Wuse 2 &amp; Maitama)
+                      {selectedCity}
                     </span>
                   </div>
                 </div>
@@ -377,50 +348,20 @@ export const Screen17Account: React.FC = () => {
                   onClick={() => navigateTo('orders')}
                   className="text-xs font-heading font-bold text-[#997A2E] hover:underline flex items-center gap-1 cursor-pointer self-start sm:self-auto"
                 >
-                  <span>View All Orders ({orders.length})</span>
+                  <span>View my orders</span>
                   <ArrowRight size={13} />
                 </button>
               </div>
 
-              {/* Live Active Delivery Status Card */}
-              <div className="p-5 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono font-bold text-xs text-[#0F0F10]">
-                      Order #DES-98214 — Out for Delivery ({selectedCity} Hub)
-                    </span>
-                  </div>
-                  <span className="font-mono text-xs text-[#997A2E] font-medium self-start sm:self-auto">
-                    Arriving Today • Est. 4:30 PM
-                  </span>
+              {ordersLoading && !orders.length ? <p role="status">Loading your orders…</p> : ordersError ? <div><p role="alert">{ordersError}</p><button onClick={() => void refreshOrders()} className="underline">Retry orders</button></div> : orders.length ? orders.slice(0, 3).map(order => (
+                <div key={order.id} className="p-5 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3"><span className="font-mono font-bold text-xs">Order #{order.orderNumber}</span><span className="font-mono text-xs text-[#997A2E]">{order.status}</span></div>
+                  <div className="space-y-1.5"><div className="w-full bg-[#E5E7EB] h-2 rounded-full overflow-hidden"><div className="bg-[#D4AF37] h-full rounded-full" style={{width: ({ PENDING: '10%', PAID: '25%', FULFILLING: '50%', READY_PICKUP: '75%', SHIPPED: '75%', DELIVERED: '100%', CANCELLED: '0%' } as Record<string,string>)[order.status] || '0%'}} /></div>
+                    <div className="flex justify-between text-[11px] text-[#6B7280]"><span>Placed</span><span>Preparing</span><span>Dispatch / collection</span><span>Delivered</span></div></div>
+                  <div className="pt-2 flex items-center justify-between text-xs"><span className="text-[#6B7280]">{new Date(order.createdAt).toLocaleDateString()} · {order.totalNgn.toLocaleString('en-NG',{style:'currency',currency:'NGN'})}</span><button className="font-heading font-bold underline" onClick={() => { try { sessionStorage.setItem('desla-selected-order', JSON.stringify({ userId: authUser?.id, id: order.id })); } catch {} navigateTo('orders'); }}>Track order →</button></div>
                 </div>
+              )) : <p className="text-sm text-[#6B7280]">No orders yet.</p>}
 
-                {/* Progress bar */}
-                <div className="space-y-1.5">
-                  <div className="w-full bg-[#E5E7EB] h-2 rounded-full overflow-hidden">
-                    <div className="bg-[#D4AF37] h-full w-3/4 rounded-full transition-all duration-500" />
-                  </div>
-                  <div className="flex justify-between text-[11px] text-[#6B7280] font-medium">
-                    <span>Compounded</span>
-                    <span>Quality Verified</span>
-                    <span className="text-[#0F0F10] font-bold">In Local Transit</span>
-                    <span>Delivered</span>
-                  </div>
-                </div>
-
-                {/* Quick actions for active order */}
-                <div className="pt-2 flex items-center justify-between text-xs">
-                  <span className="text-[#6B7280]">
-                    Courier Partner: <strong className="text-[#0F0F10]">Wuse Express Courier</strong>
-                  </span>
-                  <button
-                    onClick={() => navigateTo('orders')}
-                    className="font-heading font-bold text-[#0F0F10] hover:text-[#997A2E] underline cursor-pointer"
-                  >
-                    Live Telemetry →
-                  </button>
-                </div>
-              </div>
             </section>
 
             {/* 2. Personalized Vouchers & Rewards */}
@@ -450,44 +391,12 @@ export const Screen17Account: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Voucher 1 */}
-                <div className="p-4 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] space-y-2 relative overflow-hidden group hover:border-[#D4AF37] transition-colors">
-                  <div className="flex justify-between items-start">
-                    <span className="font-heading font-extrabold text-base text-[#0F0F10]">
-                      ₦5,000 Off Full Routine
-                    </span>
-                    <span className="text-[11px] font-mono font-bold text-[#997A2E]">
-                      Gold Tier
-                    </span>
-                  </div>
-                  <p className="text-xs text-[#6B7280]">
-                    Applicable on any order above ₦40,000 across skincare &amp; body care categories.
-                  </p>
-                  <div className="pt-2 flex items-center justify-between text-[11px]">
-                    <span className="text-[#A19B96] font-mono">Code: DESLA-GOLD-5K</span>
-                    <span className="text-[#0F0F10] font-bold">Expires in 6 days</span>
-                  </div>
-                </div>
-
-                {/* Voucher 2 */}
-                <div className="p-4 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] space-y-2 relative overflow-hidden group hover:border-[#D4AF37] transition-colors">
-                  <div className="flex justify-between items-start">
-                    <span className="font-heading font-extrabold text-base text-[#0F0F10]">
-                      Complimentary Local Courier
-                    </span>
-                    <span className="text-[11px] font-mono font-bold text-[#0F0F10]">
-                      Active
-                    </span>
-                  </div>
-                  <p className="text-xs text-[#6B7280]">
-                    Zero-cost express dispatch to your Maitama address automatically applied.
-                  </p>
-                  <div className="pt-2 flex items-center justify-between text-[11px]">
-                    <span className="text-[#A19B96] font-mono">Auto-applied at checkout</span>
-                    <span className="text-[#0F0F10] font-bold">No Expiry</span>
-                  </div>
-                </div>
+                {vouchers.length ? vouchers.map(voucher => <div key={voucher.id} className="rounded-xl border border-[#E5E7EB] bg-[#FAF9F6] p-4">
+                  <p className="font-bold">{voucher.title}</p><p className="mt-2 font-mono text-xs">{voucher.code}</p>
+                  {(voucher.expiryDate || voucher.expiresAt) && <p className="mt-1 text-xs">Expires: {voucher.expiryDate || voucher.expiresAt}</p>}
+                </div>) : <p className="text-sm text-[#6B7280]">No saved vouchers yet.</p>}
               </div>
+
             </section>
 
             {/* 3. AI Skin Dossier Snapshot */}
@@ -520,11 +429,11 @@ export const Screen17Account: React.FC = () => {
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <span className="font-heading font-bold text-sm text-[#0F0F10]">
-                      Skin Diagnostic Profile: Combination • Melanin Type V
+                      Skin profile: {skinProfile?.skinType || 'Not recorded'}
                     </span>
                   </div>
                   <p className="text-xs text-[#6B7280]">
-                    Barrier Health Index: <strong className="text-emerald-700 font-mono">88/100 (Optimal)</strong> • Primary Focus: Post-inflammatory hyperpigmentation prevention.
+                    Barrier Health Index: <strong className="text-emerald-700 font-mono">{skinProfile?.overallScore ?? 'Not recorded'}</strong> • Primary Focus: {skinProfile?.primaryConcerns.join(', ') || 'Not recorded'}
                   </p>
                 </div>
 
@@ -612,6 +521,8 @@ export const Screen17Account: React.FC = () => {
 
             {/* Address List */}
             <div className="space-y-3">
+              {addressesLoading && <p role="status">Loading your addresses…</p>}
+              {!addressesLoading && !savedAddresses.length && <p className="text-sm text-[#6B7280]">No saved addresses yet.</p>}
               {savedAddresses.map((addr) => (
                 <div
                   key={addr.id}
@@ -633,7 +544,7 @@ export const Screen17Account: React.FC = () => {
                           </span>
                         ) : (
                           <button
-                            onClick={() => handleSetDefaultAddress(addr.id)}
+                            disabled={addressBusy} onClick={() => void handleSetDefaultAddress(addr.id)}
                             className="text-[10.5px] font-mono text-[#997A2E] hover:underline font-bold cursor-pointer"
                           >
                             Set as Main Address
@@ -650,7 +561,7 @@ export const Screen17Account: React.FC = () => {
 
                     <div className="flex items-center gap-1.5 shrink-0">
                       <button
-                        onClick={() => handleDeleteAddress(addr.id)}
+                        disabled={addressBusy} onClick={() => void handleDeleteAddress(addr.id)}
                         className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                         title="Delete Address"
                       >
@@ -698,7 +609,7 @@ export const Screen17Account: React.FC = () => {
                         onChange={(e) => setAddressForm({ ...addressForm, fullName: e.target.value })}
                         required
                         className="w-full px-3 py-2 rounded-xl bg-white border border-[#E5E7EB] text-xs text-[#0F0F10] focus:outline-none focus:border-[#D4AF37]"
-                        placeholder="e.g. Amina Bello"
+                        placeholder="Recipient name"
                       />
                     </div>
                     <div>
@@ -741,7 +652,7 @@ export const Screen17Account: React.FC = () => {
                         onChange={(e) => setAddressForm({ ...addressForm, area: e.target.value })}
                         required
                         className="w-full px-3 py-2 rounded-xl bg-white border border-[#E5E7EB] text-xs text-[#0F0F10] focus:outline-none focus:border-[#D4AF37]"
-                        placeholder="Maitama / Wuse 2"
+                        placeholder="Area or district"
                       />
                     </div>
                     <div>

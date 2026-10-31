@@ -30,6 +30,7 @@ export const SCREEN_PATHS: Record<ScreenId, string> = {
   distributors: '/distributors',
   'distributor-portal': '/distributor',
   creators: '/creators',
+  'creator-storefront': '/creator-storefront',
   'admin-console': '/admin',
   login: '/login',
   signup: '/signup',

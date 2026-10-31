@@ -22,8 +22,7 @@ export const WholesalePanel: React.FC = () => {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-  // Wholesale stays Flutterwave-only (Paystack removed; redesign pending).
-  const [provider] = useState<'flutterwave'>('flutterwave');
+  const [provider, setProvider] = useState<'stripe' | 'flutterwave'>('stripe');
   const [payment, setPayment] = useState<{ reference: string; url: string; orderNumber: string } | null>(null);
   const mounted = useRef(true);
   const checkoutKey = useRef(newIdempotencyKey());
@@ -101,11 +100,11 @@ export const WholesalePanel: React.FC = () => {
       </section>}
     </section>
     <section className="rounded-2xl border bg-white p-5 sm:p-7 space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-heading font-bold text-xl">Invoices & shipments</h2><span className="text-sm text-[#6B7280]">Payment gateway: <strong className="text-[#0F0F10]">Flutterwave</strong></span></div>
+      <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-heading font-bold text-xl">Invoices & shipments</h2><label className="flex items-center gap-2 text-sm">Payment gateway<select className={partnerInput} value={provider} onChange={e => setProvider(e.target.value as typeof provider)}><option value="stripe">Stripe</option><option value="flutterwave">Flutterwave</option></select></label></div>
       {!data.orders.length && <p className="text-sm text-[#6B7280]">Your wholesale invoices will appear here.</p>}
       {data.orders.map(o => <article key={o.id} className="rounded-xl border border-[#E5E7EB] p-4 space-y-3"><div className="flex flex-wrap justify-between gap-2"><div><h3 className="font-mono font-bold">{o.orderNumber}</h3><p className="text-xs text-[#6B7280]">{new Date(o.createdAt).toLocaleDateString()} · {o.status} · {o.paymentStatus}{o.wholesaleReturnedAt ? ' · Stock returned to HQ' : ''}</p></div><strong>{money(o.totalKobo)}</strong></div>
         <details><summary className="cursor-pointer text-sm">Invoice lines</summary><ul className="mt-2 space-y-1 text-sm">{o.items.map(i => <li key={i.variantId}>{i.productName} ({i.variantLabel}) · {i.qty} units · {money(i.lineTotalKobo)}</li>)}</ul><p className="text-sm mt-2">Delivery: {money(o.deliveryFeeKobo)}</p></details>
-        <div className="flex flex-wrap gap-3"><button className="min-h-11 text-sm underline" onClick={() => downloadInvoice(o)}>Download invoice</button>{o.status === 'PENDING' && <><button disabled={busy} className={partnerButton} onClick={() => void run(() => startPayment(o))}>Pay with Flutterwave</button><button disabled={busy} className="text-sm min-h-11 underline" onClick={() => void run(async () => { await wholesaleOrderAction('cancel', o.id); await refresh(); setNotice('Unpaid invoice cancelled.'); })}>Cancel unpaid invoice</button></>}{o.status === 'SHIPPED' && !o.wholesaleReturnedAt && <button disabled={busy} className={partnerButton} onClick={() => void run(async () => { await wholesaleOrderAction('receive', o.id); await refresh(); setNotice('Receipt confirmed. Your wholesale inventory has been credited.'); })}>Confirm all units received</button>}</div>
+        <div className="flex flex-wrap gap-3"><button className="min-h-11 text-sm underline" onClick={() => downloadInvoice(o)}>Download invoice</button>{o.status === 'PENDING' && <><button disabled={busy} className={partnerButton} onClick={() => void run(() => startPayment(o))}>Pay with {provider === 'stripe' ? 'Stripe' : 'Flutterwave'}</button><button disabled={busy} className="text-sm min-h-11 underline" onClick={() => void run(async () => { await wholesaleOrderAction('cancel', o.id); await refresh(); setNotice('Unpaid invoice cancelled.'); })}>Cancel unpaid invoice</button></>}{o.status === 'SHIPPED' && !o.wholesaleReturnedAt && <button disabled={busy} className={partnerButton} onClick={() => void run(async () => { await wholesaleOrderAction('receive', o.id); await refresh(); setNotice('Receipt confirmed. Your wholesale inventory has been credited.'); })}>Confirm all units received</button>}</div>
       </article>)}
     </section>
   </div>;

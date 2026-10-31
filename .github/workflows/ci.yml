@@ -1,5 +1,5 @@
 # Root CI — GitHub Actions only reads .github/workflows at the repository root.
-# The app lives in AI-beauty-Commerce-web-app-main/ (frontend SPA + backend/).
+# The app lives in AI-beauty-Commerce-web-app-main/ (Next.js app + backend/).
 name: ci
 
 on:
@@ -12,7 +12,7 @@ env:
 
 jobs:
   frontend:
-    name: frontend typecheck + build
+    name: storefront typecheck + Next.js build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -29,15 +29,7 @@ jobs:
         run: npm audit --omit=dev --audit-level=high
       - name: Typecheck + production build
         working-directory: AI-beauty-Commerce-web-app-main
-        env:
-          VITE_API_URL: ${{ vars.PUBLIC_API_URL }}
         run: npm run build
-      - name: Upload dist
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist-${{ github.sha }}
-          path: AI-beauty-Commerce-web-app-main/dist
-          retention-days: 14
 
   backend:
     name: backend verify (typecheck/test/migrations/image)
@@ -58,7 +50,7 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: postgres://glowly:glowly_dev_only@localhost:5432/glowly_dev
-      TEST_DATABASE_URL: postgres://glowly:glowly_dev_only@localhost:5432/glowly_dev
+      TEST_DATABASE_URL: postgres://glowly:glowly_dev_only@localhost:5432/glowly_test
     defaults:
       run:
         working-directory: AI-beauty-Commerce-web-app-main/backend
@@ -70,6 +62,8 @@ jobs:
           cache: npm
           cache-dependency-path: AI-beauty-Commerce-web-app-main/backend/package-lock.json
       - run: npm ci --no-audit --no-fund
+      - name: Create isolated concurrency-test database
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c 'CREATE DATABASE glowly_test'
       - run: npm audit --omit=dev --audit-level=high
       - run: npm run typecheck
       - run: npm test
@@ -77,6 +71,12 @@ jobs:
         run: npm run db:generate && git diff --exit-code -- drizzle/
       - name: Migrations apply to empty Postgres + seed roles
         run: npm run db:migrate && npm run db:seed
+      - name: Install root storefront for browser integration
+        run: npm --prefix .. ci --no-audit --no-fund
+      - name: Install browser
+        run: npx playwright install --with-deps chromium
+      - name: Live workspace browser journeys
+        run: PLAYWRIGHT_CHANNEL=chromium npm run test:browser
       - name: Production image builds
         working-directory: .
         run: docker build --target runner -t glowly-backend:ci ./AI-beauty-Commerce-web-app-main/backend && docker build --target worker -t glowly-worker:ci ./AI-beauty-Commerce-web-app-main/backend

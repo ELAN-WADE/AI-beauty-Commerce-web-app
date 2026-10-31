@@ -1,54 +1,84 @@
-import React, { useState } from 'react';
-import { useApp } from '../../context/AppContext';
+import { scheduleBackgroundWarmup } from '../../lib/background-warmup';
+import React, { useState, useEffect } from 'react';
 import { PartnerAppShell } from './shell/PartnerAppShell';
+import { partnerRoute } from '../../lib/portal-navigation';
 
 // Creator Studio Screens
-import { CreatorOverview } from './creator/CreatorOverview';
-import { CreatorContentEditor } from './creator/CreatorContentEditor';
-import { CreatorContentLibrary } from './creator/CreatorContentLibrary';
-import { CreatorCampaigns } from './creator/CreatorCampaigns';
-import { CreatorPRRoom } from './creator/CreatorPRRoom';
-import { CreatorStorefront } from './creator/CreatorStorefront';
-import { CreatorReferralLinks } from './creator/CreatorReferralLinks';
-import { CreatorEarnings } from './creator/CreatorEarnings';
-import { CreatorNotifications } from './creator/CreatorNotifications';
-import { CreatorResources } from './creator/CreatorResources';
-import { CreatorSupport } from './creator/CreatorSupport';
-import { CreatorSettings } from './creator/CreatorSettings';
+const loadCreatorOverview = () => import('./creator/CreatorOverview');
+const CreatorOverview = React.lazy(() => loadCreatorOverview().then(module => ({ default: module.CreatorOverview })));
+const loadCreatorContentEditor = () => import('./creator/CreatorContentEditor');
+const CreatorContentEditor = React.lazy(() => loadCreatorContentEditor().then(module => ({ default: module.CreatorContentEditor })));
+const loadCreatorContentLibrary = () => import('./creator/CreatorContentLibrary');
+const CreatorContentLibrary = React.lazy(() => loadCreatorContentLibrary().then(module => ({ default: module.CreatorContentLibrary })));
+const loadCreatorCampaigns = () => import('./creator/CreatorCampaigns');
+const CreatorCampaigns = React.lazy(() => loadCreatorCampaigns().then(module => ({ default: module.CreatorCampaigns })));
+const loadCreatorPRRoom = () => import('./creator/CreatorPRRoom');
+const CreatorPRRoom = React.lazy(() => loadCreatorPRRoom().then(module => ({ default: module.CreatorPRRoom })));
+const loadCreatorStorefront = () => import('./creator/CreatorStorefront');
+const CreatorStorefront = React.lazy(() => loadCreatorStorefront().then(module => ({ default: module.CreatorStorefront })));
+const loadCreatorReferralLinks = () => import('./creator/CreatorReferralLinks');
+const CreatorReferralLinks = React.lazy(() => loadCreatorReferralLinks().then(module => ({ default: module.CreatorReferralLinks })));
+const loadCreatorEarnings = () => import('./creator/CreatorEarnings');
+const CreatorEarnings = React.lazy(() => loadCreatorEarnings().then(module => ({ default: module.CreatorEarnings })));
+const loadCreatorNotifications = () => import('./creator/CreatorNotifications');
+const CreatorNotifications = React.lazy(() => loadCreatorNotifications().then(module => ({ default: module.CreatorNotifications })));
+const loadCreatorResources = () => import('./creator/CreatorResources');
+const CreatorResources = React.lazy(() => loadCreatorResources().then(module => ({ default: module.CreatorResources })));
+const loadCreatorSupport = () => import('./creator/CreatorSupport');
+const CreatorSupport = React.lazy(() => loadCreatorSupport().then(module => ({ default: module.CreatorSupport })));
+const loadCreatorSettings = () => import('./creator/CreatorSettings');
+const CreatorSettings = React.lazy(() => loadCreatorSettings().then(module => ({ default: module.CreatorSettings })));
 
 // Distributor Hub Screens
-import { DistributorOverview } from './distributor/DistributorOverview';
-import { DistributorOrders } from './distributor/DistributorOrders';
-import { DistributorInventory } from './distributor/DistributorInventory';
-import { DistributorRestock } from './distributor/DistributorRestock';
-import { DistributorSales } from './distributor/DistributorSales';
-import { DistributorEarnings } from './distributor/DistributorEarnings';
-import { DistributorTerritory } from './distributor/DistributorTerritory';
-import { DistributorReports } from './distributor/DistributorReports';
-import { DistributorSupport } from './distributor/DistributorSupport';
-import { DistributorSettings } from './distributor/DistributorSettings';
+const loadDistributorOverview = () => import('./distributor/DistributorOverview');
+const DistributorOverview = React.lazy(() => loadDistributorOverview().then(module => ({ default: module.DistributorOverview })));
+const loadDistributorOrders = () => import('./distributor/DistributorOrders');
+const DistributorOrders = React.lazy(() => loadDistributorOrders().then(module => ({ default: module.DistributorOrders })));
+const loadDistributorInventory = () => import('./distributor/DistributorInventory');
+const DistributorInventory = React.lazy(() => loadDistributorInventory().then(module => ({ default: module.DistributorInventory })));
+const loadDistributorRestock = () => import('./distributor/DistributorRestock');
+const DistributorRestock = React.lazy(() => loadDistributorRestock().then(module => ({ default: module.DistributorRestock })));
+const loadDistributorSales = () => import('./distributor/DistributorSales');
+const DistributorSales = React.lazy(() => loadDistributorSales().then(module => ({ default: module.DistributorSales })));
+const loadDistributorEarnings = () => import('./distributor/DistributorEarnings');
+const DistributorEarnings = React.lazy(() => loadDistributorEarnings().then(module => ({ default: module.DistributorEarnings })));
+const loadDistributorTerritory = () => import('./distributor/DistributorTerritory');
+const DistributorTerritory = React.lazy(() => loadDistributorTerritory().then(module => ({ default: module.DistributorTerritory })));
+const loadDistributorReports = () => import('./distributor/DistributorReports');
+const DistributorReports = React.lazy(() => loadDistributorReports().then(module => ({ default: module.DistributorReports })));
+const loadDistributorSupport = () => import('./distributor/DistributorSupport');
+const DistributorSupport = React.lazy(() => loadDistributorSupport().then(module => ({ default: module.DistributorSupport })));
+const loadDistributorSettings = () => import('./distributor/DistributorSettings');
+const DistributorSettings = React.lazy(() => loadDistributorSettings().then(module => ({ default: module.DistributorSettings })));
 
 export interface PartnerPortalProps {
   kind: 'CREATOR' | 'DISTRIBUTOR';
 }
 
 export const PartnerPortal: React.FC<PartnerPortalProps> = ({ kind: initialKind }) => {
-  const { navigateTo, loginAsDemoRole } = useApp();
-  const [currentKind, setCurrentKind] = useState<'CREATOR' | 'DISTRIBUTOR'>(initialKind);
-  const [activeRoute, setActiveRoute] = useState<string>('overview');
-  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const currentKind = initialKind;
+  useEffect(() => scheduleBackgroundWarmup(initialKind === 'CREATOR' ? [loadCreatorOverview,loadCreatorContentEditor,loadCreatorContentLibrary,loadCreatorCampaigns,loadCreatorPRRoom,loadCreatorStorefront,loadCreatorReferralLinks,loadCreatorEarnings,loadCreatorNotifications,loadCreatorResources,loadCreatorSupport,loadCreatorSettings] : [loadDistributorOverview,loadDistributorOrders,loadDistributorInventory,loadDistributorRestock,loadDistributorSales,loadDistributorEarnings,loadDistributorTerritory,loadDistributorReports,loadDistributorSupport,loadDistributorSettings]), [initialKind]);
 
-  const handleSwitchWorkspace = (newKind: 'CREATOR' | 'DISTRIBUTOR') => {
-    setCurrentKind(newKind);
-    setActiveRoute('overview');
-    loginAsDemoRole(newKind);
+  const [activeRoute, setActiveRoute] = useState<string>(() => partnerRoute(initialKind, typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('workspace') : null));
+  const changeRoute = (route: string) => {
+    route = partnerRoute(currentKind, route);
+    setActiveRoute(route);
+    const url = new URL(window.location.href); url.searchParams.set('workspace', route);
+    window.history.pushState({}, '', url);
   };
+  useEffect(() => {
+    const restore = () => setActiveRoute(partnerRoute(currentKind, new URLSearchParams(window.location.search).get('workspace')));
+    window.addEventListener('popstate', restore);
+    return () => window.removeEventListener('popstate', restore);
+  }, [currentKind]);
+  useEffect(() => { setActiveRoute(partnerRoute(currentKind, new URLSearchParams(window.location.search).get('workspace'))); }, [currentKind]);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
   const handleQuickAction = () => {
     if (currentKind === 'CREATOR') {
-      setActiveRoute('create');
+      changeRoute('create');
     } else {
-      setActiveRoute('restock');
+      changeRoute('restock');
     }
   };
 
@@ -58,22 +88,21 @@ export const PartnerPortal: React.FC<PartnerPortalProps> = ({ kind: initialKind 
         case 'overview':
           return (
             <CreatorOverview
-              onNavigate={(routeId) => setActiveRoute(routeId)}
-              onOpenCreate={() => setActiveRoute('create')}
-              onSwitchWorkspace={handleSwitchWorkspace}
+              onNavigate={changeRoute}
+              onOpenCreate={() => changeRoute('create')}
             />
           );
         case 'create':
           return (
             <CreatorContentEditor
-              onPublishSuccess={() => setActiveRoute('content')}
-              onCancel={() => setActiveRoute('overview')}
+              onPublishSuccess={() => changeRoute('content')}
+              onCancel={() => changeRoute('overview')}
             />
           );
         case 'content':
           return (
             <CreatorContentLibrary
-              onOpenCreate={() => setActiveRoute('create')}
+              onOpenCreate={() => changeRoute('create')}
             />
           );
         case 'campaigns':
@@ -81,7 +110,7 @@ export const PartnerPortal: React.FC<PartnerPortalProps> = ({ kind: initialKind 
         case 'pr-room':
           return (
             <CreatorPRRoom
-              onOpenCreateWithBox={() => setActiveRoute('create')}
+              onOpenCreateWithBox={() => changeRoute('create')}
             />
           );
         case 'storefront':
@@ -101,8 +130,8 @@ export const PartnerPortal: React.FC<PartnerPortalProps> = ({ kind: initialKind 
         default:
           return (
             <CreatorOverview
-              onNavigate={(routeId) => setActiveRoute(routeId)}
-              onOpenCreate={() => setActiveRoute('create')}
+              onNavigate={changeRoute}
+              onOpenCreate={() => changeRoute('create')}
             />
           );
       }
@@ -111,13 +140,12 @@ export const PartnerPortal: React.FC<PartnerPortalProps> = ({ kind: initialKind 
         case 'overview':
           return (
             <DistributorOverview
-              onNavigate={(routeId) => setActiveRoute(routeId)}
+              onNavigate={changeRoute}
               onOpenOrder={(orderId) => {
                 setSelectedOrderId(orderId);
-                setActiveRoute('orders');
+                changeRoute('orders');
               }}
-              onRestockItem={() => setActiveRoute('restock')}
-              onSwitchWorkspace={handleSwitchWorkspace}
+              onRestockItem={() => changeRoute('restock')}
             />
           );
         case 'orders':
@@ -125,7 +153,7 @@ export const PartnerPortal: React.FC<PartnerPortalProps> = ({ kind: initialKind 
         case 'inventory':
           return (
             <DistributorInventory
-              onRestockItem={() => setActiveRoute('restock')}
+              onRestockItem={() => changeRoute('restock')}
             />
           );
         case 'restock':
@@ -145,12 +173,12 @@ export const PartnerPortal: React.FC<PartnerPortalProps> = ({ kind: initialKind 
         default:
           return (
             <DistributorOverview
-              onNavigate={(routeId) => setActiveRoute(routeId)}
+              onNavigate={changeRoute}
               onOpenOrder={(orderId) => {
                 setSelectedOrderId(orderId);
-                setActiveRoute('orders');
+                changeRoute('orders');
               }}
-              onRestockItem={() => setActiveRoute('restock')}
+              onRestockItem={() => changeRoute('restock')}
             />
           );
       }
@@ -161,16 +189,17 @@ export const PartnerPortal: React.FC<PartnerPortalProps> = ({ kind: initialKind 
     <PartnerAppShell
       kind={currentKind}
       activeRoute={activeRoute}
-      onRouteChange={setActiveRoute}
+      onRouteChange={changeRoute}
       onQuickAction={handleQuickAction}
-      onSwitchWorkspace={handleSwitchWorkspace}
       badgeCounts={{
-        orders: 7,
-        lowStock: 4,
-        notifications: 3
+        orders: 0,
+        lowStock: 0,
+        notifications: 0
       }}
     >
-      {renderActiveScreen()}
+      <React.Suspense fallback={<div role="status" className="min-h-[40vh] flex items-center justify-center text-sm">Loading workspace…</div>}>
+        {renderActiveScreen()}
+      </React.Suspense>
     </PartnerAppShell>
   );
 };

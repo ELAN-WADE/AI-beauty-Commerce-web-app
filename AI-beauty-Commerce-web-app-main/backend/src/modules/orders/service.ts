@@ -1,3 +1,4 @@
+import { shipments } from '../shipping/schema';
 import { createHash, randomBytes } from 'node:crypto';
 import { and, desc, eq, lt, or, sql } from 'drizzle-orm';
 import type { AppDb, Db } from '../../db/client';
@@ -7,7 +8,7 @@ import { users } from '../auth/schema';
 import { addresses } from '../users/schema';
 import { productVariants, products } from '../catalog/schema';
 import { releaseReservation, reserveStock } from '../inventory/service';
-import { inventoryLocations, reservations } from '../inventory/schema';
+import { HQ_LOCATION_ID, inventoryLocations, reservations } from '../inventory/schema';
 import { distributors } from '../distributors/schema';
 import { locateStock } from '../routing/service';
 import { reverseCommissions } from '../ledger/service';
@@ -83,6 +84,7 @@ export interface OrderView {
   deliveryFeeKobo: number;
   totalKobo: number;
   totalNgn: number;
+  shipment?: { provider: string; trackingReference: string; status: string };
   discountKobo: number;
   fulfilmentMethod: string;
   fulfilmentLocationId: string;
@@ -110,9 +112,10 @@ export async function getOrderView(db: Db, orderId: string): Promise<OrderView> 
   const rows = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1);
   const o = rows[0];
   if (!o) throw Errors.notFound('Order not found.');
-  const [items, history] = await Promise.all([
+  const [items, history, recordedShipments] = await Promise.all([
     db.select().from(orderItems).where(eq(orderItems.orderId, orderId)),
     db.select().from(orderStatusHistory).where(eq(orderStatusHistory.orderId, orderId)).orderBy(desc(orderStatusHistory.createdAt)),
+    db.select().from(shipments).where(eq(shipments.orderId, orderId)).limit(1),
   ]);
   return {
     id: o.id,
@@ -128,6 +131,7 @@ export async function getOrderView(db: Db, orderId: string): Promise<OrderView> 
     deliveryFeeKobo: o.deliveryFeeKobo,
     totalKobo: o.totalKobo,
     totalNgn: o.totalKobo / 100,
+    shipment: recordedShipments[0] ? { provider: recordedShipments[0].provider, trackingReference: recordedShipments[0].trackingRef, status: recordedShipments[0].status } : undefined,
     discountKobo: o.discountKobo,
     fulfilmentMethod: o.fulfilmentMethod,
     fulfilmentLocationId: o.fulfilmentLocationId,
@@ -457,7 +461,7 @@ export async function listAllOrders(db: AppDb, opts: { status?: string; limit?: 
     .orderBy(desc(orders.createdAt), desc(orders.id))
     .limit(limit + 1);
   const hasMore = rows.length > limit;
-  return { orders: (hasMore ? rows.slice(0, limit) : rows).map(summarize), hasMore };
+  return { orders: (hasMore ? rows.slice(0, limit) : rows).map(o => ({ ...summarize(o), customerEmail: o.guestEmail ?? '', customerName: (o.shippingAddress as { name?: string })?.name ?? '', customerCity: (o.shippingAddress as { city?: string })?.city ?? '', shippingAddress: o.shippingAddress, fulfilmentMethod: o.fulfilmentMethod, fulfillmentType: o.fulfilmentLocationId === HQ_LOCATION_ID ? 'central' : 'local' })), hasMore };
 }
 
 export async function getOrderById(db: AppDb, orderId: string): Promise<OrderView> {

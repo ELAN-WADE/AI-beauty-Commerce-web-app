@@ -20,7 +20,7 @@ export async function POST(req: Request, { params }: Ctx) {
     const input = reviewApplicationSchema.parse(await readJson(req));
     const result = await db.transaction(async tx => {
       const result = await reviewApplication(tx, { applicationId: id, adminId: ctx.userId, ...input });
-      await audit(tx, { actorId: ctx.userId, action: 'distributor.approve', entityType: 'distributor_application', entityId: id, after: { approve: input.approve }, ip: clientIp(req), requestId });
+      await audit(tx, { actorId: ctx.userId, action: input.approve ? 'distributor.approve' : 'distributor.reject', entityType: 'distributor_application', entityId: id, after: { approve: input.approve }, ip: clientIp(req), requestId });
       return result;
     });
     const res = NextResponse.json(result);

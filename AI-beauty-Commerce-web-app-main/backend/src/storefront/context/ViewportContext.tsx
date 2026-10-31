@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from 'react';
 
 export type ViewportMode = 'auto' | 'mobile' | 'desktop';
 
@@ -16,29 +16,23 @@ export const ViewportProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [isWindowDesktop, setIsWindowDesktop] = useState(true);
 
   useEffect(() => {
-    const handleResize = () => {
-      setIsWindowDesktop(window.innerWidth >= 1024);
-    };
-    handleResize();
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    const media = window.matchMedia('(min-width: 1024px)');
+    const onChange = () => setIsWindowDesktop(media.matches);
+    onChange();
+    media.addEventListener('change', onChange);
+    return () => media.removeEventListener('change', onChange);
   }, []);
 
   const isDesktop = viewportMode === 'auto' ? isWindowDesktop : viewportMode === 'desktop';
 
-  const toggleViewportMode = () => {
+  const toggleViewportMode = useCallback(() => {
     setViewportMode((prev) => (prev === 'desktop' ? 'mobile' : 'desktop'));
-  };
+  }, []);
+  const value = useMemo(() => ({ viewportMode, isDesktop, setViewportMode, toggleViewportMode }), [viewportMode, isDesktop, toggleViewportMode]);
 
   return (
     <ViewportContext.Provider
-      value={{
-        viewportMode,
-        isDesktop,
-        setViewportMode,
-        toggleViewportMode
-      }}
+      value={value}
     >
       {children}
     </ViewportContext.Provider>

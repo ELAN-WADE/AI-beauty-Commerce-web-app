@@ -23,7 +23,7 @@ export const defaultDistributorTiles: EditorialTileData[] = [
     title: 'Hub Orders & Dispatch',
     description: 'Process retail pick-ups, package same-day deliveries, and hand off consignments to city couriers.',
     image: '/tile_dist_orders.jpg',
-    badge: '7 PENDING',
+    badge: '',
     badgeVariant: 'gold',
     desktopSpan: 'col-span-1',
     minHeight: 'min-h-[160px] sm:min-h-[175px] lg:min-h-[185px]',
@@ -38,7 +38,7 @@ export const defaultDistributorTiles: EditorialTileData[] = [
     title: 'Factory Bulk Restock',
     description: 'Order formulation pallets direct from the central lab with verified wholesale bulk margins.',
     image: '/tile_dist_restock.jpg',
-    badge: 'TIER 1 WHOLESALE',
+    badge: '',
     badgeVariant: 'gold',
     desktopSpan: 'col-span-1',
     minHeight: 'min-h-[160px] sm:min-h-[175px] lg:min-h-[185px]',
@@ -53,7 +53,7 @@ export const defaultDistributorTiles: EditorialTileData[] = [
     title: 'Hub Inventory Vault',
     description: 'Monitor live SKU inventory health, safety thresholds, and batch expiry across Lagos warehouses.',
     image: '/tile_dist_inventory.jpg',
-    badge: '86% HEALTH',
+    badge: '',
     desktopSpan: 'col-span-1',
     minHeight: 'min-h-[160px] sm:min-h-[175px] lg:min-h-[185px]',
     visualTone: 'rose',
@@ -67,7 +67,7 @@ export const defaultDistributorTiles: EditorialTileData[] = [
     title: 'Wholesale Margins',
     description: 'Track cleared partner margins, bulk retail payouts, and direct Nigerian NUBAN bank settlements.',
     image: '/tile_dist_earnings.jpg',
-    badge: '₦320.4K CLEARED',
+    badge: '',
     badgeVariant: 'gold',
     desktopSpan: 'col-span-1',
     minHeight: 'min-h-[160px] sm:min-h-[175px] lg:min-h-[185px]',
@@ -82,7 +82,7 @@ export const defaultDistributorTiles: EditorialTileData[] = [
     title: 'Sales & Velocity',
     description: 'Analyze territory GMV run rates, peak shopping hours, and best-selling skincare formulations.',
     image: '/tile_dist_sales.jpg',
-    badge: '+18.2% VELOCITY',
+    badge: '',
     badgeVariant: 'subtle',
     desktopSpan: 'col-span-1',
     minHeight: 'min-h-[160px] sm:min-h-[175px] lg:min-h-[185px]',
@@ -97,7 +97,7 @@ export const defaultDistributorTiles: EditorialTileData[] = [
     title: 'Delivery Territory',
     description: 'Configure delivery zones, dispatch rider radiuses, and same-day delivery hubs across West Africa.',
     image: '/tile_dist_territory.jpg',
-    badge: '12 ACTIVE HUBS',
+    badge: '',
     badgeVariant: 'subtle',
     desktopSpan: 'col-span-1',
     minHeight: 'min-h-[160px] sm:min-h-[175px] lg:min-h-[185px]',
@@ -112,7 +112,7 @@ export const defaultDistributorTiles: EditorialTileData[] = [
     title: 'Performance & SLA',
     description: 'Audit turnaround delivery times, courier reliability scores, and client satisfaction metrics.',
     image: '/tile_dist_sla.jpg',
-    badge: '98.4% ON-TIME',
+    badge: '',
     badgeVariant: 'subtle',
     desktopSpan: 'col-span-1',
     minHeight: 'min-h-[160px] sm:min-h-[175px] lg:min-h-[185px]',
@@ -127,7 +127,7 @@ export const defaultDistributorTiles: EditorialTileData[] = [
     title: 'Support & Concierge',
     description: 'Connect directly to headquarters logistics dispatch, formula QA analysts, and priority courier line.',
     image: '/tile_dist_support.jpg',
-    badge: 'PRIORITY LINE',
+    badge: '',
     badgeVariant: 'gold',
     desktopSpan: 'col-span-1',
     minHeight: 'min-h-[160px] sm:min-h-[175px] lg:min-h-[185px]',
@@ -142,7 +142,7 @@ export const defaultDistributorTiles: EditorialTileData[] = [
     title: 'Hub Facility Settings',
     description: 'Manage warehouse address credentials, operational shift hours, and staff permission dossiers.',
     image: '/tile_dist_settings.jpg',
-    badge: 'LAGOS CENTRAL',
+    badge: '',
     badgeVariant: 'subtle',
     desktopSpan: 'col-span-1',
     minHeight: 'min-h-[160px] sm:min-h-[175px] lg:min-h-[185px]',
@@ -158,11 +158,7 @@ export const DistributorEditorialGrid: React.FC<DistributorEditorialGridProps> =
   layoutMode = 'matrix'
 }) => {
   const handleTileClick = (route: string) => {
-    if (route === 'sales' && onOpenAnalytics) {
-      onOpenAnalytics();
-    } else {
-      onNavigate(route);
-    }
+    onNavigate(route);
   };
 
   const filteredTiles = defaultDistributorTiles.filter((tile) => {

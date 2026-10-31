@@ -1,4 +1,4 @@
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import type { AppDb } from '../../db/client';
 import { Errors } from '../../lib/errors';
 import { hasAnyRole } from '../../lib/authz';
@@ -16,7 +16,18 @@ export interface AuthContext {
 /** Resolve the caller from the session cookie. Throws 401 when absent/invalid. */
 export async function requireAuth(db: AppDb): Promise<AuthContext> {
   const jar = await cookies();
-  const raw = jar.get(sessionCookieName())?.value;
+  let raw = jar.get(sessionCookieName())?.value;
+  {
+    try {
+      const headerList = await headers();
+      const authHeader = headerList.get('authorization');
+      if (authHeader && authHeader.toLowerCase().startsWith('bearer ')) {
+        raw = authHeader.slice(7).trim();
+      }
+    } catch {
+      // In non-request or mock scopes
+    }
+  }
   const session = await getSessionUser(db, raw);
   if (!session) throw Errors.unauthorized();
   // An unverified address is not an identity proof. Verification must precede

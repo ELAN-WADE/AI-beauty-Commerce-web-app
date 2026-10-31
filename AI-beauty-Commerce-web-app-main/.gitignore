@@ -8,6 +8,8 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+.next/
+.next-browser/
 dist
 dist-ssr
 *.local
@@ -32,3 +34,25 @@ tsconfig.tsbuildinfo
 
 # Antigravity / Agents local files
 .agents/
+backend/test-results/
+backend/playwright-report/
+
+.next-portal-acceptance/
+
+backend/test-results-portals/
+
+.portal-build/
+
+.portal-build-production/
+
+.next-dev/
+
+.next-dev-*/
+
+# Isolated user-journey acceptance outputs
+.journey-browser/
+backend/test-results-journey-signup/
+.performance-build/
+.performance-dev/
+backend/test-results-rendering/
+.journey-build/

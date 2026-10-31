@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Check, ShoppingBag, Star, ArrowRight, ShieldCheck, Minus, Plus } from 'lucide-react';
+import { X, Check, ShoppingBag, Star, ShieldCheck, Minus, Plus } from 'lucide-react';
 import { Product } from '../../types';
 import { useApp } from '../../context/AppContext';
-import { ApothecaryPuritySeal } from './HandDrawnAccents';
 import { ProductImage } from './ProductImage';
 
 interface ProductQuickModalProps {
@@ -78,6 +77,9 @@ export const ProductQuickModal: React.FC<ProductQuickModalProps> = ({
   }, [isOpen, onClose]);
 
   if (!isOpen || !product) return null;
+  const variant = product.variants?.find(variant => variant.sizeLabel === selectedSize);
+  const unitPrice = variant?.priceNgn ?? product.price;
+  const comparePrice = variant ? variant.compareAtNgn : product.originalPrice;
 
   const formatNaira = (amt: number) => '₦' + amt.toLocaleString('en-NG');
 
@@ -85,7 +87,7 @@ export const ProductQuickModal: React.FC<ProductQuickModalProps> = ({
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
-      addToCart(product, selectedSize, quantity);
+      if (!addToCart({ ...product, price: unitPrice }, selectedSize, quantity)) { setIsSubmitting(false); return; }
       setJustAdded(true);
       setTimeout(() => {
         setJustAdded(false);
@@ -127,34 +129,31 @@ export const ProductQuickModal: React.FC<ProductQuickModalProps> = ({
 
         {/* Dual Grid Layout: Product packshot left, details right */}
         <div className="grid grid-cols-1 sm:grid-cols-2 overflow-y-auto">
-          {/* Left Column: Bounded Product Packshot */}
-          <div className="relative bg-[#FAF9F6] p-8 flex flex-col items-center justify-center min-h-[260px] sm:min-h-[400px] overflow-hidden">
-            {/* Packshot Container matching aesthetic */}
-            <div className="relative w-56 h-56 sm:w-72 sm:h-72 rounded-2xl overflow-hidden bg-[#F6F5F2] shadow-sm flex items-center justify-center z-10 border border-[#E5E7EB]/60">
-              <ProductImage
-                src={product.image}
-                alt={product.name}
-                sizes="(max-width: 640px) 70vw, 300px"
-                className="w-full h-full object-cover rounded-2xl"
-              />
-            </div>
+          {/* Full-height product photograph, preserving the original two-column modal */}
+          <div className="relative bg-[#FAF9F6] min-h-[320px] sm:min-h-[400px] overflow-hidden">
+            <ProductImage src={product.image} alt={product.name} sizes="(max-width: 640px) 100vw, 50vw" className="absolute inset-0 object-cover object-center" />
 
             {/* Badges */}
-            <div className="absolute top-4 left-4 flex flex-col gap-1.5">
-              <span className="px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-xs text-[#0F0F10] text-[10px] font-mono font-bold uppercase tracking-wider shadow-xs border border-[#E5E7EB]">
-                {product.subCategory || product.category}
+            <div className="absolute top-4 left-4 right-4 z-10 flex flex-row flex-wrap items-center gap-2">
+              {product.customBadge && !/clinical/i.test(product.customBadge) && (
+                <span className="text-[10px] font-mono font-semibold uppercase tracking-wide text-[#0F0F10]">
+                  {product.customBadge}
+                </span>
+              )}
+              <span className="text-[10px] font-mono font-semibold uppercase tracking-wide text-[#0F0F10]">
+                {[product.subCategory, product.category].find(value => value && !/clinical/i.test(value)) || 'Formulation'}
               </span>
               {product.isBestseller && (
-                <span className="px-2.5 py-1 rounded-full bg-[#0F0F10] text-[#D4AF37] text-[9.5px] font-bold uppercase tracking-tight">
-                  #1 Best Seller
+                <span className="text-[10px] font-mono font-semibold uppercase tracking-wide text-[#0F0F10]">
+                  Best Seller
                 </span>
               )}
             </div>
 
             {/* Authenticity Guarantee */}
-            <div className="mt-4 flex items-center gap-1.5 text-[11px] font-medium text-[#737373]">
+            <div className="absolute bottom-4 left-4 right-4 z-10 flex items-center gap-1.5 text-[11px] font-medium text-[#0F0F10] w-fit">
               <ShieldCheck size={14} className="text-[#997A2E]" />
-              <span>NAFDAC Authentic Formulation</span>
+              <span>{product.brandInfo?.guarantee || "Authentic Formulation"}</span>
             </div>
           </div>
 
@@ -169,27 +168,37 @@ export const ProductQuickModal: React.FC<ProductQuickModalProps> = ({
               </h2>
 
               {/* Rating */}
-              <div className="flex items-center gap-2 text-xs text-[#737373]">
-                <div className="flex items-center text-[#D4AF37]">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} size={12} fill="currentColor" strokeWidth={0} />
-                  ))}
+              {product.rating && product.rating > 0 ? (
+                <div className="flex items-center gap-2 text-xs text-[#737373]">
+                  <div className="flex items-center text-[#D4AF37]">
+                    {[...Array(Math.min(5, Math.max(1, Math.round(product.rating))))].map((_, i) => (
+                      <Star key={i} size={12} fill="currentColor" strokeWidth={0} />
+                    ))}
+                  </div>
+                  <span className="font-bold text-[#0F0F10] text-xs">{product.rating.toFixed(1)}</span>
+                  {product.reviewsCount ? (
+                    <>
+                      <span>•</span>
+                      <span className="text-[11px] text-[#737373]">
+                        {product.reviewsCount} {product.reviewsCount === 1 ? 'verified review' : 'verified reviews'}
+                      </span>
+                    </>
+                  ) : null}
                 </div>
-                <span className="font-bold text-[#0F0F10] text-xs">{product.rating}</span>
-                <span>•</span>
-                <span className="text-[11px] text-[#737373]">
-                  {product.reviewsCount ? `${product.reviewsCount} verified reviews` : 'Clinically validated'}
-                </span>
-              </div>
+              ) : (
+                <div className="flex items-center gap-1.5 text-xs text-[#9CA3AF]">
+                  <span className="text-[11px]">Unrated</span>
+                </div>
+              )}
 
               {/* Price */}
               <div className="flex items-baseline gap-2.5 pt-1">
                 <span className="font-price font-extrabold text-2xl text-[#0F0F10]">
-                  {formatNaira(product.price)}
+                  {formatNaira(unitPrice)}
                 </span>
-                {product.originalPrice && product.originalPrice > product.price && (
+                {comparePrice && comparePrice > unitPrice && (
                   <span className="text-xs font-mono text-[#A3A3A3] line-through">
-                    {formatNaira(product.originalPrice)}
+                    {formatNaira(comparePrice)}
                   </span>
                 )}
               </div>
@@ -198,6 +207,17 @@ export const ProductQuickModal: React.FC<ProductQuickModalProps> = ({
               <p className="text-xs sm:text-[13px] text-[#525252] leading-relaxed line-clamp-3 pt-1">
                 {product.description}
               </p>
+
+              {/* Active Natural Ingredients Preview */}
+              {product.keyIngredients && product.keyIngredients.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {product.keyIngredients.slice(0, 3).map((ing, idx) => (
+                    <span key={idx} className="px-2 py-0.5 rounded-full bg-[#FAF9F6] border border-[#E5E7EB] text-[10.5px] font-medium text-[#0F0F10]">
+                      {ing.name}{ing.percentage ? " (" + ing.percentage + ")" : ""}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Size / Variant Options */}
@@ -269,7 +289,7 @@ export const ProductQuickModal: React.FC<ProductQuickModalProps> = ({
                   ) : (
                     <>
                       <ShoppingBag size={15} strokeWidth={2.2} className="text-[#D4AF37]" />
-                      <span>Add • {formatNaira(product.price * quantity)}</span>
+                      <span>Add • {formatNaira(unitPrice * quantity)}</span>
                     </>
                   )}
                 </button>

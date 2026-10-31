@@ -6,8 +6,7 @@ import {
   ChevronDown,
   Store,
   Users,
-  ExternalLink,
-  Sparkles
+  ExternalLink
 } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 
@@ -22,11 +21,13 @@ export const CreatorOfficeTopbar: React.FC<CreatorOfficeTopbarProps> = ({
   onSwitchWorkspace,
   badgeCounts = {}
 }) => {
-  const { navigateTo, loginAsDemoRole } = useApp();
+  const { navigateTo, loginAsDemoRole, authUser } = useApp();
+  const accountName = authUser?.profile?.displayName || authUser?.email || 'Creator';
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
 
   return (
     <header className="h-16 px-4 sm:px-6 lg:px-8 bg-white/90 backdrop-blur-md border-b border-[#E5E7EB] flex items-center justify-between gap-4 select-none sticky top-0 z-40">
+      {/* Left: Brand & Workspace Title */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-xl bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center font-heading font-black text-lg shadow-xs">
@@ -48,6 +49,7 @@ export const CreatorOfficeTopbar: React.FC<CreatorOfficeTopbarProps> = ({
         </div>
       </div>
 
+      {/* Center: Search Field */}
       <div className="flex-1 max-w-md mx-4 hidden md:block">
         <div className="relative">
           <Search
@@ -62,7 +64,9 @@ export const CreatorOfficeTopbar: React.FC<CreatorOfficeTopbarProps> = ({
         </div>
       </div>
 
+      {/* Right: Account Utilities & Intentional Workspace Switching */}
       <div className="flex items-center gap-2.5 sm:gap-3">
+        {/* Subtle Storefront View Link */}
         <button
           onClick={() => navigateTo('home')}
           className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#E5E7EB] bg-[#FAF9F6] hover:bg-[#F3EEE3] text-xs font-semibold text-[#4B5563] hover:text-[#0F0F10] transition-colors cursor-pointer"
@@ -72,6 +76,7 @@ export const CreatorOfficeTopbar: React.FC<CreatorOfficeTopbarProps> = ({
           <ExternalLink size={11} className="text-[#9CA3AF]" />
         </button>
 
+        {/* Intentional Workspace Switcher Dropdown (No cluttered header pills) */}
         <div className="relative">
           <button
             onClick={() => setWorkspaceMenuOpen(!workspaceMenuOpen)}
@@ -100,8 +105,8 @@ export const CreatorOfficeTopbar: React.FC<CreatorOfficeTopbarProps> = ({
                 <button
                   onClick={() => {
                     setWorkspaceMenuOpen(false);
-                    loginAsDemoRole('CREATOR');
                     if (onSwitchWorkspace) onSwitchWorkspace('CREATOR');
+                    else navigateTo('creators');
                   }}
                   className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-[#0F0F10] bg-[#FAF9F6] flex items-center gap-2 cursor-pointer"
                 >
@@ -115,7 +120,6 @@ export const CreatorOfficeTopbar: React.FC<CreatorOfficeTopbarProps> = ({
                 <button
                   onClick={() => {
                     setWorkspaceMenuOpen(false);
-                    loginAsDemoRole('DISTRIBUTOR');
                     if (onSwitchWorkspace) onSwitchWorkspace('DISTRIBUTOR');
                     else navigateTo('distributor-portal');
                   }}
@@ -132,6 +136,7 @@ export const CreatorOfficeTopbar: React.FC<CreatorOfficeTopbarProps> = ({
           )}
         </div>
 
+        {/* Notifications Bell Button */}
         {onOpenNotifications && (
           <button
             onClick={onOpenNotifications}
@@ -145,13 +150,14 @@ export const CreatorOfficeTopbar: React.FC<CreatorOfficeTopbarProps> = ({
           </button>
         )}
 
+        {/* Creator User Pill */}
         <div className="hidden lg:flex items-center gap-2 pl-2 border-l border-[#E5E7EB]">
           <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#0F0F10] to-[#27272A] text-[#D4AF37] font-bold text-xs flex items-center justify-center border border-[#D4AF37]/30">
-            A
+            {accountName.slice(0, 1).toUpperCase()}
           </div>
           <div className="leading-tight">
-            <span className="text-xs font-bold text-[#0F0F10] block">Amara</span>
-            <span className="text-[10px] font-mono text-[#997A2E] font-medium block">Luminary</span>
+            <span className="text-xs font-bold text-[#0F0F10] block">{accountName}</span>
+            <span className="text-[10px] font-mono text-[#997A2E] font-medium block">Creator</span>
           </div>
         </div>
       </div>

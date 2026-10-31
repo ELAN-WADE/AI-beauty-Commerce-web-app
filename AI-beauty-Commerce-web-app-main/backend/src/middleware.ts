@@ -1,26 +1,9 @@
+import { privateSearchSurface } from './storefront/lib/site-seo';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const DEV_LOOPBACKS = ['http://localhost:5173', 'http://127.0.0.1:5173'];
-
-function configuredOrigins(): string[] {
-  const norm = (u: string) => {
-    try {
-      return new URL(u).origin;
-    } catch {
-      return '';
-    }
-  };
-  const raw = [process.env.FRONTEND_URL, ...(process.env.ALLOWED_ORIGINS ?? '').split(',')]
-    .map((s) => norm((s ?? '').trim()))
-    .filter((s) => s !== '');
-  // Local dev: the Vite storefront (:5173) and the API (:3001) are different
-  // origins in the browser, so allow the loopback dev servers explicitly.
-  if (process.env.NODE_ENV !== 'production') {
-    for (const o of DEV_LOOPBACKS) if (!raw.includes(o)) raw.push(o);
-  }
-  return [...new Set(raw)];
-}
+import { isAllowedApiOrigin as isOriginAllowed, isDevLoopbackOrigin } from './lib/origins';
+import { adminPageDecision } from './modules/auth/admin-policy';
 
 /**
  * Attach a request id to every API call (used by logs + error envelope),
@@ -30,22 +13,36 @@ function configuredOrigins(): string[] {
  * http://localhost:5173 (not 127.0.0.1) in dev to stay same-site.
  */
 export function middleware(req: NextRequest) {
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.delete('x-desla-private-admin');
+  const adminPage = adminPageDecision(req.nextUrl.pathname, req.nextUrl.searchParams.get('screen'));
+  if (adminPage === 'deny') return new NextResponse('Not found', { status: 404 });
+  if (adminPage === 'private') {
+    requestHeaders.set('x-desla-private-admin', '1');
+    const response = NextResponse.next({ request: { headers: requestHeaders } });
+    response.headers.set('Cache-Control', 'private, no-store');
+    response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+    response.headers.set('Referrer-Policy', 'no-referrer');
+    return response;
+  }
   const requestId = crypto.randomUUID();
   // Central check covers dynamic handlers which cannot use the api() wrapper.
   // Signed provider callbacks do not authenticate with cookies.
   if (req.method !== 'OPTIONS' && !req.nextUrl.pathname.startsWith('/api/webhooks/')) {
     const origin = req.headers.get('origin');
-    const allowed = [...configuredOrigins(), ...(process.env.APP_URL ? [new URL(process.env.APP_URL).origin] : [])];
-    if (['POST', 'PATCH', 'PUT', 'DELETE'].includes(req.method) && origin && !allowed.includes(origin)) {
+    const secFetchSite = req.headers.get('sec-fetch-site');
+    const isDevLoopback = origin && isDevLoopbackOrigin(origin);
+    const isCrossSite = secFetchSite === 'cross-site' && !isDevLoopback;
+    if (['POST', 'PATCH', 'PUT', 'DELETE'].includes(req.method) && (isCrossSite || (origin && !isOriginAllowed(origin)))) {
       return NextResponse.json({ error: { code: 'forbidden_origin', message: 'Cross-origin requests are not allowed.', request_id: requestId, retryable: false } }, { status: 403, headers: { 'x-request-id': requestId } });
     }
   }
-  const forwarded = new Headers(req.headers);
+  const forwarded = requestHeaders;
   forwarded.set('x-request-id', requestId); // never trust a caller-supplied correlation ID
   const res = req.method === 'OPTIONS' ? new NextResponse(null, { status: 204 }) : NextResponse.next({ request: { headers: forwarded } });
   res.headers.set('x-request-id', requestId);
   const origin = req.headers.get('origin');
-  if (origin && configuredOrigins().includes(origin)) {
+  if (origin && isOriginAllowed(origin)) {
     res.headers.set('Access-Control-Allow-Origin', origin);
     res.headers.set('Vary', 'Origin');
     res.headers.set('Access-Control-Allow-Credentials', 'true');
@@ -56,7 +53,8 @@ export function middleware(req: NextRequest) {
     );
     res.headers.set('Access-Control-Max-Age', '600');
   }
+  if (privateSearchSurface(req.nextUrl.pathname, req.nextUrl.searchParams.get('screen'))) res.headers.set('X-Robots-Tag', 'noindex, nofollow');
   return res;
 }
 
-export const config = { matcher: '/api/:path*' };
+export const config = { matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'] };

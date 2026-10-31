@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { fetchNetworkOverview, networkCommand, isOwnedApiConfigured } from '../../lib/owned-api';
 import { NetworkSettings } from './NetworkSettings';
+import { isPortalDesignPreview } from '../../lib/portal-preview';
 import {
   Building2,
   Truck,
@@ -111,159 +112,32 @@ export interface Overview {
 
 const naira = (kobo: number) => '₦' + Math.round(kobo / 100).toLocaleString('en-NG');
 
-const initialNetworkOverview: Overview = {
-  locations: [
-    {
-      id: 'loc-lagos-hq',
-      code: 'LOS-HQ',
-      name: 'Desla!™ Central Laboratory & HQ',
-      type: 'WAREHOUSE',
-      address: 'Plot 14 Admiralty Way, Lekki Phase 1, Lagos',
-      phone: '08148120642',
-      operatingHours: 'Mon - Fri (9:00 AM - 5:00 PM)',
-      etaText: 'Same-day express across Lagos Island & Mainland',
-      city: 'Lagos',
-      state: 'Lagos State',
-      isActive: true,
-      distributorId: 'dist-lagos-hq',
-      deliveryEnabled: true,
-      pickupEnabled: true,
-      deliveryFeeKobo: 100000
-    },
-    {
-      id: 'loc-abuja-wuse',
-      code: 'ABJ-WUS',
-      name: 'Desla Abuja Capital Hub',
-      type: 'DISTRIBUTOR',
-      address: 'Suite 204, Aminu Kano Crescent, Wuse 2, Abuja',
-      phone: '09030456510',
-      operatingHours: 'Mon - Sat (10:00 AM - 7:00 PM)',
-      etaText: '25-45 mins local bike rider dispatch',
-      city: 'Abuja',
-      state: 'Abuja FCT',
-      isActive: true,
-      distributorId: 'dist-abuja-wuse',
-      deliveryEnabled: true,
-      pickupEnabled: true,
-      deliveryFeeKobo: 150000
-    },
-    {
-      id: 'loc-ph-gra',
-      code: 'PHC-GRA',
-      name: 'Desla Port Harcourt Luxury Partner',
-      type: 'DISTRIBUTOR',
-      address: '18 Tombia Street, GRA Phase 2, Port Harcourt',
-      phone: '09030456510',
-      operatingHours: 'Mon - Sat (9:30 AM - 6:30 PM)',
-      etaText: 'Same-day express delivery across PH GRA & Peter Odili',
-      city: 'Port Harcourt',
-      state: 'Rivers State',
-      isActive: true,
-      distributorId: 'dist-ph-gra',
-      deliveryEnabled: true,
-      pickupEnabled: true,
-      deliveryFeeKobo: 150000
-    },
-    {
-      id: 'loc-kano-hub',
-      code: 'KAN-CEN',
-      name: 'Desla Kano Northern Distribution Hub',
-      type: 'DISTRIBUTOR',
-      address: 'Plot 42 Bompai Road, Nassarawa, Kano',
-      phone: '08148120642',
-      operatingHours: 'Mon - Sat (9:00 AM - 6:00 PM)',
-      etaText: 'Same-day dispatch across Kano Municipal',
-      city: 'Kano',
-      state: 'Kano State',
-      isActive: true,
-      distributorId: 'dist-kano',
-      deliveryEnabled: true,
-      pickupEnabled: true,
-      deliveryFeeKobo: 200000
-    }
-  ],
-  stock: [
-    { pool: 'PLATFORM', locationId: 'loc-lagos-hq', variantId: 'v-rgo-100', sku: 'DES-RGO-100', name: 'Radiant Glow Clinical Oil', onHand: 450, reserved: 20 },
-    { pool: 'WHOLESALE', locationId: 'loc-lagos-hq', variantId: 'v-rgo-100', sku: 'DES-RGO-100', name: 'Radiant Glow Clinical Oil', onHand: 800, reserved: 0 },
-    { pool: 'PLATFORM', locationId: 'loc-abuja-wuse', variantId: 'v-rgo-100', sku: 'DES-RGO-100', name: 'Radiant Glow Clinical Oil', onHand: 140, reserved: 12 },
-    { pool: 'WHOLESALE', locationId: 'loc-abuja-wuse', variantId: 'v-rgo-100', sku: 'DES-RGO-100', name: 'Radiant Glow Clinical Oil', onHand: 60, reserved: 0 },
-    { pool: 'PLATFORM', locationId: 'loc-abuja-wuse', variantId: 'v-sun-50', sku: 'DES-SUN-50', name: 'Melanin Defense SPF 50+', onHand: 180, reserved: 8 },
-    { pool: 'PLATFORM', locationId: 'loc-ph-gra', variantId: 'v-sun-50', sku: 'DES-SUN-50', name: 'Melanin Defense SPF 50+', onHand: 65, reserved: 5 }
-  ],
-  partners: [
-    { id: 'dist-lagos-hq', name: 'Desla Beauty HQ', city: 'Lagos', userId: 'usr-admin-hq', tier: 'Gold', commissionBps: 2000, verified: true },
-    { id: 'dist-abuja-wuse', name: 'Aura Luxe Beauty Co. (Abuja)', city: 'Abuja', userId: 'usr-dist-amaka', tier: 'Gold', commissionBps: 2000, verified: true },
-    { id: 'dist-ph-gra', name: 'Eden Glow Studio (Port Harcourt)', city: 'Port Harcourt', userId: 'usr-dist-emeka', tier: 'Silver', commissionBps: 1500, verified: true },
-    { id: 'dist-kano', name: 'Kano Northern Hub', city: 'Kano', userId: 'usr-dist-aliyu', tier: 'Silver', commissionBps: 1500, verified: true }
-  ],
-  creators: [
-    { id: 'creator-amara', name: 'Amara Nnadi', promoCode: 'AMARA10', userId: 'usr-creator-amara', commissionRate: 15, verified: true },
-    { id: 'creator-tunde', name: 'Tunde Adeleke', promoCode: 'TUNDEGLAM', userId: 'usr-creator-tunde', commissionRate: 15, verified: true },
-    { id: 'creator-zainab', name: 'Dr. Zainab Bello', promoCode: 'DRZAINAB', userId: 'usr-creator-zainab', commissionRate: 12, verified: true }
-  ],
-  users: [
-    { id: 'usr-admin-hq', email: 'operations.lead@desla.com' },
-    { id: 'usr-dist-amaka', email: 'amaka.chioma@distributor.desla.com' },
-    { id: 'usr-dist-emeka', email: 'emeka.okon@distributor.desla.com' },
-    { id: 'usr-dist-aliyu', email: 'aliyu.kano@distributor.desla.com' }
-  ],
-  variants: [
-    { id: 'v-rgo-100', sku: 'DES-RGO-100', size: '100ml', name: 'Radiant Glow Clinical Oil' },
-    { id: 'v-gpc-200', sku: 'DES-GPC-200', size: '200ml', name: 'Gentle Purifying Amino Cleanser' },
-    { id: 'v-sun-50', sku: 'DES-SUN-50', size: '50ml', name: 'Melanin Defense SPF 50+' },
-    { id: 'v-bbc-100', sku: 'DES-BBC-100', size: '100ml', name: 'Bio-Active Barrier Cream' }
-  ],
-  transfers: [
-    { id: 'trf-889104', sourceLocationId: 'loc-lagos-hq', destinationLocationId: 'loc-abuja-wuse', status: 'DISPATCHED' },
-    { id: 'trf-889092', sourceLocationId: 'loc-lagos-hq', destinationLocationId: 'loc-ph-gra', status: 'RECEIVED' }
-  ],
-  restocks: [
-    { id: 'rst-4091', locationId: 'loc-abuja-wuse', variantId: 'v-sun-50', qty: 72, status: 'REQUESTED' },
-    { id: 'rst-4088', locationId: 'loc-ph-gra', variantId: 'v-rgo-100', qty: 48, status: 'APPROVED' }
-  ],
-  banks: [
-    { id: 'bnk-01', walletId: 'wal-dist-amaka', bankName: 'Guaranty Trust Bank (GTCO)', accountName: 'AURA LUXE BEAUTY CO', verifiedAt: '2026-02-10' },
-    { id: 'bnk-02', walletId: 'wal-dist-emeka', bankName: 'Access Bank Plc', accountName: 'EDEN GLOW STUDIO PH', verifiedAt: '2026-03-14' }
-  ],
-  withdrawals: [
-    { id: 'wth-1092', walletId: 'wal-dist-amaka', amountKobo: 28450000, status: 'PROCESSING' },
-    { id: 'wth-1088', walletId: 'wal-dist-emeka', amountKobo: 14200000, status: 'PAID' }
-  ],
-  finance: true,
-  wholesalePrices: [
-    { variantId: 'v-rgo-100', tier: 'Gold', unitPriceKobo: 1632000, unitsPerCarton: 24, minimumCartons: 1, isActive: true },
-    { variantId: 'v-gpc-200', tier: 'Gold', unitPriceKobo: 1326000, unitsPerCarton: 24, minimumCartons: 1, isActive: true },
-    { variantId: 'v-sun-50', tier: 'Gold', unitPriceKobo: 1360000, unitsPerCarton: 36, minimumCartons: 1, isActive: true }
-  ],
-  wholesaleOrders: [
-    { id: 'wo-8092', orderNumber: 'WSO-2026-8092', status: 'PAID', paymentStatus: 'SETTLED', totalKobo: 48960000, destinationId: 'loc-abuja-wuse', dispatchedAt: null, receivedAt: null, returnedAt: null },
-    { id: 'wo-8084', orderNumber: 'WSO-2026-8084', status: 'SHIPPED', paymentStatus: 'SETTLED', totalKobo: 39168000, destinationId: 'loc-ph-gra', dispatchedAt: 'Yesterday', receivedAt: null, returnedAt: null }
-  ]
-};
+const initialNetworkOverview: Overview = { locations: [], stock: [], partners: [], creators: [], users: [], variants: [], transfers: [], restocks: [], banks: [], withdrawals: [], finance: false, wholesalePrices: [], wholesaleOrders: [] };
 
 export const NetworkPanel: React.FC = () => {
-  const [data, setData] = useState<Overview>(initialNetworkOverview);
+  const [data, setData] = useState<Overview>(() => isPortalDesignPreview() ? initialNetworkOverview : { locations: [], stock: [], partners: [], creators: [], users: [], variants: [], transfers: [], restocks: [], banks: [], withdrawals: [], finance: false, wholesalePrices: [], wholesaleOrders: [] });
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
-  const [transferForm, setTransferForm] = useState({ source: 'loc-lagos-hq', dest: 'loc-abuja-wuse', variant: 'v-rgo-100', qty: '24' });
+  const [transferForm, setTransferForm] = useState({ source: '', dest: '', variant: '', qty: '' });
   const [payoutEvidence, setPayoutEvidence] = useState<Record<string, string>>({});
   const [payoutRef, setPayoutRef] = useState<Record<string, string>>({});
   const [bankEvidence, setBankEvidence] = useState<Record<string, string>>({});
 
   const refresh = async () => {
     setError('');
+    if (isPortalDesignPreview()) { setData(initialNetworkOverview); return; }
     if (!isOwnedApiConfigured) {
-      // Offline / Sandbox mode: data stays loaded and active
+      setError('Connect the live backend to manage the network.');
       return;
     }
     try {
       const res = (await fetchNetworkOverview()) as Overview | null;
       if (res) {
         setData(res);
-      }
-    } catch {
-      // In case of network error, preserve simulation data without failing
+      } else throw new Error('Could not load the live network.');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not load the live network.');
     }
   };
 
@@ -285,53 +159,14 @@ export const NetworkPanel: React.FC = () => {
         setBusy(false);
         return;
       } catch (e) {
-        // If live fails, fall through to optimistic local simulation
-        console.warn('[networkCommand] fallback to local simulation:', e);
+        setError(e instanceof Error ? e.message : 'Action failed. No local changes were applied.');
+        setBusy(false);
+        return;
       }
     }
-
-    // Interactive Local Simulation Engine (Zero Auth Roadblock)
-    try {
-      if (input.action === 'transfer') {
-        const newTransfer = {
-          id: `trf-${Date.now().toString().slice(-6)}`,
-          sourceLocationId: String(input.sourceLocationId),
-          destinationLocationId: String(input.destinationLocationId),
-          status: 'DISPATCHED'
-        };
-        setData((prev) => ({
-          ...prev,
-          transfers: [newTransfer, ...prev.transfers]
-        }));
-      } else if (input.action === 'receive') {
-        const transferId = String(input.transferId);
-        setData((prev) => ({
-          ...prev,
-          transfers: prev.transfers.map((t) => (t.id === transferId ? { ...t, status: 'RECEIVED' } : t))
-        }));
-      } else if (input.action === 'restock') {
-        const id = String(input.id);
-        const status = String(input.status);
-        setData((prev) => ({
-          ...prev,
-          restocks: prev.restocks.map((r) => (r.id === id ? { ...r, status } : r))
-        }));
-      } else if (input.action === 'payout') {
-        const id = String(input.id);
-        const status = String(input.status);
-        setData((prev) => ({
-          ...prev,
-          withdrawals: prev.withdrawals.map((w) => (w.id === id ? { ...w, status } : w))
-        }));
-      }
-
-      setNotice(ok);
-      setTimeout(() => setNotice(''), 3500);
-    } catch {
-      setError('Action failed.');
-    } finally {
-      setBusy(false);
-    }
+    setError('Connect the live backend to perform this action.');
+    setBusy(false);
+    return;
   };
 
   return (

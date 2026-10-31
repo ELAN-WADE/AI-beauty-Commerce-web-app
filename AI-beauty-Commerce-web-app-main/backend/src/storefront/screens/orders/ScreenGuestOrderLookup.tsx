@@ -13,131 +13,32 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { fetchServerOrder, guestOrderToken, isOwnedApiConfigured } from '../../lib/owned-api';
+import { fetchServerOrder, guestOrderToken, mapServerOrder } from '../../lib/owned-api';
 import { Order } from '../../types';
 
 export const ScreenGuestOrderLookup: React.FC = () => {
-  const { navigateTo, openAIAssistant, orders: localOrders } = useApp();
+  const { navigateTo, openAIAssistant, authUser } = useApp();
 
-  const [orderNumber, setOrderNumber] = useState('DES-829104');
-  const [email, setEmail] = useState('amina.bello@example.com');
+  const [orderNumber, setOrderNumber] = useState('');
   const [accessToken, setAccessToken] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [foundOrder, setFoundOrder] = useState<Order | null>(null);
 
-  const handleLookup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    const cleanId = orderNumber.trim().replace(/^#/, '');
-    if (!cleanId || (!isOwnedApiConfigured && !email.trim())) {
-      setError('Please provide your order number and email.');
-      return;
-    }
-
+  const handleLookup = async (event: React.FormEvent) => {
+    event.preventDefault(); if (busy) return;
+    setError(''); setFoundOrder(null);
+    const id = orderNumber.trim().replace(/^#/, '');
+    if (!id) { setError('Enter your order number.'); return; }
+    const token = accessToken.trim() || guestOrderToken(id) || undefined;
+    if (!authUser && !token) { setError('Use the device where you checked out, or enter your private order access token. Contact support if you no longer have access.'); return; }
     setBusy(true);
     try {
-      if (isOwnedApiConfigured) {
-        const res = await fetchServerOrder(cleanId, accessToken.trim() || guestOrderToken(cleanId) || undefined);
-        if (res) {
-          // Map to storefront order format
-          const mapped: Order = {
-            id: res.orderNumber,
-            date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-            status: res.status === 'PENDING' ? 'Processing' : res.status === 'DELIVERED' ? 'Delivered' : res.status === 'CANCELLED' ? 'Cancelled' : 'Shipped',
-            items: res.items.map((it) => ({
-              productId: it.variantId,
-              productName: it.productName,
-              brand: 'DESLA!™',
-              size: it.variantLabel,
-              price: Math.round(it.unitPriceKobo / 100),
-              quantity: it.qty,
-              image: 'https://images.unsplash.com/photo-1608248597359-53e305221ec9?w=300'
-            })),
-            subtotal: Math.round(res.subtotalKobo / 100),
-            deliveryFee: Math.round(res.deliveryFeeKobo / 100),
-            total: Math.round(res.totalKobo / 100),
-            fulfillmentType: 'local',
-            paymentMethod: 'Online payment',
-            trackingSteps: [
-              { title: 'Order Confirmed', timestamp: '10:24 AM', status: 'completed', description: `Order ${res.orderNumber} confirmed` },
-              { title: 'NAFDAC Quality Check', timestamp: '10:25 AM', status: 'completed', description: 'Batch Seal NG-4481 verified & packaged' },
-              { title: 'Out for Local Delivery', timestamp: '01:15 PM', status: 'current', description: 'Assigned to Speedaf Express Courier (Lagos Hub)' },
-              { title: 'Delivered', timestamp: 'Est. 4:30 PM', status: 'upcoming', description: 'Dispatched to customer address' }
-            ],
-            shippingAddress: {
-              name: res.shippingAddress?.name || 'Amina Bello',
-              street: res.shippingAddress?.street || '14 Admiralty Way, Lekki Phase 1',
-              city: res.shippingAddress?.city || 'Lagos',
-              state: res.shippingAddress?.state || 'Lagos State',
-              phone: res.shippingAddress?.phone || '+234 803 123 4567'
-            }
-          };
-          setFoundOrder(mapped);
-          return;
-        }
-        setError('Order not found. Check your order number and private access token.');
-        return;
-      }
-
-      // Fallback demo order lookup
-      const matched = localOrders.find(
-        (o) => o.id.toLowerCase().replace(/^#/, '') === cleanId.toLowerCase()
-      );
-      if (matched) {
-        setFoundOrder(matched);
-      } else {
-        // Generate simulated dynamic tracking result for demo continuity
-        setFoundOrder({
-          id: cleanId,
-          date: 'Today, 29 Sep 2026',
-          status: 'Shipped',
-          items: [
-            {
-              productId: 'whip-1',
-              productName: 'Raw Whipped Shea Butter (Vanilla & Amber)',
-              brand: 'DESLA!™',
-              size: '250ml',
-              price: 18500,
-              quantity: 1,
-              image: 'https://images.unsplash.com/photo-1608248597359-53e305221ec9?w=300'
-            },
-            {
-              productId: 'glw-1',
-              productName: 'Melanin Glow Extrait Perfume Oil',
-              brand: 'DESLA!™',
-              size: '50ml',
-              price: 20000,
-              quantity: 1,
-              image: 'https://images.unsplash.com/photo-1594035910387-fea47794261f?w=300'
-            }
-          ],
-          subtotal: 38500,
-          deliveryFee: 2500,
-          total: 41000,
-          fulfillmentType: 'local',
-          paymentMethod: 'Guest lookup (demo)',
-          distributorCity: 'Lagos (Ikeja Hub)',
-          trackingSteps: [
-            { title: 'Order Confirmed', timestamp: '10:24 AM', status: 'completed', description: `Order #${cleanId} authenticated` },
-            { title: 'NAFDAC Batch Seal NG-4481', timestamp: '10:25 AM', status: 'completed', description: 'Assay verified by clinical QA laboratory' },
-            { title: 'Out for Delivery', timestamp: '01:15 PM', status: 'current', description: 'Speedaf Logistics Courier #SPF-9921 on route' },
-            { title: 'Delivered', timestamp: 'Est. 4:30 PM', status: 'upcoming', description: 'Package will be delivered directly to customer' }
-          ],
-          shippingAddress: {
-            name: 'Amina Bello',
-            street: '14 Admiralty Way, Lekki Phase 1',
-            city: 'Lagos',
-            state: 'Lagos State',
-            phone: '+234 803 123 4567'
-          }
-        });
-      }
-    } catch {
-      setError('Unable to locate order. Check the order number and access token.');
-    } finally {
-      setBusy(false);
-    }
+      const order = await fetchServerOrder(id, token);
+      if (!order) throw new Error('Order not found. Check the order number and access token.');
+      setFoundOrder(mapServerOrder(order, [], ''));
+    } catch (error) { setError(error instanceof Error ? error.message : 'Unable to locate the order. Try again.'); }
+    finally { setBusy(false); }
   };
 
   return (
@@ -168,7 +69,7 @@ export const ScreenGuestOrderLookup: React.FC = () => {
                 Guest Order &amp; Courier Tracking
               </h1>
               <p className="text-xs text-[#6B7280]">
-                Track courier dispatch, regional city hub fulfillment &amp; NAFDAC batch authenticity.
+                Look up recorded order status, payment confirmation and fulfilment updates.
               </p>
             </div>
           </div>
@@ -190,14 +91,14 @@ export const ScreenGuestOrderLookup: React.FC = () => {
 
             <div className="sm:col-span-5">
               <label className="block text-[11px] font-semibold text-[#4B5563] mb-1">
-                {isOwnedApiConfigured ? 'Private order access token (saved on this device)' : 'Guest Email Address'}
+                Private order access token (saved on this device)
               </label>
               <input
-                type={isOwnedApiConfigured ? 'text' : 'email'}
-                required={!isOwnedApiConfigured}
-                placeholder={isOwnedApiConfigured ? 'Leave blank for orders placed on this device' : 'e.g. amina.bello@example.com'}
-                value={isOwnedApiConfigured ? accessToken : email}
-                onChange={(e) => isOwnedApiConfigured ? setAccessToken(e.target.value) : setEmail(e.target.value)}
+                type="text"
+                autoComplete="off"
+                placeholder="Leave blank for orders placed on this device"
+                value={accessToken}
+                onChange={event => setAccessToken(event.target.value)}
                 className="w-full px-4 py-2.5 rounded-xl border border-[#D1D5DB] bg-white text-xs text-[#0F0F10] placeholder:text-[#9CA3AF] focus:outline-none focus:border-[#0F0F10]"
               />
             </div>
@@ -239,7 +140,7 @@ export const ScreenGuestOrderLookup: React.FC = () => {
                   </span>
                 </div>
                 <p className="text-[11px] text-[#6B7280] mt-0.5">
-                  Ordered on {foundOrder.date} • Same-Day Dispatch
+                  {foundOrder.date ? `Ordered on ${foundOrder.date}` : 'Order details'}
                 </p>
               </div>
 
@@ -254,28 +155,7 @@ export const ScreenGuestOrderLookup: React.FC = () => {
               </div>
             </div>
 
-            {/* Courier & NAFDAC Quality Badges */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 my-6">
-              <div className="p-4 rounded-2xl bg-[#F8FAF9] border border-[#E5EAE8] flex items-start gap-3">
-                <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="text-xs font-bold text-[#0F0F10]">NAFDAC Batch Seal #NG-4481</h4>
-                  <p className="text-[11px] text-[#6B7280] mt-0.5">
-                    Authenticity seal verified on chain. Clinically inspected for safety &amp; potency.
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-[#F8FAF9] border border-[#E5EAE8] flex items-start gap-3">
-                <Truck className="w-5 h-5 text-[#0F4A38] shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="text-xs font-bold text-[#0F0F10]">Courier: Speedaf Express Logistics</h4>
-                  <p className="text-[11px] text-[#6B7280] mt-0.5">
-                    Assigned Dispatch Rider: Tunde O. (+234 812 449 2011)
-                  </p>
-                </div>
-              </div>
-            </div>
+            <p className="my-6 rounded-2xl border p-4 text-sm">Payment: {foundOrder.paymentStatus || 'Awaiting confirmation'} · Fulfilment: {foundOrder.status}</p>
 
             {/* Step-by-Step Courier Timeline */}
             <div className="my-6">
@@ -328,7 +208,7 @@ export const ScreenGuestOrderLookup: React.FC = () => {
               </div>
 
               <div className="flex justify-between items-center pt-4 text-xs font-bold text-[#0F0F10]">
-                <span>Total Amount Paid:</span>
+                <span>{foundOrder.paymentStatus === 'PAID' ? 'Paid order total:' : 'Order total:'}</span>
                 <span className="text-base font-mono font-extrabold text-[#0F4A38]">
                   ₦{foundOrder.total.toLocaleString()}
                 </span>

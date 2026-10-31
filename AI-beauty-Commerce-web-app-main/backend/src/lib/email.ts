@@ -88,12 +88,17 @@ export class SmtpSender implements EmailSender {
     host: process.env.SMTP_HOST,
     port: Number(process.env.SMTP_PORT ?? 587),
     secure: process.env.SMTP_SECURE === 'true',
-    requireTLS: process.env.NODE_ENV === 'production' && process.env.SMTP_SECURE !== 'true',
+    requireTLS: process.env.SMTP_SECURE !== 'true' && (process.env.NODE_ENV === 'production' || !['localhost', '127.0.0.1', '::1'].includes(process.env.SMTP_HOST || '')),
     connectionTimeout: 8000,
     greetingTimeout: 8000,
     socketTimeout: 12000,
     auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS ?? '' } : undefined,
   });
+
+  /** Connect/authenticate without sending a message. */
+  async verify(): Promise<void> {
+    await this.transport.verify();
+  }
 
   async send(msg: EmailMessage): Promise<void> {
     const result = await this.transport.sendMail({ from: process.env.SMTP_FROM ?? 'Glowly <hello@example.com>', ...msg });
@@ -102,7 +107,12 @@ export class SmtpSender implements EmailSender {
 }
 
 export function getEmailSender(): EmailSender {
-  if (process.env.NODE_ENV === 'production' && (!process.env.SMTP_HOST?.trim() || !process.env.SMTP_FROM?.trim())) {
+  const isDevDeploy =
+    process.env.DEV_DEPLOY === 'true' ||
+    process.env.RENDER_DEV === 'true' ||
+    process.env.ALLOW_LOG_EMAIL === 'true';
+
+  if (process.env.NODE_ENV === 'production' && !isDevDeploy && (!process.env.SMTP_HOST?.trim() || !process.env.SMTP_FROM?.trim())) {
     throw new Error('SMTP_HOST and SMTP_FROM are required; production email cannot use the log driver.');
   }
   return process.env.SMTP_HOST ? new SmtpSender() : new LogSender();

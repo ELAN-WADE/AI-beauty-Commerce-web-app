@@ -14,6 +14,7 @@ import { money, partnerButton, partnerInput } from './PartnerApplication';
 
 interface Props {
   kind: 'DISTRIBUTOR' | 'CREATOR';
+  view?: string;
 }
 
 interface WalletView {
@@ -42,7 +43,10 @@ interface Dashboard {
 
 const naira = money;
 
-export const PartnerLivePanel: React.FC<Props> = ({ kind }) => {
+export const PartnerLivePanel: React.FC<Props> = ({ kind, view = 'overview' }) => {
+  const showWallet = ['overview', 'earnings'].includes(view);
+  const showOrders = ['overview', 'orders'].includes(view);
+  const showInventory = ['overview', 'inventory', 'sales'].includes(view);
   const [data, setData] = useState<Dashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -119,7 +123,7 @@ export const PartnerLivePanel: React.FC<Props> = ({ kind }) => {
         <button onClick={() => void refresh()} disabled={busy} className="text-[11px] font-bold text-[#997A2E] hover:underline cursor-pointer disabled:opacity-50">Refresh</button>
       </div>
       {(notice || error) && <p className={`text-[11px] ${error ? 'text-rose-600' : 'text-emerald-700'}`}>{error || notice}</p>}
-      {kind === 'CREATOR' && data.profile.promoCode && <div className="rounded-xl border border-[#E5E7EB] bg-[#FAF9F6] p-4 space-y-3">
+      {kind === 'CREATOR' && ['overview', 'links'].includes(view) && data.profile.promoCode && <div className="rounded-xl border border-[#E5E7EB] bg-[#FAF9F6] p-4 space-y-3">
         <h3 className="font-heading font-bold">Your referral link</h3><p className="text-sm">Give {data.profile.discountPercent}% off · Earn {data.profile.commissionRate}% commission on eligible merchandise.</p>
         <p className="font-mono text-lg font-bold">{data.profile.promoCode}</p>
         <input aria-label="Your referral link" readOnly value={`${window.location.origin}${window.location.pathname}?ref=${encodeURIComponent(data.profile.promoCode)}`} className={partnerInput} />
@@ -127,7 +131,7 @@ export const PartnerLivePanel: React.FC<Props> = ({ kind }) => {
         {data.metrics && <><dl className="grid grid-cols-2 sm:grid-cols-4 gap-4 border-t pt-4">{[['Paid orders', data.metrics.ordersCount], ['Paid merchandise', money(data.metrics.paidMerchandiseKobo)], ['Refunds', money(data.metrics.refundedKobo)], ['Net commission', money(data.metrics.commissionNetKobo)]].map(([label, value]) => <div key={label}><dt className="text-xs text-[#6B7280]">{label}</dt><dd className="font-mono font-bold mt-1 break-words">{value}</dd></div>)}</dl><p className="text-xs text-[#6B7280]">Paid orders include later refunds. Merchandise excludes shipping; refunds include all refunded charges. Net commission includes reversals and is separate from your withdrawable balance.</p><dl className="grid grid-cols-2 sm:grid-cols-3 gap-4 border-t pt-4">{[['Content rewards pending', money(data.metrics.contentPendingKobo ?? 0)], ['Content rewards cleared', money(data.metrics.contentAvailableKobo ?? 0)], ['Rewarded posts', String(data.metrics.contentPosts ?? 0)]].map(([label, value]) => <div key={label}><dt className="text-xs text-[#6B7280]">{label}</dt><dd className="font-mono font-bold mt-1 break-words">{value}</dd></div>)}</dl><p className="text-xs text-[#6B7280]">Content rewards settle weekly from verified orders placed with your code — likes alone never pay. Only admin-approved posts earn; rewards clear after the hold period, net of refunds.</p></>}
       </div>}
 
-      <div className="grid grid-cols-3 gap-2 text-center">
+      {showWallet && <><div className="grid grid-cols-3 gap-2 text-center">
         {([['Pending', wallet.pendingKobo], ['Available', wallet.availableKobo], ['Held', wallet.heldKobo]] as const).map(([label, kobo]) => (
           <div key={label} className="p-3 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB]">
             <span className="text-[10px] uppercase tracking-wider text-[#6B7280] block">{label}</span>
@@ -135,11 +139,11 @@ export const PartnerLivePanel: React.FC<Props> = ({ kind }) => {
           </div>
         ))}
       </div>
-      <p className="text-xs text-[#6B7280]">New earnings clear {wallet.holdDays} days after delivery or collection. Each order retains its agreed hold period. Minimum payout {naira(wallet.minimumPayoutKobo)} to a verified bank account.</p>
+      <p className="text-xs text-[#6B7280]">New earnings clear {wallet.holdDays} days after delivery or collection. Each order retains its agreed hold period. Minimum payout {naira(wallet.minimumPayoutKobo)} to a verified bank account.</p></>}
 
       {kind === 'DISTRIBUTOR' && (
         <>
-          <div className="space-y-2">
+          {showOrders && <div className="space-y-2">
             <h4 className="text-xs font-bold text-[#0F0F10]">Assigned orders ({data.orders?.length ?? 0})</h4>
             {(data.orders ?? []).length === 0 && <p className="text-[11px] text-[#6B7280]">No orders assigned to {data.location?.name ?? 'your location'} yet.</p>}
             {(data.orders ?? []).slice(0, 10).map((o) => (
@@ -170,9 +174,9 @@ export const PartnerLivePanel: React.FC<Props> = ({ kind }) => {
                 </div>
               </div>
             ))}
-          </div>
+          </div>}
 
-          <div className="space-y-2">
+          {showInventory && <div className="space-y-2">
             <h4 className="text-sm font-bold text-[#0F0F10]">Stock at your location</h4>
             <p className="text-xs text-[#6B7280]">Platform allocation fulfils customer orders. Wholesale stock belongs to your business for direct resale.</p>
             {(data.inventory ?? []).length === 0 && <p className="text-[11px] text-[#6B7280]">No stock rows yet. Request a restock below.</p>}
@@ -213,11 +217,11 @@ export const PartnerLivePanel: React.FC<Props> = ({ kind }) => {
                 ))}
               </div>
             )}
-          </div>
+          </div>}
         </>
       )}
 
-      <div className="space-y-2">
+      {showWallet && <><div className="space-y-2">
         <h4 className="text-xs font-bold text-[#0F0F10]">Bank accounts</h4>
         {wallet.banks.length === 0 && <p className="text-[11px] text-[#6B7280]">No bank account yet. Add one, then ask support to verify it before withdrawal.</p>}
         {wallet.banks.map((b) => (
@@ -278,7 +282,7 @@ export const PartnerLivePanel: React.FC<Props> = ({ kind }) => {
             <span className={`font-mono font-bold ${entry.amountKobo >= 0 ? 'text-emerald-700' : 'text-rose-600'}`}>{entry.amountKobo >= 0 ? '+' : ''}{naira(entry.amountKobo)}</span>
           </div>
         ))}
-      </div>
+      </div></>}
     </section>
   );
 };

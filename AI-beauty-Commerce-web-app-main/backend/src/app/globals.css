@@ -347,3 +347,8 @@ b, strong,
     animation: none !important;
   }
 }
+/* Readable touch inputs prevent iOS focus zoom without disabling browser zoom. */
+@media (pointer: coarse) {
+  input, textarea, select { font-size: 16px; }
+  button, a, [role="button"] { touch-action: manipulation; }
+}

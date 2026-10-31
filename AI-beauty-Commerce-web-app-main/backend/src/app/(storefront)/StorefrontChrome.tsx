@@ -1,26 +1,26 @@
 'use client';
 
 import React from 'react';
+import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
 import { useViewport } from '@/storefront/context/ViewportContext';
 import { DesktopNav } from '@/storefront/components/common/DesktopNav';
 import { Header } from '@/storefront/components/common/Header';
 import { BottomNav } from '@/storefront/components/common/BottomNav';
 import { AIFloatingButton } from '@/storefront/components/common/AIFloatingButton';
-import { LocationSelector } from '@/storefront/components/common/LocationSelector';
-import { AddToCartSheet } from '@/storefront/components/sheets/AddToCartSheet';
-import { FilterSortSheet } from '@/storefront/components/sheets/FilterSortSheet';
-import { AIAssistantDrawer } from '@/storefront/components/sheets/AIAssistantDrawer';
-import { CommunityChatDrawer } from '@/storefront/components/community/CommunityChatDrawer';
-import { InitialBrandLoader } from '@/storefront/components/common/InitialBrandLoader';
-import { OfflineStatusBanner } from '@/storefront/components/common/OfflineStatusBanner';
+import { StorefrontOverlays } from '@/storefront/components/common/StorefrontOverlays';
+import { CartStatusBanner } from '@/storefront/components/common/CartStatusBanner';
 import { useApp } from '@/storefront/context/AppContext';
-import { ProductQuickModal } from '@/storefront/components/common/ProductQuickModal';
+import { isPortalDesignPreview } from '@/storefront/lib/portal-preview';
 import {
   shouldShowStorefrontNav,
   shouldShowBottomNav,
   shouldShowStorefrontOverlays,
 } from '@/lib/screen-routes';
+
+// These existing components read navigator/sessionStorage during initialization.
+// Mount them in the browser to preserve their UI without mismatching server HTML.
+const OfflineStatusBanner = dynamic(() => import('@/storefront/components/common/OfflineStatusBanner').then(module => module.OfflineStatusBanner), { ssr: false });
 
 /**
  * Pixel-preserving port of Vite `App` shell.
@@ -29,6 +29,8 @@ import {
  */
 export default function StorefrontChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? '/';
+  const [designPreview, setDesignPreview] = React.useState(false);
+  React.useEffect(() => { setDesignPreview(isPortalDesignPreview()); }, []);
   const { isDesktop } = useViewport();
   const {
     quickModalProduct,
@@ -47,37 +49,17 @@ export default function StorefrontChrome({ children }: { children: React.ReactNo
   return (
     <div className="min-h-screen bg-[#FFFFFF] text-[#0F0F10] relative font-body flex flex-col selection:bg-[#D4AF37]/20 selection:text-[#997A2E] overflow-x-clip">
       <OfflineStatusBanner />
-      <InitialBrandLoader />
+      {showOverlays && <CartStatusBanner />}
       {isDesktop && showNav && <DesktopNav />}
       {!isDesktop && showNav && <Header />}
       <main className="flex-1 w-full relative">{children}</main>
       {showBottom && <BottomNav />}
       {showOverlays && <AIFloatingButton />}
       {showOverlays && (
-        <>
-          <ProductQuickModal
-            product={quickModalProduct}
-            isOpen={!!quickModalProduct}
-            onClose={closeQuickModal}
-          />
-          <AddToCartSheet />
-          <FilterSortSheet />
-          <AIAssistantDrawer />
-          <CommunityChatDrawer />
-          <LocationSelector />
-        </>
+        <StorefrontOverlays />
       )}
 
-      {/* Quick Launch Admin Portal Floating Pill */}
-      {!pathname.startsWith('/admin') && authUser?.roles.some(role => ['STAFF', 'ADMIN', 'SUPER_ADMIN'].includes(role)) && (
-        <button
-          onClick={() => navigateTo('admin-console')}
-          title="Open Admin Operations Console"
-          className="fixed bottom-6 left-6 z-40 px-4 py-2 rounded-full bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/40 shadow-xl text-xs font-heading font-bold hover:bg-black active:scale-95 transition-all cursor-pointer backdrop-blur-md"
-        >
-          <span>Admin Portal</span>
-        </button>
-      )}
+
 
       {/* Live payment return states (owned backend only; demo flow untouched) */}
       {isLiveBackend && (livePayment.status === 'verifying' || livePayment.status === 'redirecting') && (

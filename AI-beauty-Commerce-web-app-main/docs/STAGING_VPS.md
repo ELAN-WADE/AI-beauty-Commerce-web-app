@@ -53,9 +53,8 @@ staging.<domain> {
 
 > The app also ships `backend/nginx.production.conf.example` with edge rate
 > limits (`auth 10r/m`, `webhooks`, `api`). If you use nginx instead of Caddy,
-> apply that file and set `EDGE_RATE_LIMIT_ENABLED=true` only once the proxy
-> enforces them. Caddy alone does not rate-limit: keep this staging host
-> unlisted and rotate it before production.
+> apply that file for proxy-level rate limits. Caddy alone does not rate-limit:
+> keep this staging host unlisted and rotate it before production.
 
 ```bash
 sudo systemctl reload caddy
@@ -101,8 +100,10 @@ SMTP_FROM=Glowly <hello@<domain>>
 SMTP_USER=<smtp-user>
 SMTP_PASS=<smtp-password>
 AUTH_EMAIL_ENCRYPTION_KEY=<64-hex-chars>
+MFA_ENCRYPTION_KEY=<different-64-hex-chars>
 CLIENT_IP_HEADER=x-verified-client-ip
-EDGE_RATE_LIMIT_ENABLED=false
+# Shared PostgreSQL rate limits protect API writes. Configure edge/WAF limits as
+# an additional layer where the selected reverse proxy supports them.
 STRIPE_SECRET_KEY=<sk_test_…>
 FLW_SECRET_KEY=<FLWSECK_TEST-…>
 FLW_SECRET_HASH=<random-staging-secret>
@@ -112,7 +113,7 @@ BANK_ACCOUNT_NAME=<…>
 CONTENT_REWARD_BPS=200
 ```
 
-Generate the email key on the VPS (never reuse dev keys):
+Generate each encryption key independently on the VPS (never reuse dev keys):
 
 ```bash
 node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"

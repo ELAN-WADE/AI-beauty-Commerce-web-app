@@ -1,7 +1,10 @@
+import { and, eq, gt, isNull } from 'drizzle-orm';
 import type { AppDb } from '@/db/client';
 import { Errors } from '@/lib/errors';
 import { hasPermission } from '@/lib/permissions';
 import { requireAuth, type AuthContext } from '@/modules/auth/require-auth';
+import { userSessions, users } from '@/modules/auth/schema';
+import { isMfaVerificationFresh } from '@/modules/auth/mfa';
 
 /**
  * Permission-gated admin access (§8 BFLA). Roles remain as bundles in the DB;
@@ -11,6 +14,12 @@ import { requireAuth, type AuthContext } from '@/modules/auth/require-auth';
 export async function requirePerm(db: AppDb, ...perms: string[]): Promise<AuthContext> {
   const ctx = await requireAuth(db);
   if (!(await hasPermission(db, ctx.userId, ...perms))) throw Errors.forbidden();
+  const [mfa] = await db.select({ enabledAt: users.mfaEnabledAt, verifiedAt: userSessions.mfaVerifiedAt })
+    .from(users)
+    .innerJoin(userSessions, eq(userSessions.userId, users.id))
+    .where(and(eq(users.id, ctx.userId), eq(userSessions.id, ctx.sessionId), isNull(userSessions.revokedAt), gt(userSessions.expiresAt, new Date())))
+    .limit(1);
+  if (!mfa || !isMfaVerificationFresh(mfa.enabledAt, mfa.verifiedAt)) throw Errors.mfaRequired();
   return ctx;
 }
 

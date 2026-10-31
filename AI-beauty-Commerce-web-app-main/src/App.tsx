@@ -1,46 +1,45 @@
 import React from 'react';
 import { useViewport } from './context/ViewportContext';
+import { StorefrontOverlays } from './components/common/StorefrontOverlays';
+import { CartStatusBanner } from './components/common/CartStatusBanner';
 import { useApp } from './context/AppContext';
 import { DesktopNav } from './components/common/DesktopNav';
 import { Header } from './components/common/Header';
 import { BottomNav } from './components/common/BottomNav';
 import { AIFloatingButton } from './components/common/AIFloatingButton';
-import { LocationSelector } from './components/common/LocationSelector';
-import { AddToCartSheet } from './components/sheets/AddToCartSheet';
-import { FilterSortSheet } from './components/sheets/FilterSortSheet';
-import { AIAssistantDrawer } from './components/sheets/AIAssistantDrawer';
-import { CommunityChatDrawer } from './components/community/CommunityChatDrawer';
-import { InitialBrandLoader } from './components/common/InitialBrandLoader';
 import { OfflineStatusBanner } from './components/common/OfflineStatusBanner';
-import { ProductQuickModal } from './components/common/ProductQuickModal';
+import { AuthNotificationToast } from './components/common/AuthNotificationToast';
+import { EditorialBulletin } from './components/common/EditorialBulletin';
 
 // Screens — grouped by feature (see src/screens/README.md)
-import { Screen01Splash } from './screens/catalog/Screen01Splash';
-import { Screen03Home } from './screens/catalog/Screen03Home';
-import { Screen04Search } from './screens/catalog/Screen04Search';
-import { Screen05Categories } from './screens/catalog/Screen05Categories';
-import { Screen06Catalogue } from './screens/catalog/Screen06Catalogue';
-import { Screen07ProductDetails } from './screens/catalog/Screen07ProductDetails';
-import { Screen09Cart } from './screens/checkout/Screen09Cart';
-import { Screen10Checkout } from './screens/checkout/Screen10Checkout';
-import { Screen11Payment } from './screens/checkout/Screen11Payment';
-import { Screen12OrderConfirmed } from './screens/checkout/Screen12OrderConfirmed';
-import { Screen13OrdersTracking } from './screens/orders/Screen13OrdersTracking';
-import { Screen14AISkinScan } from './screens/ai/Screen14AISkinScan';
-import { ScreenAskAI } from './screens/ai/ScreenAskAI';
-import { Screen16Rewards } from './screens/account/Screen16Rewards';
-import { Screen17Account } from './screens/account/Screen17Account';
-import { Screen18DesktopHome } from './screens/catalog/Screen18DesktopHome';
-import { ScreenCommunityChat } from './screens/community/ScreenCommunityChat';
-import { ScreenDistributors } from './screens/partners/ScreenDistributors';
-import { ScreenDistributorPortal } from './screens/partners/ScreenDistributorPortal';
-import { ScreenCreators } from './screens/partners/ScreenCreators';
-import { ScreenAdminConsole } from './screens/admin/ScreenAdminConsole';
-import { ScreenAuthSuite } from './screens/account/ScreenAuthSuite';
-import { ScreenGuestOrderLookup } from './screens/orders/ScreenGuestOrderLookup';
+const Screen01Splash = React.lazy(() => import('./screens/catalog/Screen01Splash').then(module => ({ default: module.Screen01Splash })));
+const Screen03Home = React.lazy(() => import('./screens/catalog/Screen03Home').then(module => ({ default: module.Screen03Home })));
+const Screen04Search = React.lazy(() => import('./screens/catalog/Screen04Search').then(module => ({ default: module.Screen04Search })));
+const Screen05Categories = React.lazy(() => import('./screens/catalog/Screen05Categories').then(module => ({ default: module.Screen05Categories })));
+const Screen06Catalogue = React.lazy(() => import('./screens/catalog/Screen06Catalogue').then(module => ({ default: module.Screen06Catalogue })));
+const Screen07ProductDetails = React.lazy(() => import('./screens/catalog/Screen07ProductDetails').then(module => ({ default: module.Screen07ProductDetails })));
+const Screen09Cart = React.lazy(() => import('./screens/checkout/Screen09Cart').then(module => ({ default: module.Screen09Cart })));
+const Screen10Checkout = React.lazy(() => import('./screens/checkout/Screen10Checkout').then(module => ({ default: module.Screen10Checkout })));
+const Screen11Payment = React.lazy(() => import('./screens/checkout/Screen11Payment').then(module => ({ default: module.Screen11Payment })));
+const Screen12OrderConfirmed = React.lazy(() => import('./screens/checkout/Screen12OrderConfirmed').then(module => ({ default: module.Screen12OrderConfirmed })));
+const Screen13OrdersTracking = React.lazy(() => import('./screens/orders/Screen13OrdersTracking').then(module => ({ default: module.Screen13OrdersTracking })));
+const Screen14AISkinScan = React.lazy(() => import('./screens/ai/Screen14AISkinScan').then(module => ({ default: module.Screen14AISkinScan })));
+const ScreenAskAI = React.lazy(() => import('./screens/ai/ScreenAskAI').then(module => ({ default: module.ScreenAskAI })));
+const Screen16Rewards = React.lazy(() => import('./screens/account/Screen16Rewards').then(module => ({ default: module.Screen16Rewards })));
+const Screen17Account = React.lazy(() => import('./screens/account/Screen17Account').then(module => ({ default: module.Screen17Account })));
+const Screen18DesktopHome = React.lazy(() => import('./screens/catalog/Screen18DesktopHome').then(module => ({ default: module.Screen18DesktopHome })));
+const ScreenCommunityChat = React.lazy(() => import('./screens/community/ScreenCommunityChat').then(module => ({ default: module.ScreenCommunityChat })));
+const ScreenDistributors = React.lazy(() => import('./screens/partners/ScreenDistributors').then(module => ({ default: module.ScreenDistributors })));
+const ScreenDistributorPortal = React.lazy(() => import('./screens/partners/ScreenDistributorPortal').then(module => ({ default: module.ScreenDistributorPortal })));
+const ScreenCreators = React.lazy(() => import('./screens/partners/ScreenCreators').then(module => ({ default: module.ScreenCreators })));
+const ScreenCreatorStorefront = React.lazy(() => import('./screens/partners/ScreenCreatorStorefront').then(module => ({ default: module.ScreenCreatorStorefront })));
+const ScreenAdminConsole = React.lazy(() => import('./screens/admin/ScreenAdminConsole').then(module => ({ default: module.ScreenAdminConsole })));
+const ScreenAuthSuite = React.lazy(() => import('./screens/account/ScreenAuthSuite').then(module => ({ default: module.ScreenAuthSuite })));
+const ScreenGuestOrderLookup = React.lazy(() => import('./screens/orders/ScreenGuestOrderLookup').then(module => ({ default: module.ScreenGuestOrderLookup })));
 import { RequireRole } from './components/auth/RequireRole';
+import { isPortalDesignPreview } from './lib/portal-preview';
 
-export const App: React.FC = () => {
+export const App: React.FC<{ privateAdminEntry?: boolean }> = ({ privateAdminEntry = false }) => {
   const { isDesktop } = useViewport();
   const {
     currentScreen,
@@ -50,7 +49,8 @@ export const App: React.FC = () => {
     navigateTo,
     loginAsDemoRole,
     quickModalProduct,
-    closeQuickModal
+    closeQuickModal,
+    authUser
   } = useApp();
 
   const renderActiveScreen = () => {
@@ -95,7 +95,7 @@ export const App: React.FC = () => {
       case 'distributor-portal':
         return (
           <RequireRole
-            allowedRoles={['DISTRIBUTOR', 'STAFF', 'ADMIN', 'SUPER_ADMIN']}
+            allowedRoles={['DISTRIBUTOR']}
             title="Distributor City Hub"
             description="Manage your regional city hub inventory, customer order pickups, and restock requests."
           >
@@ -105,16 +105,18 @@ export const App: React.FC = () => {
       case 'creators':
         return (
           <RequireRole
-            allowedRoles={['CREATOR', 'STAFF', 'ADMIN', 'SUPER_ADMIN']}
+            allowedRoles={['CREATOR']}
             title="Creator Affiliate Studio"
             description="Access your VIP commission ledger, promo code performance, and seasonal PR box dispatch tracking."
           >
             <ScreenCreators />
           </RequireRole>
         );
+      case 'creator-storefront':
+        return <ScreenCreatorStorefront />;
       case 'admin-console':
-        // Auth check suspended for instant staff / developer inspection
-        return <ScreenAdminConsole />;
+        if (!privateAdminEntry) return <section className="p-8"><h1>Page not found</h1></section>;
+        return <RequireRole allowedRoles={['ADMIN', 'STAFF', 'SUPER_ADMIN', 'INVENTORY_MANAGER', 'SUPPORT']} title="Admin operations"><ScreenAdminConsole /></RequireRole>;
       case 'login':
         return <ScreenAuthSuite initialMode="login" />;
       case 'signup':
@@ -130,7 +132,7 @@ export const App: React.FC = () => {
       case 'creator-dashboard':
         return (
           <RequireRole
-            allowedRoles={['CREATOR', 'STAFF', 'ADMIN', 'SUPER_ADMIN']}
+            allowedRoles={['CREATOR']}
             title="Creator Affiliate Studio"
           >
             <ScreenCreators />
@@ -139,7 +141,7 @@ export const App: React.FC = () => {
       case 'distributor-dashboard':
         return (
           <RequireRole
-            allowedRoles={['DISTRIBUTOR', 'STAFF', 'ADMIN', 'SUPER_ADMIN']}
+            allowedRoles={['DISTRIBUTOR']}
             title="Distributor City Hub"
           >
             <ScreenDistributorPortal />
@@ -187,9 +189,9 @@ export const App: React.FC = () => {
     <div className="min-h-screen bg-[#FFFFFF] text-[#0F0F10] relative font-body flex flex-col selection:bg-[#D4AF37]/20 selection:text-[#997A2E] overflow-x-clip">
       {/* Offline Status Awareness & Reconnection Toast */}
       <OfflineStatusBanner />
-
-      {/* Initial Luxury Brand Loading Experience (Desla! Logo reveal) */}
-      <InitialBrandLoader />
+      {!isAdminScreen && !isPartnerWorkspace && <CartStatusBanner />}
+      {/* Global Google OAuth Status & Notification Toast */}
+      <AuthNotificationToast />
 
       {/* Global Desktop Navigation Bar on Desktop Screens (storefront only) */}
       {isDesktop && !isImmersiveScreen && !isAdminScreen && !isPartnerWorkspace && <DesktopNav />}
@@ -199,40 +201,22 @@ export const App: React.FC = () => {
 
       {/* Main Responsive Storefront Viewport */}
       <main className="flex-1 w-full relative">
-        {renderActiveScreen()}
+        <React.Suspense fallback={<div role="status" className="min-h-[50vh] flex items-center justify-center text-sm">Loading workspace…</div>}>{renderActiveScreen()}</React.Suspense>
+        {['home', 'desktop-home'].includes(currentScreen) && <EditorialBulletin />}
       </main>
 
       {/* Mobile Edge-to-Edge Sticky Bottom Navigation (storefront only) */}
       {showBottomNav && <BottomNav />}
 
-      {/* Persistent Global Floating AI Assistant Concierge Button (storefront only) */}
+      {/* Persistent Global Floating AI Assistant Concierge Button (Desktop only; Mobile has Desla AI in BottomNav) */}
       {!isAdminScreen && !isPartnerWorkspace && <AIFloatingButton />}
 
-      {/* Quick Launch Admin Portal Floating Pill (Clean minimalist, no green radio dot) */}
-      {!isAdminScreen && (
-        <button
-          onClick={() => navigateTo('admin-console')}
-          title="Open Admin Operations Console"
-          className="fixed bottom-6 left-6 z-40 px-4 py-2 rounded-full bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/40 shadow-xl text-xs font-heading font-bold hover:bg-black active:scale-95 transition-all cursor-pointer backdrop-blur-md"
-        >
-          <span>Admin Portal</span>
-        </button>
-      )}
+
+
 
       {/* Global Sheets, Drawers & Modals (storefront only) */}
       {!isAdminScreen && !isPartnerWorkspace && (
-        <>
-          <ProductQuickModal
-            product={quickModalProduct}
-            isOpen={!!quickModalProduct}
-            onClose={closeQuickModal}
-          />
-          <AddToCartSheet />
-          <FilterSortSheet />
-          <AIAssistantDrawer />
-          <CommunityChatDrawer />
-          <LocationSelector />
-        </>
+        <StorefrontOverlays />
       )}
 
       {/* Live payment return states (owned backend only; demo flow untouched) */}

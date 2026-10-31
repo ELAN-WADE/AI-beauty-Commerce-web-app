@@ -27,8 +27,8 @@ with Docker + a public URL (webhooks need one — Lightsail/QServers VPS).
 ```bash
 cd backend
 # Create a private .env.production from your secret manager (never copy dev .env.example).
-# NODE_ENV=production; EDGE_RATE_LIMIT_ENABLED=true; CLIENT_IP_HEADER=x-verified-client-ip
-# AUTH_EMAIL_ENCRYPTION_KEY=<64 random hex characters>; SMTP_HOST/USER/PASS/FROM=<TLS SMTP>
+# NODE_ENV=production; CLIENT_IP_HEADER=x-verified-client-ip
+# AUTH_EMAIL_ENCRYPTION_KEY and MFA_ENCRYPTION_KEY=<different 64 random hex keys>; SMTP_HOST/USER/PASS/FROM=<TLS SMTP>
 # DATABASE_URL=postgres://<user>:<secret>@<private-db-host>:5432/glowly_staging
 # APP_URL=https://staging.<domain>  FRONTEND_URL=https://staging.<domain>
 # STRIPE_SECRET_KEY=sk_test_…  STRIPE_WEBHOOK_SECRET=whsec_…  FLW_SECRET_KEY=FLWSECK_TEST-…  FLW_SECRET_HASH=<random>

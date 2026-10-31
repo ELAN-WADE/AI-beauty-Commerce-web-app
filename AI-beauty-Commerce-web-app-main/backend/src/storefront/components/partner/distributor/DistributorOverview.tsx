@@ -19,6 +19,7 @@ import {
   DistributorLayoutMode
 } from './DistributorEditorialGrid';
 import { ActionDrawer } from '../shared/ActionDrawer';
+import { useApp } from '../../../context/AppContext';
 
 export interface DistributorOverviewProps {
   onNavigate: (routeId: string) => void;
@@ -33,10 +34,26 @@ export const DistributorOverview: React.FC<DistributorOverviewProps> = ({
   onRestockItem,
   onSwitchWorkspace
 }) => {
+  const { orders, inventoryItems, distributorLedger, labShipments, authUser, selectedCity, distributorAvailableBalanceNgn } = useApp();
   const [telemetryOpen, setTelemetryOpen] = useState(false);
   const [showExecutiveStrip, setShowExecutiveStrip] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<DistributorCategoryFilter>('all');
   const [layoutMode, setLayoutMode] = useState<DistributorLayoutMode>('bento');
+
+  // Compute live operational telemetry
+  const pendingOrders = orders.filter(
+    (o) => o.status === 'Processing' || o.status === 'Awaiting Packing'
+  );
+
+  const lowStockItems = inventoryItems.filter((i) => (i.centralStock ?? i.lagosHub) <= (i.lowStockThreshold || 10));
+
+  const clearedMargin = distributorLedger
+    .filter((tx) => tx.status === 'cleared' && tx.type === 'WHOLESALE_MARGIN')
+    .reduce((acc, tx) => acc + tx.amountNgn, 0);
+
+  const totalMargin = distributorAvailableBalanceNgn ?? Math.max(0, clearedMargin);
+
+  const inTransitLab = labShipments.find((s) => s.status === 'IN_TRANSIT') || labShipments[0];
 
   return (
     <div className="space-y-5 animate-in fade-in duration-300">
@@ -53,7 +70,7 @@ export const DistributorOverview: React.FC<DistributorOverviewProps> = ({
             className="font-mono text-[9.5px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#FAF9F6] text-[#6B7280] hover:text-[#0F0F10] border border-[#E5E7EB] font-bold flex items-center gap-1 transition-colors cursor-pointer"
             title="Toggle live telemetry and courier overview"
           >
-            <span>Lagos Central Hub • Silver Tier</span>
+            <span>{authUser?.profile?.displayName || (authUser?.email ? `${authUser.email.split('@')[0]}'s Hub` : `${selectedCity} Central Hub`)} </span>
             {showExecutiveStrip ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
           </button>
         </div>
@@ -71,7 +88,7 @@ export const DistributorOverview: React.FC<DistributorOverviewProps> = ({
 
           <button
             onClick={() => {
-              window.open('/', '_blank');
+              window.open('/?screen=catalogue', '_blank');
             }}
             className="px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full border border-[#E5E7EB] bg-white hover:bg-[#FAF9F6] text-xs font-semibold text-[#0F0F10] transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-[0.97]"
             title="Preview public shoppable storefront"
@@ -92,33 +109,43 @@ export const DistributorOverview: React.FC<DistributorOverviewProps> = ({
                 Live Hub Telemetry • October 2026
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] text-[#6B7280]">
-                Central Lab Restock #LAB-409: <strong className="text-[#0F0F10]">In Transit</strong> (Gokada Express)
-              </span>
-            </div>
+            {inTransitLab && (
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-[#6B7280]">
+                  Lab Restock #{inTransitLab.batchNumber}: <strong className="text-[#0F0F10]">{inTransitLab.status}</strong> ({inTransitLab.courier})
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-mono">
             <div>
               <span className="text-[10px] text-[#6B7280] uppercase block">Pending Dispatch</span>
-              <span className="font-heading font-extrabold text-xl text-[#0F0F10]">7 Orders</span>
+              <span className="font-heading font-extrabold text-xl text-[#0F0F10]">
+                {pendingOrders.length} Orders
+              </span>
               <span className="text-[9.5px] font-mono text-[#0F0F10] font-bold block">● NEEDS PACKING</span>
             </div>
             <div>
               <span className="text-[10px] text-[#6B7280] uppercase block">Cleared Margin</span>
-              <span className="font-heading font-extrabold text-xl text-[#0F0F10]">₦320,450</span>
-              <span className="text-[9.5px] font-mono text-[#0F0F10] font-bold block">● 32% PARTNER CUT</span>
+              <span className="font-heading font-extrabold text-xl text-[#0F0F10]">
+                ₦{totalMargin.toLocaleString('en-NG')}
+              </span>
+              <span className="text-[9.5px] font-mono text-[#0F0F10] font-bold block">● RECORDED BALANCE</span>
             </div>
             <div>
               <span className="text-[10px] text-[#6B7280] uppercase block">Stock Health</span>
-              <span className="font-heading font-extrabold text-xl text-[#0F0F10]">86%</span>
-              <span className="text-[9.5px] font-mono text-[#6B7280] block">4 SKUS LOW STOCK</span>
+              <span className="font-heading font-extrabold text-xl text-[#0F0F10]">
+                {lowStockItems.length > 0 ? `${lowStockItems.length} LOW` : 'OPTIMAL'}
+              </span>
+              <span className="text-[9.5px] font-mono text-[#6B7280] block">
+                {lowStockItems.length} SKUS BELOW THRESHOLD
+              </span>
             </div>
             <div>
               <span className="text-[10px] text-[#6B7280] uppercase block">Fulfilment SLA</span>
-              <span className="font-heading font-extrabold text-xl text-[#0F0F10]">98.4%</span>
-              <span className="text-[9.5px] font-mono text-[#0F0F10] font-bold block">● SAME-DAY TARGET</span>
+              <span className="font-heading font-extrabold text-xl text-[#0F0F10]">Not measured</span>
+              <span className="text-[9.5px] text-[#6B7280] block">SAME-DAY DISPATCH</span>
             </div>
           </div>
         </div>
@@ -129,10 +156,10 @@ export const DistributorOverview: React.FC<DistributorOverviewProps> = ({
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pt-1">
           <div>
             <h1 className="font-heading font-bold text-xl sm:text-2xl text-[#0F0F10] tracking-tight">
-              Hub Navigation Workspace
+              Distributor Operations Console
             </h1>
             <p className="text-xs text-[#6B7280]">
-              9 Art-Directed Destinations • Tap to enter facility workspace
+              9 Facility Operations Modules • Tap to inspect and dispatch
             </p>
           </div>
 
@@ -141,9 +168,9 @@ export const DistributorOverview: React.FC<DistributorOverviewProps> = ({
             <div className="flex items-center gap-1 p-1 rounded-full bg-[#FAF9F6] border border-[#E5E7EB] text-xs">
               {[
                 { id: 'all', label: 'All Operations' },
-                { id: 'fulfillment', label: 'Fulfillment & Stock' },
-                { id: 'wholesale', label: 'Margins & Revenue' },
-                { id: 'territory', label: 'Territory & Support' }
+                { id: 'fulfillment', label: 'Fulfillment & Orders' },
+                { id: 'wholesale', label: 'Lab & Wholesale' },
+                { id: 'territory', label: 'Territory & Hub' }
               ].map((f) => (
                 <button
                   key={f.id}
@@ -159,7 +186,7 @@ export const DistributorOverview: React.FC<DistributorOverviewProps> = ({
               ))}
             </div>
 
-            {/* Layout Switcher (Matrix vs Bento) */}
+            {/* Layout Switcher */}
             <div className="hidden sm:flex items-center gap-1 p-1 rounded-full bg-[#FAF9F6] border border-[#E5E7EB] text-xs">
               <button
                 onClick={() => setLayoutMode('matrix')}
@@ -168,7 +195,6 @@ export const DistributorOverview: React.FC<DistributorOverviewProps> = ({
                     ? 'bg-[#0F0F10] text-white shadow-xs'
                     : 'text-[#6B7280] hover:text-[#0F0F10]'
                 }`}
-                title="3x3 Uniform Matrix Layout"
               >
                 <Grid3X3 size={11} />
                 <span>Matrix</span>
@@ -181,7 +207,6 @@ export const DistributorOverview: React.FC<DistributorOverviewProps> = ({
                     ? 'bg-[#0F0F10] text-white shadow-xs'
                     : 'text-[#6B7280] hover:text-[#0F0F10]'
                 }`}
-                title="Asymmetric Editorial Bento Layout"
               >
                 <LayoutGrid size={11} />
                 <span>Bento</span>
@@ -199,20 +224,14 @@ export const DistributorOverview: React.FC<DistributorOverviewProps> = ({
         />
       </section>
 
-      {/* 5. Floating Bottom-Left "Creator Studio" Switcher Pill */}
+      {/* 5. Distributor-only settings shortcut in the original floating pill. */}
       <div className="fixed left-5 bottom-6 z-40">
         <button
-          onClick={() => {
-            if (onSwitchWorkspace) {
-              onSwitchWorkspace('CREATOR');
-            } else {
-              onNavigate('settings');
-            }
-          }}
+          onClick={() => onNavigate('settings')}
           className="px-4 py-2 rounded-full bg-[#0F0F10] hover:bg-black text-white text-[11px] font-bold shadow-md cursor-pointer tracking-tight transition-all active:scale-95 border border-white/10"
-          title="Switch to Creator Studio"
+          title="Open Hub Settings"
         >
-          Creator Studio
+          Hub Settings
         </button>
       </div>
 
@@ -229,13 +248,17 @@ export const DistributorOverview: React.FC<DistributorOverviewProps> = ({
           <div className="grid grid-cols-2 gap-3">
             <div className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB]">
               <span className="text-[10px] font-mono text-[#6B7280] uppercase block">Cleared Wholesale Margin</span>
-              <p className="font-heading font-extrabold text-2xl text-[#0F0F10] mt-1 font-digit">₦320,450</p>
+              <p className="font-heading font-extrabold text-2xl text-[#0F0F10] mt-1 font-digit">
+                ₦{totalMargin.toLocaleString('en-NG')}
+              </p>
               <span className="text-[10px] font-mono text-[#0F0F10] font-bold block mt-1">● CLEARED FOR PAYOUT</span>
             </div>
             <div className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB]">
-              <span className="text-[10px] font-mono text-[#6B7280] uppercase block">Pending Customer Verification</span>
-              <p className="font-heading font-extrabold text-2xl text-[#0F0F10] mt-1 font-digit">₦64,000</p>
-              <span className="text-[10px] font-mono text-[#6B7280] font-bold block mt-1">● AWAITING CONFIRMATION</span>
+              <span className="text-[10px] font-mono text-[#6B7280] uppercase block">Orders In Queue</span>
+              <p className="font-heading font-extrabold text-2xl text-[#0F0F10] mt-1 font-digit">
+                {pendingOrders.length}
+              </p>
+              <span className="text-[10px] font-mono text-[#6B7280] font-bold block mt-1">● AWAITING FULFILLMENT</span>
             </div>
           </div>
 
@@ -244,7 +267,7 @@ export const DistributorOverview: React.FC<DistributorOverviewProps> = ({
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-[#0F0F10]">Lagos Dispatch Velocity &amp; Turnaround</span>
               <span className="text-[10px] font-mono font-bold text-[#0F0F10] bg-[#FAF9F6] px-2.5 py-0.5 rounded-full border border-[#E5E7EB]">
-                98.4% ON-TIME SLA
+                Not measured ON-TIME SLA
               </span>
             </div>
 
@@ -268,18 +291,14 @@ export const DistributorOverview: React.FC<DistributorOverviewProps> = ({
           <div className="p-5 rounded-2xl border border-[#E5E7EB] bg-white space-y-3">
             <h4 className="text-xs font-bold text-[#0F0F10]">Top Moving Skincare Formulations</h4>
             <div className="space-y-2 text-xs">
-              <div className="flex items-center justify-between py-1.5 border-b border-[#E5E7EB]/70">
-                <span className="text-[#0F0F10] font-medium">Radiant Glow Oil 100ml</span>
-                <span className="font-mono text-[#0F0F10] font-bold">42% hub turnover (8 units left)</span>
-              </div>
-              <div className="flex items-center justify-between py-1.5 border-b border-[#E5E7EB]/70">
-                <span className="text-[#0F0F10] font-medium">Clinical Barrier Cream SPF50+</span>
-                <span className="font-mono text-[#0F0F10] font-semibold">28% turnover (18 units)</span>
-              </div>
-              <div className="flex items-center justify-between py-1.5">
-                <span className="text-[#0F0F10] font-medium">Gentle Amino Cleanser</span>
-                <span className="font-mono text-[#0F0F10] font-semibold">16% turnover (48 units)</span>
-              </div>
+              {inventoryItems.slice(0, 3).map((item) => (
+                <div key={item.sku} className="flex items-center justify-between py-1.5 border-b border-[#E5E7EB]/70">
+                  <span className="text-[#0F0F10] font-medium">{item.productName}</span>
+                  <span className="font-mono text-[#0F0F10] font-bold">
+                    {item.lagosHub} units in Lagos Hub {item.lagosHub <= item.lowStockThreshold && '(Low Stock)'}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -293,7 +312,7 @@ export const DistributorOverview: React.FC<DistributorOverviewProps> = ({
               className="flex-1 py-2.5 rounded-full bg-[#0F0F10] text-white text-xs font-bold hover:bg-[#27272A] transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
             >
               <Package size={14} className="text-[#D4AF37]" />
-              <span>Open Orders Queue</span>
+              <span>Open Orders Queue ({pendingOrders.length})</span>
             </button>
             <button
               onClick={() => {

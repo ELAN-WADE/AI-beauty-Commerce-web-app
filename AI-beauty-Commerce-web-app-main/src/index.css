@@ -147,6 +147,64 @@
   background: rgba(212, 175, 55, 0.6);
 }
 
+/* Restrained Luxury Frosted Glassmorphism Tokens (Lumière Studio) */
+.frosted-glass-surface {
+  background-color: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  box-shadow: 0 16px 36px -12px rgba(0, 0, 0, 0.04), inset 0 1px 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.frosted-glass-pill {
+  background-color: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(10px) saturate(150%);
+  -webkit-backdrop-filter: blur(10px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+.frosted-glass-noir {
+  background-color: rgba(15, 15, 16, 0.82);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 20px 48px -12px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.frosted-glass-scrim {
+  background-color: rgba(15, 15, 16, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* Solid Fallbacks for Browsers Without Backdrop-Filter Support */
+@supports not (backdrop-filter: blur(1px)) {
+  .frosted-glass-surface,
+  .frosted-glass-pill {
+    background-color: #FFFFFF !important;
+    border-color: #E5E7EB !important;
+  }
+  .frosted-glass-noir {
+    background-color: #0F0F10 !important;
+    border-color: #27272A !important;
+  }
+}
+
+/* Fluid Typography with CSS clamp() */
+.text-hero-fluid {
+  font-size: clamp(1.85rem, 1.25rem + 2.2vw, 2.75rem);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+.text-section-fluid {
+  font-size: clamp(1.2rem, 1rem + 0.8vw, 1.55rem);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
 /* Luxury Liquid Glass Refraction */
 .desla-glass {
   background: rgba(255, 255, 255, 0.88);
@@ -346,4 +404,87 @@ b, strong,
   .animate-wave-flow-slow {
     animation: none !important;
   }
+}
+
+/* ========================================================
+   MINIMALIST ADVANCED MOTION & ANIMATION UTILITIES
+======================================================== */
+@keyframes fadeInSubtle {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-subtle {
+  animation: fadeInSubtle 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Restrained Micro-Press Tactile Physics */
+.micro-press {
+  transition: transform 140ms cubic-bezier(0.23, 1, 0.32, 1), opacity 140ms ease;
+}
+.micro-press:active {
+  transform: scale(0.98) !important;
+}
+
+/* Minimalist Editorial Image Zoom */
+.image-subtle-zoom {
+  transition: transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.image-subtle-zoom:hover {
+  transform: scale(1.02);
+}
+
+/* Sleek Minimal Animated Text Underline */
+.hover-underline-minimal {
+  position: relative;
+  text-decoration: none;
+}
+.hover-underline-minimal::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 1px;
+  bottom: -2px;
+  left: 0;
+  background-color: currentColor;
+  transition: width 240ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.hover-underline-minimal:hover::after {
+  width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in-subtle,
+  .image-subtle-zoom,
+  .hover-underline-minimal::after,
+  .micro-press {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+/* React Bits ShinyText Metallic Sweep */
+@keyframes shinyText {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+.animate-shiny-text {
+  animation: shinyText 3.5s linear infinite;
+}
+/* Readable touch inputs prevent iOS focus zoom without disabling browser zoom. */
+@media (pointer: coarse) {
+  input, textarea, select { font-size: 16px; }
+  button, a, [role="button"] { touch-action: manipulation; }
 }

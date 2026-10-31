@@ -7,7 +7,7 @@ import { creators } from '../creators/schema';
 import { distributors } from '../distributors/schema';
 import { inventoryLocations, restockRequests, stockLevels, stockTransfers } from '../inventory/schema';
 import { products, productVariants } from '../catalog/schema';
-import { orders } from '../orders/schema';
+import { orderItems, orders } from '../orders/schema';
 import { getGuestOrder, getOrderView, getOwnOrder, transitionOrder } from '../orders/service';
 import { type PartnerKind, walletFor, walletView } from '../ledger/service';
 import { enqueueNotification } from '../notifications/service';
@@ -35,13 +35,14 @@ export async function partnerDashboard(db: Db, userId: string, kind: PartnerKind
   if (!partner.location) return { ...result, metrics: await creatorMetrics(db, partner.profile.id, wallet.id), orders: [], inventory: [], transfers: [], restocks: [] };
   const locationId = partner.location.id;
   const [assigned, inventory, transfers, restocks] = await Promise.all([
-    db.select({ id: orders.id, orderNumber: orders.orderNumber, status: orders.status, totalKobo: orders.totalKobo, paymentStatus: orders.paymentStatus, fulfilmentMethod: orders.fulfilmentMethod, shippingAddress: orders.shippingAddress, createdAt: orders.createdAt }).from(orders).where(and(eq(orders.fulfilmentLocationId, locationId), eq(orders.distributorId, partner.profile.id))).orderBy(desc(orders.createdAt)).limit(100),
+    db.select({ id: orders.id, orderNumber: orders.orderNumber, status: orders.status, subtotalKobo: orders.subtotalKobo, deliveryFeeKobo: orders.deliveryFeeKobo, totalKobo: orders.totalKobo, paymentStatus: orders.paymentStatus, fulfilmentMethod: orders.fulfilmentMethod, shippingAddress: orders.shippingAddress, createdAt: orders.createdAt }).from(orders).where(and(eq(orders.fulfilmentLocationId, locationId), eq(orders.distributorId, partner.profile.id))).orderBy(desc(orders.createdAt)).limit(100),
     db.select({ pool: stockLevels.pool, variantId: stockLevels.variantId, sku: productVariants.sku, name: products.name, size: productVariants.sizeLabel, onHand: stockLevels.onHand, reserved: stockLevels.reserved }).from(stockLevels).innerJoin(productVariants, eq(productVariants.id, stockLevels.variantId)).innerJoin(products, eq(products.id, productVariants.productId)).where(eq(stockLevels.locationId, locationId)).limit(400),
     db.select().from(stockTransfers).where(eq(stockTransfers.destinationLocationId, locationId)).orderBy(desc(stockTransfers.dispatchedAt)).limit(50),
     db.select().from(restockRequests).where(eq(restockRequests.locationId, locationId)).orderBy(desc(restockRequests.createdAt)).limit(50),
   ]);
+  const itemRows = assigned.length ? await db.select({ orderId: orderItems.orderId, productName: orderItems.productName, sku: orderItems.sku, size: orderItems.variantLabel, priceKobo: orderItems.unitPriceKobo, quantity: orderItems.qty }).from(orderItems).where(inArray(orderItems.orderId, assigned.map(order => order.id))) : [];
   const variants = await db.select({ id: productVariants.id, sku: productVariants.sku, name: products.name, size: productVariants.sizeLabel }).from(productVariants).innerJoin(products, eq(products.id, productVariants.productId)).where(and(eq(productVariants.isActive, true), eq(products.isActive, true))).limit(500);
-  return { ...result, orders: assigned, inventory, transfers, restocks, variants };
+  return { ...result, orders: assigned.map(order => ({ ...order, items: itemRows.filter(item => item.orderId === order.id) })), inventory, transfers, restocks, variants };
 }
 
 const pinHash = (orderId: string, pin: string) => createHash('sha256').update(`${orderId}:${pin}`).digest('hex');
@@ -69,6 +70,8 @@ export async function partnerOrderAction(db: Db, userId: string, orderId: string
     if (order.paymentStatus !== 'PAID') throw Errors.conflict('Only paid orders can be fulfilled.');
     const target: Record<string, string> = { ACCEPT: 'FULFILLING', DISPATCH: 'SHIPPED', READY_PICKUP: 'READY_PICKUP', CONFIRM_PICKUP: 'DELIVERED', COMPLETE_DELIVERY: 'DELIVERED' };
     if (!target[action]) throw Errors.badRequest('Unknown order action.');
+    if (action === 'DISPATCH' && order.fulfilmentMethod !== 'DELIVERY') throw Errors.badRequest('Pickup orders must be collected with a customer collection code.');
+    if (action === 'READY_PICKUP' && order.fulfilmentMethod !== 'PICKUP') throw Errors.badRequest('This is a delivery order. Use dispatch after preparation.');
     if (action === 'COMPLETE_DELIVERY' && (order.fulfilmentMethod !== 'DELIVERY' || note.trim().length < 6)) throw Errors.badRequest('Delivery evidence is required.');
     if (action === 'CONFIRM_PICKUP') {
       if (order.fulfilmentMethod !== 'PICKUP') throw Errors.badRequest('This is not a pickup order.');

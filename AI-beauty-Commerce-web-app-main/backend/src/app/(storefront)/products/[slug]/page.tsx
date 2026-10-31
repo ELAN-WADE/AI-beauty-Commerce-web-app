@@ -1,3 +1,4 @@
+import { publicSiteOrigin, absoluteAsset, productStructuredData, safeJsonLd } from '@/storefront/lib/site-seo';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getCatalogSeed, getProductSeed, listProductSlugs } from '@/lib/server-catalog';
@@ -16,10 +17,6 @@ export async function generateStaticParams() {
   return slugs.map((slug) => ({ slug }));
 }
 
-function absoluteBase(): string {
-  return (process.env.APP_URL ?? '').replace(/\/+$/, '');
-}
-
 export async function generateMetadata({
   params,
 }: {
@@ -28,14 +25,11 @@ export async function generateMetadata({
   const { slug } = await params;
   const product = await getProductSeed(slug);
   if (!product) return { title: 'Product | Desla!™' };
-  const base = absoluteBase();
-  const image = product.image
-    ? base
-      ? `${base}${product.image.startsWith('/') ? '' : '/'}${product.image}`
-      : product.image
-    : undefined;
+  const base = publicSiteOrigin();
+  const image = absoluteAsset(product.image, base);
   const price = `₦${product.price.toLocaleString('en-NG')}`;
   return {
+    ...(base ? { alternates: { canonical: base + '/products/' + product.id } } : {}),
     title: `${product.name} — ${price}`,
     description: (product.tagline || product.description || 'Desla!™ luxury beauty.').slice(0, 160),
     openGraph: {
@@ -64,5 +58,6 @@ export default async function ProductDetailsPage({
   if (seed.length > 0 && !detail) notFound();
   const initialProducts =
     detail && !seed.some((p) => p.id === detail.id) ? [detail, ...seed] : seed;
-  return <ProductClient slug={slug} initialProducts={initialProducts} />;
+  const schema = detail ? productStructuredData(detail, publicSiteOrigin()) : null;
+  return <>{schema && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(schema) }} />}<ProductClient slug={slug} initialProducts={initialProducts} /></>;
 }

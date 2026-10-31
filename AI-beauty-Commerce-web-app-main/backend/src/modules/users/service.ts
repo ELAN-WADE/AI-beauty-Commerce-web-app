@@ -1,4 +1,5 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, inArray } from 'drizzle-orm';
+import { orders } from '../orders/schema';
 import type { AppDb, Db } from '../../db/client';
 import { Errors } from '../../lib/errors';
 import { userRoles, users } from '../auth/schema';
@@ -21,14 +22,51 @@ export async function listUsers(db: Db, limit = 50) {
     list.push(r.roleId);
     byUser.set(r.userId, list);
   }
-  return rows.map((r) => ({
-    id: r.user.id,
-    email: r.user.email,
-    emailVerified: r.user.emailVerifiedAt !== null,
-    displayName: r.profile?.displayName ?? '',
-    roles: byUser.get(r.user.id) ?? ['CUSTOMER'],
-    createdAt: r.user.createdAt,
-  }));
+
+  const userIds = rows.map((r) => r.user.id);
+  const userOrders = userIds.length > 0
+    ? await db
+        .select({
+          id: orders.id,
+          userId: orders.userId,
+          totalKobo: orders.totalKobo,
+          paymentStatus: orders.paymentStatus,
+          shippingAddress: orders.shippingAddress,
+        })
+        .from(orders)
+        .where(inArray(orders.userId, userIds))
+    : [];
+
+  const userAddrs = userIds.length > 0
+    ? await db.select().from(addresses).where(inArray(addresses.userId, userIds))
+    : [];
+
+  return rows.map((r) => {
+    const uOrders = userOrders.filter((o) => o.userId === r.user.id);
+    const paidOrders = uOrders.filter((o) => o.paymentStatus === 'PAID');
+    const totalSpentNgn = Math.round(paidOrders.reduce((sum, o) => sum + o.totalKobo, 0) / 100);
+    const defaultAddr = userAddrs.find((a) => a.userId === r.user.id && a.isDefault) ?? userAddrs.find((a) => a.userId === r.user.id);
+    const shipping = uOrders[0]?.shippingAddress as { city?: string; phone?: string } | undefined;
+    const city = defaultAddr?.city || shipping?.city || '';
+    const phone = r.profile?.phone || defaultAddr?.phone || shipping?.phone || '';
+    const tier = totalSpentNgn >= 500_000 ? 'Diamond' : totalSpentNgn >= 200_000 ? 'Platinum' : totalSpentNgn >= 50_000 ? 'Gold' : 'Member';
+    const loyaltyPoints = Math.floor(totalSpentNgn / 100);
+
+    return {
+      id: r.user.id,
+      email: r.user.email,
+      emailVerified: r.user.emailVerifiedAt !== null,
+      displayName: r.profile?.displayName ?? '',
+      phone,
+      city,
+      totalSpentNgn,
+      ordersCount: uOrders.length,
+      tier,
+      loyaltyPoints,
+      roles: byUser.get(r.user.id) ?? ['CUSTOMER'],
+      createdAt: r.user.createdAt,
+    };
+  });
 }
 
 export async function getProfile(db: AppDb, userId: string) {

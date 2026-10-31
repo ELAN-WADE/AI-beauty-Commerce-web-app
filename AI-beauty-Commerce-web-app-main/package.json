@@ -3,10 +3,17 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "overrides": {
+    "postcss": "^8.5.28"
+  },
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start",
+    "render:build": "cd backend && npm ci && npm run build",
+    "render:start": "cd backend && node scripts/start.mjs",
+    "render:deploy": "cd backend && npm run render:deploy",
+    "render:migrate": "cd backend && npm run db:migrate && npm run db:seed && npm run db:seed:catalog && npm run db:seed:partners"
   },
   "dependencies": {
     "@hugeicons/react": "^0.3.0",
@@ -19,22 +26,25 @@
     "@radix-ui/react-tooltip": "^1.1.8",
     "@supabase/supabase-js": "^2.117.2",
     "@types/canvas-confetti": "^1.9.0",
+    "@types/node": "^20.17.19",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "@types/three": "^0.186.0",
-    "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
     "canvas-confetti": "^1.9.4",
     "clsx": "^2.1.1",
+    "embla-carousel-react": "^8.6.0",
     "framer-motion": "^12.4.7",
     "lucide-react": "^0.475.0",
-    "postcss": "^8.5.2",
+    "motion": "^14.3.0",
+    "next": "^15.5.28",
+    "ogl": "^1.0.11",
+    "postcss": "^8.5.28",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tailwind-merge": "^3.0.1",
     "three": "^0.186.1",
-    "typescript": "^5.7.3",
-    "vite": "^6.1.1"
+    "typescript": "^5.7.3"
   },
   "devDependencies": {
     "tailwindcss": "^3.4.17"

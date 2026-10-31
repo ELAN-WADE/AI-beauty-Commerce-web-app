@@ -12,12 +12,14 @@ import {
   ChevronLeft,
   ShoppingBag
 } from 'lucide-react';
+import { creatorDiscountNaira } from '../../lib/order-journey';
 import { useApp } from '../../context/AppContext';
+import { CustomerAccess } from '../../components/auth/CustomerAccess';
 import { useViewport } from '../../context/ViewportContext';
 import { locateStockApi, resolveVariantId, isOwnedApiConfigured, type FulfilmentOption } from '../../lib/owned-api';
 import { routingKey } from '../../lib/fulfilment';
 
-export const Screen10Checkout: React.FC = () => {
+const Screen10CheckoutContent: React.FC = () => {
   const { isDesktop } = useViewport();
   const {
     cartItems,
@@ -49,7 +51,6 @@ export const Screen10Checkout: React.FC = () => {
   const [fulfilHasFullCart, setFulfilHasFullCart] = useState(true);
   const [retryRouting, setRetryRouting] = useState(0);
   const [resolvedKey, setResolvedKey] = useState('');
-  const [selectedGateway, setSelectedGateway] = useState<'paystack' | 'flutterwave'>('paystack');
 
   const [formData, setFormData] = useState({
     fullName: checkoutAddress.fullName || userProfile.name,
@@ -124,7 +125,7 @@ export const Screen10Checkout: React.FC = () => {
   const canContinue = !isOwnedApiConfigured || (!fulfilLoading && fulfilHasFullCart && !!selectedOption);
   const fallbackDeliveryFee = selectedCity === 'Lagos' ? 2000 : 1500;
   const currentDeliveryFee = selectedOption ? selectedOption.feeKobo / 100 : isOwnedApiConfigured ? null : fallbackDeliveryFee;
-  const creatorDiscount = activeCreatorCode ? Math.round(cartSubtotal * creatorDiscountPercent) / 100 : 0;
+  const creatorDiscount = activeCreatorCode ? creatorDiscountNaira(cartSubtotal, creatorDiscountPercent) : 0;
   const calculatedTotal = currentDeliveryFee == null ? null : Math.max(0, cartSubtotal - creatorDiscount + currentDeliveryFee);
 
   // Cross-sell items
@@ -154,7 +155,7 @@ export const Screen10Checkout: React.FC = () => {
             No Items in Checkout
           </h2>
           <p className="text-xs text-[#6B7280]">
-            Your shopping bag is currently empty. Explore our clinical formulations.
+            Your shopping bag is currently empty. Explore our natural formulations.
           </p>
           <button
             onClick={() => navigateTo('catalogue')}
@@ -373,76 +374,14 @@ export const Screen10Checkout: React.FC = () => {
                 />
               </div>
 
-              {/* 3. Choose Payment Gateway & Method */}
-              <div className="pt-3 border-t border-[#E5E7EB] space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-heading font-bold text-sm text-[#0F0F10]">
-                    3. Select Payment Gateway &amp; Channels
-                  </h3>
-                  <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                    Instant Clearance
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {/* Paystack Gateway Option */}
-                  <div
-                    onClick={() => setSelectedGateway('paystack')}
-                    className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all ${
-                      selectedGateway === 'paystack'
-                        ? 'border-[#00C3F7] bg-[#F0FAFF] shadow-xs'
-                        : 'border-[#E5E7EB] bg-[#FAF9F6] hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-heading font-extrabold text-xs tracking-wider text-[#00C3F7]">
-                        paystack
-                      </span>
-                      <div className="w-4 h-4 rounded-full border-2 border-[#00C3F7] flex items-center justify-center">
-                        {selectedGateway === 'paystack' && (
-                          <div className="w-2 h-2 rounded-full bg-[#00C3F7]" />
-                        )}
-                      </div>
-                    </div>
-                    <p className="text-[10.5px] text-[#4B5563] mt-1.5 leading-snug">
-                      Debit Cards (Visa/MC/Verve), Bank Transfer &amp; USSD.
-                    </p>
-                    <span className="text-[9.5px] font-bold text-[#00C3F7] uppercase mt-1 block">Official Escrow</span>
-                  </div>
-
-                  {/* Flutterwave Gateway Option */}
-                  <div
-                    onClick={() => setSelectedGateway('flutterwave')}
-                    className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all ${
-                      selectedGateway === 'flutterwave'
-                        ? 'border-[#FB7701] bg-[#FFF8F2] shadow-xs'
-                        : 'border-[#E5E7EB] bg-[#FAF9F6] hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-heading font-extrabold text-xs tracking-wider text-[#FB7701]">
-                        flutterwave
-                      </span>
-                      <div className="w-4 h-4 rounded-full border-2 border-[#FB7701] flex items-center justify-center">
-                        {selectedGateway === 'flutterwave' && (
-                          <div className="w-2 h-2 rounded-full bg-[#FB7701]" />
-                        )}
-                      </div>
-                    </div>
-                    <p className="text-[10.5px] text-[#4B5563] mt-1.5 leading-snug">
-                      Debit Cards, Dedicated Transfer, Barter &amp; USSD.
-                    </p>
-                    <span className="text-[9.5px] font-bold text-[#FB7701] uppercase mt-1 block">Rave For Business</span>
-                  </div>
-                </div>
-              </div>
+              <div className="space-y-2 border-t border-[#E5E7EB] pt-3"><h3 className="text-sm font-bold">3. Continue to payment</h3><p className="text-xs text-[#6B7280]">Review this order, then choose your payment gateway on the next step.</p></div>
 
               <button
                 type="submit"
                 disabled={!canContinue}
                 className="w-full py-4 rounded-full bg-[#0F0F10] hover:bg-[#1F1D22] text-white font-heading font-extrabold text-sm shadow-xl flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer mt-4 disabled:opacity-50"
               >
-                <span>Proceed to {selectedGateway === 'paystack' ? 'Paystack' : 'Flutterwave'} Payment</span>
+                <span>Continue to payment</span>
                 <ArrowRight size={16} />
               </button>
             </form>
@@ -543,14 +482,14 @@ export const Screen10Checkout: React.FC = () => {
               </div>
             )}
 
-            {/* Paystack & Flutterwave SSL & Security Trust Badges */}
+            {/* Stripe & Flutterwave SSL & Security Trust Badges */}
             <div className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] shadow-xs flex items-center gap-3 text-xs text-[#6B7280]">
               <div className="w-10 h-10 rounded-xl bg-white border border-[#E5E7EB] flex items-center justify-center text-[#997A2E] shrink-0 shadow-xs">
                 <ShieldCheck size={20} />
               </div>
               <div className="text-[11px] leading-snug">
                 <span className="font-bold text-[#0F0F10] block">256-Bit SSL Encrypted Checkout</span>
-                <span>Protected by Paystack &amp; Flutterwave Payment Infrastructure. 100% Escrow Guarantee.</span>
+                <span>Protected by Stripe &amp; Flutterwave Payment Infrastructure. Payment status is verified by the server.</span>
               </div>
             </div>
           </div>
@@ -559,3 +498,4 @@ export const Screen10Checkout: React.FC = () => {
     </div>
   );
 };
+export const Screen10Checkout: React.FC = () => <CustomerAccess title="Sign in to check out"><Screen10CheckoutContent /></CustomerAccess>;

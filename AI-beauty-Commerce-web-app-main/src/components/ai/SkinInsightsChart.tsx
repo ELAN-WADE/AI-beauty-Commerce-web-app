@@ -1,5 +1,5 @@
 import React from 'react';
-import { Droplet, Flame, Sparkles, Sun, CheckCircle, AlertCircle } from 'lucide-react';
+import { Droplet, Flame, Layers, Activity, Sun, CheckCircle, AlertCircle } from 'lucide-react';
 import { SkinMetric } from '../../types';
 
 interface SkinInsightsChartProps {
@@ -9,13 +9,14 @@ interface SkinInsightsChartProps {
     texture?: SkinMetric;
     evenness?: SkinMetric;
   } | SkinMetric[];
-  overallScore?: number;
+  overallScore?: number | null;
 }
 
 export const SkinInsightsChart: React.FC<SkinInsightsChartProps> = ({
   metrics,
   overallScore = 84
 }) => {
+  const noMeasurement = overallScore === null;
   const getStatusBadge = (status: SkinMetric['status']) => {
     const s = String(status || '').toLowerCase();
     if (s.includes('optimal')) {
@@ -48,11 +49,11 @@ export const SkinInsightsChart: React.FC<SkinInsightsChartProps> = ({
       case 'oiliness':
         return <Flame size={16} className="text-amber-600" />;
       case 'texture':
-        return <Sparkles size={16} className="text-emerald-600" />;
+        return <Layers size={16} className="text-emerald-600" />;
       case 'evenness':
         return <Sun size={16} className="text-[#997A2E]" />;
       default:
-        return <Sparkles size={16} className="text-[#D4AF37]" />;
+        return <Activity size={16} className="text-[#D4AF37]" />;
     }
   };
 
@@ -60,10 +61,11 @@ export const SkinInsightsChart: React.FC<SkinInsightsChartProps> = ({
     hydration: { name: 'Cellular Hydration', score: 82, status: 'optimal', description: 'Deep stratum corneum moisture retention' },
     oiliness: { name: 'Lipid Barrier', score: 76, status: 'optimal', description: 'Balanced sebum barrier defense' },
     texture: { name: 'Surface Texture', score: 88, status: 'optimal', description: 'Smooth, refined pore uniformity' },
-    evenness: { name: 'Melanin Radiance', score: 80, status: 'moderate', description: 'High luminosity with mild pigmentation protection' }
+    evenness: { name: 'Natural Radiance', score: 80, status: 'moderate', description: 'High luminosity with mild pigmentation protection' }
   };
 
   const getMetricData = (key: 'hydration' | 'oiliness' | 'texture' | 'evenness', index: number): SkinMetric => {
+    if (noMeasurement) return { ...defaultMetrics[key], score: 0, description: 'This photo assessment did not provide a numerical measurement.' };
     if (Array.isArray(metrics)) {
       return metrics[index] || defaultMetrics[key];
     }
@@ -89,10 +91,10 @@ export const SkinInsightsChart: React.FC<SkinInsightsChartProps> = ({
             Overall Health Index
           </span>
           <h3 className="font-heading font-extrabold text-3xl text-[#0F0F10] mt-0.5">
-            {overallScore}<span className="text-sm font-semibold text-[#6B7280]">/100</span>
+            {noMeasurement ? '—' : overallScore}<span className="text-sm font-semibold text-[#6B7280]">{noMeasurement ? '' : '/100'}</span>
           </h3>
           <p className="text-xs text-[#6B7280] mt-1">
-            Cellular vitality meets clinical dermatological baseline
+            {noMeasurement ? 'See your cosmetic observations above. Numerical measurements are unavailable.' : 'Cellular vitality meets natural dermatological baseline'}
           </p>
         </div>
         <div className="relative w-16 h-16 shrink-0 flex items-center justify-center">
@@ -106,7 +108,7 @@ export const SkinInsightsChart: React.FC<SkinInsightsChartProps> = ({
             />
             <path
               className="text-[#D4AF37] transition-all duration-1000 ease-out"
-              strokeDasharray={`${overallScore}, 100`}
+              strokeDasharray={`${overallScore ?? 0}, 100`}
               strokeWidth="3.5"
               strokeLinecap="round"
               stroke="currentColor"
@@ -115,7 +117,7 @@ export const SkinInsightsChart: React.FC<SkinInsightsChartProps> = ({
             />
           </svg>
           <span className="absolute font-heading font-extrabold text-xs text-[#0F0F10]">
-            {overallScore}%
+            {noMeasurement ? '—' : overallScore + '%'}
           </span>
         </div>
       </div>
@@ -138,9 +140,9 @@ export const SkinInsightsChart: React.FC<SkinInsightsChartProps> = ({
               </div>
               <div className="flex items-center gap-2">
                 <span className="font-mono text-xs font-extrabold text-[#0F0F10]">
-                  {data.value ?? data.score ?? 0}%
+                  {noMeasurement ? '—' : (data.value ?? data.score ?? 0) + '%'}
                 </span>
-                {getStatusBadge(data.status)}
+                {noMeasurement ? <span className="text-[10px] text-[#6B7280]">Not measured</span> : getStatusBadge(data.status)}
               </div>
             </div>
 
@@ -152,7 +154,7 @@ export const SkinInsightsChart: React.FC<SkinInsightsChartProps> = ({
               />
             </div>
 
-            {/* Clinical Insight */}
+            {/* Natural Insight */}
             <p className="text-[11px] text-[#6B7280] leading-relaxed">
               {data.insight || data.description || ''}
             </p>

@@ -11,7 +11,7 @@ const ScreenCreators = dynamic(
 export default function CreatorsPage() {
   return (
     <RequireRole
-      allowedRoles={['CREATOR', 'STAFF', 'ADMIN', 'SUPER_ADMIN']}
+      allowedRoles={['CREATOR']}
       title="Creator Affiliate Studio"
       description="Access your VIP commission ledger, promo code performance, and seasonal PR box dispatch tracking."
     >

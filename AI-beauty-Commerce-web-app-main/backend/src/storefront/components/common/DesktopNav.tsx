@@ -94,7 +94,7 @@ export const DesktopNav: React.FC = () => {
       </div>
 
       {/* 2. MAIN CONCISE NAVIGATION BAR */}
-      <div className="bg-white border-b border-[#E5E7EB]">
+      <div className="bg-white/80 backdrop-blur-md border-b border-[#E5E7EB]/80 shadow-[0_4px_24px_-6px_rgba(0,0,0,0.03)]">
         <div className="max-w-7xl mx-auto px-6 py-3.5 flex items-center justify-between gap-4 lg:gap-6">
           {/* Brand Logo & Core Nav on Left */}
           <div className="flex items-center gap-7 shrink-0">
@@ -165,7 +165,7 @@ export const DesktopNav: React.FC = () => {
           {/* Extended Central Search Bar */}
           <form onSubmit={handleSearchSubmit} className="flex-1 max-w-md mx-2 sm:mx-4">
             <div
-              className={`relative flex items-center rounded-full bg-[#FAF9F6] border border-[#E5E7EB] transition-all duration-200 ${
+              className={`relative flex items-center rounded-full frosted-glass-pill transition-all duration-200 ${
                 isSearchFocused ? 'ring-2 ring-[#D4AF37]/50 border-[#D4AF37] bg-white shadow-xs' : 'hover:border-gray-300'
               }`}
             >

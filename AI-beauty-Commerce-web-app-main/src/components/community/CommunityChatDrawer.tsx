@@ -3,7 +3,6 @@ import {
   X,
   Send,
   Heart,
-  Sparkles,
   ShieldCheck,
   Award,
   ChevronLeft,

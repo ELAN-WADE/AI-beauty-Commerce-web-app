@@ -1,10 +1,11 @@
+import { creators } from '@/modules/creators/schema';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getDb } from '@/db/client';
 import { api, clientIp, Errors } from '@/lib/errors';
 import { checkRateLimit, Limits } from '@/lib/rate-limit';
 import { requirePerm } from '@/lib/admin';
-import { listApplications } from '@/modules/creators/service';
+import { listApplications, applicationCounts } from '@/modules/creators/service';
 
 const querySchema = z.object({ status: z.enum(['pending', 'approved', 'rejected']).optional() });
 
@@ -12,7 +13,7 @@ export const GET = api(async ({ req }) => {
   const rl = checkRateLimit(`admin:${clientIp(req)}`, Limits.admin);
   if (!rl.allowed) throw Errors.rateLimited(60);
   const db = getDb();
-  await requirePerm(db, 'products:write');
+  await requirePerm(db, 'partners:review');
   const q = querySchema.parse(Object.fromEntries(new URL(req.url).searchParams));
-  return NextResponse.json({ applications: await listApplications(db, q.status) });
+  return NextResponse.json({ applications: await listApplications(db, q.status), counts: await applicationCounts(db), creators: await db.select().from(creators).limit(100) });
 });

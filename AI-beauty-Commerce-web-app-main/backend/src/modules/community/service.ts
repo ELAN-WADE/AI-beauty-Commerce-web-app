@@ -1,4 +1,5 @@
-import { and, desc, eq, lt, or } from 'drizzle-orm';
+import { getTableColumns } from 'drizzle-orm';
+import { and, desc, eq, inArray, lt, or } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import type { AppDb, Db } from '../../db/client';
 import { Errors } from '../../lib/errors';
@@ -22,14 +23,15 @@ async function buyerRole(db: Db, userId: string): Promise<'Verified Buyer' | 'Me
   return rows.length > 0 ? 'Verified Buyer' : 'Member';
 }
 
-export async function listPosts(db: Db, filter: { productId?: string; hashtag?: string; limit: number; cursor?: string }) {
+export async function listPosts(db: Db, filter: { productId?: string; hashtag?: string; limit: number; cursor?: string }, userId?: string) {
   const cursor = decodeCursor(filter.cursor);
   const conds = [eq(communityPosts.visible, true)];
   if (filter.productId) conds.push(eq(communityPosts.taggedProductId, filter.productId));
   if (filter.hashtag) conds.push(eq(communityPosts.taggedHashtag, filter.hashtag.toLowerCase()));
   const rows = await db
-    .select()
+    .select({ ...getTableColumns(communityPosts), taggedProductSlug: products.slug })
     .from(communityPosts)
+    .leftJoin(products, eq(communityPosts.taggedProductId, products.id))
     .where(
       cursor
         ? and(...conds, or(lt(communityPosts.createdAt, new Date(cursor.k)), and(eq(communityPosts.createdAt, new Date(cursor.k)), lt(communityPosts.id, cursor.id))))
@@ -40,8 +42,11 @@ export async function listPosts(db: Db, filter: { productId?: string; hashtag?: 
   const hasMore = rows.length > filter.limit;
   const page = hasMore ? rows.slice(0, filter.limit) : rows;
   const last = page[page.length - 1];
+  const likedIds = userId && page.length
+    ? new Set((await db.select({ postId: postLikes.postId }).from(postLikes).where(and(eq(postLikes.userId, userId), inArray(postLikes.postId, page.map(post => post.id))))).map(row => row.postId))
+    : new Set<string>();
   return {
-    posts: page,
+    posts: page.map(post => ({ ...post, likedByMe: likedIds.has(post.id) })),
     nextCursor: hasMore && last ? encodeCursor({ k: (last.createdAt as Date).toISOString(), id: last.id }) : null,
   };
 }
@@ -144,6 +149,17 @@ export async function setPostVisibility(db: AppDb, postId: string, visible: bool
   const [post] = await db.update(communityPosts).set({ visible }).where(eq(communityPosts.id, postId)).returning({ id: communityPosts.id });
   if (!post) throw Errors.notFound('Post not found.');
   return { id: post.id, visible };
+}
+
+/** Moderator view includes hidden posts; customer feeds continue to exclude them. */
+export async function listModerationPosts(db: Db, rawCursor?: string) {
+  const cursor = decodeCursor(rawCursor);
+  const validCursor = cursor && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cursor.id) && Number.isFinite(Date.parse(cursor.k)) ? cursor : null;
+  const rows = await db.select().from(communityPosts)
+    .where(validCursor ? or(lt(communityPosts.createdAt, new Date(validCursor.k)), and(eq(communityPosts.createdAt, new Date(validCursor.k)), lt(communityPosts.id, validCursor.id))) : undefined)
+    .orderBy(desc(communityPosts.createdAt), desc(communityPosts.id)).limit(51);
+  const posts = rows.slice(0, 50), last = posts[posts.length - 1];
+  return { posts, nextCursor: rows.length > 50 && last ? encodeCursor({ k: last.createdAt.toISOString(), id: last.id }) : null };
 }
 
 /**

@@ -10,10 +10,12 @@ import {
   MapPin,
   ShieldCheck
 } from 'lucide-react';
+import { creatorDiscountNaira } from '../../lib/order-journey';
 import { useApp } from '../../context/AppContext';
+import { CustomerAccess } from '../../components/auth/CustomerAccess';
 import { useViewport } from '../../context/ViewportContext';
 
-export const Screen09Cart: React.FC = () => {
+const Screen09CartContent: React.FC = () => {
   const { isDesktop } = useViewport();
   const {
     cartItems,
@@ -24,6 +26,8 @@ export const Screen09Cart: React.FC = () => {
     navigateTo,
     products,
     appliedCreator,
+    activeCreatorCode,
+    creatorDiscountPercent,
     applyCreatorCode,
     selectedCity,
     setIsLocationModalOpen,
@@ -36,7 +40,6 @@ export const Screen09Cart: React.FC = () => {
   const [promoMessage, setPromoMessage] = useState<{ text: string; success: boolean } | null>(null);
   const [voucherInput, setVoucherInput] = useState(voucherCode);
   const [voucherMessage, setVoucherMessage] = useState('');
-  const [fulfillmentOption, setFulfillmentOption] = useState<'local' | 'lagos'>('local');
 
   const formatNaira = (amt: number) => '₦' + amt.toLocaleString('en-NG');
 
@@ -47,7 +50,7 @@ export const Screen09Cart: React.FC = () => {
     if (res.success) {
       setPromoMessage({ text: res.message, success: true });
     } else {
-      setPromoMessage({ text: 'Invalid or expired creator code. Try AMARA10 or TIWA10.', success: false });
+      setPromoMessage({ text: res.message || 'This creator code is invalid or expired.', success: false });
     }
   };
 
@@ -58,11 +61,8 @@ export const Screen09Cart: React.FC = () => {
     setVoucherMessage(code ? `Voucher ${code} will be validated at secure checkout.` : '');
   };
 
-  const discountAmount = appliedCreator ? Math.round(cartSubtotal * 0.1) : 0;
-  const localFee = selectedCity === 'Lagos' ? 2000 : 1500;
-  const hqFee = 4500;
-  const activeDeliveryFee = fulfillmentOption === 'local' ? localFee : hqFee;
-  const finalTotal = Math.max(0, cartSubtotal - discountAmount + activeDeliveryFee);
+  const discountAmount = activeCreatorCode ? creatorDiscountNaira(cartSubtotal, creatorDiscountPercent) : 0;
+  const finalTotal = Math.max(0, cartSubtotal - discountAmount);
 
   // Suggested formulations for cross-sell
   const routineCrossSell = products.filter(
@@ -81,7 +81,7 @@ export const Screen09Cart: React.FC = () => {
               Your Shopping Bag is Empty
             </h2>
             <p className="text-xs text-[#6B7280] max-w-sm mx-auto mt-1 leading-relaxed">
-              Explore authentic Delsla™ clinical cleansers, barrier creams, and invisible sun defenses.
+              Explore authentic Delsla™ natural cleansers, barrier creams, and invisible sun defenses.
             </p>
           </div>
 
@@ -166,11 +166,11 @@ export const Screen09Cart: React.FC = () => {
                       Local Hub: {selectedCity}
                     </span>
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold">
-                      Save {formatNaira(3000)} on delivery
+                      Availability checked at checkout
                     </span>
                   </div>
                   <p className="text-[11px] text-[#6B7280] mt-0.5">
-                    Items dispatched directly from verified local distributor stock.
+                    Delivery and pickup options depend on available stock and your address.
                   </p>
                 </div>
               </div>
@@ -264,7 +264,7 @@ export const Screen09Cart: React.FC = () => {
                   type="text"
                   value={promoInput}
                   onChange={(e) => setPromoInput(e.target.value)}
-                  placeholder="e.g. AMARA10 or TIWA10"
+                  placeholder="Enter a creator promo code"
                   className="flex-1 px-3 py-2 rounded-xl bg-[#F9FAFB] border border-[#E5E7EB] text-xs text-[#0F0F10] uppercase font-mono tracking-wider focus:outline-none focus:border-[#D4AF37]"
                 />
                 <button
@@ -312,55 +312,7 @@ export const Screen09Cart: React.FC = () => {
               )}
             </div>
 
-            {/* Fulfillment Selector */}
-            <div className="p-3.5 rounded-2xl bg-white border border-[#E5E7EB] shadow-2xs space-y-2.5">
-              <h3 className="font-heading font-bold text-xs uppercase tracking-wider text-[#0F0F10]">
-                Select Sourcing Method
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <div
-                  onClick={() => setFulfillmentOption('local')}
-                  className={`p-3 rounded-xl border cursor-pointer flex flex-col justify-between transition-all active-press ${
-                    fulfillmentOption === 'local'
-                      ? 'border-[#D4AF37] bg-[#FBF5E8]/40 shadow-2xs'
-                      : 'border-[#E5E7EB] bg-white hover:border-gray-300'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-xs text-[#0F0F10]">
-                      Local Hub ({selectedCity})
-                    </span>
-                    <span className="font-mono text-xs font-bold text-[#997A2E]">
-                      {formatNaira(localFee)}
-                    </span>
-                  </div>
-                  <span className="text-[10.5px] text-[#6B7280] mt-1">
-                    Same-day bike dispatch or pickup in {selectedCity}
-                  </span>
-                </div>
-
-                <div
-                  onClick={() => setFulfillmentOption('lagos')}
-                  className={`p-3 rounded-xl border cursor-pointer flex flex-col justify-between transition-all active-press ${
-                    fulfillmentOption === 'lagos'
-                      ? 'border-[#D4AF37] bg-[#FBF5E8]/40 shadow-2xs'
-                      : 'border-[#E5E7EB] bg-white hover:border-gray-300'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-xs text-[#0F0F10]">
-                      Lagos Central HQ
-                    </span>
-                    <span className="font-mono text-xs font-bold text-gray-700">
-                      {formatNaira(hqFee)}
-                    </span>
-                  </div>
-                  <span className="text-[10.5px] text-[#6B7280] mt-1">
-                    Direct warehouse interstate courier (2–4 days)
-                  </span>
-                </div>
-              </div>
-            </div>
+            <div className="space-y-2 rounded-2xl border bg-white p-4"><h3 className="text-sm font-bold">Delivery and pickup</h3><p className="text-xs text-[#6B7280]">Enter your address at checkout to see locations with stock and their actual delivery or pickup fees.</p></div>
           </div>
 
           {/* RIGHT COLUMN: Order Summary & Checkout */}
@@ -374,18 +326,18 @@ export const Screen09Cart: React.FC = () => {
                 <span>Formulations Subtotal</span>
                 <span className="font-mono font-medium text-[#0F0F10]">{formatNaira(cartSubtotal)}</span>
               </div>
-              {appliedCreator && (
+              {activeCreatorCode && (
                 <div className="flex justify-between text-emerald-700 font-semibold">
-                  <span>Creator Discount (10%)</span>
+                  <span>Creator discount ({creatorDiscountPercent}%)</span>
                   <span className="font-mono">-{formatNaira(discountAmount)}</span>
                 </div>
               )}
               <div className="flex justify-between text-[#6B7280]">
-                <span>Delivery ({fulfillmentOption === 'local' ? `${selectedCity} Hub` : 'Lagos HQ'})</span>
-                <span className="font-mono font-medium text-[#0F0F10]">{formatNaira(activeDeliveryFee)}</span>
+                <span>Delivery or pickup fee</span>
+                <span className="font-mono font-medium text-[#0F0F10]">Calculated at checkout</span>
               </div>
               <div className="pt-2 border-t border-[#E5E7EB] flex justify-between items-center text-sm font-bold text-[#0F0F10]">
-                <span>Total Payable</span>
+                <span>Merchandise total</span>
                 <span className="font-price font-bold text-lg text-[#0F0F10]">{formatNaira(finalTotal)}</span>
               </div>
 
@@ -449,3 +401,4 @@ export const Screen09Cart: React.FC = () => {
     </div>
   );
 };
+export const Screen09Cart: React.FC = () => <CustomerAccess title="Sign in to view your bag"><Screen09CartContent /></CustomerAccess>;

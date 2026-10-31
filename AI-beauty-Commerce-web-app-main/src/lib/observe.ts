@@ -16,8 +16,10 @@ function uid(): string {
   }
 }
 
+import { getEnv } from './env';
+
 export function reportError(err: unknown, context: Record<string, unknown> = {}): void {
-  const dsn = import.meta.env.VITE_SENTRY_DSN as string | undefined;
+  const dsn = getEnv('VITE_SENTRY_DSN');
   if (!dsn) return;
   const parsed = parseDsn(dsn);
   if (!parsed) return;
@@ -27,7 +29,7 @@ export function reportError(err: unknown, context: Record<string, unknown> = {})
     const body =
       `${JSON.stringify({ event_id: eventId, sent_at: new Date().toISOString() })}\n` +
       `${JSON.stringify({ type: 'event' })}\n` +
-      JSON.stringify({ event_id: eventId, level: 'error', logger: 'glowly-storefront', environment: import.meta.env.MODE, message: message.slice(0, 1000), extra: context });
+      JSON.stringify({ event_id: eventId, level: 'error', logger: 'glowly-storefront', environment: process.env.NODE_ENV || 'production', message: message.slice(0, 1000), extra: context });
     fetch(`${parsed.scheme}://${parsed.host}/api/${parsed.project}/envelope/`, {
       method: 'POST',
       headers: {
@@ -43,7 +45,7 @@ export function reportError(err: unknown, context: Record<string, unknown> = {})
 }
 
 export function initErrorReporting(): void {
-  if (!(import.meta.env.VITE_SENTRY_DSN as string | undefined)) return;
+  if (!getEnv('VITE_SENTRY_DSN')) return;
   window.addEventListener('error', (event) => {
     reportError(event.error ?? event.message, { source: 'window.onerror', screen: window.location.pathname });
   });

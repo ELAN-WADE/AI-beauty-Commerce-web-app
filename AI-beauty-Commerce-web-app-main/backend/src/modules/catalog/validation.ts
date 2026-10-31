@@ -6,7 +6,11 @@ const slug = z
   .toLowerCase()
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Slug must be kebab-case.')
   .max(120);
-const url = z.string().trim().url().max(500);
+const url = z
+  .string()
+  .trim()
+  .max(2000)
+  .refine((v) => /^\/(?!\/)/.test(v) || /^https?:\/\//.test(v), 'Use a site image path or HTTP/HTTPS URL.');
 
 // ---------- Public catalogue query (all clients share these caps) ----------
 export const productQuerySchema = z
@@ -20,6 +24,8 @@ export const productQuerySchema = z
     // Over-large limits clamp (never reject — clients stay functional, cost bounded).
     limit: z.coerce.number().int().min(1).default(20).transform((v) => Math.min(v, 100)),
     cursor: z.string().max(500).optional(),
+    // Explicit live refreshes use a distinct CDN key after admin invalidation.
+    _refresh: z.string().regex(/^\d{10,16}$/).optional(),
   })
   .strict();
 

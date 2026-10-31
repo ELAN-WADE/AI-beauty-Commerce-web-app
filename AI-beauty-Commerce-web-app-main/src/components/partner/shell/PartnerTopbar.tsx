@@ -45,7 +45,6 @@ export const PartnerTopbar: React.FC<PartnerTopbarProps> = ({
         <div className="hidden lg:flex items-center gap-1 p-0.5 rounded-full bg-[#FAF9F6] border border-[#E5E7EB] shrink-0 text-xs">
           <button
             onClick={() => {
-              loginAsDemoRole('CREATOR');
               if (onSwitchWorkspace) onSwitchWorkspace('CREATOR');
               else navigateTo('creators');
             }}
@@ -60,7 +59,6 @@ export const PartnerTopbar: React.FC<PartnerTopbarProps> = ({
           </button>
           <button
             onClick={() => {
-              loginAsDemoRole('DISTRIBUTOR');
               if (onSwitchWorkspace) onSwitchWorkspace('DISTRIBUTOR');
               else navigateTo('distributor-portal');
             }}

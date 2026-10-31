@@ -10,8 +10,10 @@ import { chatMessageSchema, chatQuerySchema } from '@/modules/community/validati
 const CHAT_LIMIT = { limit: 30, windowMs: 60_000 };
 
 export const GET = api(async ({ req }) => {
+  const db = getDb();
+  await requireAuth(db);
   const q = chatQuerySchema.parse(Object.fromEntries(new URL(req.url).searchParams));
-  return NextResponse.json({ messages: await listMessages(getDb(), q.channel, q.limit) });
+  return NextResponse.json({ messages: await listMessages(db, q.channel, q.limit) }, { headers: { 'Cache-Control': 'private, no-store' } });
 });
 
 export const POST = api(async ({ req }) => {

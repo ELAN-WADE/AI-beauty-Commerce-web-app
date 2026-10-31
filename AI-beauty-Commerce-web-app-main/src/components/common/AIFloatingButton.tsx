@@ -1,3 +1,4 @@
+import { NavigationIcon } from './NavigationIcon';
 import React, { useState, useEffect } from 'react';
 import { Headset } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
@@ -12,6 +13,7 @@ export const AIFloatingButton: React.FC = () => {
 
   // Auto-collapse after 3.5s initially, then periodically animate out and close back to sphere
   useEffect(() => {
+    if (!isDesktop) return;
     const initialTimer = setTimeout(() => {
       setIsAutoExpanded(false);
     }, 3500);
@@ -27,13 +29,14 @@ export const AIFloatingButton: React.FC = () => {
       clearTimeout(initialTimer);
       clearInterval(interval);
     };
-  }, []);
+  }, [isDesktop]);
 
   // Hide on splash, onboarding, checkout/payment/ask-ai (to prevent clutter)
   if (['splash', 'onboarding', 'checkout', 'payment', 'order-confirmed', 'ask-ai'].includes(currentScreen)) {
     return null;
   }
 
+  if (!isDesktop) return <button type="button" onClick={() => navigateTo('ask-ai')} aria-label="Ask Desla AI" className="fixed right-3 z-[45] flex items-center gap-2 rounded-full bg-[#0F0F10] text-white px-4 min-h-11 shadow-lg touch-manipulation" style={{ bottom: 'calc(82px + env(safe-area-inset-bottom, 0px))' }}><NavigationIcon name="assistant" size={20} /><span className="text-xs font-semibold">Ask Desla AI</span></button>;
   const isExpanded = isHovered || isAutoExpanded;
 
   return (

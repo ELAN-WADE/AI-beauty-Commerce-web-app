@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getDb } from '@/db/client';
 import { api, clientIp, Errors, readJson } from '@/lib/errors';
 import { checkRateLimit, checkSharedRateLimit, Limits } from '@/lib/rate-limit';
-import { optionalAuth } from '@/modules/auth/require-auth';
+import { requireAuth } from '@/modules/auth/require-auth';
 import { listCreators, submitApplication, trackClick, validateCode } from '@/modules/creators/service';
 import { clickSchema, creatorApplicationSchema, creatorCodeQuery } from '@/modules/creators/validation';
 
@@ -30,8 +30,8 @@ export const POST = api(async ({ req }) => {
     return NextResponse.json({ ok: true });
   }
   // …otherwise a partnership application (authenticated or guest).
-  const auth = await optionalAuth(db);
+  const auth = await requireAuth(db);
   const input = creatorApplicationSchema.parse(body);
-  const application = await submitApplication(db, auth?.userId, input);
+  const application = await submitApplication(db, auth.userId, input);
   return NextResponse.json({ application }, { status: 201 });
 });

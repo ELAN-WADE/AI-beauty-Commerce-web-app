@@ -1,4 +1,9 @@
 export interface Product {
+  serverId?: string;
+  slug?: string;
+  version?: number;
+  isActive?: boolean;
+  variants?: { id?: string; sku: string; sizeLabel: string; priceNgn: number; compareAtNgn: number | null; stock: number; isActive: boolean }[];
   id: string;
   sku?: string;
   name: string;
@@ -83,7 +88,7 @@ export interface OrderItem {
   image: string;
 }
 
-export type OrderStatus = 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
+export type OrderStatus = 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled' | 'Awaiting Packing' | 'Ready for Pickup' | 'In Transit';
 
 export interface TrackingStep {
   title: string;
@@ -93,10 +98,12 @@ export interface TrackingStep {
 }
 
 export interface Order {
+  shipment?: { provider: string; trackingReference: string; status: string };
   id: string;
   serverId?: string;
   paymentStatus?: string;
   serverStatus?: string;
+  fulfilmentMethod?: 'DELIVERY' | 'PICKUP';
   date: string;
   status: OrderStatus;
   items: OrderItem[];
@@ -115,6 +122,11 @@ export interface Order {
   };
   paymentMethod: string;
   reviewed?: boolean;
+  courierName?: string;
+  courierPhone?: string;
+  courierPin?: string;
+  trackingNumber?: string;
+  pickupCode?: string;
 }
 
 export interface RewardVoucher {
@@ -256,10 +268,11 @@ export interface CommunityPost {
   authorName: string;
   authorHandle: string;
   authorAvatar: string;
-  authorRole: 'Verified Buyer' | 'Creator / MUA' | 'Dermatologist' | 'Distributor';
+  authorRole: 'Verified Buyer' | 'Member' | 'Creator / MUA' | 'Dermatologist' | 'Distributor';
   skinType?: string;
   timestamp: string;
   content: string;
+  mediaId?: string;
   mediaType?: 'image' | 'video';
   mediaUrl?: string;
   videoDuration?: string;
@@ -304,6 +317,7 @@ export interface AdminOrder {
   customerCity?: string;
   itemsCount: number;
   fulfillmentType: 'local' | 'central';
+  paymentMethod?: string;
 }
 
 export interface AdminTransferClaim {
@@ -346,6 +360,7 @@ export interface AdminAuditLog {
 }
 
 export type ScreenId =
+  | 'creator-storefront'
   | 'splash'
   | 'onboarding'
   | 'home'
@@ -506,4 +521,75 @@ export interface CouponRule {
   creatorHandle?: string;
   isActive: boolean;
   expiresAt: string;
+}
+
+export interface StockMovementLog {
+  id: string;
+  sku: string;
+  productName: string;
+  action: 'STOCK_IN' | 'STOCK_OUT' | 'INTER_HUB_TRANSFER' | 'ORDER_FULFILMENT' | 'DAMAGE_WRITE_OFF' | 'RESTOCK_RECEIVED';
+  quantity: number;
+  fromHub?: string;
+  toHub?: string;
+  actor: string;
+  reason: string;
+  timestamp: string;
+  batchNumber?: string;
+}
+
+export interface CreatorReferralLink {
+  id: string;
+  name: string;
+  url: string;
+  promoCode: string;
+  targetSku?: string;
+  discountPercent: number;
+  clicks: number;
+  orders: number;
+  conversion: string;
+  earnedNgn: number;
+  createdAt: string;
+}
+
+export interface CreatorLedgerTransaction {
+  id: string;
+  date: string;
+  orderNumber: string;
+  client: string;
+  grossOrder: string;
+  commissionRate: string;
+  netPayout: string;
+  status: 'pending' | 'cleared' | 'paid';
+  note: string;
+  type?: 'COMMISSION' | 'PAYOUT';
+}
+
+export interface DistributorLedgerTransaction {
+  id: string;
+  date: string;
+  reference: string;
+  description: string;
+  type: 'WHOLESALE_MARGIN' | 'PAYOUT' | 'RESTOCK_PURCHASE';
+  amountNgn: number;
+  status: 'pending' | 'cleared' | 'paid';
+  note: string;
+}
+
+export interface CreatorPRRequest {
+  id: string; boxId: string; boxTitle: string; creatorName: string; creatorHandle: string; creatorTier: 'Rising' | 'Verified' | 'Icon'; shippingAddress: string; requestedAt: string; dispatchedAt?: string; deliveredAt?: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'DISPATCHED' | 'DELIVERED';
+  courier?: string;
+  trackingNumber?: string;
+}
+
+export interface CreatorCampaignSubmission {
+  id: string;
+  campaignId: string;
+  campaignTitle: string;
+  creatorHandle: string;
+  creatorName: string;
+  deliverableUrl: string;
+  submittedAt: string;
+  status: 'SUBMITTED' | 'APPROVED' | 'PAID';
+  notes?: string;
 }

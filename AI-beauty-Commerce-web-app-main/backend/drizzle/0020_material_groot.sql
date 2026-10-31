@@ -1,0 +1,1 @@
+ALTER TABLE "workspace_records" ADD COLUMN "review_note" text DEFAULT '' NOT NULL;

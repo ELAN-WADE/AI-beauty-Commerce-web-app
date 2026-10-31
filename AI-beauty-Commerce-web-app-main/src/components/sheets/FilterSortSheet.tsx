@@ -31,7 +31,7 @@ export const FilterSortSheet: React.FC = () => {
 
   const concerns = [
     'All Concerns',
-    'Melanin Barrier Repair',
+    'Natural Barrier Repair',
     'Hyperpigmentation',
     'Deep Hydration',
     'Skin Glow & Radiance',

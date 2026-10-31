@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/db/client';
 import { clientIp, enforceOrigin, Errors, readJson, toErrorResponse } from '@/lib/errors';
-import { checkRateLimit, Limits } from '@/lib/rate-limit';
+import { checkRateLimit, checkSharedRateLimit, Limits } from '@/lib/rate-limit';
 import { requirePerm } from '@/lib/admin';
 import { audit } from '@/modules/audit/service';
 import { getOrderById, transitionOrder } from '@/modules/orders/service';
@@ -10,9 +10,11 @@ import { orderStatusSchema } from '@/modules/cart/validation';
 type Ctx = { params: Promise<{ id: string }> };
 
 async function gate(req: Request, perm: string) {
-  const rl = checkRateLimit(`admin:${clientIp(req)}`, Limits.admin);
-  if (!rl.allowed) throw Errors.rateLimited(60);
   const db = getDb();
+  const rl = perm === 'orders:update:status'
+    ? await checkSharedRateLimit(db, `http-write:admin:${clientIp(req)}`, Limits.adminMutation)
+    : checkRateLimit(`admin:${clientIp(req)}`, Limits.admin);
+  if (!rl.allowed) throw Errors.rateLimited(60);
   const ctx = await requirePerm(db, perm);
   return { db, ctx };
 }

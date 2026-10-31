@@ -11,9 +11,7 @@ export const POST = api(async ({ req }) => {
   if (!rl.allowed) throw Errors.rateLimited(60);
   const db = getDb();
   const who = await shopper(db, req);
-  if (!who.userId && !who.sessionId) {
-    throw Errors.badRequest('Guest carts require X-Session-Id (UUID v4).');
-  }
+  if (!who.userId) throw Errors.unauthorized('Sign in to add products to your bag.');
   const input = cartItemSchema.parse(await readJson(req));
   return NextResponse.json(await addItem(db, who, input.variantId, input.qty), { status: 201 });
 });
@@ -23,8 +21,6 @@ export const DELETE = api(async ({ req }) => {
   if (!rl.allowed) throw Errors.rateLimited(60);
   const db = getDb();
   const who = await shopper(db, req);
-  if (!who.userId && !who.sessionId) {
-    return NextResponse.json({ cartId: null as string | null, lines: [], subtotalKobo: 0 });
-  }
+  if (!who.userId) throw Errors.unauthorized('Sign in to change your bag.');
   return NextResponse.json(await clearCart(db, who));
 });

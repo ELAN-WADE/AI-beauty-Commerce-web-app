@@ -120,6 +120,62 @@
       "when": 1791637713840,
       "tag": "0016_ordinary_starfox",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1792541217258,
+      "tag": "0017_privileged_mfa",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1792564309870,
+      "tag": "0018_mfa_replay_guard",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1792701611792,
+      "tag": "0019_jittery_raider",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1792703775219,
+      "tag": "0020_material_groot",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1792736891055,
+      "tag": "0021_flashy_aqueduct",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1793013697704,
+      "tag": "0022_magical_zaran",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1793014000000,
+      "tag": "0023_crypto_payments",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1793404800000,
+      "tag": "0024_creator_social",
+      "breakpoints": true
     }
   ]
 }

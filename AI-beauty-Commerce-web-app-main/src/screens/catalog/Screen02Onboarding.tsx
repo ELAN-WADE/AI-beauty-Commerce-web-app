@@ -10,7 +10,7 @@ export const Screen02Onboarding: React.FC = () => {
   const slides = [
     {
       title: 'Health Before Beauty. Intention Before Trend.',
-      description: 'Dermatologically engineered body care and facial formulations designed for melanin-rich African skin.',
+      description: 'Dermatologically engineered body care and facial formulations designed for natural African skin.',
       image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=800&q=80',
       badge: 'Brand Philosophy'
     },

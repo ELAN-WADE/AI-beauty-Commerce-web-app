@@ -1,4 +1,4 @@
-import { boolean, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import { boolean, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
 /**
  * Feature flags (Part XIII rollout control): kill-switches and gradual
@@ -12,4 +12,13 @@ export const featureFlags = pgTable('feature_flags', {
   enabled: boolean('enabled').notNull().default(true),
   note: text('note').notNull().default(''),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const workerHeartbeats = pgTable('worker_heartbeats', {
+  id: text('id').primaryKey(),
+  status: text('status').notNull(),
+  startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
+  heartbeatAt: timestamp('heartbeat_at', { withTimezone: true }).notNull().defaultNow(),
+  completedAt: timestamp('completed_at', { withTimezone: true }),
+  results: jsonb('results').notNull().default([]),
 });

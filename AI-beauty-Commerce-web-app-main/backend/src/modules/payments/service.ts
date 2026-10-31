@@ -30,7 +30,7 @@ import {
   transferClaims,
 } from './schema';
 
-export type Provider = 'flutterwave' | 'stripe' | 'opay' | 'transfer';
+export type Provider = 'flutterwave' | 'stripe' | 'opay' | 'transfer' | 'crypto';
 
 // ---------- Provider config (env; missing keys fail closed at init time) ----------
 
@@ -92,6 +92,9 @@ export async function initPayment(
   db: AppDb,
   input: { orderId: string; provider: Provider; userId?: string; guestToken?: string; appUrl: string; idempotencyKey: string; fetchFn?: FetchFn },
 ): Promise<InitResult> {
+  if (process.env.PAYMENTS_ENABLED === 'false' || (process.env.NODE_ENV === 'production' && process.env.PAYMENTS_ENABLED !== 'true')) {
+    throw new ApiError(503, 'payments_disabled', 'Payments are not enabled yet.', false);
+  }
   const fetchFn = input.fetchFn ?? fetch;
   // Provider kill-switch first: no attempt row, no provider contact, nothing
   // to reconcile when the rail is disabled.

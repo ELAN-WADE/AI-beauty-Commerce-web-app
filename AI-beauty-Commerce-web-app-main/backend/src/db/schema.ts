@@ -21,3 +21,7 @@ export * from '../modules/content-rewards/schema';
 export * from '../modules/wholesale/schema';
 export * from '../modules/ops/schema';
 export * from '../lib/quota-schema';
+export * from '../modules/workspaces/schema';
+export * from '../modules/newsletter/schema';
+export * from '../modules/social/schema';
+export * from '../modules/crypto/schema';

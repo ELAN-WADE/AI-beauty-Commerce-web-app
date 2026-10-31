@@ -4,7 +4,7 @@ import { getDb } from '@/db/client';
 import { api, clientIp, Errors } from '@/lib/errors';
 import { checkRateLimit, Limits } from '@/lib/rate-limit';
 import { requirePerm } from '@/lib/admin';
-import { listApplications } from '@/modules/distributors/service';
+import { listApplications, applicationCounts, listDistributors } from '@/modules/distributors/service';
 
 const querySchema = z.object({ status: z.enum(['pending', 'approved', 'rejected']).optional() });
 
@@ -13,7 +13,11 @@ export const GET = api(async ({ req }) => {
   const rl = checkRateLimit(`admin:${clientIp(req)}`, Limits.admin);
   if (!rl.allowed) throw Errors.rateLimited(60);
   const db = getDb();
-  await requirePerm(db, 'products:write');
+  await requirePerm(db, 'partners:review');
   const q = querySchema.parse(Object.fromEntries(new URL(req.url).searchParams));
-  return NextResponse.json({ applications: await listApplications(db, q.status) });
+  return NextResponse.json({
+    applications: await listApplications(db, q.status),
+    counts: await applicationCounts(db),
+    distributors: await listDistributors(db, { limit: 100 }),
+  });
 });

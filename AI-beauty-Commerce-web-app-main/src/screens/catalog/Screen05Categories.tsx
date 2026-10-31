@@ -1,10 +1,22 @@
 import React from 'react';
 import { ChevronLeft, ArrowRight, Layers } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { categories } from '../../data/categories';
+
 
 export const Screen05Categories: React.FC = () => {
-  const { navigateTo, setSelectedCategory, goBack } = useApp();
+  const { categories: liveCategories, products, navigateTo, setSelectedCategory, goBack } = useApp();
+  const categories = liveCategories.length > 0
+    ? liveCategories
+    : Array.from(new Set(products.map(p => p.category))).filter(Boolean).map(slug => ({
+        id: slug,
+        name: slug.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        slug,
+        description: 'Natural luxury formulation crafted for skin resilience.',
+        image: slug === 'skincare' ? '/product_barrier_cream.jpg' : slug === 'body-care' ? '/carousel/photo_6_butter.jpg' : slug === 'fragrance' ? '/carousel/photo_3_apothecary.jpg' : slug === 'makeup' ? '/carousel/photo_7_application.jpg' : '/product_cleanser.jpg',
+        itemCount: products.filter(p => p.category === slug).length,
+        featured: true,
+        subcategories: []
+      }));
 
   const handleSelect = (slug: string) => {
     setSelectedCategory(slug);
@@ -43,7 +55,7 @@ export const Screen05Categories: React.FC = () => {
             Intentional care for every personal ritual.
           </h2>
           <p className="text-xs sm:text-sm text-[#6B7280] mt-1.5 leading-relaxed">
-            From clinical melanin-barrier body washes and whipped shea butters to extrait perfume oils and velvet lip glazes.
+            From natural barrier body washes and whipped shea butters to extrait perfume oils and velvet lip glazes.
           </p>
         </div>
 
@@ -72,7 +84,7 @@ export const Screen05Categories: React.FC = () => {
                     {cat.name}
                   </h3>
                   <p className="text-xs text-white/80 line-clamp-1 mt-0.5">
-                    {cat.description || 'Safe-conscious formulation crafted with clinical intention.'}
+                    {cat.description || 'Safe-conscious formulation crafted with natural intention.'}
                   </p>
                 </div>
               </div>

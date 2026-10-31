@@ -38,6 +38,7 @@ export interface PublicVariant {
 }
 
 export interface PublicProduct {
+  presentation: Record<string, unknown>;
   slug: string;
   name: string;
   brand: { name: string; slug: string };
@@ -78,6 +79,7 @@ function toPublicProduct(
   const prices = pubVars.map((v) => v.priceKobo);
   return {
     slug: p.slug,
+    presentation: { ...p.presentation, customBadge: /clinical/i.test(String(p.presentation?.customBadge || '')) ? '' : p.presentation?.customBadge },
     name: p.name,
     brand,
     category,
@@ -373,7 +375,7 @@ export async function createProduct(db: AppDb, input: import('./validation').Pro
 
 export async function updateProduct(db: AppDb, id: string, input: ProductUpdateInput) {
   return db.transaction(async (tx) => {
-    const { variants, ...fields } = input;
+    const { variants, images, attributes: attributeInputs, ingredients: ingredientInputs, ...fields } = input;
     let slug = fields.slug;
     if (fields.name && !slug) slug = undefined; // never auto-rename slugs (URLs are contracts)
     const [p] = await tx
@@ -385,11 +387,30 @@ export async function updateProduct(db: AppDb, id: string, input: ProductUpdateI
     if (variants) {
       for (const v of variants) {
         if (v.id) {
-          await tx.update(productVariants).set({ ...v, updatedAt: new Date() }).where(and(eq(productVariants.id, v.id), eq(productVariants.productId, id)));
+          const updated = await tx.update(productVariants).set({ ...v, updatedAt: new Date() }).where(and(eq(productVariants.id, v.id), eq(productVariants.productId, id))).returning({ id: productVariants.id });
+          if (!updated.length) throw Errors.notFound('Variant does not belong to this product.');
         } else {
           const [nv] = await tx.insert(productVariants).values({ ...v, productId: id }).returning({ id: productVariants.id });
           await tx.insert(stockLevels).values({ variantId: nv.id }).onConflictDoNothing();
         }
+      }
+    }
+    if (images) {
+      await tx.delete(productImages).where(eq(productImages.productId, id));
+      if (images.length) await tx.insert(productImages).values(images.map((image, position) => ({ ...image, position, productId: id })));
+    }
+    if (attributeInputs) {
+      await tx.delete(productAttributes).where(eq(productAttributes.productId, id));
+      for (const a of attributeInputs) {
+        const attributeId = await upsertAttribute(tx, a.name);
+        await tx.insert(productAttributes).values({ productId: id, attributeId, value: a.value }).onConflictDoNothing();
+      }
+    }
+    if (ingredientInputs) {
+      await tx.delete(productIngredients).where(eq(productIngredients.productId, id));
+      for (const i of ingredientInputs) {
+        const ingredientId = await upsertIngredient(tx, i.name, i.description);
+        await tx.insert(productIngredients).values({ productId: id, ingredientId, detail: i.detail }).onConflictDoNothing();
       }
     }
     return p;

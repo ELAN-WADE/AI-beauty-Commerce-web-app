@@ -1,4 +1,4 @@
-import { and, desc, eq, or, sql } from 'drizzle-orm';
+import { and, desc, eq, ne, or, sql } from 'drizzle-orm';
 import type { AppDb, Db } from '../../db/client';
 import { Errors } from '../../lib/errors';
 import { products } from '../catalog/schema';
@@ -20,6 +20,7 @@ export async function hasVerifiedPurchase(db: Db, userId: string, productId: str
         eq(orders.userId, userId),
         eq(productVariants.productId, productId),
         eq(orders.paymentStatus, 'PAID'),
+        ne(orders.status, 'CANCELLED'),
       ),
     )
     .limit(1);

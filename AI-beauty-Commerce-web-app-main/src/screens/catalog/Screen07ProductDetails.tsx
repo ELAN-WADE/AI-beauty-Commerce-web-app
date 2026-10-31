@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import { NavigationIcon } from '../../components/common/NavigationIcon';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Star,
   Minus,
@@ -11,7 +12,6 @@ import {
   CheckCircle2,
   MessageSquare,
   X,
-  Store,
   Check,
   ArrowRight,
   Camera
@@ -34,18 +34,29 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
     getReviewsForProduct,
     addReview,
     getPostsForProduct,
-    userProfile
+    userProfile,
+    authUser,
+    requestCustomerSignIn
   } = useApp();
 
-  // Phase 3 SSR: server renders with the ISR-seeded product so HTML already
-  // shows the right formulation; the client hydrates with the identical object
-  // (no mismatch, no "Product Not Found" flash). Context still syncs post-mount.
-  const selectedProduct = initialProduct ?? contextSelectedProduct;
+  // Phase 3 SSR & URL Resilience: resolve from initial prop, context state, URL query param, or catalogue fallback.
+  const urlProduct = useMemo(() => {
+    if (typeof window === 'undefined') return null;
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('product') || params.get('id') || params.get('slug');
+    if (!id || !products?.length) return null;
+    return products.find(p => p.id === id || p.sku === id || p.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') === id) ?? null;
+  }, [products]);
+
+  const selectedProduct = initialProduct ?? contextSelectedProduct ?? urlProduct ?? products?.[0];
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [selectedSize, setSelectedSize] = useState(
-    selectedProduct?.selectedSize || selectedProduct?.sizes[0] || 'Standard'
+    selectedProduct?.selectedSize || selectedProduct?.sizes?.[0] || 'Standard'
   );
+  const chosenVariant = selectedProduct?.variants?.find(variant => variant.sizeLabel === selectedSize);
+  const unitPrice = chosenVariant?.priceNgn ?? selectedProduct?.price ?? 0;
+  const comparePrice = chosenVariant ? chosenVariant.compareAtNgn : selectedProduct?.originalPrice;
   const [quantity, setQuantity] = useState(1);
   const [openAccordion, setOpenAccordion] = useState<string | null>('what-it-does');
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
@@ -64,9 +75,10 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
   useEffect(() => {
     if (!isOwnedApiConfigured || !selectedProductId) return;
     let cancelled = false;
-    fetchProductReviewsApi(selectedProductId)
+    setLiveReviews(null);
+    if (authUser) fetchProductReviewsApi(selectedProductId)
       .then((live) => {
-        if (!cancelled && live && live.length > 0) setLiveReviews(live);
+        if (!cancelled && live) setLiveReviews(live);
       })
       .catch(() => {});
     const firstSize = (selectedProductSizes ?? '').split('|')[0] || 'Standard';
@@ -84,7 +96,7 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
     return () => {
       cancelled = true;
     };
-  }, [selectedProductId, selectedProductSizes, selectedCity]);
+  }, [selectedProductId, selectedProductSizes, selectedCity, authUser?.id]);
 
   if (!selectedProduct) {
     return (
@@ -122,7 +134,7 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
   };
 
   const handleAddToCart = () => {
-    addToCart(selectedProduct, selectedSize, quantity);
+    if (!addToCart({ ...selectedProduct, price: unitPrice }, selectedSize, quantity)) return;
     setJustAdded(true);
     setTimeout(() => setJustAdded(false), 1500);
   };
@@ -133,11 +145,11 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
   // Reviews & Community Posts
   const productReviews = getReviewsForProduct(selectedProduct.id);
   const communityBuzzPosts = getPostsForProduct(selectedProduct.id, selectedProduct.hashtag);
-  const shownReviews = liveReviews ?? productReviews;
+  const shownReviews = authUser ? liveReviews ?? productReviews : [];
 
   // Discount calculation
-  const discountPct = selectedProduct.originalPrice && selectedProduct.originalPrice > selectedProduct.price
-    ? Math.round(((selectedProduct.originalPrice - selectedProduct.price) / selectedProduct.originalPrice) * 100)
+  const discountPct = comparePrice && comparePrice > unitPrice
+    ? Math.round(((comparePrice - unitPrice) / comparePrice) * 100)
     : selectedProduct.discountPercentage || 0;
 
   // Filter other formulations - exactly 5 items for balanced desktop 5-col row
@@ -158,31 +170,16 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
     e.preventDefault();
     if (!reviewTitle.trim() || !reviewComment.trim()) return;
 
-    addReview({
-      productId: selectedProduct.id,
-      productSku: selectedProduct.sku,
-      authorName: userProfile.name,
-      authorAvatar: userProfile.avatar,
-      rating: reviewRating,
-      title: reviewTitle,
-      comment: reviewComment,
-      verifiedPurchase: true,
-      city: selectedCity,
-      skinType: reviewSkinType,
-      photoUrl: reviewPhoto || undefined
-    });
-
-    const published = await submitReviewApi({
-      productId: selectedProduct.id,
-      rating: reviewRating,
-      title: reviewTitle,
-      comment: reviewComment
-    }).catch(() => false);
-    setReviewSyncNote(
-      published
-        ? null
-        : 'Saved on this device only — we could not reach the server. Reconnect and re-submit to publish it.'
-    );
+    if (!authUser) { requestCustomerSignIn(); return; }
+    try {
+      const saved = await submitReviewApi({ productId: selectedProduct.id, rating: reviewRating, title: reviewTitle, comment: reviewComment });
+      setReviewSyncNote(saved.review.status === 'approved' ? 'Your review was published.' : 'Your review was submitted for moderation.');
+      const reviews = await fetchProductReviewsApi(selectedProduct.id);
+      if (reviews) setLiveReviews(reviews);
+    } catch (error) {
+      setReviewSyncNote(error instanceof Error ? error.message : 'Your review was not saved. Please try again.');
+      return;
+    }
 
     setReviewTitle('');
     setReviewComment('');
@@ -263,6 +260,16 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
             {/* Commercial Badges & SKU */}
             <div className="space-y-1.5">
               <div className="flex flex-wrap items-center gap-1.5">
+                {selectedProduct.customBadge && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/30 text-[10px] font-mono font-bold uppercase tracking-wider">
+                    {selectedProduct.customBadge}
+                  </span>
+                )}
+                {selectedProduct.brandInfo?.crueltyFree && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-[#E5E7EB] text-[#4B5563] text-[10px] font-medium">
+                    Cruelty-Free
+                  </span>
+                )}
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#F3EEE3] border border-[#E5E7EB] text-[#0F0F10] text-[10px] font-semibold">
                   <CheckCircle2 size={11} className="text-[#997A2E]" />
                   Free Local Shipping in {selectedCity}
@@ -304,11 +311,11 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
             <div className="p-3.5 rounded-2xl bg-white border border-[#E5E7EB] space-y-1">
               <div className="flex items-baseline gap-2.5 flex-wrap">
                 <span className="font-price font-extrabold text-xl sm:text-2xl text-[#0F0F10]">
-                  {formatNaira(selectedProduct.price)}
+                  {formatNaira(unitPrice)}
                 </span>
-                {selectedProduct.originalPrice && selectedProduct.originalPrice > selectedProduct.price && (
+                {comparePrice && comparePrice > unitPrice && (
                   <span className="font-price text-xs sm:text-sm text-[#9CA3AF] line-through">
-                    {formatNaira(selectedProduct.originalPrice)}
+                    {formatNaira(comparePrice)}
                   </span>
                 )}
                 {discountPct > 0 && (
@@ -330,6 +337,7 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
               <div className="grid grid-cols-2 gap-2">
                 {selectedProduct.sizes?.map((size: string) => {
                   const isSelected = selectedSize === size;
+                  const sizePrice = selectedProduct.variants?.find(variant => variant.sizeLabel === size)?.priceNgn ?? unitPrice;
                   return (
                     <div
                       key={size}
@@ -345,7 +353,7 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
                           {size}
                         </span>
                         <span className="text-[10.5px] font-mono text-[#6B7280] block">
-                          {formatNaira(selectedProduct.price)}
+                          {formatNaira(sizePrice)}
                         </span>
                       </div>
                       {isSelected && (
@@ -396,28 +404,17 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
                   ) : (
                     <>
                       <ShoppingBag size={15} strokeWidth={2.2} className="text-[#D4AF37]" />
-                      <span>Add to Bag • {formatNaira(selectedProduct.price * quantity)}</span>
+                      <span>Add to Bag • {formatNaira(unitPrice * quantity)}</span>
                     </>
                   )}
                 </button>
               </div>
 
-              {/* Direct WhatsApp Local Sourcing CTA */}
+              {/* Local Sourcing Inventory Availability */}
               {liveStock && (
-                <p className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-3 py-1 text-center">
-                  Live stock: {liveStock.units} units across {liveStock.partners} verified {liveStock.partners === 1 ? 'partner' : 'partners'} in {selectedCity}
+                <p className="text-[11px] font-semibold text-emerald-700 flex items-center gap-1.5 py-1">
+                  <NavigationIcon name="location" size={14} />Live stock: {liveStock.units} units across {liveStock.partners} verified {liveStock.partners === 1 ? 'partner' : 'partners'} in {selectedCity}
                 </p>
-              )}
-              {primaryPartner && (
-                <a
-                  href={`https://wa.me/${primaryPartner.phone.replace(/[^0-9]/g, '')}?text=Hello%20${encodeURIComponent(primaryPartner.name)},%20I%20am%20ordering%20${encodeURIComponent(selectedProduct.name)}%20(${selectedSize})%20in%20${selectedCity}.`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full py-2.5 px-3 rounded-full bg-[#25D366]/10 hover:bg-[#25D366]/20 border border-[#25D366]/30 text-emerald-900 font-heading font-bold text-[11px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer active-press"
-                >
-                  <Store size={14} className="text-emerald-700" />
-                  <span>WhatsApp Pickup from {primaryPartner.name} ({selectedCity})</span>
-                </a>
               )}
             </div>
 
@@ -429,7 +426,7 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
                   onClick={() => toggleAccordion('what-it-does')}
                   className="w-full flex items-center justify-between font-bold text-[#0F0F10] text-left cursor-pointer active-press"
                 >
-                  <span>What It Does &amp; Clinical Benefits</span>
+                  <span>What It Does &amp; Natural Benefits</span>
                   <ChevronDown
                     size={15}
                     className={`transition-transform duration-200 ${
@@ -450,7 +447,7 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
                   onClick={() => toggleAccordion('ingredients')}
                   className="w-full flex items-center justify-between font-bold text-[#0F0F10] text-left cursor-pointer active-press"
                 >
-                  <span>INCI Clinical Ingredients Transparency</span>
+                  <span>INCI Natural Ingredients Transparency</span>
                   <ChevronDown
                     size={15}
                     className={`transition-transform duration-200 ${
@@ -498,10 +495,10 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
                 </div>
 
                 <button
-                  onClick={() => { setReviewSyncNote(null); setIsReviewModalOpen(true); }}
+                  onClick={() => { if (!authUser) { requestCustomerSignIn(); return; } setReviewSyncNote(null); setIsReviewModalOpen(true); }}
                   className="px-4 py-2 rounded-full bg-[#0F0F10] hover:bg-[#D4AF37] text-white hover:text-[#0F0F10] text-xs font-heading font-bold active-press transition-colors cursor-pointer shrink-0"
                 >
-                  Write Review
+                  {authUser ? 'Write Review' : 'Sign in to read reviews'}
                 </button>
               </div>
               {reviewSyncNote && (
@@ -516,10 +513,16 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
                   <div key={rev.id} className="p-3.5 rounded-2xl bg-white border border-[#E5E7EB] shadow-2xs space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <img src={rev.authorAvatar} alt={rev.authorName} className="w-7 h-7 rounded-full object-cover" />
+                        {rev.authorAvatar ? (
+                          <img src={rev.authorAvatar} alt={rev.authorName} className="w-7 h-7 rounded-full object-cover" />
+                        ) : (
+                          <div className="w-7 h-7 rounded-full bg-[#E5E7EB] text-[#4B5563] flex items-center justify-center font-bold text-[10px] uppercase">
+                            {rev.authorName ? rev.authorName.charAt(0) : 'U'}
+                          </div>
+                        )}
                         <div>
                           <span className="font-bold text-xs text-[#0F0F10] block">{rev.authorName}</span>
-                          <span className="text-[10px] text-[#263127] font-semibold">• Verified ({rev.city})</span>
+                          <span className="text-[10px] text-[#263127] font-semibold">{rev.verifiedPurchase ? 'Verified purchase' : 'Community review'}{rev.city ? ' · ' + rev.city : ''}</span>
                         </div>
                       </div>
                       <div className="flex text-[#D4AF37]">
@@ -585,7 +588,13 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
                   {communityBuzzPosts.map((post) => (
                     <div key={post.id} className="p-3.5 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] space-y-2">
                       <div className="flex items-center gap-2">
-                        <img src={post.authorAvatar} alt={post.authorName} className="w-7 h-7 rounded-full object-cover" />
+                        {post.authorAvatar ? (
+                          <img src={post.authorAvatar} alt={post.authorName} className="w-7 h-7 rounded-full object-cover" />
+                        ) : (
+                          <div className="w-7 h-7 rounded-full bg-[#E5E7EB] text-[#4B5563] flex items-center justify-center font-bold text-[10px] uppercase">
+                            {post.authorName ? post.authorName.charAt(0) : 'U'}
+                          </div>
+                        )}
                         <div>
                           <span className="font-bold text-xs text-[#0F0F10] block">{post.authorName}</span>
                           <span className="text-[10px] text-[#6B7280]">{post.authorRole}</span>
@@ -687,27 +696,11 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
                   id="review-headline"
                   type="text"
                   required
-                  placeholder="e.g. Cleared my hyperpigmentation in 3 weeks!"
+                  placeholder="Summarize your experience"
                   value={reviewTitle}
                   onChange={(e) => setReviewTitle(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl bg-[#F8F9FA] border border-[#E5E7EB] text-xs text-[#0F0F10] focus:outline-none focus:border-[#D4AF37]"
                 />
-              </div>
-
-              <div>
-                <label htmlFor="review-skin-type" className="text-xs font-semibold text-[#0F0F10] block mb-1">Skin Type</label>
-                <select
-                  id="review-skin-type"
-                  value={reviewSkinType}
-                  onChange={(e) => setReviewSkinType(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-[#F8F9FA] border border-[#E5E7EB] text-xs text-[#0F0F10] focus:outline-none focus:border-[#D4AF37]"
-                >
-                  <option value="Combination Skin">Combination Skin</option>
-                  <option value="Oily Skin">Oily Skin</option>
-                  <option value="Dry Skin">Dry Skin</option>
-                  <option value="Sensitive Skin">Sensitive Skin</option>
-                  <option value="Normal Skin">Normal Skin</option>
-                </select>
               </div>
 
               <div>
@@ -722,55 +715,6 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
                   className="w-full px-3 py-2 rounded-xl bg-[#F8F9FA] border border-[#E5E7EB] text-xs text-[#0F0F10] focus:outline-none focus:border-[#D4AF37]"
                 />
               </div>
-
-              {/* Photo Upload Attachment */}
-              <div>
-                <label className="text-xs font-semibold text-[#0F0F10] block mb-1">
-                  Photo Proof or Receipt (Optional)
-                </label>
-                {reviewPhoto ? (
-                  <div className="relative inline-block">
-                    <img
-                      src={reviewPhoto}
-                      alt="Review upload preview"
-                      className="w-20 h-20 rounded-xl object-cover border border-[#E5E7EB]"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setReviewPhoto('')}
-                      className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-[#0F0F10] text-white flex items-center justify-center text-[10px] hover:bg-rose-600 transition-colors cursor-pointer"
-                      aria-label="Remove photo"
-                    >
-                      <X size={12} />
-                    </button>
-                  </div>
-                ) : (
-                  <label className="flex items-center gap-2.5 p-3 rounded-xl border border-dashed border-[#D1D5DB] hover:border-[#D4AF37] bg-[#F9FAFB] cursor-pointer transition-colors">
-                    <Camera size={16} className="text-[#997A2E]" />
-                    <span className="text-xs text-[#6B7280]">
-                      Attach photo of your results or packaging
-                    </span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onloadend = () => {
-                            if (typeof reader.result === 'string') {
-                              setReviewPhoto(reader.result);
-                            }
-                          };
-                          reader.readAsDataURL(file);
-                        }
-                      }}
-                    />
-                  </label>
-                )}
-              </div>
-
               <div className="pt-2 flex justify-end gap-2">
                 <button
                   type="button"
@@ -786,7 +730,7 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
                   type="submit"
                   className="px-5 py-2 rounded-full bg-[#0F0F10] text-white text-xs font-bold hover:bg-[#D4AF37] hover:text-[#0F0F10] active-press transition-colors cursor-pointer"
                 >
-                  Submit Verified Review
+                  Submit Review
                 </button>
               </div>
             </form>

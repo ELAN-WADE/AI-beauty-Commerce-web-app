@@ -2,17 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { WifiOff, Wifi } from 'lucide-react';
 
 export const OfflineStatusBanner: React.FC = () => {
-  const [isOnline, setIsOnline] = useState(true);
+  const [isOnline, setIsOnline] = useState<boolean>(
+    typeof navigator !== 'undefined' ? navigator.onLine : true
+  );
   const [showReconnected, setShowReconnected] = useState(false);
 
   useEffect(() => {
-    setIsOnline(navigator.onLine);
-    let timer: ReturnType<typeof setTimeout> | undefined;
     const handleOnline = () => {
       setIsOnline(true);
       setShowReconnected(true);
-      clearTimeout(timer);
-      timer = setTimeout(() => setShowReconnected(false), 3200);
+      const timer = setTimeout(() => setShowReconnected(false), 3200);
+      return () => clearTimeout(timer);
     };
 
     const handleOffline = () => {
@@ -24,7 +24,6 @@ export const OfflineStatusBanner: React.FC = () => {
     window.addEventListener('offline', handleOffline);
 
     return () => {
-      clearTimeout(timer);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
@@ -45,13 +44,13 @@ export const OfflineStatusBanner: React.FC = () => {
       {isOnline ? (
         <>
           <Wifi size={13} className="text-emerald-300 shrink-0" />
-          <span>Connection restored. You can retry pending actions.</span>
+          <span>Connection restored • Live inventory and telemetry synchronized</span>
         </>
       ) : (
         <>
           <WifiOff size={13} className="text-[#D4AF37] shrink-0" />
           <span>
-            You are offline. Saved information may be out of date; reconnect before checking out.
+            Offline Mode • Viewing cached formulations and orders. Changes will sync when reconnected.
           </span>
         </>
       )}

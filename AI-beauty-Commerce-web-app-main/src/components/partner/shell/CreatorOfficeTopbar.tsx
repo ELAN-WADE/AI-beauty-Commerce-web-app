@@ -6,8 +6,7 @@ import {
   ChevronDown,
   Store,
   Users,
-  ExternalLink,
-  Sparkles
+  ExternalLink
 } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 
@@ -22,7 +21,8 @@ export const CreatorOfficeTopbar: React.FC<CreatorOfficeTopbarProps> = ({
   onSwitchWorkspace,
   badgeCounts = {}
 }) => {
-  const { navigateTo, loginAsDemoRole } = useApp();
+  const { navigateTo, loginAsDemoRole, authUser } = useApp();
+  const accountName = authUser?.profile?.displayName || authUser?.email || 'Creator';
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
 
   return (
@@ -105,8 +105,8 @@ export const CreatorOfficeTopbar: React.FC<CreatorOfficeTopbarProps> = ({
                 <button
                   onClick={() => {
                     setWorkspaceMenuOpen(false);
-                    loginAsDemoRole('CREATOR');
                     if (onSwitchWorkspace) onSwitchWorkspace('CREATOR');
+                    else navigateTo('creators');
                   }}
                   className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-[#0F0F10] bg-[#FAF9F6] flex items-center gap-2 cursor-pointer"
                 >
@@ -120,7 +120,6 @@ export const CreatorOfficeTopbar: React.FC<CreatorOfficeTopbarProps> = ({
                 <button
                   onClick={() => {
                     setWorkspaceMenuOpen(false);
-                    loginAsDemoRole('DISTRIBUTOR');
                     if (onSwitchWorkspace) onSwitchWorkspace('DISTRIBUTOR');
                     else navigateTo('distributor-portal');
                   }}
@@ -154,11 +153,11 @@ export const CreatorOfficeTopbar: React.FC<CreatorOfficeTopbarProps> = ({
         {/* Creator User Pill */}
         <div className="hidden lg:flex items-center gap-2 pl-2 border-l border-[#E5E7EB]">
           <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#0F0F10] to-[#27272A] text-[#D4AF37] font-bold text-xs flex items-center justify-center border border-[#D4AF37]/30">
-            A
+            {accountName.slice(0, 1).toUpperCase()}
           </div>
           <div className="leading-tight">
-            <span className="text-xs font-bold text-[#0F0F10] block">Amara</span>
-            <span className="text-[10px] font-mono text-[#997A2E] font-medium block">Luminary</span>
+            <span className="text-xs font-bold text-[#0F0F10] block">{accountName}</span>
+            <span className="text-[10px] font-mono text-[#997A2E] font-medium block">Creator</span>
           </div>
         </div>
       </div>

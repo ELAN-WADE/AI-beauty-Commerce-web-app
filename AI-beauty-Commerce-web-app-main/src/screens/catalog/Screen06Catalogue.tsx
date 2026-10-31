@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { SlidersHorizontal, ArrowUpDown } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { ProductCard } from '../../components/common/ProductCard';
@@ -6,6 +6,7 @@ import { ProductCard } from '../../components/common/ProductCard';
 export const Screen06Catalogue: React.FC = () => {
   const {
     products,
+    routineSteps: publishedRoutineSteps,
     selectedCategory,
     setSelectedCategory,
     sortOption,
@@ -13,7 +14,7 @@ export const Screen06Catalogue: React.FC = () => {
     setIsFilterSheetOpen,
     navigateTo,
     preferredDistributor,
-    addToCart
+    addToCartBatch
   } = useApp();
 
   const visualCategories = [
@@ -30,45 +31,13 @@ export const Screen06Catalogue: React.FC = () => {
   const [activeRoutineIndex, setActiveRoutineIndex] = useState(1);
   const [showSynergyDetails, setShowSynergyDetails] = useState(false);
 
-  const routineSteps = [
-    {
-      step: '01 / CLEANSE',
-      title: 'Gentle Purifying Cleanser',
-      price: 14000,
-      image: '/routine_lady_cleanse.jpg',
-      skinType: 'For All Melanin Tones • pH 5.5 Balanced',
-      benefit: 'Cleanses micro-pollutants and sebum without stripping epidermal lipids.'
-    },
-    {
-      step: '02 / MOISTURIZE',
-      title: 'Bio-Active Barrier Cream',
-      price: 22000,
-      image: '/routine_lady_moisturize.jpg',
-      skinType: 'Normal to Dry Skin • Bio-Identical Ceramides',
-      benefit: 'Replenishes lipid matrix with 48h stratum corneum seal.'
-    },
-    {
-      step: '03 / PROTECT',
-      title: 'Melanin Defense SPF 50+',
-      price: 18000,
-      image: '/routine_lady_protect.jpg',
-      skinType: 'Zero White Cast • Broad Spectrum Photoprotection',
-      benefit: 'Invisible photoprotective shield designed for deep skin tones.'
-    }
-  ];
+  const routineSteps = publishedRoutineSteps.filter(step => step.isActive !== false).flatMap((step, index) => { const product = products.find(product => product.id === (step.associatedProductId || step.productId)); return product ? [{ image: step.image || product.image, title: product.name, step: step.title, price: product.price, skinType: step.tagline, product }] : []; });
 
-  const handleAddCompleteRoutine = () => {
-    const p1 = products.find(p => p.category.toLowerCase().includes('skin')) || products[0];
-    const p2 = products.find(p => p.id === 'des-bb-01' || p.category.toLowerCase().includes('body')) || products[1];
-    const p3 = products[2] || products[0];
-    if (p1) addToCart(p1, p1.sizes?.[0] || 'Standard', 1);
-    if (p2) addToCart(p2, p2.sizes?.[0] || 'Standard', 1);
-    if (p3) addToCart(p3, p3.sizes?.[0] || 'Standard', 1);
-    navigateTo('cart');
-  };
+  const handleAddCompleteRoutine = () => { if (addToCartBatch(routineSteps.map(step => ({ product: step.product, size: step.product.sizes[0] || 'Standard', quantity: 1 })))) navigateTo('cart'); };
 
   // Filtering products
-  let filtered = products.filter((p) => {
+  const filtered = useMemo(() => {
+    const matches = products.filter((p) => {
     if (preferredDistributor && !preferredDistributor.stock?.some(s => s.productId === p.id)) return false;
     if (selectedCategory !== 'All') {
       const target = selectedCategory.toLowerCase();
@@ -87,7 +56,7 @@ export const Screen06Catalogue: React.FC = () => {
   });
 
   // Sorting
-  filtered = [...filtered].sort((a, b) => {
+  return matches.sort((a, b) => {
     switch (sortOption) {
       case 'price-low':
         return a.price - b.price;
@@ -101,6 +70,7 @@ export const Screen06Catalogue: React.FC = () => {
         return (b.isBestseller ? 1 : 0) - (a.isBestseller ? 1 : 0);
     }
   });
+  }, [products, preferredDistributor, selectedCategory, sortOption]);
 
   return (
     <div className="min-h-screen bg-white text-[#0F0F10] pb-28 font-body selection:bg-[#D4AF37]/20 selection:text-[#997A2E]">
@@ -156,11 +126,11 @@ export const Screen06Catalogue: React.FC = () => {
           </div>
 
           {/* Right Column (lg:col-span-6): Recommended Routine: 3-Step Daily Ritual */}
-          <div className="lg:col-span-6 space-y-3 lg:border-l lg:border-[#E5E7EB] lg:pl-8">
+          {routineSteps.length > 0 && (<div className="lg:col-span-6 space-y-3 lg:border-l lg:border-[#E5E7EB] lg:pl-8">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h2 className="font-heading font-bold text-base text-[#0F0F10] tracking-tight">
-                  Recommended Routine: 3-Step Daily Ritual
+                  Published Routine
                 </h2>
                 <div className="text-xs text-[#6B7280] mt-0.5">
                   <span>Formulations designed to compound together. </span>
@@ -199,8 +169,8 @@ export const Screen06Catalogue: React.FC = () => {
             <div className="flex items-center justify-between gap-4 pt-1">
               <div className="flex items-center gap-3.5 min-w-0">
                 <img
-                  src={routineSteps[activeRoutineIndex].image}
-                  alt={routineSteps[activeRoutineIndex].title}
+                  src={routineSteps[Math.min(activeRoutineIndex, routineSteps.length - 1)].image}
+                  alt={routineSteps[Math.min(activeRoutineIndex, routineSteps.length - 1)].title}
                   className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-cover shrink-0"
                   onError={(e) => {
                     (e.currentTarget as HTMLImageElement).src = '/product_barrier_cream.jpg';
@@ -208,16 +178,16 @@ export const Screen06Catalogue: React.FC = () => {
                 />
                 <div className="min-w-0">
                   <span className="text-[10px] font-mono text-[#997A2E] font-bold tracking-wider block">
-                    {routineSteps[activeRoutineIndex].step}
+                    {routineSteps[Math.min(activeRoutineIndex, routineSteps.length - 1)].step}
                   </span>
                   <h3 className="font-heading font-bold text-xs sm:text-sm text-[#0F0F10] truncate mt-0.5">
-                    {routineSteps[activeRoutineIndex].title}
+                    {routineSteps[Math.min(activeRoutineIndex, routineSteps.length - 1)].title}
                   </h3>
                   <span className="text-xs font-bold font-price text-[#0F0F10] block mt-0.5">
-                    ₦{routineSteps[activeRoutineIndex].price.toLocaleString('en-NG')}
+                    ₦{routineSteps[Math.min(activeRoutineIndex, routineSteps.length - 1)].price.toLocaleString('en-NG')}
                   </span>
                   <span className="text-[11px] text-[#6B7280] font-medium mt-0.5 truncate block max-w-xs">
-                    {routineSteps[activeRoutineIndex].skinType}
+                    {routineSteps[Math.min(activeRoutineIndex, routineSteps.length - 1)].skinType}
                   </span>
                 </div>
               </div>
@@ -239,7 +209,7 @@ export const Screen06Catalogue: React.FC = () => {
                 ))}
               </div>
             </div>
-          </div>
+          </div>)}
         </div>
 
         {/* Filter and Sort Toolbar */}

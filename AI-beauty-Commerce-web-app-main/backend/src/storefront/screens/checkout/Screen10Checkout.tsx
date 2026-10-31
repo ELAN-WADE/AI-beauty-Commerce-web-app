@@ -12,12 +12,14 @@ import {
   ChevronLeft,
   ShoppingBag
 } from 'lucide-react';
+import { creatorDiscountNaira } from '../../lib/order-journey';
 import { useApp } from '../../context/AppContext';
+import { CustomerAccess } from '../../components/auth/CustomerAccess';
 import { useViewport } from '../../context/ViewportContext';
 import { locateStockApi, resolveVariantId, isOwnedApiConfigured, type FulfilmentOption } from '../../lib/owned-api';
 import { routingKey } from '../../lib/fulfilment';
 
-export const Screen10Checkout: React.FC = () => {
+const Screen10CheckoutContent: React.FC = () => {
   const { isDesktop } = useViewport();
   const {
     cartItems,
@@ -38,9 +40,7 @@ export const Screen10Checkout: React.FC = () => {
     products,
     addToCart,
     checkoutAddress,
-    setCheckoutAddress,
-    selectedGateway,
-    setSelectedGateway
+    setCheckoutAddress
   } = useApp();
 
   const [fulfilMode, setFulfilMode] = useState<'DELIVERY' | 'PICKUP'>(checkoutFulfilment?.method ?? 'DELIVERY');
@@ -125,7 +125,7 @@ export const Screen10Checkout: React.FC = () => {
   const canContinue = !isOwnedApiConfigured || (!fulfilLoading && fulfilHasFullCart && !!selectedOption);
   const fallbackDeliveryFee = selectedCity === 'Lagos' ? 2000 : 1500;
   const currentDeliveryFee = selectedOption ? selectedOption.feeKobo / 100 : isOwnedApiConfigured ? null : fallbackDeliveryFee;
-  const creatorDiscount = activeCreatorCode ? Math.round(cartSubtotal * creatorDiscountPercent) / 100 : 0;
+  const creatorDiscount = activeCreatorCode ? creatorDiscountNaira(cartSubtotal, creatorDiscountPercent) : 0;
   const calculatedTotal = currentDeliveryFee == null ? null : Math.max(0, cartSubtotal - creatorDiscount + currentDeliveryFee);
 
   // Cross-sell items
@@ -148,18 +148,18 @@ export const Screen10Checkout: React.FC = () => {
     return (
       <div className="min-h-screen bg-white text-[#0F0F10] pb-28 font-body">
         <div className="max-w-md mx-auto px-4 py-20 text-center space-y-4">
-          <div className="w-16 h-16 rounded-full bg-[#FAF9F6] flex items-center justify-center mx-auto text-[#D4AF37]">
-            <ShoppingBag size={26} strokeWidth={1.8} />
+          <div className="w-16 h-16 rounded-full bg-[#FAF9F6] border border-[#E5E7EB] flex items-center justify-center mx-auto text-[#D4AF37]">
+            <ShoppingBag size={28} />
           </div>
-          <h2 className="font-heading font-semibold text-xl text-[#0F0F10] tracking-tight">
+          <h2 className="font-heading font-semibold text-xl text-[#0F0F10]">
             No Items in Checkout
           </h2>
           <p className="text-xs text-[#6B7280]">
-            Your shopping bag is currently empty. Explore our clinical formulations.
+            Your shopping bag is currently empty. Explore our natural formulations.
           </p>
           <button
             onClick={() => navigateTo('catalogue')}
-            className="py-3 px-6 rounded-full bg-[#0F0F10] hover:bg-[#252429] text-white font-semibold text-xs active:scale-[0.98] transition-all cursor-pointer"
+            className="py-3 px-6 rounded-full bg-[#0F0F10] text-white font-semibold text-xs active:scale-95 transition-all"
           >
             Explore Catalogue
           </button>
@@ -170,82 +170,91 @@ export const Screen10Checkout: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white text-[#0F0F10] pb-36 font-body selection:bg-[#D4AF37]/20 selection:text-[#997A2E]">
-      <main className="max-w-7xl mx-auto px-4 lg:px-8 pt-4">
+      <main className="max-w-7xl mx-auto px-4 lg:px-8 pt-3">
         {/* Step Progress Header */}
-        <div className="flex items-center justify-between pb-4 mb-6 border-b border-[#E5E7EB]/60">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={goBack}
-              className="w-8 h-8 rounded-full bg-[#FAF9F6] hover:bg-[#F0EDE8] flex items-center justify-center text-[#0F0F10] transition-colors cursor-pointer"
-              aria-label="Back to bag"
-            >
-              <ChevronLeft size={16} />
-            </button>
-            <div>
-              <h1 className="font-heading font-semibold text-base sm:text-lg text-[#0F0F10] tracking-tight">
-                Fulfillment &amp; Checkout
-              </h1>
-              <p className="text-xs text-[#6B7280]">Verified dispatch across Lagos, Abuja &amp; nationwide</p>
-            </div>
+        <div className="flex items-center justify-between pb-3 mb-4 border-b border-[#E5E7EB]">
+          <div>
+            <h1 className="font-heading font-extrabold text-base text-[#0F0F10] leading-none">
+              Checkout &amp; Fulfillment
+            </h1>
+            <p className="text-[11px] text-[#6B7280] mt-0.5">Secure local Lagos &amp; national dispatch</p>
           </div>
-          <nav aria-label="Checkout Progress" className="hidden sm:flex items-center gap-2 text-xs">
-            <button type="button" onClick={() => navigateTo('cart')} className="text-[#6B7280] hover:text-[#0F0F10] transition-colors cursor-pointer">Bag</button>
-            <span className="text-[#D1D5DB]">/</span>
-            <span className="font-semibold text-[#0F0F10] bg-[#FAF9F6] px-2.5 py-1 rounded-full">Fulfillment</span>
-            <span className="text-[#D1D5DB]">/</span>
-            <span className="text-[#9CA3AF]">Payment</span>
-            <span className="text-[#D1D5DB]">/</span>
-            <span className="text-[#9CA3AF]">Confirmation</span>
-          </nav>
+          <span className="text-xs font-mono font-bold text-[#997A2E] bg-[#FBF5E8] px-2.5 py-0.5 rounded-full border border-[#D4AF37]/30">
+            Step 2 of 4
+          </span>
         </div>
-
         {/* DUAL-GRID CHECKOUT SYSTEM */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
-          {/* LEFT COLUMN: Fulfillment Choice, Address Form & Payment Gateway Selection (7 cols) */}
-          <div className="lg:col-span-7 space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* LEFT COLUMN: Customer Info, Fulfillment Choice & Address Form (7 cols) */}
+          <div className="lg:col-span-7 space-y-5">
+            {/* 4-Step Visual Progress Stepper */}
+            <div className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] shadow-xs">
+              <div className="flex items-center justify-between relative">
+                <div className="absolute top-1/2 left-4 right-4 h-0.5 bg-[#E5E7EB] -translate-y-1/2 z-0" />
 
-            {/* Fulfilment Method Segmented Control & Live Node Picker */}
-            <section className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="font-heading font-semibold text-sm text-[#0F0F10] tracking-tight">
-                    1. Method of Fulfillment
-                  </h2>
-                  <p className="text-xs text-[#6B7280]">Choose doorstep delivery or local hub pickup</p>
+                {/* Step 1: Customer */}
+                <div className="relative z-10 flex flex-col items-center">
+                  <div className="w-7 h-7 rounded-full bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center text-xs font-bold shadow-xs">
+                    <Check size={14} strokeWidth={2.6} />
+                  </div>
+                  <span className="text-[10px] font-semibold text-[#6B7280] mt-1">Customer</span>
                 </div>
-                <span className="text-[11px] font-mono font-semibold text-[#997A2E] bg-[#FAF9F6] px-2.5 py-1 rounded-full">
+
+                {/* Step 2: Delivery */}
+                <div className="relative z-10 flex flex-col items-center">
+                  <div className="w-7 h-7 rounded-full bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center text-xs font-extrabold shadow-xs">
+                    2
+                  </div>
+                  <span className="text-[10px] font-bold text-[#0F0F10] mt-1">Fulfillment</span>
+                </div>
+
+                {/* Step 3: Order Review */}
+                <div className="relative z-10 flex flex-col items-center">
+                  <div className="w-7 h-7 rounded-full bg-white border-2 border-gray-300 text-gray-400 flex items-center justify-center text-xs font-bold">
+                    3
+                  </div>
+                  <span className="text-[10px] font-medium text-gray-400 mt-1">Review</span>
+                </div>
+
+                {/* Step 4: Pay */}
+                <div className="relative z-10 flex flex-col items-center">
+                  <div className="w-7 h-7 rounded-full bg-white border-2 border-gray-300 text-gray-400 flex items-center justify-center text-xs font-bold">
+                    4
+                  </div>
+                  <span className="text-[10px] font-medium text-gray-400 mt-1">Payment</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Fulfilment: delivery or pickup from a location holding the whole bag */}
+            <div className="p-5 rounded-2xl bg-white border border-[#E5E7EB] shadow-xs space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-heading font-bold text-sm text-[#0F0F10]">
+                  1. Delivery or pickup
+                </h3>
+                <span className="text-[11px] font-mono text-[#997A2E] font-bold">
                   {formData.city || selectedCity}
                 </span>
               </div>
 
-              {/* Segmented Pill Control */}
-              <div className="p-1.5 bg-[#FAF9F6] rounded-2xl flex gap-1" role="group" aria-label="Fulfilment method">
-                {(['DELIVERY', 'PICKUP'] as const).map((mode) => {
-                  const isActive = fulfilMode === mode;
-                  return (
-                    <button
-                      key={mode}
-                      type="button"
-                      onClick={() => setFulfilMode(mode)}
-                      aria-pressed={isActive}
-                      className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-2 ${
-                        isActive
-                          ? 'bg-white text-[#0F0F10] shadow-xs'
-                          : 'text-[#6B7280] hover:text-[#0F0F10]'
-                      }`}
-                    >
-                      {mode === 'DELIVERY' ? <Truck size={14} /> : <Store size={14} />}
-                      <span>{mode === 'DELIVERY' ? 'Doorstep Delivery' : 'Pickup in Store'}</span>
-                    </button>
-                  );
-                })}
+              <div className="grid grid-cols-2 gap-2" role="group" aria-label="Fulfilment method">
+                {(['DELIVERY', 'PICKUP'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setFulfilMode(mode)}
+                    aria-pressed={fulfilMode === mode}
+                    className={`py-2.5 rounded-xl border-2 text-xs font-bold transition-all cursor-pointer ${
+                      fulfilMode === mode ? 'border-[#D4AF37] bg-[#FBF5E8]/60 text-[#0F0F10]' : 'border-[#E5E7EB] bg-[#FAF9F6] text-[#4B5563]'
+                    }`}
+                  >
+                    {mode === 'DELIVERY' ? 'Deliver to me' : 'Pick up'}
+                  </button>
+                ))}
               </div>
 
               {fulfilLoading ? (
-                <div className="p-4 rounded-2xl bg-[#FAF9F6]/50 text-xs text-[#6B7280]">
-                  Checking live availability across dispatch nodes…
-                </div>
+                <p className="text-[11px] text-[#6B7280]">Checking live availability…</p>
               ) : fulfilOptions && fulfilOptions.length > 0 ? (
                 <div className="space-y-2" role="radiogroup" aria-label={fulfilMode === 'DELIVERY' ? 'Delivery options' : 'Pickup points'}>
                   {fulfilOptions.map((option) => {
@@ -257,19 +266,17 @@ export const Screen10Checkout: React.FC = () => {
                         onClick={() => setFulfilLocationId(option.locationId)}
                         role="radio"
                         aria-checked={selected}
-                        className={`w-full text-left p-4 rounded-2xl transition-all cursor-pointer ${
-                          selected
-                            ? 'bg-[#FAF9F6] ring-1.5 ring-[#0F0F10]'
-                            : 'bg-[#FAF9F6]/40 hover:bg-[#FAF9F6] text-[#4B5563]'
+                        className={`w-full text-left p-3.5 rounded-xl border-2 transition-all cursor-pointer ${
+                          selected ? 'border-[#D4AF37] bg-[#FBF5E8]/60' : 'border-[#E5E7EB] bg-[#FAF9F6] hover:border-gray-300'
                         }`}
                       >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="space-y-0.5">
-                            <span className="font-semibold text-xs text-[#0F0F10] block">{option.name}</span>
-                            <span className="text-[11px] text-[#6B7280] block">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <span className="font-bold text-xs text-[#0F0F10] block">{option.name}</span>
+                            <span className="text-[11px] text-[#6B7280] block mt-0.5">
                               {option.city}{option.address ? ` • ${option.address}` : ''}{fulfilMode === 'PICKUP' && option.operatingHours ? ` • ${option.operatingHours}` : ''}
                             </span>
-                            <span className="text-[11px] text-[#997A2E] font-medium block">{option.etaText}</span>
+                            <span className="text-[11px] text-[#6B7280] block mt-0.5">{option.etaText}</span>
                           </div>
                           <span className="font-mono font-bold text-xs text-[#0F0F10] shrink-0">
                             {option.feeKobo === 0 ? 'Free' : formatNaira(Math.round(option.feeKobo / 100))}
@@ -280,211 +287,131 @@ export const Screen10Checkout: React.FC = () => {
                   })}
                 </div>
               ) : (
-                <p className="text-xs text-[#6B7280] leading-relaxed">
+                <p className="text-[11px] text-[#6B7280]">
                   {isOwnedApiConfigured
-                    ? 'Enter your city below and verified fulfillment options will populate automatically.'
-                    : `Standard dispatch from ${selectedCity}. Live inventory verified.`}
+                    ? 'Enter your city below and live fulfilment options will appear here.'
+                    : `Standard dispatch from ${selectedCity}. Connect the live backend for verified local stock.`}
                 </p>
               )}
-              {preferredDistributor && (
-                <p className="text-xs text-[#6B7280]">
-                  Preferred store: <span className="text-[#0F0F10] font-medium">{preferredDistributor.location?.name}</span>. If unavailable for full order, select an alternate hub.
-                </p>
-              )}
-              {fulfilError && (
-                <div className="p-3 rounded-xl bg-rose-50 text-rose-700 text-xs flex items-center justify-between">
-                  <span>{fulfilError}</span>
-                  <button type="button" disabled={fulfilLoading} onClick={() => setRetryRouting(n => n + 1)} className="underline font-semibold cursor-pointer">
-                    Retry
-                  </button>
-                </div>
-              )}
+              {preferredDistributor && <p className="text-xs text-[#6B7280]">Preferred store: {preferredDistributor.location?.name}. If it cannot fulfil the complete bag, choose another option explicitly.</p>}
+              {fulfilError && <div className="space-y-2"><p role="alert" className="text-xs text-rose-600">{fulfilError}</p><button type="button" disabled={fulfilLoading} onClick={() => setRetryRouting(n => n + 1)} className="text-xs underline min-h-11">Retry availability</button></div>}
               {!fulfilHasFullCart && fulfilOptions && fulfilOptions.length === 0 && (
-                <p className="text-xs text-[#6B7280]">
-                  One location must hold every item in your bag. Consider doorstep delivery or adjusting line items.
-                </p>
+                <p className="text-[11px] text-[#6B7280]">One location must hold every item in your bag. Try removing an item or choosing delivery.</p>
               )}
-            </section>
+            </div>
 
-            {/* Recipient & Delivery Address Form */}
-            <form onSubmit={handleContinueToPayment} className="space-y-6 pt-4 border-t border-[#E5E7EB]/60">
-              <div>
-                <h2 className="font-heading font-semibold text-sm text-[#0F0F10] tracking-tight">
-                  2. Recipient &amp; Delivery Details
-                </h2>
-                <p className="text-xs text-[#6B7280]">Where should our couriers dispatch this order?</p>
-              </div>
+            {/* Delivery Address Form */}
+            <form onSubmit={handleContinueToPayment} className="p-5 rounded-2xl bg-white border border-[#E5E7EB] shadow-xs space-y-4">
+              <h3 className="font-heading font-bold text-sm text-[#0F0F10]">
+                2. Recipient &amp; Delivery Address
+              </h3>
 
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  <div>
-                    <label className="text-[11px] font-medium text-[#6B7280] block mb-1.5">Full Name</label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.fullName}
-                      onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl bg-[#FAF9F6] text-xs text-[#0F0F10] placeholder-[#9CA3AF] focus:bg-white focus:outline-none focus:ring-1.5 focus:ring-[#0F0F10] transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[11px] font-medium text-[#6B7280] block mb-1.5">Phone (WhatsApp updates)</label>
-                    <input
-                      type="tel"
-                      required
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl bg-[#FAF9F6] text-xs text-[#0F0F10] placeholder-[#9CA3AF] focus:bg-white focus:outline-none focus:ring-1.5 focus:ring-[#0F0F10] transition-all"
-                    />
-                  </div>
-                </div>
-
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-medium text-[#6B7280] block mb-1.5">Street Address / Estate</label>
+                  <label className="text-[11px] font-bold text-[#4B5563] block mb-1">Full Name</label>
                   <input
                     type="text"
                     required
-                    value={formData.street}
-                    onChange={(e) => setFormData({ ...formData, street: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl bg-[#FAF9F6] text-xs text-[#0F0F10] placeholder-[#9CA3AF] focus:bg-white focus:outline-none focus:ring-1.5 focus:ring-[#0F0F10] transition-all"
+                    value={formData.fullName}
+                    onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] text-xs text-[#0F0F10] focus:outline-none focus:border-[#D4AF37]"
                   />
                 </div>
-
-                <div className="grid grid-cols-2 gap-3.5">
-                  <div>
-                    <label className="text-[11px] font-medium text-[#6B7280] block mb-1.5">City</label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.city}
-                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl bg-[#FAF9F6] text-xs text-[#0F0F10] placeholder-[#9CA3AF] focus:bg-white focus:outline-none focus:ring-1.5 focus:ring-[#0F0F10] transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[11px] font-medium text-[#6B7280] block mb-1.5">State</label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.state}
-                      onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl bg-[#FAF9F6] text-xs text-[#0F0F10] placeholder-[#9CA3AF] focus:bg-white focus:outline-none focus:ring-1.5 focus:ring-[#0F0F10] transition-all"
-                    />
-                  </div>
-                </div>
-
                 <div>
-                  <label className="text-[11px] font-medium text-[#6B7280] block mb-1.5">Delivery Instructions (Optional)</label>
+                  <label className="text-[11px] font-bold text-[#4B5563] block mb-1">Phone Number (WhatsApp)</label>
+                  <input
+                    type="tel"
+                    required
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] text-xs text-[#0F0F10] focus:outline-none focus:border-[#D4AF37]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-[#4B5563] block mb-1">Street Address</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.street}
+                  onChange={(e) => setFormData({ ...formData, street: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] text-xs text-[#0F0F10] focus:outline-none focus:border-[#D4AF37]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-bold text-[#4B5563] block mb-1">City</label>
                   <input
                     type="text"
-                    value={formData.deliveryNotes}
-                    onChange={(e) => setFormData({ ...formData, deliveryNotes: e.target.value })}
-                    placeholder="Gate access code, landmarks, estate security instructions..."
-                    className="w-full px-4 py-3 rounded-xl bg-[#FAF9F6] text-xs text-[#0F0F10] placeholder-[#9CA3AF] focus:bg-white focus:outline-none focus:ring-1.5 focus:ring-[#0F0F10] transition-all"
+                    required
+                    value={formData.city}
+                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] text-xs text-[#0F0F10] focus:outline-none focus:border-[#D4AF37]"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-[#4B5563] block mb-1">State</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.state}
+                    onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] text-xs text-[#0F0F10] focus:outline-none focus:border-[#D4AF37]"
                   />
                 </div>
               </div>
 
-              {/* 3. Choose Payment Gateway */}
-              <div className="space-y-3 pt-4 border-t border-[#E5E7EB]/60">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="font-heading font-semibold text-sm text-[#0F0F10] tracking-tight">
-                      3. Select Payment Channel
-                    </h2>
-                    <p className="text-xs text-[#6B7280]">Official PCI-DSS compliant payment infrastructure</p>
-                  </div>
-                  <span className="text-[10px] font-mono font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full">
-                    Instant Clearance
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {/* Stripe Gateway Option */}
-                  <button
-                    type="button"
-                    onClick={() => setSelectedGateway('stripe')}
-                    className={`p-4 rounded-2xl text-left transition-all cursor-pointer ${
-                      selectedGateway === 'stripe'
-                        ? 'bg-[#FAF9F6] ring-1.5 ring-[#0F0F10]'
-                        : 'bg-[#FAF9F6]/40 hover:bg-[#FAF9F6]'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="font-heading font-bold text-xs tracking-wider text-[#635BFF]">
-                        stripe
-                      </span>
-                      <span className="text-[10px] font-mono text-[#6B7280]">Global</span>
-                    </div>
-                    <p className="text-[11px] text-[#6B7280] leading-snug">
-                      International Cards (Visa/MC/Amex), Apple Pay &amp; Google Pay.
-                    </p>
-                  </button>
-
-                  {/* Flutterwave Gateway Option */}
-                  <button
-                    type="button"
-                    onClick={() => setSelectedGateway('flutterwave')}
-                    className={`p-4 rounded-2xl text-left transition-all cursor-pointer ${
-                      selectedGateway === 'flutterwave'
-                        ? 'bg-[#FAF9F6] ring-1.5 ring-[#0F0F10]'
-                        : 'bg-[#FAF9F6]/40 hover:bg-[#FAF9F6]'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="font-heading font-bold text-xs tracking-wider text-[#FB7701]">
-                        flutterwave
-                      </span>
-                      <span className="text-[10px] font-mono text-[#6B7280]">Nigeria &amp; Africa</span>
-                    </div>
-                    <p className="text-[11px] text-[#6B7280] leading-snug">
-                      Debit Cards, Dedicated Bank Transfer, USSD &amp; Barter.
-                    </p>
-                  </button>
-                </div>
+              <div>
+                <label className="text-[11px] font-bold text-[#4B5563] block mb-1">Delivery Instructions (Optional)</label>
+                <input
+                  type="text"
+                  value={formData.deliveryNotes}
+                  onChange={(e) => setFormData({ ...formData, deliveryNotes: e.target.value })}
+                  placeholder="Gate code, landmarks, special notes..."
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] text-xs text-[#0F0F10] focus:outline-none focus:border-[#D4AF37]"
+                />
               </div>
+
+              <div className="space-y-2 border-t border-[#E5E7EB] pt-3"><h3 className="text-sm font-bold">3. Continue to payment</h3><p className="text-xs text-[#6B7280]">Review this order, then choose your payment gateway on the next step.</p></div>
 
               <button
                 type="submit"
                 disabled={!canContinue}
-                className="w-full py-4 rounded-full bg-[#0F0F10] hover:bg-[#252429] text-white font-heading font-medium text-xs tracking-wider uppercase flex items-center justify-center gap-2 active:scale-[0.99] transition-all cursor-pointer disabled:opacity-40"
+                className="w-full py-4 rounded-full bg-[#0F0F10] hover:bg-[#1F1D22] text-white font-heading font-extrabold text-sm shadow-xl flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer mt-4 disabled:opacity-50"
               >
-                <span>Continue to {selectedGateway === 'stripe' ? 'Stripe' : 'Flutterwave'} Payment</span>
-                <ArrowRight size={15} />
+                <span>Continue to payment</span>
+                <ArrowRight size={16} />
               </button>
             </form>
           </div>
 
-          {/* RIGHT COLUMN: Architectural Summary & Cross-Sell (5 cols) */}
-          <div className="lg:col-span-5 space-y-5 lg:sticky lg:top-24">
-            {/* Order Summary Panel */}
-            <div className="bg-[#FAF9F6] rounded-3xl p-6 sm:p-7 space-y-5">
-              <div className="flex items-center justify-between">
-                <h3 className="font-heading font-semibold text-sm text-[#0F0F10] tracking-tight">
-                  Bag Summary
-                </h3>
-                <span className="text-xs text-[#6B7280]">
-                  {cartItems.length} {cartItems.length === 1 ? 'item' : 'items'}
-                </span>
-              </div>
+          {/* RIGHT COLUMN: Order Summary & "Complete Your Routine" Cross-Sell (5 cols) */}
+          <div className="lg:col-span-5 space-y-4 lg:sticky lg:top-24">
+            {/* Order Summary Box */}
+            <div className="p-5 rounded-2xl bg-white border border-[#E5E7EB] shadow-xs space-y-4">
+              <h3 className="font-heading font-bold text-sm text-[#0F0F10]">
+                Order Summary ({cartItems.length} items)
+              </h3>
 
-              <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
+              <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
                 {cartItems.map((item) => (
-                  <div key={`${item.productId}-${item.size}`} className="flex items-center gap-3.5 py-2 border-b border-[#E5E7EB]/50">
+                  <div key={`${item.productId}-${item.size}`} className="flex items-center gap-3 py-2 border-b border-[#E5E7EB]">
                     <img
                       src={item.product.image}
                       alt={item.product.name}
-                      className="w-12 h-12 rounded-xl object-cover bg-[#F0EDE8] shrink-0"
+                      className="w-12 h-12 rounded-lg object-cover bg-[#F6F5F2] border border-[#E5E7EB] shrink-0"
                     />
                     <div className="flex-1 min-w-0 text-xs">
-                      <span className="font-medium text-[#0F0F10] block truncate">
+                      <span className="font-bold text-[#0F0F10] block truncate">
                         {item.product.name}
                       </span>
-                      <span className="text-[11px] text-[#6B7280]">
+                      <span className="text-[10px] text-[#6B7280]">
                         Qty: {item.quantity} • {item.size}
                       </span>
                     </div>
-                    <span className="font-mono font-medium text-xs text-[#0F0F10]">
+                    <span className="font-mono font-bold text-xs text-[#0F0F10]">
                       {formatNaira(item.unitPrice * item.quantity)}
                     </span>
                   </div>
@@ -492,37 +419,34 @@ export const Screen10Checkout: React.FC = () => {
               </div>
 
               {/* Price Calculations */}
-              <div className="space-y-2 pt-1 text-xs">
+              <div className="space-y-2 pt-2 text-xs">
                 <div className="flex justify-between text-[#6B7280]">
                   <span>Subtotal</span>
-                  <span className="font-mono text-[#0F0F10]">{formatNaira(cartSubtotal)}</span>
+                  <span className="font-mono font-medium text-[#0F0F10]">{formatNaira(cartSubtotal)}</span>
                 </div>
                 {activeCreatorCode && (
-                  <div className="flex justify-between text-[#997A2E] font-medium">
-                    <span>Creator discount ({creatorDiscountPercent}%)</span>
+                  <div className="flex justify-between text-[#0F0F10] font-semibold">
+                    <span>Creator code ({creatorDiscountPercent}% off)</span>
                     <span className="font-mono">-{formatNaira(creatorDiscount)}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-[#6B7280]">
-                  <span>{fulfilMode === 'PICKUP' ? 'Store Pickup' : 'Delivery'}{selectedOption ? ` (${selectedOption.name})` : ''}</span>
-                  <span className="font-mono text-[#0F0F10]">
-                    {currentDeliveryFee == null ? 'Awaiting selection' : formatNaira(currentDeliveryFee)}
-                  </span>
+                  <span>{fulfilMode === 'PICKUP' ? 'Pickup' : 'Delivery'}{selectedOption ? ` (${selectedOption.name})` : ''}</span>
+                  <span className="font-mono font-medium text-[#0F0F10]">{currentDeliveryFee == null ? 'Awaiting availability' : formatNaira(currentDeliveryFee)}</span>
                 </div>
-                <div className="pt-3 border-t border-[#E5E7EB]/60 flex justify-between items-baseline">
-                  <span className="text-xs font-semibold text-[#0F0F10] uppercase tracking-wider">Total Due</span>
-                  <span className="font-price font-semibold text-2xl text-[#0F0F10]">
-                    {calculatedTotal == null ? '—' : formatNaira(calculatedTotal)}
-                  </span>
+                <div className="pt-3 border-t border-[#E5E7EB] flex justify-between items-center text-sm font-bold text-[#0F0F10]">
+                  <span>Total Due</span>
+                  <span className="font-price font-extrabold text-xl text-[#0F0F10]">{calculatedTotal == null ? 'Choose fulfilment' : formatNaira(calculatedTotal)}</span>
                 </div>
               </div>
             </div>
 
             {/* "Complete Your Routine" Cross-Sell Add-ons */}
             {routineAddons.length > 0 && (
-              <div className="bg-[#FAF9F6] rounded-3xl p-5 space-y-3">
-                <div className="flex items-center gap-2">
-                  <span className="font-heading font-semibold text-xs text-[#0F0F10] tracking-tight">
+              <div className="p-4 rounded-2xl bg-white border border-[#E5E7EB] shadow-xs space-y-3">
+                <div className="flex items-center gap-1.5">
+                  <ShieldCheck size={14} className="text-[#D4AF37]" />
+                  <span className="font-heading font-bold text-xs text-[#0F0F10]">
                     Complete Your Routine
                   </span>
                 </div>
@@ -531,25 +455,24 @@ export const Screen10Checkout: React.FC = () => {
                   {routineAddons.map((product) => (
                     <div
                       key={product.id}
-                      className="p-3 rounded-2xl bg-white flex items-center gap-3 text-xs shadow-2xs"
+                      className="p-2.5 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] flex items-center gap-3 text-xs"
                     >
                       <img
                         src={product.image}
                         alt={product.name}
-                        className="w-11 h-11 rounded-xl object-cover bg-[#F0EDE8] shrink-0"
+                        className="w-11 h-11 rounded-lg object-cover bg-[#F6F5F2] shrink-0"
                       />
                       <div className="flex-1 min-w-0">
-                        <span className="font-medium text-[#0F0F10] block truncate text-[11.5px]">
+                        <span className="font-bold text-[#0F0F10] block truncate text-[11.5px]">
                           {product.name}
                         </span>
-                        <span className="font-mono text-[#997A2E] text-[11px] font-semibold">
+                        <span className="font-mono font-bold text-[#997A2E] text-[11px]">
                           {formatNaira(product.price)}
                         </span>
                       </div>
                       <button
-                        type="button"
                         onClick={() => addToCart(product, product.sizes?.[0] || 'Standard', 1)}
-                        className="px-3 py-1.5 rounded-full bg-[#0F0F10] text-white font-medium text-[10px] hover:bg-[#252429] active:scale-[0.98] transition-all shrink-0 cursor-pointer"
+                        className="px-2.5 py-1 rounded-lg bg-[#0F0F10] text-white font-bold text-[10px] hover:bg-[#D4AF37] hover:text-[#0F0F10] active:scale-95 transition-all shrink-0 cursor-pointer"
                       >
                         + Add
                       </button>
@@ -559,14 +482,14 @@ export const Screen10Checkout: React.FC = () => {
               </div>
             )}
 
-            {/* Quiet Escrow & Security Trust Reassurance */}
-            <div className="p-4 rounded-2xl bg-[#FAF9F6] flex items-center gap-3.5 text-xs text-[#6B7280]">
-              <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center text-[#997A2E] shrink-0 shadow-2xs">
-                <ShieldCheck size={18} />
+            {/* Stripe & Flutterwave SSL & Security Trust Badges */}
+            <div className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] shadow-xs flex items-center gap-3 text-xs text-[#6B7280]">
+              <div className="w-10 h-10 rounded-xl bg-white border border-[#E5E7EB] flex items-center justify-center text-[#997A2E] shrink-0 shadow-xs">
+                <ShieldCheck size={20} />
               </div>
               <div className="text-[11px] leading-snug">
-                <span className="font-semibold text-[#0F0F10] block">256-Bit SSL Encrypted Checkout</span>
-                <span>Protected by Flutterwave &amp; Stripe Payment Infrastructure. Escrow guaranteed.</span>
+                <span className="font-bold text-[#0F0F10] block">256-Bit SSL Encrypted Checkout</span>
+                <span>Protected by Stripe &amp; Flutterwave Payment Infrastructure. Payment status is verified by the server.</span>
               </div>
             </div>
           </div>
@@ -575,3 +498,4 @@ export const Screen10Checkout: React.FC = () => {
     </div>
   );
 };
+export const Screen10Checkout: React.FC = () => <CustomerAccess title="Sign in to check out"><Screen10CheckoutContent /></CustomerAccess>;

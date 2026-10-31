@@ -9,12 +9,12 @@
  */
 import { z } from 'zod';
 import { getDb } from '@/db/client';
-import { checkRateLimit, Limits } from '@/lib/rate-limit';
+import { checkSharedRateLimit, Limits } from '@/lib/rate-limit';
 import { requireAuth } from '@/modules/auth/require-auth';
 import { getProfile } from '@/modules/users/service';
 import { createPost, postMessage, togglePostLike } from '@/modules/community/service';
 import { chatMessageSchema } from '@/modules/community/validation';
-import { actionClientIp, toActionFailure, type ActionResult } from './_shared';
+import { toActionFailure, type ActionResult } from './_shared';
 
 const CHAT_LIMIT = { limit: 30, windowMs: 60_000 };
 
@@ -26,7 +26,7 @@ export async function createPostAction(input: {
   try {
     const db = getDb();
     const ctx = await requireAuth(db);
-    if (!checkRateLimit(`action:posts:${ctx.userId}`, Limits.posts).allowed) {
+    if (!(await checkSharedRateLimit(db, `action:posts:${ctx.userId}`, Limits.posts)).allowed) {
       return { ok: false, status: 429, code: 'rate_limited', message: 'Posting too fast. Slow down.' };
     }
     // Client sends slug-or-uuid product tags; service takes uuid — resolve
@@ -81,7 +81,7 @@ export async function likePostAction(postId: string): Promise<ActionResult<{ lik
   try {
     const db = getDb();
     const ctx = await requireAuth(db);
-    if (!checkRateLimit(`action:likes:${ctx.userId}`, Limits.wishlist).allowed) {
+    if (!(await checkSharedRateLimit(db, `action:likes:${ctx.userId}`, Limits.wishlist)).allowed) {
       return { ok: false, status: 429, code: 'rate_limited', message: 'Too many requests. Slow down and try again.' };
     }
     const id = z.string().uuid().parse(postId);
@@ -96,9 +96,9 @@ export async function likePostAction(postId: string): Promise<ActionResult<{ lik
 export async function sendChatAction(channel: string, message: string): Promise<ActionResult<{ id: string }>> {
   try {
     const db = getDb();
-    const rl = checkRateLimit(`action:chat:${await actionClientIp()}`, CHAT_LIMIT);
-    if (!rl.allowed) return { ok: false, status: 429, code: 'rate_limited', message: 'Chatting too fast. Slow down.' };
     const ctx = await requireAuth(db);
+    const rl = await checkSharedRateLimit(db, `action:chat:${ctx.userId}`, CHAT_LIMIT);
+    if (!rl.allowed) return { ok: false, status: 429, code: 'rate_limited', message: 'Chatting too fast. Slow down.' };
     const parsed = chatMessageSchema.parse({ channel, message });
     const profile = await getProfile(db, ctx.userId).catch(() => null);
     const msg = await postMessage(

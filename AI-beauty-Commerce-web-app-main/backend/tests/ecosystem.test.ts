@@ -51,7 +51,8 @@ describe('community guardrails', () => {
     expect(createPostSchema.safeParse({ ...base, content: 'x'.repeat(2001) }).success).toBe(false);
     expect(createPostSchema.safeParse({ ...base, mediaType: 'image' }).success).toBe(false);
     expect(createPostSchema.safeParse({ ...base, mediaType: 'image', mediaUrl: 'https://x/y.jpg' }).success).toBe(true);
-    expect(createPostSchema.safeParse({ ...base, taggedProductId: 'nope' }).success).toBe(false);
+    expect(createPostSchema.safeParse({ ...base, taggedProductId: '' }).success).toBe(false);
+    expect(createPostSchema.safeParse({ ...base, taggedProductId: 'facial-serum' }).success).toBe(true);
   });
 
   it('bounds chat messages and strips control fields', () => {

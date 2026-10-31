@@ -12,17 +12,10 @@ export const POST = api(async ({ req }) => {
   if (!rl.allowed) throw Errors.rateLimited(60);
 
   const input = registerSchema.parse(await readJson(req));
+  if (!(await checkSharedRateLimit(db, `register-email:${input.email}`, Limits.register)).allowed) throw Errors.rateLimited(60);
   const result = await register(db, input);
 
   const body: Record<string, unknown> = { ok: true, email: result.email };
-  if (result.created && result.verificationToken) {
-    // Token and outbox are committed atomically by register().
-    // No authenticated session until proof of email ownership and real login.
-    // Dev-only escape hatch: echoed so the developer can verify without email. NEVER in staging/prod.
-    if (process.env.NODE_ENV === 'development') {
-      body._devVerificationToken = result.verificationToken;
-    }
-  }
   // Existing email → identical 201 shape, no cookie (anti-enumeration, §12.8).
   return NextResponse.json(body, { status: 201 });
 });

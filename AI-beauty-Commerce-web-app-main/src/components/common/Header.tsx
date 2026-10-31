@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, ShoppingBag, Search, User } from 'lucide-react';
+import { ChevronLeft, ShoppingBag, Search, User, Users } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { BrandLogo } from './BrandLogo';
 
@@ -18,7 +18,7 @@ export const Header: React.FC<HeaderProps> = ({ title, showBack }) => {
     authUser
   } = useApp();
 
-  const isMainTab = ['home', 'categories'].includes(currentScreen);
+  const isMainTab = ['home', 'categories', 'catalogue', 'search', 'ai-scan', 'community', 'account'].includes(currentScreen);
   const shouldShowBack = showBack !== undefined ? showBack : !isMainTab && currentScreen !== 'splash' && currentScreen !== 'onboarding';
 
   const getScreenTitle = (): string => {
@@ -64,17 +64,17 @@ export const Header: React.FC<HeaderProps> = ({ title, showBack }) => {
   const displayTitle = getScreenTitle();
 
   return (
-    <header className="sticky top-0 z-30 w-full bg-white/95 backdrop-blur-md border-b border-[#E5E7EB] px-4 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] transition-colors duration-160 shadow-xs font-body">
+    <header className="sticky top-0 z-30 w-full bg-white/80 backdrop-blur-md border-b border-[#E5E7EB]/80 px-4 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] transition-colors duration-160 shadow-[0_4px_20px_-6px_rgba(0,0,0,0.03)] font-body">
       <div className="flex items-center justify-between gap-2 max-w-md mx-auto">
-        {shouldShowBack ? (
+        {shouldShowBack || ['catalogue', 'search', 'ai-scan', 'community', 'account'].includes(currentScreen) ? (
           <div className="flex items-center gap-2">
-            <button
+            {shouldShowBack && <button
               onClick={goBack}
               className="p-1.5 -ml-1 rounded-full text-[#0F0F10] hover:bg-[#F3F4F6] active-press transition-colors cursor-pointer"
               aria-label="Go back"
             >
               <ChevronLeft size={22} strokeWidth={2.2} />
-            </button>
+            </button>}
             <h1 className="font-heading font-extrabold text-base text-[#0F0F10] tracking-tight truncate max-w-[200px]">
               {displayTitle}
             </h1>
@@ -87,8 +87,8 @@ export const Header: React.FC<HeaderProps> = ({ title, showBack }) => {
           />
         )}
 
-        {/* Right Action Icons: Cart Bag + Sign In / Account */}
-        <div className="flex items-center gap-1.5 shrink-0">
+        {/* Right Action Icons: Cart Bag + Sign In / Account + Community at the edge */}
+        <div className="flex items-center gap-1 shrink-0">
           {/* Quick Search only on non-home pages when not already on search screen */}
           {currentScreen !== 'home' && currentScreen !== 'search' && (
             <button
@@ -129,19 +129,30 @@ export const Header: React.FC<HeaderProps> = ({ title, showBack }) => {
               title={`Account: ${authUser.email}`}
             >
               <div className="w-6 h-6 rounded-full bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center text-[10px] font-bold">
-                {authUser.profile?.displayName ? authUser.profile.displayName.charAt(0).toUpperCase() : <User size={12} />}
+                {authUser.profile?.avatarUrl ? <img src={authUser.profile.avatarUrl} alt="Your profile" className="w-full h-full rounded-full object-cover" /> : (authUser.profile?.displayName || authUser.email || 'D').charAt(0).toUpperCase()}
               </div>
-              <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-500 ring-1 ring-white" />
             </button>
           ) : (
             <button
               onClick={() => navigateTo('login')}
-              className="px-3 py-1 rounded-full bg-[#0F0F10] text-white hover:bg-[#27272A] text-[11px] font-semibold active-press transition-colors cursor-pointer"
+              className="px-2.5 py-1 rounded-full bg-[#0F0F10] text-white hover:bg-[#27272A] text-[11px] font-semibold active-press transition-colors cursor-pointer"
               aria-label="Sign In"
             >
               Sign In
             </button>
           )}
+
+          {/* Community Icon at the edge of the navbar right-hand side */}
+          <button
+            onClick={() => navigateTo('community')}
+            className={`p-2 rounded-full hover:bg-[#F3F4F6] active-press transition-colors cursor-pointer relative ${
+              currentScreen === 'community' ? 'text-[#8B6E27] bg-[#F6E7C1]/20' : 'text-[#0F0F10]'
+            }`}
+            aria-label="Community Collective"
+            title="Desla Collective Community"
+          >
+            <Users size={18} strokeWidth={2} />
+          </button>
         </div>
       </div>
     </header>

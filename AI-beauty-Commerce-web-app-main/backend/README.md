@@ -24,7 +24,7 @@ isolated tooling folder; cluster data lives in git-ignored `backend/.local/`
 cd backend
 npm run db:local -- setup   # one-time: fetch binaries, init cluster, start on 127.0.0.1:5433
 npm run db:migrate && npm run db:seed && npm run db:seed:catalog && npm run db:seed:partners
-npm run db:check            # verifies 17/17 migrations (SQL hashes), RBAC, stock invariants
+npm run db:check            # verifies 19/19 migrations (SQL hashes), RBAC, stock invariants
 npm run test:postgres       # real-PostgreSQL concurrency proof (uses TEST_DATABASE_URL)
 npm run dev                 # :3001; /api/ready should report {"ok":true,"db":"up"}
 ```
@@ -46,6 +46,9 @@ npm run dev  # :3001; frontend proxies /api/* here (same-origin cookies)
 For production use `backend/compose.production.yml` and
 `backend/nginx.production.conf.example` with private managed infrastructure and
 secret injection. Do not expose this development Compose file publicly.
+For managed PostgreSQL, set `DATABASE_SSL_MODE=require` (or `verify-full` when
+the provider's CA chain is available); leave it unset/`disable` only for trusted
+private local or container networks.
 
 ## Auth contract (S1)
 
@@ -54,14 +57,26 @@ secret injection. Do not expose this development Compose file publicly.
 | POST `/api/auth/register` | `{email,password}` → 201 `{ok,email}` (no session until email verification; `_dev*Token` only in dev) |
 | POST `/api/auth/login` | same → 200 `{ok}` + cookie. Failures: one generic message |
 | POST `/api/auth/logout` | — → revokes server session, clears cookie |
-| GET `/api/auth/me` | — → `{id,email,emailVerified,roles,profile}` |
+| GET `/api/auth/me` | — → `{id,email,emailVerified,roles,profile,mfaEnabled,mfaVerified}` |
 | POST `/api/auth/verify-email` | `{token}` → `{ok}` |
 | POST `/api/auth/request-password-reset` | `{email}` → always 200 (no enumeration) |
 | POST `/api/auth/reset-password` | `{token,newPassword}` → `{ok}`, kills all sessions |
+| POST `/api/auth/mfa/setup` | authenticated → `{secret,provisioningUri}` for authenticator enrollment |
+| POST `/api/auth/mfa/confirm` | `{code}` → one-time `{recoveryCodes}`; store these securely |
+| POST `/api/auth/mfa/verify` | `{code}` → verifies this session (TOTP or one-time recovery code) |
+| POST `/api/auth/mfa/disable` | `{code}` → disables MFA using TOTP or unused recovery code |
 | GET/PATCH `/api/me/profile`, GET/POST `/api/me/addresses`, PATCH/DELETE `/api/me/addresses/[id]` | owner-scoped (BOLA by construction) |
 
 Sessions: scrypt-hashed passwords, SHA-256 token hashes, HttpOnly + Lax cookies
-(Secure in prod), 5-fail lockout, reset revokes all sessions.
+(Secure in prod), 5-fail lockout, reset revokes all sessions. Permission-gated
+staff operations require MFA enrollment and session verification no older than
+12 hours. Enroll with `POST /api/auth/mfa/setup`, confirm the authenticator
+code at `/api/auth/mfa/confirm` (save the one-time recovery codes), verify a
+session at `/api/auth/mfa/verify`, and disable with an authenticator or unused
+recovery code at `/api/auth/mfa/disable`.
+Recovery codes are single-use; MFA secrets use the separate
+`MFA_ENCRYPTION_KEY`. Rotate it by having staff re-enroll before retiring the
+old key; the auth-email outbox key has an independent rotation lifecycle.
 
 ## Catalog + inventory (S2)
 
@@ -94,7 +109,7 @@ rejected by `strict()`; stock failures roll back the whole order; replays
 return the prior order (`replay: true`); cross-user key reuse → 409.
 Delivery fee is 0 until the S5 shipping module prices it.
 
-## Payments (S4 — Flutterwave + Paystack + Opay + bank transfer)
+## Payments (S4 — Stripe + Flutterwave + Opay + bank transfer)
 
 | Endpoint | Access | Notes |
 |---|---|---|

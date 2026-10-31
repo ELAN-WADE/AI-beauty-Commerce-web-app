@@ -4,8 +4,12 @@ import { fileURLToPath } from 'node:url';
 const backendDir = path.dirname(fileURLToPath(import.meta.url));
 const development = process.env.NODE_ENV !== 'production';
 
+const developmentPort = /^\d+$/.test(process.env.PORT || '') ? process.env.PORT : '3005';
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  distDir: process.env.NEXT_DIST_DIR || (process.env.PLAYWRIGHT_NEXT_DIST === '1' ? '.next-browser' : development ? `.next-dev-${developmentPort}` : '.next'),
+  devIndicators: false,
   poweredByHeader: false,
   output: 'standalone',
   // Pin tracing to this app (the repo nests lockfiles; inference picks wrong roots).

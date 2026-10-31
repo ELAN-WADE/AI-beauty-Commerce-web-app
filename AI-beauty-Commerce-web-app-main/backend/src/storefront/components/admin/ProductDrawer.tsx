@@ -1,19 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   X,
   Plus,
   Trash2,
   Check,
   AlertCircle,
-  Sparkles,
+  FlaskConical,
   Layers,
   DollarSign,
   Tag,
   Image as ImageIcon,
   Sliders,
   ShieldCheck,
-  MapPin
+  MapPin,
+  Upload,
+  Loader2
 } from 'lucide-react';
+import { uploadProductMediaApi } from '../../lib/owned-api';
+import { useApp } from '../../context/AppContext';
 import { Product } from '../../types';
 
 interface ProductDrawerProps {
@@ -37,8 +41,8 @@ const CONCERN_OPTIONS = [
 ];
 
 const PRESET_BADGES = [
-  'NAFDAC Certified',
-  'Clinical Formulation',
+  '',
+  'Natural Formulation',
   'SPF 50+ PA++++',
   'Cold-Pressed Nilotica',
   'Dermatologist Tested',
@@ -69,7 +73,8 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
     { id: 'cat-6', name: 'Hair & Scalp', slug: 'hair-scalp' }
   ]
 }) => {
-  const [activeTab, setActiveTab] = useState<'identity' | 'pricing' | 'clinical' | 'media' | 'logistics' | 'flags'>('identity');
+  const { isLiveBackend } = useApp();
+  const [activeTab, setActiveTab] = useState<'identity' | 'pricing' | 'natural' | 'media' | 'logistics' | 'flags'>('identity');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -77,8 +82,8 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [brand, setBrand] = useState('DESLA!™');
-  const [category, setCategory] = useState('facial-care');
-  const [subCategory, setSubCategory] = useState('Barrier Cream');
+  const [category, setCategory] = useState('');
+  const [subCategory, setSubCategory] = useState('');
   const [tagline, setTagline] = useState('');
   const [description, setDescription] = useState('');
   const [hashtag, setHashtag] = useState('');
@@ -86,50 +91,74 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
   // 2. Variants & Pricing State
   const [variants, setVariants] = useState<
     { id?: string; sku: string; sizeLabel: string; priceNgn: number; compareAtNgn: number | null; stock: number; isActive: boolean }[]
-  >([
-    { sku: 'DES-NEW-50ML', sizeLabel: '50ml / 1.7 fl oz', priceNgn: 24500, compareAtNgn: 28000, stock: 120, isActive: true }
-  ]);
+  >([{ sku: '', sizeLabel: '', priceNgn: 0, compareAtNgn: null, stock: 0, isActive: true }]);
 
-  // 3. Clinical Benefits & Ritual ACF State
-  const [whatItDoes, setWhatItDoes] = useState<string[]>([
-    'Restores stratum corneum lipid bilayers by up to 84% in 48 hours.',
-    'Fortifies cellular moisture barrier against dry Harmattan climate conditions.',
-    'Calms micro-inflammation and redness without clogging pores.'
-  ]);
+  // 3. Natural Benefits & Ritual ACF State
+  const [whatItDoes, setWhatItDoes] = useState<string[]>([]);
   const [newBulletText, setNewBulletText] = useState('');
 
-  const [selectedSkinTypes, setSelectedSkinTypes] = useState<string[]>(['All Skin Types']);
-  const [selectedConcerns, setSelectedConcerns] = useState<string[]>(['Compromised Moisture Barrier']);
+  const [selectedSkinTypes, setSelectedSkinTypes] = useState<string[]>([]);
+  const [selectedConcerns, setSelectedConcerns] = useState<string[]>([]);
   const [ingredients, setIngredients] = useState<
     { name: string; percentage: string; description: string }[]
-  >([
-    { name: 'Ceramide NP & 5-Lipid Complex', percentage: '3.5%', description: 'Restores stratum corneum lipid bilayers.' }
-  ]);
+  >([]);
   const [routine, setRoutine] = useState<'AM' | 'PM' | 'AM & PM'>('AM & PM');
-  const [routineStep, setRoutineStep] = useState('Moisturize');
-  const [instructions, setInstructions] = useState('Apply 2-3 drops to cleansed skin morning and evening. Pat gently with fingertips until completely absorbed.');
-  const [precautions, setPrecautions] = useState('For external topical use only. Conduct a 24-hour patch test behind the ear prior to initial use. Store in a cool, shaded environment.');
+  const [routineStep, setRoutineStep] = useState('');
+  const [instructions, setInstructions] = useState('');
+  const [precautions, setPrecautions] = useState('');
 
   // 4. Media State
-  const [heroImage, setHeroImage] = useState('/product_barrier_cream.jpg');
-  const [galleryImages, setGalleryImages] = useState<string[]>([
-    '/product_barrier_cream.jpg'
-  ]);
+  const [heroImage, setHeroImage] = useState('');
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const [newGalleryUrl, setNewGalleryUrl] = useState('');
+  const [isUploadingHero, setIsUploadingHero] = useState(false);
+  const [heroUploadError, setHeroUploadError] = useState<string | null>(null);
+  const [isUploadingGallery, setIsUploadingGallery] = useState(false);
+  const [galleryUploadError, setGalleryUploadError] = useState<string | null>(null);
+  const heroFileRef = useRef<HTMLInputElement>(null);
+  const galleryFileRef = useRef<HTMLInputElement>(null);
+
+  const handleHeroFileUpload = async (file: File) => {
+    if (!file) return;
+    setHeroUploadError(null);
+    setIsUploadingHero(true);
+    try {
+      const res = await uploadProductMediaApi(file);
+      setHeroImage(res.url);
+    } catch (err: any) {
+      setHeroUploadError(err?.message || 'Failed to upload image file.');
+    } finally {
+      setIsUploadingHero(false);
+      if (heroFileRef.current) heroFileRef.current.value = '';
+    }
+  };
+
+  const handleGalleryFilesUpload = async (files: FileList | File[]) => {
+    const fileArray = Array.from(files);
+    if (fileArray.length === 0) return;
+    setGalleryUploadError(null);
+    setIsUploadingGallery(true);
+    try {
+      for (const file of fileArray) {
+        const res = await uploadProductMediaApi(file);
+        setGalleryImages((prev) => [...prev, res.url]);
+      }
+    } catch (err: any) {
+      setGalleryUploadError(err?.message || 'Failed to upload gallery images.');
+    } finally {
+      setIsUploadingGallery(false);
+      if (galleryFileRef.current) galleryFileRef.current.value = '';
+    }
+  };
 
   // 5. Regional Hub Logistics ACF State
-  const [hubStocks, setHubStocks] = useState<{ city: string; available: boolean; quantity: number }[]>([
-    { city: 'Lagos Central Hub', available: true, quantity: 45 },
-    { city: 'Abuja Hub', available: true, quantity: 24 },
-    { city: 'Port Harcourt Hub', available: true, quantity: 18 },
-    { city: 'Ibadan Hub', available: true, quantity: 12 }
-  ]);
+  const [hubStocks, setHubStocks] = useState<{ city: string; available: boolean; quantity: number }[]>([]);
 
   // 6. Brand Ethics & Merchandising ACF State
-  const [origin, setOrigin] = useState('Lagos Formulation Laboratory & Paris Derm-Center');
-  const [crueltyFree, setCrueltyFree] = useState(true);
-  const [guarantee, setGuarantee] = useState('100% Clinical Assay Authenticity Guaranteed');
-  const [customBadge, setCustomBadge] = useState('NAFDAC Certified');
+  const [origin, setOrigin] = useState('');
+  const [crueltyFree, setCrueltyFree] = useState(false);
+  const [guarantee, setGuarantee] = useState('');
+  const [customBadge, setCustomBadge] = useState('');
 
   const [isBestseller, setIsBestseller] = useState(false);
   const [isNew, setIsNew] = useState(true);
@@ -140,24 +169,26 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
   useEffect(() => {
     if (product) {
       setName(product.name || '');
-      setSlug(product.sku?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || product.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'));
+      setSlug(product.slug || product.id);
       setBrand(product.brand || 'DESLA!™');
-      setCategory(product.category || 'facial-care');
+      setCategory(product.category || 'skincare');
       setSubCategory(product.subCategory || '');
       setTagline(product.tagline || '');
       setDescription(product.description || '');
       setHashtag(product.hashtag || '');
 
       // Variants
-      if (product.sizes && product.sizes.length > 0) {
+      if (product.variants?.length) {
+        setVariants(product.variants.map(variant => ({ ...variant })));
+      } else if (product.sizes && product.sizes.length > 0) {
         setVariants(
           product.sizes.map((size, idx) => ({
             id: `var-${idx}`,
             sku: `${product.sku || 'DES'}-${idx + 1}`,
             sizeLabel: size,
-            priceNgn: product.price || 24000,
+            priceNgn: product.price || 0,
             compareAtNgn: product.originalPrice || null,
-            stock: product.stockCount || 50,
+            stock: product.stockCount || 0,
             isActive: product.inStock !== false
           }))
         );
@@ -166,22 +197,19 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
           {
             sku: product.sku || 'DES-PROD-01',
             sizeLabel: 'Standard',
-            priceNgn: product.price || 24000,
+            priceNgn: product.price || 0,
             compareAtNgn: product.originalPrice || null,
-            stock: product.stockCount || 50,
+            stock: product.stockCount || 0,
             isActive: true
           }
         ]);
       }
 
-      // Clinical ACF
+      // Natural ACF
       if (product.whatItDoes && product.whatItDoes.length > 0) {
         setWhatItDoes(product.whatItDoes);
       } else {
-        setWhatItDoes([
-          'Restores stratum corneum lipid bilayers by up to 84% in 48 hours.',
-          'Fortifies cellular moisture barrier against dry Harmattan climate conditions.'
-        ]);
+        setWhatItDoes([]);
       }
 
       if (product.whoItsFor?.skinTypes) {
@@ -205,73 +233,57 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
       if (product.howToUse?.step) {
         setRoutineStep(product.howToUse.step);
       }
-      setInstructions(product.howToUse?.instructions || 'Apply 2-3 drops to cleansed skin morning and evening. Pat gently with fingertips until completely absorbed.');
-      setPrecautions(product.howToUse?.precautions || 'For external topical use only. Conduct a 24-hour patch test behind the ear prior to initial use.');
+      setInstructions(product.howToUse?.instructions || '');
+      setPrecautions(product.howToUse?.precautions || '');
 
       // Media
-      setHeroImage(product.image || '/product_barrier_cream.jpg');
+      setHeroImage(product.image || '');
       setGalleryImages(product.galleryImages?.length ? product.galleryImages : [product.image]);
 
       // Regional Hub Logistics ACF
       if (product.distributorStock && product.distributorStock.length > 0) {
         setHubStocks(product.distributorStock);
       } else {
-        setHubStocks([
-          { city: 'Lagos Central Hub', available: true, quantity: Math.round((product.stockCount || 50) * 0.5) },
-          { city: 'Abuja Hub', available: true, quantity: Math.round((product.stockCount || 50) * 0.25) },
-          { city: 'Port Harcourt Hub', available: true, quantity: Math.round((product.stockCount || 50) * 0.15) },
-          { city: 'Ibadan Hub', available: true, quantity: Math.round((product.stockCount || 50) * 0.1) }
-        ]);
+        setHubStocks([]);
       }
 
       // Brand Ethics & Ribbons ACF
-      setOrigin(product.brandInfo?.origin || 'Lagos Formulation Laboratory & Paris Derm-Center');
-      setCrueltyFree(product.brandInfo?.crueltyFree !== false);
-      setGuarantee(product.brandInfo?.guarantee || '100% Clinical Assay Authenticity Guaranteed');
-      setCustomBadge((product as any).customBadge || (product.isBestseller ? 'Featured Bestseller' : 'NAFDAC Certified'));
+      setOrigin(product.brandInfo?.origin || '');
+      setCrueltyFree(product.brandInfo?.crueltyFree === true);
+      setGuarantee(product.brandInfo?.guarantee || '');
+      setCustomBadge(/clinical/i.test(product.customBadge || '') ? '' : product.customBadge || '');
 
       // Flags
       setIsBestseller(!!product.isBestseller);
       setIsNew(!!product.isNew);
       setIsFlashSale(!!product.isFlashSale);
-      setIsActive(product.inStock !== false);
+      setIsActive(product.isActive ?? product.inStock !== false);
     } else {
       // Reset for creation
       setName('');
       setSlug('');
       setBrand('DESLA!™');
-      setCategory('facial-care');
-      setSubCategory('Clinical Serum');
+      setCategory(categoriesList[0]?.slug || 'skincare');
+      setSubCategory('');
       setTagline('');
       setDescription('');
       setHashtag('');
       setVariants([
-        { sku: 'DES-NEW-50ML', sizeLabel: '50ml / 1.7 fl oz', priceNgn: 24500, compareAtNgn: 28000, stock: 100, isActive: true }
+        { sku: '', sizeLabel: '', priceNgn: 0, compareAtNgn: null, stock: 0, isActive: true }
       ]);
-      setWhatItDoes([
-        'Restores stratum corneum lipid bilayers by up to 84% in 48 hours.',
-        'Fortifies cellular moisture barrier against dry Harmattan climate conditions.',
-        'Calms micro-inflammation and redness without clogging pores.'
-      ]);
-      setSelectedSkinTypes(['All Skin Types']);
-      setSelectedConcerns(['Compromised Moisture Barrier']);
-      setIngredients([
-        { name: 'Ceramide Complex', percentage: '3%', description: 'Cellular lipid restoration.' }
-      ]);
-      setInstructions('Apply 2-3 drops to cleansed skin morning and evening. Pat gently with fingertips until completely absorbed.');
-      setPrecautions('For external topical use only. Conduct a 24-hour patch test behind the ear prior to initial use.');
-      setHeroImage('/product_barrier_cream.jpg');
-      setGalleryImages(['/product_barrier_cream.jpg']);
-      setOrigin('Lagos Formulation Laboratory & Paris Derm-Center');
-      setCrueltyFree(true);
-      setGuarantee('100% Clinical Assay Authenticity Guaranteed');
-      setCustomBadge('NAFDAC Certified');
-      setHubStocks([
-        { city: 'Lagos Central Hub', available: true, quantity: 50 },
-        { city: 'Abuja Hub', available: true, quantity: 25 },
-        { city: 'Port Harcourt Hub', available: true, quantity: 15 },
-        { city: 'Ibadan Hub', available: true, quantity: 10 }
-      ]);
+      setWhatItDoes([]);
+      setSelectedSkinTypes([]);
+      setSelectedConcerns([]);
+      setIngredients([]);
+      setInstructions('');
+      setPrecautions('');
+      setHeroImage('');
+      setGalleryImages([]);
+      setOrigin('');
+      setCrueltyFree(false);
+      setGuarantee('');
+      setCustomBadge('');
+      setHubStocks([]);
       setIsBestseller(false);
       setIsNew(true);
       setIsFlashSale(false);
@@ -299,9 +311,9 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
       {
         sku: `${variants[0]?.sku.split('-')[0] || 'DES'}-${nextIdx * 50}ML`,
         sizeLabel: `${nextIdx * 50}ml / ${(nextIdx * 1.7).toFixed(1)} fl oz`,
-        priceNgn: (variants[0]?.priceNgn || 24000) + 12000,
+        priceNgn: variants[0]?.priceNgn || 0,
         compareAtNgn: null,
-        stock: 50,
+        stock: 0,
         isActive: true
       }
     ]);
@@ -320,7 +332,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
     setVariants((prev) => prev.filter((_, idx) => idx !== index));
   };
 
-  // Clinical Benefits Bullets
+  // Natural Benefits Bullets
   const handleAddBullet = () => {
     if (!newBulletText.trim()) return;
     setWhatItDoes((prev) => [...prev, newBulletText.trim()]);
@@ -394,11 +406,15 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
       return;
     }
 
-    if (variants.length === 0 || !variants[0].priceNgn) {
-      setErrorMsg('At least one SKU variant with a valid price is required.');
+    if (variants.length === 0 || variants.some(v => !v.sku.trim() || !v.sizeLabel.trim() || !Number.isFinite(v.priceNgn) || v.priceNgn <= 0 || !Number.isInteger(v.stock) || v.stock < 0)) {
+      setErrorMsg('Every variant needs a SKU, size, positive price, and whole-number stock quantity.');
       setActiveTab('pricing');
       return;
     }
+
+    if (!category || !categoriesList.some(item => item.slug === category)) { setErrorMsg('Choose a saved category. Create a category in Formulations & Taxonomy first if needed.'); setActiveTab('identity'); return; }
+    if (/clinical/i.test(customBadge)) { setErrorMsg('Clinical labels are not supported.'); return; }
+    if (!heroImage.trim()) { setErrorMsg('Add the actual product image before publishing.'); setActiveTab('media'); return; }
 
     setIsSubmitting(true);
     try {
@@ -406,6 +422,11 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
       const primaryOriginalPrice = variants[0].compareAtNgn || undefined;
 
       const productPayload: Partial<Product> = {
+        serverId: product?.serverId,
+        version: product?.version,
+        slug,
+        variants,
+        isActive,
         id: product?.id || `des-${Date.now()}`,
         sku: variants[0].sku,
         name: name.trim(),
@@ -426,7 +447,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
         isNew,
         isFlashSale,
         hashtag: hashtag.trim() || undefined,
-        rating: product?.rating || 5.0,
+        rating: product?.rating || 0,
         reviewsCount: product?.reviewsCount || 0,
         customBadge: customBadge.trim() || undefined,
         whatItDoes: whatItDoes.filter((b) => b.trim().length > 0),
@@ -500,7 +521,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
           {[
             { id: 'identity', label: '1. Identity', icon: Tag },
             { id: 'pricing', label: '2. Pricing', icon: DollarSign },
-            { id: 'clinical', label: '3. Clinical ACF', icon: Sparkles },
+            { id: 'natural', label: '3. Natural ACF', icon: FlaskConical },
             { id: 'media', label: '4. Photography', icon: ImageIcon },
             { id: 'logistics', label: '5. Hub Logistics', icon: Layers },
             { id: 'flags', label: '6. Brand Ethics', icon: ShieldCheck }
@@ -544,7 +565,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
                 </label>
                 <input
                   type="text"
-                  value={name}
+                  aria-label="Product name" value={name}
                   onChange={(e) => handleNameChange(e.target.value)}
                   placeholder="e.g. Bio-Active Barrier Cream"
                   className="w-full px-3.5 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-xs font-medium focus:outline-none focus:border-[#0F0F10]"
@@ -558,7 +579,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
                   </label>
                   <input
                     type="text"
-                    value={brand}
+                    aria-label="Brand" value={brand}
                     onChange={(e) => setBrand(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-xs"
                   />
@@ -569,7 +590,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
                   </label>
                   <input
                     type="text"
-                    value={slug}
+                    aria-label="Product slug" value={slug}
                     onChange={(e) => setSlug(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-[#E5E7EB] bg-[#FAF9F6] text-xs font-mono"
                   />
@@ -582,7 +603,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
                     Primary Category
                   </label>
                   <select
-                    value={category}
+                    aria-label="Primary category" value={category}
                     onChange={(e) => setCategory(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-xs cursor-pointer"
                   >
@@ -609,11 +630,11 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
 
               <div>
                 <label className="block text-[11px] font-bold text-[#0F0F10] mb-1 uppercase tracking-wide">
-                  Clinical Tagline
+                  Natural Tagline
                 </label>
                 <input
                   type="text"
-                  value={tagline}
+                  aria-label="Product tagline" value={tagline}
                   onChange={(e) => setTagline(e.target.value)}
                   placeholder="e.g. Ultra-repairing lipid balm for stressed epidermal barriers"
                   className="w-full px-3.5 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-xs"
@@ -626,9 +647,9 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
                 </label>
                 <textarea
                   rows={4}
-                  value={description}
+                  aria-label="Product description" value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Describe clinical efficacy, origin ingredients, scent profile, and ritual application..."
+                  placeholder="Describe natural efficacy, origin ingredients, scent profile, and ritual application..."
                   className="w-full px-3.5 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-xs resize-none"
                 />
               </div>
@@ -699,7 +720,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
                         </label>
                         <input
                           type="text"
-                          value={v.sku}
+                          aria-label={`SKU ${idx + 1}`} value={v.sku}
                           onChange={(e) => handleUpdateVariant(idx, 'sku', e.target.value.toUpperCase())}
                           className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] text-xs font-mono uppercase bg-[#FAF9F6]"
                         />
@@ -710,7 +731,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
                         </label>
                         <input
                           type="text"
-                          value={v.sizeLabel}
+                          aria-label={`Size ${idx + 1}`} value={v.sizeLabel}
                           onChange={(e) => handleUpdateVariant(idx, 'sizeLabel', e.target.value)}
                           placeholder="e.g. 50ml / 1.7 fl oz"
                           className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] text-xs"
@@ -725,7 +746,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
                         </label>
                         <input
                           type="number"
-                          value={v.priceNgn || ''}
+                          aria-label={`Price NGN ${idx + 1}`} value={v.priceNgn || ''}
                           onChange={(e) => handleUpdateVariant(idx, 'priceNgn', Number(e.target.value))}
                           placeholder="24500"
                           className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] text-xs font-bold text-[#0F0F10]"
@@ -737,7 +758,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
                         </label>
                         <input
                           type="number"
-                          value={v.compareAtNgn || ''}
+                          aria-label={`Compare price NGN ${idx + 1}`} value={v.compareAtNgn || ''}
                           onChange={(e) =>
                             handleUpdateVariant(
                               idx,
@@ -755,7 +776,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
                         </label>
                         <input
                           type="number"
-                          value={v.stock}
+                          aria-label={`Stock quantity ${idx + 1}`} value={v.stock}
                           onChange={(e) => handleUpdateVariant(idx, 'stock', Number(e.target.value))}
                           className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] text-xs font-bold text-[#0F0F10]"
                         />
@@ -767,18 +788,18 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
             </div>
           )}
 
-          {/* TAB 3: CLINICAL BENEFITS & RITUAL ACF */}
-          {activeTab === 'clinical' && (
+          {/* TAB 3: NATURAL BENEFITS & RITUAL ACF */}
+          {activeTab === 'natural' && (
             <div className="space-y-6">
-              {/* What It Does (Clinical Bullet Points) */}
+              {/* What It Does (Natural Bullet Points) */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="text-xs font-bold text-[#0F0F10] uppercase tracking-wide">
-                      Clinical Benefits ("What It Does" Accordion)
+                      Natural Benefits ("What It Does" Accordion)
                     </h4>
                     <p className="text-[11px] text-[#6B7280]">
-                      Renders directly on PDP accordion as clinical bullet points.
+                      Renders directly on PDP accordion as natural bullet points.
                     </p>
                   </div>
                 </div>
@@ -812,7 +833,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
                       type="text"
                       value={newBulletText}
                       onChange={(e) => setNewBulletText(e.target.value)}
-                      placeholder="Add a new clinical benefit bullet..."
+                      placeholder="Add a new natural benefit bullet..."
                       className="flex-1 px-3 py-2 rounded-xl border border-[#E5E7EB] bg-white text-xs"
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
@@ -931,7 +952,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
 
                 <div>
                   <label className="block text-[10px] font-mono uppercase text-[#6B7280] mb-2">
-                    Clinical Concerns Addressed
+                    Natural Concerns Addressed
                   </label>
                   <div className="flex flex-wrap gap-1.5">
                     {CONCERN_OPTIONS.map((concern) => {
@@ -956,11 +977,11 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
                 </div>
               </div>
 
-              {/* Active Clinical Ingredients */}
+              {/* Active Natural Ingredients */}
               <div className="space-y-3 pt-3 border-t border-[#E5E7EB]">
                 <div className="flex items-center justify-between">
                   <h4 className="text-xs font-bold text-[#0F0F10] uppercase tracking-wide">
-                    Active Clinical Ingredients
+                    Active Natural Ingredients
                   </h4>
                   <button
                     type="button"
@@ -999,7 +1020,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
                         type="text"
                         value={ing.description}
                         onChange={(e) => handleUpdateIngredient(idx, 'description', e.target.value)}
-                        placeholder="Clinical mechanism (e.g. Restores intercellular lipid bilayers)"
+                        placeholder="Natural mechanism (e.g. Restores intercellular lipid bilayers)"
                         className="flex-1 px-3 py-1.5 rounded-xl border border-[#E5E7EB] text-xs text-[#6B7280]"
                       />
                       <button
@@ -1018,33 +1039,99 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
 
           {/* TAB 4: PHOTOGRAPHY & MEDIA */}
           {activeTab === 'media' && (
-            <div className="space-y-5">
+            <div className="space-y-6">
+              {/* Primary Packshot */}
               <div>
-                <label className="block text-[11px] font-bold text-[#0F0F10] mb-2 uppercase tracking-wide">
-                  Primary Packshot Photography *
-                </label>
-                <div className="flex items-start gap-4 p-3.5 bg-white border border-[#E5E7EB] rounded-2xl">
-                  <div className="w-24 h-24 rounded-xl border border-[#E5E7EB] overflow-hidden bg-[#FAF9F6] shrink-0">
-                    <img
-                      src={heroImage}
-                      alt="Primary Hero"
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = '/product_barrier_cream.jpg';
-                      }}
-                    />
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-[11px] font-bold text-[#0F0F10] uppercase tracking-wide">
+                    Primary Packshot Photography *
+                  </label>
+                  <span className="text-[10px] text-[#6B7280]">
+                    Max 10MB (JPEG, PNG, WEBP, GIF)
+                  </span>
+                </div>
+
+                {heroUploadError && (
+                  <div className="mb-3 p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-600" />
+                    <span>{heroUploadError}</span>
                   </div>
-                  <div className="flex-1 space-y-2">
+                )}
+
+                <div className="p-4 bg-white border border-[#E5E7EB] rounded-2xl space-y-4">
+                  <div className="flex flex-col sm:flex-row items-center gap-4">
+                    {/* Image Preview */}
+                    <div className="relative w-28 h-28 rounded-2xl border border-[#E5E7EB] overflow-hidden bg-[#FAF9F6] shrink-0 shadow-2xs group">
+                      <img
+                        src={heroImage}
+                        alt="Primary Hero"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '/product_barrier_cream.jpg';
+                        }}
+                      />
+                      {isUploadingHero && (
+                        <div className="absolute inset-0 bg-black/60 backdrop-blur-2xs flex flex-col items-center justify-center text-white gap-1 p-2 text-center">
+                          <Loader2 className="w-5 h-5 animate-spin text-[#D4AF37]" />
+                          <span className="text-[10px] font-medium">Uploading...</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Upload Controls & Drag-Drop Target */}
+                    <div
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        const file = e.dataTransfer.files?.[0];
+                        if (file) handleHeroFileUpload(file);
+                      }}
+                      className="flex-1 w-full border-2 border-dashed border-[#E5E7EB] hover:border-[#0F0F10] rounded-xl p-4 text-center transition-colors bg-[#FAF9F6]/60 flex flex-col items-center justify-center gap-2"
+                    >
+                      <input
+                        type="file"
+                        ref={heroFileRef}
+                        accept="image/jpeg,image/png,image/webp,image/gif"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleHeroFileUpload(file);
+                        }}
+                      />
+
+                      <div className="w-9 h-9 rounded-full bg-white shadow-2xs border border-[#E5E7EB] flex items-center justify-center text-[#0F0F10]">
+                        <Upload className="w-4 h-4 text-[#0F0F10]" />
+                      </div>
+
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => heroFileRef.current?.click()}
+                          disabled={isUploadingHero}
+                          className="text-xs font-bold text-[#0F0F10] hover:text-[#997A2E] underline cursor-pointer disabled:opacity-50"
+                        >
+                          {isUploadingHero ? 'Uploading file...' : 'Click to upload packshot photo'}
+                        </button>
+                        <p className="text-[10.5px] text-[#6B7280] mt-0.5">
+                          or drag and drop your formulation image here
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* URL Text Fallback / Direct Editor */}
+                  <div className="pt-2 border-t border-[#F3EEE3]">
+                    <label className="block text-[10px] font-mono uppercase text-[#6B7280] mb-1">
+                      Direct Photo URL or Asset Path:
+                    </label>
                     <input
                       type="text"
+                      aria-label="Product image URL"
                       value={heroImage}
                       onChange={(e) => setHeroImage(e.target.value)}
-                      placeholder="Paste image URL (https://... or /product_...)"
-                      className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] text-xs font-mono"
+                      placeholder="e.g. /uploads/products/packshot.jpg or https://..."
+                      className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] bg-[#FAF9F6] text-xs font-mono"
                     />
-                    <p className="text-[11px] text-[#6B7280]">
-                      Primary packshot displays across catalogue, quick-view sheets, and PDP stages.
-                    </p>
                   </div>
                 </div>
               </div>
@@ -1052,22 +1139,22 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
               {/* Quick Pick Presets */}
               <div>
                 <label className="block text-[11px] font-bold text-[#0F0F10] mb-2 uppercase tracking-wide">
-                  Quick Pick Studio Assets
+                  Quick Pick Studio Presets
                 </label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                   {PRESET_IMAGES.map((preset, idx) => (
                     <button
                       key={idx}
                       type="button"
                       onClick={() => setHeroImage(preset.url)}
-                      className="p-2 rounded-xl border border-[#E5E7EB] bg-white hover:border-[#0F0F10] text-left transition flex items-center gap-2 cursor-pointer"
+                      className="p-1.5 rounded-xl border border-[#E5E7EB] bg-white hover:border-[#0F0F10] text-center transition flex flex-col items-center gap-1 cursor-pointer group"
                     >
                       <img
                         src={preset.url}
                         alt={preset.label}
-                        className="w-8 h-8 rounded-lg object-cover"
+                        className="w-12 h-12 rounded-lg object-cover group-hover:scale-105 transition-transform"
                       />
-                      <span className="text-[10px] font-medium text-[#0F0F10] truncate">
+                      <span className="text-[9.5px] font-medium text-[#0F0F10] truncate w-full">
                         {preset.label}
                       </span>
                     </button>
@@ -1077,38 +1164,82 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
 
               {/* Gallery List */}
               <div className="space-y-3 pt-3 border-t border-[#E5E7EB]">
-                <label className="block text-[11px] font-bold text-[#0F0F10] uppercase tracking-wide">
-                  Gallery Perspectives ({galleryImages.length})
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="block text-[11px] font-bold text-[#0F0F10] uppercase tracking-wide">
+                    Gallery Perspectives &amp; Texture Shots ({galleryImages.length})
+                  </label>
+                  <span className="text-[10px] text-[#6B7280]">
+                    PDP multi-angle carousel
+                  </span>
+                </div>
 
-                <div className="flex gap-2">
+                {galleryUploadError && (
+                  <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-600" />
+                    <span>{galleryUploadError}</span>
+                  </div>
+                )}
+
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                   <input
-                    type="text"
-                    value={newGalleryUrl}
-                    onChange={(e) => setNewGalleryUrl(e.target.value)}
-                    placeholder="Add additional perspective URL..."
-                    className="flex-1 px-3 py-2 rounded-xl border border-[#E5E7EB] text-xs font-mono"
+                    type="file"
+                    ref={galleryFileRef}
+                    multiple
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    className="hidden"
+                    onChange={(e) => {
+                      if (e.target.files) handleGalleryFilesUpload(e.target.files);
+                    }}
                   />
                   <button
                     type="button"
-                    onClick={handleAddGalleryUrl}
-                    className="px-4 py-2 rounded-xl bg-[#0F0F10] text-white text-xs font-bold hover:bg-[#27272A] cursor-pointer"
+                    onClick={() => galleryFileRef.current?.click()}
+                    disabled={isUploadingGallery}
+                    className="px-4 py-2 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] hover:border-[#0F0F10] text-[#0F0F10] text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors"
                   >
-                    Add
+                    {isUploadingGallery ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-[#D4AF37]" />
+                        <span>Uploading Angles...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Upload Angle Photos</span>
+                      </>
+                    )}
                   </button>
+
+                  <div className="flex-1 flex gap-2">
+                    <input
+                      type="text"
+                      value={newGalleryUrl}
+                      onChange={(e) => setNewGalleryUrl(e.target.value)}
+                      placeholder="Or paste angle photo URL..."
+                      className="flex-1 px-3 py-2 rounded-xl border border-[#E5E7EB] text-xs font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddGalleryUrl}
+                      className="px-4 py-2 rounded-xl bg-[#0F0F10] text-white text-xs font-bold hover:bg-[#27272A] cursor-pointer"
+                    >
+                      Add URL
+                    </button>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 pt-2">
                   {galleryImages.map((img, idx) => (
                     <div
                       key={idx}
-                      className="relative group rounded-xl border border-[#E5E7EB] overflow-hidden aspect-square bg-[#FAF9F6]"
+                      className="relative group rounded-xl border border-[#E5E7EB] overflow-hidden aspect-square bg-[#FAF9F6] shadow-2xs"
                     >
-                      <img src={img} alt="Angle" className="w-full h-full object-cover" />
+                      <img src={img} alt={"Perspective " + (idx + 1)} className="w-full h-full object-cover" />
                       <button
                         type="button"
                         onClick={() => handleRemoveGalleryUrl(idx)}
-                        className="absolute top-1 right-1 w-6 h-6 rounded-full bg-[#0F0F10] text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow"
+                        className="absolute top-1 right-1 w-6 h-6 rounded-full bg-[#0F0F10] text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow cursor-pointer"
+                        title="Remove perspective image"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
@@ -1127,11 +1258,12 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
                   Regional Warehouse &amp; Hub Stock Allocations
                 </h4>
                 <p className="text-[11px] text-[#6B7280]">
-                  Distributor fulfilment feeds real-time local delivery estimates based on these physical hub pools.
+                  Manage physical hub pools through Inventory and Distributor Hubs. Product publication updates central stock only.
                 </p>
               </div>
 
               <div className="space-y-3">
+                {isLiveBackend ? <p className="rounded-xl border p-4 text-sm">Use Inventory → Move Stock to allocate real SKUs to an exact hub. Hub balances are maintained in the stock ledger.</p> : <>
                 {hubStocks.map((hub, idx) => (
                   <div
                     key={idx}
@@ -1161,6 +1293,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
                     </div>
                   </div>
                 ))}
+                </>}
               </div>
             </div>
           )}
@@ -1171,7 +1304,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
               {/* Brand Info ACF */}
               <div className="p-4 rounded-2xl border border-[#E5E7EB] bg-white space-y-3">
                 <h4 className="text-xs font-bold text-[#0F0F10] uppercase tracking-wide">
-                  Brand Heritage &amp; Clinical Origin ACF
+                  Brand Heritage &amp; Natural Origin ACF
                 </h4>
 
                 <div>
@@ -1195,7 +1328,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
                     type="text"
                     value={guarantee}
                     onChange={(e) => setGuarantee(e.target.value)}
-                    placeholder="e.g. 100% Clinical Assay Authenticity Guaranteed"
+                    placeholder="e.g. 100% Natural Assay Authenticity Guaranteed"
                     className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] text-xs"
                   />
                 </div>
@@ -1281,7 +1414,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
 
                 <div className="flex items-center justify-between pt-2 border-t border-[#F3F4F6]">
                   <div>
-                    <strong className="text-xs text-[#0F0F10] block">New Clinical Drop</strong>
+                    <strong className="text-xs text-[#0F0F10] block">New Natural Drop</strong>
                     <span className="text-[11px] text-[#6B7280]">
                       Displays in "Just Formulated" carousel and alerts routine builders.
                     </span>

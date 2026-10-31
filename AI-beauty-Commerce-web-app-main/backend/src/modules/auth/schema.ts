@@ -6,6 +6,7 @@ import {
   integer,
   primaryKey,
 } from 'drizzle-orm/pg-core';
+import { index } from 'drizzle-orm/pg-core';
 
 /** timestamptz alias: timezone-aware timestamps everywhere (audit-safe). */
 const timestamptz = (name: string) => timestamp(name, { withTimezone: true, mode: 'date' });
@@ -18,8 +19,40 @@ export const users = pgTable('users', {
   emailVerifiedAt: timestamptz('email_verified_at'),
   failedLoginAttempts: integer('failed_login_attempts').notNull().default(0),
   lockedUntil: timestamptz('locked_until'),
+  mfaSecretEncrypted: text('mfa_secret_encrypted'),
+  mfaEnabledAt: timestamptz('mfa_enabled_at'),
+  mfaLastTotpStep: integer('mfa_last_totp_step'),
   createdAt: timestamptz('created_at').notNull().defaultNow(),
   updatedAt: timestamptz('updated_at').notNull().defaultNow(),
+  signupIntent: text('signup_intent').notNull().default('CUSTOMER'),
+});
+
+/** Google subject is the provider identity; email alone is not its primary key. */
+export const googleIdentities = pgTable('google_identities', {
+  subject: text('subject').primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }).unique(),
+  createdAt: timestamptz('created_at').notNull().defaultNow(),
+});
+
+export const oauthRequests = pgTable('oauth_requests', {
+  stateHash: text('state_hash').primaryKey(),
+  browserHash: text('browser_hash').notNull(),
+  verifierEncrypted: text('verifier_encrypted').notNull(),
+  returnChallenge: text('return_challenge').notNull(),
+  returnTo: text('return_to').notNull(),
+  intent: text('intent').notNull(),
+  expiresAt: timestamptz('expires_at').notNull(),
+  consumedAt: timestamptz('consumed_at'),
+});
+
+/** One-minute, one-use browser-bound handoff. Never a session token. */
+export const oauthGrants = pgTable('oauth_grants', {
+  codeHash: text('code_hash').primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  challenge: text('challenge').notNull(),
+  returnTo: text('return_to').notNull(),
+  expiresAt: timestamptz('expires_at').notNull(),
+  consumedAt: timestamptz('consumed_at'),
 });
 
 /** Server sessions: token_hash = SHA-256(raw cookie token). Revocable, expiring. */
@@ -33,8 +66,17 @@ export const userSessions = pgTable('user_sessions', {
   userAgent: text('user_agent'),
   expiresAt: timestamptz('expires_at').notNull(),
   revokedAt: timestamptz('revoked_at'),
+  mfaVerifiedAt: timestamptz('mfa_verified_at'),
   createdAt: timestamptz('created_at').notNull().defaultNow(),
 });
+
+/** One-time recovery codes are SHA-256 hashed and deleted on use. */
+export const mfaRecoveryCodes = pgTable('mfa_recovery_codes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  codeHash: text('code_hash').notNull().unique(),
+  createdAt: timestamptz('created_at').notNull().defaultNow(),
+}, (t) => [index('mfa_recovery_user_idx').on(t.userId)]);
 
 /** Email verification: random 32B, hashed at rest, single-use, 24h. */
 export const emailVerificationTokens = pgTable('email_verification_tokens', {

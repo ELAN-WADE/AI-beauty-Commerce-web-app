@@ -84,7 +84,7 @@ export async function getCollectionFeedAction(): Promise<ActionResult<Collection
       }))
     );
 
-    // Filter into clinical shelves
+    // Filter into natural shelves
     const bestsellers = hydrated.filter((p) => p.isBestseller).slice(0, 6);
     const newDrops = hydrated.filter((p) => p.isNew).slice(0, 6);
     const flashSales = hydrated.filter((p) => p.isFlashSale).slice(0, 6);

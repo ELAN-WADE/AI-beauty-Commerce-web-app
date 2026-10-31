@@ -14,12 +14,13 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { fetchServerOrder, isOwnedApiConfigured, requestPickupCode, serverOrderUuid, submitTransferClaim } from '../../lib/owned-api';
+import { fetchServerOrder, guestOrderToken, mapServerOrder, requestPickupCode, serverOrderUuid, submitTransferClaim } from '../../lib/owned-api';
+import { useCustomerOrders } from '../../lib/use-customer-orders';
 import type { Order } from '../../types';
 import { BotanicalSprig, ApothecaryPuritySeal } from '../../components/common/HandDrawnAccents';
 
 const TransferClaimCard: React.FC<{ order: Order; email: string }> = ({ order, email }) => {
-  const uuid = serverOrderUuid(order.id);
+  const uuid = order.serverId || serverOrderUuid(order.id);
   const [senderName, setSenderName] = useState('');
   const [bankName, setBankName] = useState('');
   const [narration, setNarration] = useState('');
@@ -49,7 +50,7 @@ const TransferClaimCard: React.FC<{ order: Order; email: string }> = ({ order, e
         transferDate: transferDate.trim(),
       });
       setDone(true);
-      setMessage('Proof submitted. We confirm transfers within a few hours.');
+      setMessage('Proof submitted. It is awaiting administrator review.');
     } catch (err) {
       setMessage(err instanceof Error ? err.message : 'Submission failed.');
     } finally {
@@ -60,7 +61,7 @@ const TransferClaimCard: React.FC<{ order: Order; email: string }> = ({ order, e
   if (done) {
     return (
       <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800">
-        Transfer proof submitted for order #{order.id}. Confirmation follows shortly.
+        Transfer proof submitted for order #{order.id}. Payment remains pending until administrator review.
       </div>
     );
   }
@@ -88,68 +89,57 @@ const TransferClaimCard: React.FC<{ order: Order; email: string }> = ({ order, e
 };
 
 export const Screen13OrdersTracking: React.FC = () => {
-  const { orders, activeOrder, setActiveOrder, selectedCity, openAIAssistant, navigateTo, isLiveBackend, authUser, checkoutAddress } = useApp();
-  const [selectedFilter, setSelectedFilter] = useState<'All' | 'Processing' | 'Shipped' | 'Delivered'>('All');
-  const [currentTrackingId, setCurrentTrackingId] = useState<string>(activeOrder?.id || 'DES-98214');
-
-  const transferPendingOrders = isLiveBackend
-    ? orders.filter((o) => o.paymentMethod?.startsWith('Bank transfer') && serverOrderUuid(o.id))
-    : [];
-
-  // Live server status for mapped orders (owned backend; hidden when unavailable).
-  const [liveStatus, setLiveStatus] = useState<{ orderId: string; orderNumber: string; status: string; paymentStatus: string; total: number; fulfilmentMethod?: string } | null>(null);
-  const [pickupCode, setPickupCode] = useState<string | null>(null);
+  const { authUser, activeOrder, navigateTo } = useApp();
+  const own = useCustomerOrders(authUser?.id);
+  const [selectedId, setSelectedId] = useState('');
+  const [detail, setDetail] = useState<Order | null>(null);
+  const [detailOwner, setDetailOwner] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [revision, setRevision] = useState(0);
+  const [pickup, setPickup] = useState<{ code: string; expiresAt: string } | null>(null);
   const [pickupBusy, setPickupBusy] = useState(false);
-  const [pickupMessage, setPickupMessage] = useState('');
-
+  const [pickupError, setPickupError] = useState('');
+  const owner = authUser?.id || 'guest';
+  const shown = detailOwner === owner && detail?.serverId === selectedId ? detail : null;
   useEffect(() => {
-    if (!isOwnedApiConfigured) return;
-    const target = activeOrder ?? orders[0];
-    if (!target) return;
-    const uuid = serverOrderUuid(target.id);
-    if (!uuid) return;
-    let cancelled = false;
-    fetchServerOrder(uuid, authUser?.email ?? checkoutAddress.email ?? undefined)
-      .then((view) => {
-        if (!cancelled && view) {
-          setLiveStatus({ orderId: uuid, orderNumber: view.orderNumber, status: view.status, paymentStatus: view.paymentStatus, total: Math.round(view.totalKobo / 100), fulfilmentMethod: view.fulfilmentMethod });
-        }
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [activeOrder?.id]);
+    let requested = '';
+    try { const intent = JSON.parse(sessionStorage.getItem('desla-selected-order') || 'null'); if (intent?.userId === authUser?.id && own.orders.some(order => order.id === intent.id)) { requested = intent.id; sessionStorage.removeItem('desla-selected-order'); } } catch {}
+    if (authUser) setSelectedId(previous => requested || (own.orders.some(order => order.id === previous) ? previous : (own.orders.find(order => order.id === activeOrder?.serverId || order.orderNumber === activeOrder?.id)?.id || own.orders[0]?.id || '')));
 
-  const handlePickupCode = async () => {
-    if (!liveStatus) return;
-    setPickupBusy(true);
-    setPickupMessage('');
-    try {
-      const res = await requestPickupCode(liveStatus.orderId, authUser?.email ?? checkoutAddress.email ?? undefined);
-      if (res) {
-        setPickupCode(res.code);
-        setPickupMessage('Show this 6-digit code at pickup. It expires in 15 minutes.');
-      } else {
-        setPickupMessage('Pickup code is available once your order is ready for collection.');
-      }
-    } catch (e) {
-      setPickupMessage(e instanceof Error ? e.message : 'Could not issue a pickup code.');
-    } finally {
-      setPickupBusy(false);
-    }
+    else setSelectedId(activeOrder?.serverId || '');
+  }, [authUser?.id, own.orders, activeOrder?.serverId]);
+  useEffect(() => { setPickup(null); setPickupError(''); }, [selectedId, owner]);
+  useEffect(() => {
+    if (!selectedId) { setDetail(null); return; }
+    let cancelled = false; setLoading(true); setError('');
+    void fetchServerOrder(selectedId, guestOrderToken(selectedId) || undefined).then(order => {
+      if (cancelled) return;
+      if (!order) throw new Error('Could not load this order. Check access or retry.');
+      setDetail(mapServerOrder(order, [], '')); setDetailOwner(owner);
+    }).catch(cause => { if (!cancelled) { setDetail(null); setError(cause instanceof Error ? cause.message : 'Could not load this order.'); } })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [selectedId, revision, owner]);
+  useEffect(() => {
+    const check = () => { if (document.visibilityState === 'visible') { setRevision(value => value + 1); void own.refresh(); } };
+    window.addEventListener('focus', check); const timer = window.setInterval(check, 30000);
+    return () => { window.removeEventListener('focus', check); window.clearInterval(timer); };
+  }, [own.refresh]);
+  const issueCode = async () => {
+    if (!shown?.serverId || pickupBusy) return; setPickupBusy(true); setPickupError('');
+    try { const result = await requestPickupCode(shown.serverId); if (!result) throw new Error('The collection code could not be issued. Refresh the order and try again.'); setPickup(result); }
+    catch (cause) { setPickupError(cause instanceof Error ? cause.message : 'Could not issue a collection code.'); }
+    finally { setPickupBusy(false); }
   };
-
-  const formatNaira = (amt: number) => '₦' + amt.toLocaleString('en-NG');
-
-  const trackingSteps = [
-    { title: 'Order Confirmed & Payment Verified', time: '10:15 AM, Today', completed: true, desc: 'Paystack transaction reference #PS-84920 verified.' },
-    { title: `Packed at ${selectedCity} Distribution Hub`, time: '11:45 AM, Today', completed: true, desc: 'Batch tested with clinical authenticity seals applied.' },
-    { title: 'Dispatched with Courier', time: '01:20 PM, Today', completed: true, desc: 'Assigned to verified local bike rider for same-day delivery.' },
-    { title: 'Out for Local Delivery', time: '02:30 PM, Today', active: true, completed: false, desc: 'Rider is currently 2.4 km away from your address.' },
-    { title: 'Delivered & Handed Over', time: 'Estimated 3:15 PM', completed: false, desc: 'Recipient signature and PIN verification required.' },
-  ];
-
+  const currentTrackingId = shown?.id || '—';
+  const liveStatus = shown ? { orderNumber: shown.id, status: shown.serverStatus || shown.status, paymentStatus: shown.paymentStatus, total: shown.total, fulfilmentMethod: shown.fulfilmentMethod } : null;
+  const trackingSteps = (shown?.trackingSteps || []).map(step => ({ title: step.title, time: step.timestamp, completed: step.status === 'completed', active: step.status === 'current', desc: step.description }));
+  const transferPendingOrders = shown?.paymentStatus === 'UNPAID' && /transfer/i.test(shown.paymentMethod || '') ? [shown] : [];
+  const handlePickupCode = issueCode;
+  const pickupCode = pickup?.code;
+  const pickupMessage = pickupError || (pickup ? 'Expires ' + new Date(pickup.expiresAt).toLocaleString() : '');
+  const formatNaira = (amount: number) => amount.toLocaleString('en-NG', { style: 'currency', currency: 'NGN' });
   return (
     <div className="min-h-screen bg-[#FAF9F6] text-[#0F0F10] pb-28 font-body selection:bg-[#D4AF37]/20 selection:text-[#997A2E]">
       <main className="max-w-7xl mx-auto px-4 lg:px-8 pt-6 space-y-6">
@@ -163,7 +153,7 @@ export const Screen13OrdersTracking: React.FC = () => {
               </span>
             </div>
             <h1 className="font-heading font-extrabold text-2xl text-[#0F0F10] tracking-tight mt-0.5 flex items-center gap-2">
-              <span>Order Tracking</span>
+              <span>My orders</span>
               <BotanicalSprig className="w-5 h-5 opacity-60 text-[#D4AF37]" color="#D4AF37" />
             </h1>
           </div>
@@ -171,6 +161,7 @@ export const Screen13OrdersTracking: React.FC = () => {
             <span className="px-3.5 py-1.5 rounded-full bg-white border border-[#E5E7EB] text-xs font-mono font-bold text-[#0F0F10] shadow-2xs">
               Tracking: #{currentTrackingId}
             </span>
+            <button type="button" onClick={() => { setRevision(value => value + 1); void own.refresh(); }} disabled={loading || own.loading} className="rounded-full border bg-white px-4 py-2 text-xs">Refresh orders</button>
           </div>
         </div>
 
@@ -184,7 +175,7 @@ export const Screen13OrdersTracking: React.FC = () => {
               </span>
               <span className="font-price font-bold text-[#D4AF37]">₦{liveStatus.total.toLocaleString('en-NG')}</span>
             </div>
-            {liveStatus.fulfilmentMethod === 'PICKUP' && (liveStatus.status === 'READY_PICKUP' || liveStatus.status === 'FULFILLING') && (
+            {liveStatus.fulfilmentMethod === 'PICKUP' && (liveStatus.status === 'READY_PICKUP' && liveStatus.paymentStatus === 'PAID') && (
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-1 border-t border-white/10">
                 <button onClick={() => void handlePickupCode()} disabled={pickupBusy} className="px-4 py-2 rounded-full bg-[#D4AF37] text-[#0F0F10] font-bold cursor-pointer disabled:opacity-50">
                   {pickupBusy ? 'Issuing…' : 'Get pickup code'}
@@ -197,9 +188,17 @@ export const Screen13OrdersTracking: React.FC = () => {
         )}
         {/* Pending bank-transfer proofs (owned backend only) */}
         {transferPendingOrders.map((o) => (
-          <TransferClaimCard key={o.id} order={o} email={authUser?.email ?? checkoutAddress.email ?? ''} />
+          <TransferClaimCard key={o.id} order={o} email={authUser?.email || ''} />
         ))}
 
+        {own.loading && !own.orders.length && <p role="status">Loading your orders…</p>}
+        {own.error && <p role="alert">{own.error} <button className="underline" onClick={() => void own.refresh()}>Retry orders</button></p>}
+        {!authUser && !shown && <div className="p-5 rounded-2xl border bg-white"><p>Sign in to see your orders.</p><button className="underline" onClick={() => navigateTo('login')}>Sign in</button></div>}
+        {!!own.orders.length && <label className="block text-xs font-semibold">Select an order<select aria-label="Select an order" className="block mt-2 p-3 rounded-xl border bg-white w-full" value={selectedId} onChange={event => setSelectedId(event.target.value)}>{own.orders.map(order => <option key={order.id} value={order.id}>{order.orderNumber} · {order.status}</option>)}</select></label>}
+        {authUser && !own.loading && !own.orders.length && <div className="p-5 rounded-2xl bg-white border text-sm">No orders yet. <button className="underline" onClick={() => navigateTo('catalogue')}>Explore formulations</button></div>}
+        {own.hasMore && <button className="underline text-xs" onClick={() => void own.loadMore()}>Load older orders</button>}
+        {loading && <p role="status">Loading order details…</p>}
+        {error && <p role="alert">{error} <button className="underline" onClick={() => setRevision(value => value + 1)}>Retry order</button></p>}
         {/* TWO-GRID TRACK ORDER SYSTEM */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* LEFT GRID: Order Timeline, Milestones & Rider Details (6 cols) */}
@@ -212,18 +211,18 @@ export const Screen13OrdersTracking: React.FC = () => {
               <div className="flex items-center justify-between relative z-10">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#F3EEE3] text-[#0F0F10] border border-[#E5E7EB] text-xs font-bold">
                   <Truck size={13} className="text-[#997A2E]" />
-                  <span>Out For Same-Day Delivery</span>
+                  <span>{shown?.status || 'No active order'}</span>
                 </span>
                 <span className="text-xs font-mono font-bold text-[#0F0F10]">
-                  ETA: 15–20 Mins
+                  {shown?.paymentStatus || ''}
                 </span>
               </div>
 
               <h2 className="font-heading font-bold text-lg text-[#0F0F10] relative z-10">
-                Your formulations are arriving shortly
+                {shown ? (shown.fulfilmentMethod === 'PICKUP' ? 'Your collection order' : 'Your delivery order') : 'Your order journey'}
               </h2>
               <p className="text-xs text-[#6B7280] relative z-10">
-                Dispatched directly from the verified <strong>{selectedCity} Partner Hub</strong> to avoid interstate shipping delays.
+                {shown ? 'Order updates below come from your recorded order history.' : 'Choose an order to view its recorded progress.'}
               </p>
             </div>
 
@@ -260,38 +259,10 @@ export const Screen13OrdersTracking: React.FC = () => {
               </div>
             </div>
 
-            {/* Dispatch Rider Profile Card */}
+            {/* Courier details remain in their original card; no fabricated rider identity. */}
             <div className="p-4 rounded-2xl bg-white border border-[#E5E7EB] shadow-xs flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <img
-                  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=140&q=80"
-                  alt="Courier Rider"
-                  className="w-12 h-12 rounded-full object-cover border border-[#D4AF37]/50"
-                />
-                <div>
-                  <span className="text-xs font-bold text-[#0F0F10] block">Emeka Okafor</span>
-                  <span className="text-[10px] text-[#0F0F10] font-semibold">• Verified Desla Fleet Rider</span>
-                  <span className="text-[10px] text-[#6B7280] block font-mono">Honda Ace 125 (ABJ-482-XY)</span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <a
-                  href="tel:+2348148120642"
-                  className="w-9 h-9 rounded-full border border-[#E5E7EB] hover:bg-[#FAF9F6] flex items-center justify-center text-[#0F0F10] active-press transition-colors cursor-pointer"
-                  title="Call Rider"
-                >
-                  <Phone size={15} />
-                </a>
-                <a
-                  href="https://wa.me/2348148120642?text=Hello%20Emeka,%20checking%20on%20my%20Desla%20order%20delivery."
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-9 h-9 rounded-full bg-[#25D366]/15 hover:bg-[#25D366]/25 border border-[#25D366]/30 flex items-center justify-center text-emerald-800 active-press transition-colors cursor-pointer"
-                  title="WhatsApp Rider"
-                >
-                  <MessageCircle size={15} />
-                </a>
+              <div className="flex items-center gap-3"><div className="w-12 h-12 rounded-full bg-[#FAF9F6] flex items-center justify-center"><Truck size={22} /></div>
+                <div><span className="text-xs font-bold block">Dispatch details</span><span className="text-[11px] text-[#6B7280]">{shown?.shipment ? [shown.shipment.provider, shown.shipment.trackingReference, shown.shipment.status].filter(Boolean).join(' · ') : 'Courier details have not been recorded for this order.'}</span></div>
               </div>
             </div>
           </div>
@@ -307,88 +278,34 @@ export const Screen13OrdersTracking: React.FC = () => {
                   </h3>
                 </div>
                 <span className="text-[10px] font-mono text-[#997A2E] font-bold bg-[#FBF5E8] px-2 py-0.5 rounded-full">
-                  GPS Active • 32 km/h
+                  Location unavailable
                 </span>
               </div>
 
-              {/* Stylized Interactive Map Container */}
-              <div className="relative w-full h-[360px] rounded-2xl overflow-hidden bg-[#F4F4F6] border border-[#E5E7EB] flex items-center justify-center">
-                {/* Stylized Vector Map Grid Graphic */}
-                <svg className="w-full h-full opacity-60" viewBox="0 0 400 300">
-                  <defs>
-                    <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
-                      <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#E5E7EB" strokeWidth="1" />
-                    </pattern>
-                  </defs>
-                  <rect width="100%" height="100%" fill="url(#grid)" />
-
-                  {/* Road Network Lines */}
-                  <path d="M 40 240 Q 120 180 200 170 T 360 80" fill="none" stroke="#D1D5DB" strokeWidth="6" strokeLinecap="round" />
-                  <path d="M 100 280 L 160 190 L 260 160 L 320 40" fill="none" stroke="#E5E7EB" strokeWidth="4" />
-
-                  {/* Active Transit Path (Gold) */}
-                  <style>{`
-                    @keyframes transitTrace {
-                      0% { stroke-dashoffset: 40; }
-                      100% { stroke-dashoffset: 0; }
-                    }
-                  `}</style>
-                  <path
-                    d="M 60 220 Q 140 180 220 160 T 340 90"
-                    fill="none"
-                    stroke="#D4AF37"
-                    strokeWidth="4"
-                    strokeDasharray="10,6"
-                    strokeLinecap="round"
-                    style={{ animation: 'transitTrace 1.6s linear infinite' }}
-                  />
-                </svg>
-
-                {/* Origin Hub Pin (Maitama Hub) */}
-                <div className="absolute top-[200px] left-[50px] flex flex-col items-center">
-                  <div className="px-2.5 py-1 rounded-full bg-[#0F0F10] text-[#D4AF37] font-mono text-[9.5px] font-bold shadow-md">
-                    {selectedCity} Hub
-                  </div>
-                  <div className="w-3 h-3 rounded-full bg-[#0F0F10] ring-4 ring-[#D4AF37]/30 mt-1" />
-                </div>
-
-                {/* Moving Rider Pin */}
-                <div className="absolute top-[145px] left-[205px] flex flex-col items-center animate-bounce">
-                  <div className="px-2.5 py-1 rounded-full bg-[#D4AF37] text-[#0F0F10] font-heading text-[10px] font-black shadow-lg flex items-center gap-1">
-                    <Truck size={11} />
-                    <span>Emeka (2.4 km)</span>
-                  </div>
-                  <div className="w-4 h-4 rounded-full bg-[#0F0F10] border-2 border-white shadow-md mt-1" />
-                </div>
-
-                {/* Destination Address Pin */}
-                <div className="absolute top-[65px] right-[45px] flex flex-col items-center">
-                  <div className="px-2.5 py-1 rounded-full bg-[#0F0F10] text-[#D4AF37] font-heading text-[10px] font-bold shadow-md flex items-center gap-1">
-                    <MapPin size={11} />
-                    <span>Your Address</span>
-                  </div>
-                  <div className="w-3 h-3 rounded-full bg-[#0F0F10] ring-4 ring-[#D4AF37]/30 mt-1" />
-                </div>
+              <div className="relative w-full h-[360px] rounded-2xl overflow-hidden bg-[#F4F4F6] border border-[#E5E7EB] flex flex-col gap-3 items-center justify-center px-8 text-center">
+                <Navigation size={36} className="text-[#997A2E]" />
+                <p className="text-xs text-[#6B7280]">Live courier location is not available for this order.</p>
               </div>
 
               {/* Map Footer Metadata */}
               <div className="p-3 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] flex items-center justify-between text-xs text-[#6B7280]">
                 <div>
                   <span className="font-bold text-[#0F0F10] block">Destination:</span>
-                  <span className="text-[11px] truncate">14 Aminu Kano Crescent, Wuse 2, Abuja</span>
+                  <span className="text-[11px] truncate">{[shown?.shippingAddress.street, shown?.shippingAddress.city, shown?.shippingAddress.state].filter(Boolean).join(', ') || 'No delivery address recorded'}</span>
                 </div>
                 <div className="text-right">
                   <span className="font-bold text-[#0F0F10] block">Dispatch Type:</span>
-                  <span className="text-emerald-700 font-semibold text-[11px]">Same-Day Local Bike</span>
+                  <span className="text-emerald-700 font-semibold text-[11px]">{shown?.fulfilmentMethod === 'PICKUP' ? 'Collection' : shown ? 'Delivery' : '—'}</span>
                 </div>
               </div>
             </div>
 
+            {shown && <section className="p-5 rounded-2xl bg-white border border-[#E5E7EB] space-y-3"><h3 className="font-heading font-bold text-sm">Order items</h3>{shown.items.map((item, index) => <div key={index} className="flex justify-between gap-3 text-xs border-t pt-3"><span>{item.productName} · {item.size} × {item.quantity}</span><span>{formatNaira(item.price * item.quantity)}</span></div>)}</section>}
             {/* Need Assistance Card with Ask AI Concierge */}
             <div className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
               <div>
                 <span className="font-bold text-[#0F0F10] block">Have questions about this package?</span>
-                <span className="text-[11px] text-[#6B7280]">Ask our AI Concierge or chat with our 24/7 VIP team on WhatsApp.</span>
+                <span className="text-[11px] text-[#6B7280]">Ask our concierge about your order.</span>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <button
@@ -398,14 +315,7 @@ export const Screen13OrdersTracking: React.FC = () => {
                   <ShieldCheck size={14} />
                   <span>Ask AI Concierge</span>
                 </button>
-                <a
-                  href="https://wa.me/2348148120642"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3.5 py-2 rounded-full bg-white border border-[#E5E7EB] text-[#0F0F10] hover:bg-gray-100 font-bold text-xs transition-colors flex items-center gap-1 cursor-pointer"
-                >
-                  <span>WhatsApp</span>
-                </a>
+
               </div>
             </div>
           </div>

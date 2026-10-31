@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Activity } from 'lucide-react';
+import { BrandLogo } from './BrandLogo';
 
 export const InitialBrandLoader: React.FC = () => {
   const [isVisible, setIsVisible] = useState(() => {
@@ -67,22 +68,9 @@ export const InitialBrandLoader: React.FC = () => {
           <Activity size={14} className="animate-pulse duration-1000" />
         </div>
 
-        {/* Separated Desla! Wordmark + TM Badge */}
-        <div className="flex items-baseline gap-1.5 justify-center">
-          <span
-            className="font-heading font-extrabold text-4xl sm:text-5xl md:text-6xl text-[#FAF9F5] tracking-tight"
-            style={{ letterSpacing: '-0.04em' }}
-          >
-            Desla
-            <span className="text-[#D4AF37] inline-block transition-transform hover:scale-110">
-              !
-            </span>
-          </span>
-
-          {/* Luxury TM Badge */}
-          <span className="text-[9px] sm:text-[10px] font-mono uppercase px-1.5 py-0.5 rounded-xs border border-[#D4AF37]/50 text-[#F6E7C1] tracking-widest bg-[#D4AF37]/10">
-            TM
-          </span>
+        {/* Authentic Desla! Brandmark Logo */}
+        <div className="flex justify-center mb-2">
+          <BrandLogo variant="gold" size="xl" showTagline={false} />
         </div>
 
         {/* Tagline Reveal */}

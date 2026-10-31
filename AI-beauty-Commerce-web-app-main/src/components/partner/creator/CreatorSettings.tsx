@@ -1,20 +1,50 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { User, Instagram, Video, Building, Bell, Shield, Check } from 'lucide-react';
+import { useApp } from '../../../context/AppContext';
+import { fetchPartnerDashboard, partnerBankRegister, writePartnerWorkspace } from '../../../lib/owned-api';
 
 export const CreatorSettings: React.FC = () => {
-  const [name, setName] = useState('Amara Nnadi');
-  const [handle, setHandle] = useState('@amara_glows');
-  const [email, setEmail] = useState('amara.nnadi@glowbeauty.ng');
-  const [phone, setPhone] = useState('+234 814 812 0642');
-  const [bankName, setBankName] = useState('Guaranty Trust Bank (GTBank)');
-  const [accountNumber, setAccountNumber] = useState('0123456789');
-  const [accountName] = useState('AMARA NNADI');
+  const { authUser, refreshAuth } = useApp();
+  const [name, setName] = useState('');
+  const [handle, setHandle] = useState('');
+  const [email, setEmail] = useState(authUser?.email ?? '');
+  const [phone, setPhone] = useState(authUser?.profile?.phone ?? '');
+  const [bankName, setBankName] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [accountName, setAccountName] = useState('');
+  const [bankVerified, setBankVerified] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  useEffect(() => {
+    let cancelled = false; setLoading(true); setError(''); setEmail(authUser?.email || ''); setPhone(authUser?.profile?.phone || '');
+    void fetchPartnerDashboard('CREATOR').then((dashboard: any) => {
+      if (cancelled) return;
+      setName(dashboard.profile.name || authUser?.profile?.displayName || ''); setHandle(dashboard.profile.handle || '');
+      const bank = dashboard.wallet?.banks?.[0];
+      setBankName(bank?.bankName || ''); setAccountNumber(bank?.maskedNumber || ''); setAccountName(bank?.accountName || ''); setBankVerified(Boolean(bank?.verifiedAt));
+    }).catch(() => { if (!cancelled) setError('Could not load your creator settings. Reload this page to retry.'); }).finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [authUser?.id]);
+
+  const handleSave = async (event: React.FormEvent) => {
+    event.preventDefault(); if (saving || loading) return;
+    setSaving(true); setSaved(false); setError(''); let profileSaved = false;
+    try {
+      const changedBank = Boolean(accountNumber.trim()) && !accountNumber.includes('•');
+      const bankCode = /gtb|guaranty/i.test(bankName) ? '058' : /zenith/i.test(bankName) ? '057' : /access/i.test(bankName) ? '044' : /first/i.test(bankName) ? '011' : /stanbic/i.test(bankName) ? '221' : '';
+      if (changedBank && (!/^\d{10}$/.test(accountNumber.trim()) || !bankCode || !accountName.trim())) throw new Error('Choose a supported bank, enter its ten-digit account number and the beneficiary name.');
+      await writePartnerWorkspace({ action: 'profile', kind: 'CREATOR', name: name.trim(), handle: handle.trim(), address: '', phone, operatingHours: '' });
+      profileSaved = true; await refreshAuth();
+      if (changedBank) {
+        await partnerBankRegister('CREATOR', { bankCode, bankName: bankName.trim(), accountName: accountName.trim().toUpperCase(), accountNumber: accountNumber.trim() });
+        setBankVerified(false); setAccountNumber('••••••' + accountNumber.trim().slice(-4));
+      }
+      setSaved(true);
+    } catch (cause) { setError((profileSaved ? 'Profile saved; bank details were not saved. ' : '') + (cause instanceof Error ? cause.message : 'Could not save settings. Please retry.')); }
+    finally { setSaving(false); }
   };
 
   return (
@@ -31,6 +61,8 @@ export const CreatorSettings: React.FC = () => {
         </p>
       </div>
 
+      {error && <p role="alert" className="rounded-xl bg-rose-50 p-4 text-sm text-rose-700">{error}</p>}
+      {loading && <p role="status">Loading your creator settings…</p>}
       <form onSubmit={handleSave} className="space-y-6">
         {/* Profile Card */}
         <div className="p-6 rounded-3xl bg-white border border-[#E5E7EB] shadow-xs space-y-4">
@@ -60,6 +92,7 @@ export const CreatorSettings: React.FC = () => {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                readOnly
                 className="w-full px-3.5 py-2.5 rounded-xl border border-[#E5E7EB] text-xs bg-[#FAF9F6]"
               />
             </div>
@@ -82,7 +115,7 @@ export const CreatorSettings: React.FC = () => {
               Settlement Bank Account (NUBAN)
             </h2>
             <span className="text-[10px] font-mono font-bold text-[#0F0F10] bg-[#FAF9F6] px-2.5 py-0.5 rounded-full border border-[#E5E7EB]">
-              BVN Matched ✓
+               {bankVerified ? 'Verified for payout' : 'Awaiting verification'}
             </span>
           </div>
 
@@ -108,15 +141,15 @@ export const CreatorSettings: React.FC = () => {
           </div>
 
           <div className="p-3 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] text-xs">
-            <span className="text-[#6B7280]">Verified Beneficiary Name: </span>
-            <strong className="text-[#0F0F10] font-mono">{accountName}</strong>
+            <span className="text-[#6B7280]">{bankVerified ? 'Verified beneficiary name: ' : 'Beneficiary name (requires review): '}</span>
+            <strong className="text-[#0F0F10] font-mono">{accountName || name.toUpperCase() || 'Not provided'}</strong>
           </div>
         </div>
 
         {/* Submit */}
         <div className="flex justify-end pt-2">
           <button
-            type="submit"
+            type="submit" disabled={loading || saving}
             className="px-8 py-3 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-bold shadow-xs active:scale-[0.97] transition-all cursor-pointer flex items-center gap-2"
           >
             {saved ? (
@@ -125,7 +158,7 @@ export const CreatorSettings: React.FC = () => {
                 <span>Changes Saved ✓</span>
               </>
             ) : (
-              <span>Save Studio Settings</span>
+              <span>{saving ? 'Saving settings…' : 'Save Studio Settings'}</span>
             )}
           </button>
         </div>

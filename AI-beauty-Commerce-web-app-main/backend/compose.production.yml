@@ -1,12 +1,22 @@
 # API and worker only: provision managed private PostgreSQL, encrypted object
 # storage, SMTP and TLS proxy separately. Do not use root docker-compose.yml.
 services:
+  migrate:
+    build:
+      context: .
+      target: worker
+    env_file: .env.production
+    command: ["sh", "-c", "node preflight.mjs && ./node_modules/.bin/tsx src/db/migrate.ts && exec ./node_modules/.bin/tsx src/db/seed.ts"]
+    restart: "no"
   api:
     build:
       context: .
       target: runner
     restart: unless-stopped
     env_file: .env.production
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
     ports:
       - "127.0.0.1:3001:3001"
     healthcheck:
@@ -20,4 +30,7 @@ services:
       target: worker
     restart: unless-stopped
     env_file: .env.production
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
     stop_grace_period: 5m

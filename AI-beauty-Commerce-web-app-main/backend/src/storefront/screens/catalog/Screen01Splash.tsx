@@ -46,7 +46,7 @@ export const Screen01Splash: React.FC = () => {
           </h1>
 
           <p className="text-xs sm:text-sm text-[#A19B96] max-w-md mx-auto leading-relaxed">
-            Clinical formulations, luxury body care, and verified city-level distributor sourcing across Nigeria.
+            Natural formulations, luxury body care, and verified city-level distributor sourcing across Nigeria.
           </p>
         </div>
 

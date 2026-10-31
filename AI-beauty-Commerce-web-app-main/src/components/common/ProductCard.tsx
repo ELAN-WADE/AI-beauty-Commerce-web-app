@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Heart, Plus, Star, Check } from 'lucide-react';
+import { Heart, ShoppingBag, Star, Check } from 'lucide-react';
 import { Product } from '../../types';
-import { useApp } from '../../context/AppContext';
+import { useProductActions } from '../../context/AppContext';
 import { ProductImage } from './ProductImage';
 
 interface ProductCardProps {
@@ -11,13 +11,13 @@ interface ProductCardProps {
   onOpenModal?: (product: Product) => void;
 }
 
-export const ProductCard: React.FC<ProductCardProps> = ({
+export const ProductCard: React.FC<ProductCardProps> = React.memo(({
   product,
   variant = 'grid',
   onQuickAdd,
   onOpenModal
 }) => {
-  const { viewProductDetails, addToCart, isWishlisted, toggleWishlist, openQuickModal } = useApp();
+  const { addToCart, isWishlisted, toggleWishlist, openQuickModal } = useProductActions();
   const wishlisted = isWishlisted(product.id);
   const [justAdded, setJustAdded] = useState(false);
 
@@ -48,7 +48,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
     // Single simple product: add directly to cart
     const size = product.selectedSize || (product.sizes && product.sizes[0]) || 'Standard';
-    addToCart(product, size, 1);
+    if (!addToCart(product, size, 1)) return;
     setJustAdded(true);
     setTimeout(() => setJustAdded(false), 1400);
     if (onQuickAdd) onQuickAdd();
@@ -59,19 +59,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     toggleWishlist(product.id);
   };
 
-  // Concise meaningful descriptor (no internal codes or fake text)
-  const descriptor =
-    product.subCategory ||
-    (product.keyIngredients && product.keyIngredients[0]?.name) ||
-    (product.category === 'body-care'
-      ? 'Botanical Body Care'
-      : product.category === 'skincare'
-      ? 'Barrier Skincare'
-      : product.category === 'fragrance'
-      ? 'Artisanal Perfume'
-      : product.category === 'makeup'
-      ? 'Peptide Lip Care'
-      : 'Formulation');
+  const badge = /clinical/i.test(product.customBadge || '') ? '' : product.customBadge;
+  const descriptor = [product.subCategory, product.category].find(value => value && !/clinical/i.test(value)) || 'Formulation';
 
   // Compact variant (e.g. for cart sidebars or miniature rails)
   if (variant === 'compact') {
@@ -104,7 +93,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           className="w-7 h-7 rounded-full bg-[#FAF9F6] border border-[#E5E7EB] text-[#0F0F10] hover:bg-[#0F0F10] hover:text-white transition-colors flex items-center justify-center shrink-0 active:scale-95 cursor-pointer"
           aria-label={`Add ${product.name} to bag`}
         >
-          {justAdded ? <Check size={12} className="stroke-[2.5] text-[#D4AF37]" /> : <Plus size={14} strokeWidth={2} />}
+          {justAdded ? (
+            <Check size={12} className="stroke-[2.5] text-[#D4AF37]" />
+          ) : (
+            <ShoppingBag size={13} strokeWidth={2} />
+          )}
         </button>
       </div>
     );
@@ -128,6 +121,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           className="object-cover object-center group-hover:scale-[1.035] transition-transform duration-500 ease-out"
         />
 
+        {badge && (
+          <span className="absolute top-3 left-3 z-10 text-[#0F0F10] text-[10px] font-mono uppercase tracking-wider opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
+            {badge}
+          </span>
+        )}
+
         {/* Minimal Wishlist Accent (Discreet, Clean White Circle) */}
         <button
           onClick={handleWishlist}
@@ -145,18 +144,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       {/* Product Content Details (Disciplined Minimalist Hierarchy) */}
       <div className="pt-2.5 pb-1 px-0.5 flex flex-col flex-1 justify-between">
         <div>
-          {/* Concise Category & Rating */}
+          {/* Concise Category & Rating (Without redundant review count numbers) */}
           <div className="flex items-center justify-between text-[11px] gap-2">
-            <span className="text-[#6B7280] uppercase tracking-wider text-[10px] font-bold truncate">
-              {product.subCategory || product.category || descriptor}
+            <span className="text-[#6B7280] uppercase tracking-wider text-[10px] font-bold truncate opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
+              {descriptor}
             </span>
-            {product.rating && product.rating > 0 && (
+            {product.rating > 0 && (
               <div className="flex items-center gap-1 text-[#0F0F10] shrink-0 text-[11px] font-bold">
                 <Star size={11} className="fill-[#D4AF37] text-[#D4AF37]" strokeWidth={0} />
                 <span>{product.rating.toFixed(1)}</span>
-                {product.reviewsCount ? (
-                  <span className="text-[#9CA3AF] font-normal text-[10px]">({product.reviewsCount})</span>
-                ) : null}
               </div>
             )}
           </div>
@@ -167,7 +163,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           </h3>
         </div>
 
-        {/* Pricing and Minimal Circular (+) Add Control */}
+        {/* Pricing and Cart Control */}
         <div className="pt-1.5 mt-1 flex items-center justify-between">
           <div className="flex items-baseline gap-1.5">
             <span className="font-price font-bold text-[14px] text-[#0F0F10]">
@@ -180,7 +176,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             )}
           </div>
 
-          {/* Minimal Add-to-Bag (+) Control */}
+          {/* Cart Icon Quick Action Control */}
           <button
             onClick={handleActionClick}
             className={`w-7 h-7 rounded-full flex items-center justify-center transition-all duration-160 active:scale-90 cursor-pointer shadow-2xs ${
@@ -194,11 +190,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             {justAdded ? (
               <Check size={13} className="stroke-[2.5] text-[#D4AF37]" />
             ) : (
-              <Plus size={14} strokeWidth={2} />
+              <ShoppingBag size={13} strokeWidth={2} />
             )}
           </button>
         </div>
       </div>
     </article>
   );
-};
+});
+ProductCard.displayName = 'ProductCard';

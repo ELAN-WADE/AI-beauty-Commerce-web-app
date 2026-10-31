@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Sparkles, X, Send, Plus, ArrowRight, ShieldCheck, CheckCircle2, Maximize2 } from 'lucide-react';
+import { X, Send, Plus, ArrowRight, ShieldCheck, CheckCircle2, Maximize2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { products } from '../../data/products';
 
@@ -73,7 +73,7 @@ export const AIAssistantDrawer: React.FC = () => {
                 <span className="w-2 h-2 rounded-full bg-emerald-500" title="System Online" />
               </div>
               <p className="text-[10px] text-[#6B7280]">
-                Clinical Formulations, Regimens &amp; Courier Telemetry
+                Natural Formulations, Regimens &amp; Courier Telemetry
               </p>
             </div>
           </div>

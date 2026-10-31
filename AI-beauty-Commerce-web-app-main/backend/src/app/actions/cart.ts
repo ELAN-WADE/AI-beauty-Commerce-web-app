@@ -25,6 +25,7 @@ export async function syncCartAction(
   try {
     const db = getDb();
     const owner = await resolveActionShopper(db, sessionId);
+    if (!owner.userId) return { ok: false, status: 401, code: 'unauthorized', message: 'Sign in to use your bag.' };
     // Identity-keyed: authenticated shoppers get personal budgets (shared
     // mobile NATs must not throttle innocent neighbors); guests fall back to IP.
     const rl = await checkSharedRateLimit(db, `action:cart:${owner.userId ?? (await actionClientIp())}`, Limits.catalog);
@@ -44,6 +45,8 @@ export async function mergeCartAction(
     const { optionalAuth } = await import('@/modules/auth/require-auth');
     const auth = await optionalAuth(db);
     if (!auth) return { ok: false, status: 401, code: 'unauthorized', message: 'Login required.' };
+    const rl = await checkSharedRateLimit(db, `action:cart-merge:${auth.userId}`, Limits.cartWrite);
+    if (!rl.allowed) return { ok: false, status: 429, code: 'rate_limited', message: 'Too many cart updates. Slow down and try again.' };
     return { ok: true, data: await runMergeCart(db, auth.userId, sessionId) };
   } catch (err) {
     const f = toActionFailure(err);

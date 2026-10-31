@@ -14,6 +14,34 @@ import { eq } from 'drizzle-orm';
 import type { AppDb } from '@/db/client';
 import { productVariants, products } from '@/modules/catalog/schema';
 
+export type SyncEvent = { type: 'CATALOG_UPDATE'; slug?: string | null; timestamp: number };
+type SyncListener = (event: SyncEvent) => void;
+
+// In-memory set of connected clients for live SSE revalidation
+const listeners = new Set<SyncListener>();
+
+export function subscribeStorefrontSync(listener: SyncListener): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+export function broadcastStorefrontSync(slug?: string | null): void {
+  const event: SyncEvent = {
+    type: 'CATALOG_UPDATE',
+    slug: slug ?? null,
+    timestamp: Date.now(),
+  };
+  for (const listener of listeners) {
+    try {
+      listener(event);
+    } catch {
+      // client disconnected
+    }
+  }
+}
+
 export function revalidateStorefront(slug?: string | null): void {
   for (const path of ['/', '/catalogue']) {
     try {
@@ -30,6 +58,8 @@ export function revalidateStorefront(slug?: string | null): void {
       // ignore — see above
     }
   }
+  // Broadcast live sync signal to all open storefront client tabs
+  broadcastStorefrontSync(clean || null);
 }
 
 /** Resolve a product slug from a variant id (inventory adjusts only know variants). */

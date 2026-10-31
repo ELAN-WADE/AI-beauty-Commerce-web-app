@@ -2,7 +2,8 @@ import { createHash, randomBytes, scrypt as scryptCb, type ScryptOptions } from 
 import { and, asc, eq, inArray, isNull, gt, sql } from 'drizzle-orm';
 import type { AppDb, Db } from '../../db/client';
 import { Errors } from '../../lib/errors';
-import { enqueueAuthEmail } from './email';
+import { enqueueAuthEmail, enqueueAccountAccessEmail } from './email';
+import { adminEmail, hasStaffRole } from './admin-policy';
 import {
   emailVerificationTokens,
   passwordResetTokens,
@@ -77,19 +78,23 @@ export interface SessionMeta {
 }
 
 /** Register: anti-enumeration — existing email returns success without creating (§12.8). */
-export async function register(db: AppDb, input: { email: string; password: string }) {
+export async function register(db: AppDb, input: { email: string; password: string; intent?: 'CUSTOMER' | 'CREATOR' | 'DISTRIBUTOR' }) {
   const email = normalizeEmail(input.email);
   const existing = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
   if (existing.length > 0) {
     // Timing equalization: burn one scrypt so existing-vs-new is indistinguishable.
     await hashPassword(newRawToken(16));
+    await resendVerification(db, email);
     return { created: false as const, email, verificationToken: null as string | null, userId: null as string | null };
   }
   const passwordHash = await hashPassword(input.password);
   // Atomic: user + role + verification token succeed or fail together (no orphans).
   return db.transaction(async (tx) => {
-    const [user] = await tx.insert(users).values({ email, passwordHash }).onConflictDoNothing({ target: users.email }).returning({ id: users.id });
-    if (!user) return { created: false as const, email, verificationToken: null, userId: null };
+    const [user] = await tx.insert(users).values({ email, passwordHash, signupIntent: input.intent ?? 'CUSTOMER' }).onConflictDoNothing({ target: users.email }).returning({ id: users.id });
+    if (!user) {
+      await resendVerification(tx as unknown as AppDb, email);
+      return { created: false as const, email, verificationToken: null, userId: null };
+    }
     await tx.insert(userRoles).values({ userId: user.id, roleId: 'CUSTOMER' });
     const raw = newRawToken();
     await tx.insert(emailVerificationTokens).values({
@@ -112,16 +117,21 @@ export async function issueVerificationToken(db: AppDb, userId: string): Promise
   return raw;
 }
 
-export async function resendVerification(db: AppDb, emailRaw: string): Promise<void> {
+export async function resendVerification(db: AppDb, emailRaw: string): Promise<string | undefined> {
   const email = normalizeEmail(emailRaw);
   const [user] = await db.select({ id: users.id, verifiedAt: users.emailVerifiedAt }).from(users).where(eq(users.email, email)).limit(1);
-  if (!user || user.verifiedAt) return;
-  await db.transaction(async tx => {
+  if (!user) return;
+  return db.transaction(async tx => {
     const [current] = await tx.select().from(users).where(eq(users.id, user.id)).for('update');
-    if (!current || current.emailVerifiedAt) return;
+    if (!current) return;
+    if (current.emailVerifiedAt) {
+      await enqueueAccountAccessEmail(tx, current.id);
+      return;
+    }
     const raw = newRawToken();
     await tx.insert(emailVerificationTokens).values({ userId: user.id, tokenHash: sha256Hex(raw), expiresAt: new Date(Date.now() + VERIFY_TTL_MS) });
     await enqueueAuthEmail(tx, { userId: user.id, email, template: 'auth.verify-email', token: raw });
+    return raw;
   });
 }
 
@@ -155,6 +165,16 @@ export async function verifyEmail(db: AppDb, rawToken: string): Promise<string> 
   });
 }
 
+/** Email proof and the resulting session commit together; staff still require MFA. */
+export async function verifyEmailAndCreateSession(db: AppDb, token: string, meta: SessionMeta = {}) {
+  return db.transaction(async tx => {
+    const transaction = tx as unknown as AppDb;
+    const userId = await verifyEmail(transaction, token);
+    await enforceSessionCap(transaction, userId);
+    return createSession(transaction, userId, meta);
+  });
+}
+
 /**
  * Login: ONE generic error for missing user / bad password / unverified-lockout
  * (enumeration resistance). Missing-user path still runs a full scrypt hash so
@@ -164,6 +184,7 @@ export async function login(
   db: AppDb,
   input: { email: string; password: string },
   meta: SessionMeta = {},
+  purpose: 'account' | 'admin' = 'account',
 ) {
   const email = normalizeEmail(input.email);
   const rows = await db.select().from(users).where(eq(users.email, email)).limit(1);
@@ -189,6 +210,10 @@ export async function login(
     throw Errors.unauthorized('Invalid email or password.');
   }
   if (!user.emailVerifiedAt) throw Errors.unauthorized('Verify your email address before signing in.');
+  if (purpose === 'admin') {
+    const grants = await db.select().from(userRoles).where(eq(userRoles.userId, user.id));
+    if (email !== adminEmail() || !hasStaffRole(grants.map(grant => grant.roleId))) throw Errors.unauthorized('Invalid administrator credentials.');
+  }
   await db
     .update(users)
     .set({ failedLoginAttempts: 0, lockedUntil: null })

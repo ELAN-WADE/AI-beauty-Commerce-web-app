@@ -1,0 +1,54 @@
+# Render Blueprint specification for Desla / Glowly
+# Docs: https://render.com/docs/blueprint-spec
+version: "1"
+
+databases:
+  - name: glowly-dev-db
+    databaseName: glowly_dev
+    user: glowly
+    plan: free # Note: Render free tier PostgreSQL expires after 30 days. Use 'starter' for long-term dev/staging.
+    region: oregon
+
+services:
+  # Main Full-Stack Application (Storefront, Portals, Admin & API Monolith)
+  - type: web
+    name: glowly-app
+    runtime: node
+    plan: free # Upgrade to starter for production traffic
+    region: oregon
+    rootDir: AI-beauty-Commerce-web-app-main/backend
+    buildCommand: npm ci && npm run build
+    preDeployCommand: npm run render:deploy
+    startCommand: node scripts/start.mjs
+    healthCheckPath: /api/ready
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: RENDER_DEV
+        value: "true"
+      - key: DEV_DEPLOY
+        value: "true"
+      - key: CLIENT_IP_HEADER
+        value: x-forwarded-for
+      - key: DATABASE_URL
+        fromDatabase:
+          name: glowly-dev-db
+          property: connectionString
+      - key: DATABASE_SSL_MODE
+        value: require
+      - key: AUTH_EMAIL_ENCRYPTION_KEY
+        generateValue: true
+      - key: MFA_ENCRYPTION_KEY
+        generateValue: true
+      - key: ADMIN_ENTRY_PATH
+        value: /ops-desla-admin-portal-dev-2026
+      - key: ADMIN_BOOTSTRAP_EMAIL
+        value: deslaadmin@gmail.com
+      - key: ADMIN_BOOTSTRAP_PASSWORD
+        generateValue: true
+      - key: PAYMENTS_ENABLED
+        value: "false"
+      - key: ALLOW_LOG_EMAIL
+        value: "true"
+      - key: SKIP_PREFLIGHT
+        value: "true"

@@ -22,9 +22,9 @@ export const defaultCreatorTiles: EditorialTileData[] = [
     index: '01',
     category: 'Production Lab',
     title: 'Create Studio',
-    description: 'Conceive beauty routines, film short-form reels, and architect clinical product regimens.',
+    description: 'Conceive beauty routines, film short-form reels, and architect natural product regimens.',
     image: '/tile_create_studio.jpg',
-    badge: 'LIVE',
+    badge: '',
     badgeVariant: 'gold',
     desktopSpan: 'col-span-1',
     minHeight: 'min-h-[160px] sm:min-h-[175px] lg:min-h-[185px]',
@@ -39,7 +39,7 @@ export const defaultCreatorTiles: EditorialTileData[] = [
     title: 'Brand Campaigns',
     description: 'Partner on seasonal brand briefs, elevate awareness, and unlock high-impact milestone bonuses.',
     image: '/tile_campaigns.jpg',
-    badge: '2 BRIEFS',
+    badge: '',
     badgeVariant: 'gold',
     desktopSpan: 'col-span-1',
     minHeight: 'min-h-[160px] sm:min-h-[175px] lg:min-h-[185px]',
@@ -54,7 +54,7 @@ export const defaultCreatorTiles: EditorialTileData[] = [
     title: 'My Content',
     description: 'Curate published reels, routine guides, active drafts, and review statuses.',
     image: '/tile_content.jpg',
-    badge: '42 ITEMS',
+    badge: '',
     desktopSpan: 'col-span-1',
     minHeight: 'min-h-[160px] sm:min-h-[175px] lg:min-h-[185px]',
     visualTone: 'rose',
@@ -68,7 +68,7 @@ export const defaultCreatorTiles: EditorialTileData[] = [
     title: 'PR Room',
     description: 'Claim complimentary pre-release formulas and track real-time doorstep delivery.',
     image: '/tile_pr_room.jpg',
-    badge: 'ELIGIBLE',
+    badge: '',
     badgeVariant: 'gold',
     desktopSpan: 'col-span-1',
     minHeight: 'min-h-[160px] sm:min-h-[175px] lg:min-h-[185px]',
@@ -83,7 +83,7 @@ export const defaultCreatorTiles: EditorialTileData[] = [
     title: 'Earnings & Vault',
     description: 'Review verified commission ledgers, cleared bank balances, and transparent client attribution.',
     image: '/tile_earnings.jpg',
-    badge: '₦84.6K',
+    badge: '',
     badgeVariant: 'gold',
     desktopSpan: 'col-span-1',
     minHeight: 'min-h-[160px] sm:min-h-[175px] lg:min-h-[185px]',
@@ -98,7 +98,7 @@ export const defaultCreatorTiles: EditorialTileData[] = [
     title: 'Performance Pulse',
     description: 'Analyze client conversions, follower resonance, and reach velocity across West Africa.',
     image: '/tile_analytics.jpg',
-    badge: '+18.4%',
+    badge: '',
     badgeVariant: 'subtle',
     desktopSpan: 'col-span-1',
     minHeight: 'min-h-[160px] sm:min-h-[175px] lg:min-h-[185px]',
@@ -113,7 +113,7 @@ export const defaultCreatorTiles: EditorialTileData[] = [
     title: 'Curated Storefront',
     description: 'Your personal bespoke boutique with verified favorites and custom regimens.',
     image: '/tile_storefront.jpg',
-    badge: "AMARA'S EDIT",
+    badge: '',
     badgeVariant: 'subtle',
     desktopSpan: 'col-span-1',
     minHeight: 'min-h-[160px] sm:min-h-[175px] lg:min-h-[185px]',
@@ -128,7 +128,7 @@ export const defaultCreatorTiles: EditorialTileData[] = [
     title: 'Links & Promo',
     description: 'Generate tracked affiliate URLs, custom discount codes, and live tap rates.',
     image: '/tile_links.jpg',
-    badge: 'AMARA10',
+    badge: '',
     badgeVariant: 'gold',
     desktopSpan: 'col-span-1',
     minHeight: 'min-h-[160px] sm:min-h-[175px] lg:min-h-[185px]',
@@ -143,7 +143,7 @@ export const defaultCreatorTiles: EditorialTileData[] = [
     title: 'Creator Settings',
     description: 'Fine-tune payout credentials, bio identities, brand notifications, and security.',
     image: '/tile_settings.jpg',
-    badge: 'LUMINARY',
+    badge: '',
     badgeVariant: 'subtle',
     desktopSpan: 'col-span-1',
     minHeight: 'min-h-[160px] sm:min-h-[175px] lg:min-h-[185px]',
@@ -185,12 +185,16 @@ export const EditorialNavigationGrid: React.FC<EditorialNavigationGridProps> = (
   const getBentoSpan = (tileId: string) => {
     switch (tileId) {
       case 'tile-create':
+        // Row 1 anchor: 2 columns (50% width)
         return 'col-span-1 sm:col-span-2 lg:col-span-2';
       case 'tile-earnings':
+        // Row 2 anchor: 2 columns (50% width)
         return 'col-span-1 sm:col-span-2 lg:col-span-2';
       case 'tile-settings':
+        // Row 3 anchor: 2 columns (50% width)
         return 'col-span-1 sm:col-span-2 lg:col-span-2';
       default:
+        // Standard jewel tile: 1 column (25% width)
         return 'col-span-1 sm:col-span-1 lg:col-span-1';
     }
   };

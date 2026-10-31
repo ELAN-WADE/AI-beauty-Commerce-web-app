@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 import { captureError } from './observe';
+import { getDb } from '../db/client';
+import { checkSharedRateLimit, Limits } from './rate-limit';
+import { isAllowedApiOrigin } from './origins';
 
 export interface ErrorEnvelope {
   error: {
@@ -20,6 +23,7 @@ export class ApiError extends Error {
     message: string,
     public retryable = false,
     public details?: unknown,
+    public retryAfterSec?: number,
   ) {
     super(message);
   }
@@ -32,11 +36,12 @@ export const Errors = {
     new ApiError(401, 'unauthorized', msg),
   forbidden: (msg = 'You do not have access to this resource.') =>
     new ApiError(403, 'forbidden', msg),
+  mfaRequired: () => new ApiError(403, 'mfa_required', 'Set up and verify multi-factor authentication to access staff operations.'),
   notFound: (msg = 'Resource not found.') => new ApiError(404, 'not_found', msg),
   conflict: (msg = 'Resource already exists.') =>
     new ApiError(409, 'conflict', msg),
   rateLimited: (retryAfterSec: number) =>
-    new ApiError(429, 'rate_limited', 'Too many requests. Slow down and retry.', true),
+    new ApiError(429, 'rate_limited', 'Too many requests. Slow down and retry.', true, undefined, retryAfterSec),
   gone: (msg = 'This link has expired or was already used.') =>
     new ApiError(410, 'gone', msg),
 } as const;
@@ -56,6 +61,14 @@ export function api<TRoute = unknown>(
     const requestId = req.headers.get('x-request-id') ?? crypto.randomUUID();
     try {
       enforceOrigin(req);
+      if (MUTATING_METHODS.has(req.method)) {
+        const path = new URL(req.url).pathname;
+        const namespace = path.startsWith('/api/admin/') ? 'admin' : 'api';
+        const spec = namespace === 'admin' ? Limits.adminMutation : Limits.apiMutation;
+        const ip = clientIp(req);
+        const rl = await checkSharedRateLimit(getDb(), `http-write:${namespace}:${ip}`, spec);
+        if (!rl.allowed) throw Errors.rateLimited(Math.max(1, Math.ceil(rl.retryAfterMs / 1000)));
+      }
       const res = await handler({ requestId, req, route });
       res.headers.set('x-request-id', requestId);
       return res;
@@ -68,7 +81,7 @@ export function api<TRoute = unknown>(
 /** Shared catch-mapping so hand-rolled dynamic handlers match api() exactly. */
 export function toErrorResponse(err: unknown, requestId: string): NextResponse {
   if (err instanceof ApiError) {
-    return envelope(err.status, err.code, err.message, requestId, err.retryable, err.details, err.status === 429 ? 60 : undefined);
+    return envelope(err.status, err.code, err.message, requestId, err.retryable, err.details, err.status === 429 ? err.retryAfterSec ?? 60 : undefined);
   }
   if (err instanceof ZodError) {
     // Field names only — never values, never schema internals.
@@ -156,28 +169,7 @@ export function enforceOrigin(req: Request): void {
   if (!MUTATING_METHODS.has(req.method)) return;
   const origin = req.headers.get('origin');
   if (!origin) return;
-  const allowlist = [
-    process.env.APP_URL,
-    process.env.FRONTEND_URL,
-    ...(process.env.ALLOWED_ORIGINS ?? '').split(',').map((s) => s.trim()).filter(Boolean),
-  ].filter(Boolean) as string[];
-  if (allowlist.length === 0) {
-    // Disconnect rule: dev may run unconfigured (SameSite is the backstop),
-    // but production must fail closed — never accept a foreign Origin.
-    if (process.env.NODE_ENV === 'production') {
-      throw new ApiError(403, 'forbidden_origin', 'Cross-origin requests are not allowed.', false);
-    }
-    return;
-  }
-  const norm = (u: string) => {
-    try {
-      return new URL(u).origin;
-    } catch {
-      return '';
-    }
-  };
-  const ok = allowlist.some((a) => norm(a) !== '' && norm(a) === norm(origin));
-  if (!ok) throw new ApiError(403, 'forbidden_origin', 'Cross-origin requests are not allowed.', false);
+  if (!isAllowedApiOrigin(origin)) throw new ApiError(403, 'forbidden_origin', 'Cross-origin requests are not allowed.', false);
 }
 
 /** Raw body with a size cap (webhooks bypass readJson — §10 API4). */

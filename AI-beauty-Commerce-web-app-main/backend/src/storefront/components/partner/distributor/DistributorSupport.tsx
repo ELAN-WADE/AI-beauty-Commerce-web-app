@@ -1,15 +1,30 @@
 import React, { useState } from 'react';
+import { useApp } from '../../../context/AppContext';
+import { writePartnerWorkspace } from '../../../lib/owned-api';
 import { PhoneCall, ShieldAlert, Send, CheckCircle2 } from 'lucide-react';
 
 export const DistributorSupport: React.FC = () => {
+  const { isLiveBackend } = useApp();
+  const [ticketId, setTicketId] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
   const [topic, setTopic] = useState('damaged-batch');
   const [message, setMessage] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim()) return;
-    setSubmitted(true);
+    if (saving) return;
+    setSaving(true); setError('');
+    try {
+      if (isLiveBackend) {
+        const { result } = await writePartnerWorkspace({ action: 'save', kind: 'DISTRIBUTOR', type: 'SUPPORT', status: 'SUBMITTED', title: `Support: ${topic}`, body: message.trim(), url: '', productIds: [] });
+        setTicketId(result.id);
+      }
+      setSubmitted(true);
+    } catch (error) { setError(error instanceof Error ? error.message : 'Could not submit your request.'); }
+    finally { setSaving(false); }
   };
 
   return (
@@ -41,6 +56,7 @@ export const DistributorSupport: React.FC = () => {
         </a>
       </div>
 
+      {error && <p role="alert" className="text-sm text-rose-700">{error}</p>}
       <div className="p-6 sm:p-8 rounded-3xl bg-white border border-[#E5E7EB] shadow-xs">
         {submitted ? (
           <div className="text-center py-8 space-y-3">
@@ -48,10 +64,10 @@ export const DistributorSupport: React.FC = () => {
               <CheckCircle2 size={24} />
             </div>
             <h3 className="font-heading font-bold text-lg text-[#0F0F10]">
-              Incident Ticket #DIS-4190 Logged
+              {isLiveBackend ? `Incident ${ticketId} logged` : 'Incident Ticket #DIS-4190 Logged'}
             </h3>
             <p className="text-xs text-[#6B7280] max-w-sm mx-auto">
-              Central Laboratory Operations Control will inspect this incident immediately. A replacement carton or adjustment credit will be dispatched if required.
+              Your incident has been submitted to the operations review queue.
             </p>
             <button
               onClick={() => {
@@ -96,7 +112,7 @@ export const DistributorSupport: React.FC = () => {
             </div>
 
             <button
-              type="submit"
+              type="submit" disabled={saving}
               className="w-full py-3 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs cursor-pointer active:scale-[0.98] transition-all"
             >
               <Send size={14} className="text-[#D4AF37]" />

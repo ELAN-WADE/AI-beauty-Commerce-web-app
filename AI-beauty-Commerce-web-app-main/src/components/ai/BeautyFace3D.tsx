@@ -1,7 +1,7 @@
 import React, { useRef, useState, useMemo, useEffect } from 'react';
 import * as THREE from 'three';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldCheck, Sparkles } from 'lucide-react';
+import { ShieldCheck, Activity } from 'lucide-react';
 
 export type ScanStage = 'idle' | 'preparing' | 'scanning' | 'analyzing' | 'results';
 
@@ -19,7 +19,7 @@ export const LANDMARKS: LandmarkData[] = [
     id: 'forehead',
     label: 'Frontal Plane',
     metric: 'Cellular Hydration',
-    score: '84%',
+    score: 'Not measured',
     position: [0, 0.72, 0.22],
     screenPos: { top: '26%', left: '50%' }
   },
@@ -27,15 +27,15 @@ export const LANDMARKS: LandmarkData[] = [
     id: 'left-cheek',
     label: 'Zygomatic Arch L',
     metric: 'Lipid Barrier',
-    score: '91%',
+    score: 'Not measured',
     position: [-0.44, 0.05, 0.28],
     screenPos: { top: '50%', left: '28%' }
   },
   {
     id: 'right-cheek',
     label: 'Zygomatic Arch R',
-    metric: 'Melanin Radiance',
-    score: '88%',
+    metric: 'Natural Radiance',
+    score: 'Not measured',
     position: [0.44, 0.05, 0.28],
     screenPos: { top: '50%', left: '72%' }
   },
@@ -43,7 +43,7 @@ export const LANDMARKS: LandmarkData[] = [
     id: 'under-eye',
     label: 'Infraorbital Rim',
     metric: 'Micro-Circulation',
-    score: '86%',
+    score: 'Not measured',
     position: [0.22, 0.25, 0.32],
     screenPos: { top: '42%', left: '60%' }
   },
@@ -51,7 +51,7 @@ export const LANDMARKS: LandmarkData[] = [
     id: 't-zone',
     label: 'Pronasale / T-Zone',
     metric: 'Sebum Equilibrium',
-    score: '78%',
+    score: 'Not measured',
     position: [0, 0.12, 0.38],
     screenPos: { top: '46%', left: '50%' }
   },
@@ -59,7 +59,7 @@ export const LANDMARKS: LandmarkData[] = [
     id: 'chin',
     label: 'Gnathion / Chin',
     metric: 'Texture Smoothness',
-    score: '92%',
+    score: 'Not measured',
     position: [0, -0.42, 0.24],
     screenPos: { top: '70%', left: '50%' }
   }
@@ -84,6 +84,9 @@ export const BeautyFace3D: React.FC<BeautyFace3DProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [activeLandmarkId, setActiveLandmarkId] = useState<string | null>(null);
   const [hasWebGLError, setHasWebGLError] = useState(false);
+  const [textureReady, setTextureReady] = useState(false);
+  const scanState = useRef({ scanStage, scanProgress });
+  scanState.current = { scanStage, scanProgress };
   const texturePath = '/beauty_face_3d.png';
 
   // Three.js refs for animation loop
@@ -119,6 +122,8 @@ export const BeautyFace3D: React.FC<BeautyFace3DProps> = ({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    let disposed = false;
+    setTextureReady(false);
     let animationId: number;
     let renderer: THREE.WebGLRenderer | null = null;
 
@@ -180,6 +185,7 @@ export const BeautyFace3D: React.FC<BeautyFace3DProps> = ({
       textureLoader.load(
         texturePath,
         (tex) => {
+          if (disposed) { tex.dispose(); return; }
           tex.colorSpace = THREE.SRGBColorSpace;
           tex.generateMipmaps = true;
           tex.minFilter = THREE.LinearMipmapLinearFilter;
@@ -197,11 +203,12 @@ export const BeautyFace3D: React.FC<BeautyFace3DProps> = ({
 
           const faceMesh = new THREE.Mesh(geometry, material);
           mainGroup.add(faceMesh);
+          setTextureReady(true);
         },
         undefined,
         () => {
           // If texture fails, gracefully fall back
-          setHasWebGLError(true);
+          if (!disposed) setHasWebGLError(true);
         }
       );
 
@@ -266,6 +273,7 @@ export const BeautyFace3D: React.FC<BeautyFace3DProps> = ({
       let clock = new THREE.Clock();
 
       const animate = () => {
+        const { scanStage, scanProgress } = scanState.current;
         animationId = requestAnimationFrame(animate);
         const t = clock.getElapsedTime();
 
@@ -311,14 +319,23 @@ export const BeautyFace3D: React.FC<BeautyFace3DProps> = ({
       animate();
 
       return () => {
+        disposed = true;
         cancelAnimationFrame(animationId);
         resizeObserver.disconnect();
+        scene.traverse(object => {
+          if (!(object instanceof THREE.Mesh)) return;
+          object.geometry.dispose();
+          for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
+            (material as THREE.MeshStandardMaterial).map?.dispose();
+            material.dispose();
+          }
+        });
         renderer?.dispose();
       };
     } catch {
       setHasWebGLError(true);
     }
-  }, [scanStage, scanProgress, texturePath]);
+  }, [texturePath]);
 
   return (
     <div
@@ -329,6 +346,7 @@ export const BeautyFace3D: React.FC<BeautyFace3DProps> = ({
         background: 'transparent'
       }}
     >
+      {!textureReady && !hasWebGLError && <img src={texturePath} alt="Desla 3D Beauty Face" className="absolute inset-0 w-full h-full object-contain" />}
       {/* 1. Pure Three.js Canvas Scene */}
       {!hasWebGLError ? (
         <canvas
@@ -397,12 +415,12 @@ export const BeautyFace3D: React.FC<BeautyFace3DProps> = ({
             {scanStage === 'preparing' && (
               <>
                 <span className="w-2 h-2 rounded-full bg-[#D4AF37] animate-ping" />
-                <span className="text-[#997A2E] font-bold">CALIBRATING MELANIN SENSOR</span>
+                <span className="text-[#997A2E] font-bold">CALIBRATING NATURAL SENSOR</span>
               </>
             )}
             {scanStage === 'scanning' && (
               <>
-                <Sparkles size={12} className="text-[#D4AF37] animate-spin" />
+                <Activity size={12} className="text-[#D4AF37] animate-pulse" />
                 <span className="text-[#997A2E] font-bold">ANALYZING FACIAL ZONES</span>
               </>
             )}

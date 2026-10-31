@@ -141,7 +141,7 @@ export const FacialContourArcs: React.FC<{ className?: string; color?: string }>
   </svg>
 );
 
-// 4. Apothecary Clinical Purity Seal
+// 4. Apothecary Natural Purity Seal
 export const ApothecaryPuritySeal: React.FC<{ className?: string; size?: number }> = ({ className = 'w-16 h-16', size }) => (
   <div
     style={size ? { width: size, height: size } : undefined}
@@ -162,7 +162,7 @@ export const ApothecaryPuritySeal: React.FC<{ className?: string; size?: number 
       />
       <text fill="#997A2E" fontSize="7.5" fontWeight="600" letterSpacing="2.2" textAnchor="middle">
         <textPath href="#textPathSeal" startOffset="50%">
-          DESLA! APOTHECARY • 100% CLINICALLY VERIFIED •
+          DESLA! APOTHECARY • 100% NATURALLY VERIFIED •
         </textPath>
       </text>
     </svg>

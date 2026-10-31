@@ -16,6 +16,6 @@ export const GET = api(async ({ req }) => {
   // downstream: checkout re-verifies against row-locked inventory, and admin
   // writes revalidate the ISR pages on demand. Detail/checkout routes stay
   // uncached (buy-box must never lag).
-  res.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+  res.headers.set('Cache-Control', query._refresh ? 'no-store' : 'public, s-maxage=60, stale-while-revalidate=300');
   return res;
 });

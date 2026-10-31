@@ -10,7 +10,7 @@ type Ctx = { params: Promise<{ id: string }> };
 async function ownerCheck(req: Request) {
   const db = getDb();
   const who = await shopper(db, req);
-  if (!who.userId && !who.sessionId) throw Errors.badRequest('Guest carts require X-Session-Id (UUID v4).');
+  if (!who.userId) throw Errors.unauthorized('Sign in to change your bag.');
   return { db, who };
 }
 

@@ -12,10 +12,6 @@ export const POST = api(async ({ req }) => {
   if (!rl.allowed) throw Errors.rateLimited(60);
 
   // Always 200: no account enumeration (§12.8).
-  const result = await requestPasswordReset(db, input.email);
-  const body: Record<string, unknown> = { ok: true };
-  if (process.env.NODE_ENV === 'development' && result.resetToken) {
-    body._devResetToken = result.resetToken; // dev-only, see register route
-  }
-  return NextResponse.json(body);
+  await requestPasswordReset(db, input.email);
+  return NextResponse.json({ ok: true });
 });

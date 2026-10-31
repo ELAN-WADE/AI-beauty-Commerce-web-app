@@ -7,6 +7,19 @@ import { audit } from '@/modules/audit/service';
 import { createProduct } from '@/modules/catalog/service';
 import { productCreateSchema } from '@/modules/catalog/validation';
 import { revalidateStorefront } from '@/lib/storefront-revalidate';
+import { desc, eq } from 'drizzle-orm';
+import { products, productVariants, categories, brands, productImages } from '@/modules/catalog/schema';
+
+export const GET = api(async () => {
+  const db = getDb();
+  await requireStaff(db);
+  const [items, variants, categoryRows, brandRows, images] = await Promise.all([
+    db.select().from(products).orderBy(desc(products.updatedAt)).limit(300),
+    db.select().from(productVariants).limit(3000), db.select().from(categories).limit(500),
+    db.select().from(brands).limit(500), db.select().from(productImages).limit(3000),
+  ]);
+  return NextResponse.json({ products: items.map(p => ({ ...p, variants: variants.filter(v => v.productId === p.id), images: images.filter(i => i.productId === p.id) })), categories: categoryRows, brands: brandRows }, { headers: { 'Cache-Control': 'no-store' } });
+});
 
 export const POST = api(async ({ req, requestId }) => {
   const rl = checkRateLimit(`admin:${clientIp(req)}`, Limits.admin);
