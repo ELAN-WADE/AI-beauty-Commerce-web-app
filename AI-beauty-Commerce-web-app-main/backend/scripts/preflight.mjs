@@ -28,7 +28,14 @@ if (isDevDeploy) {
   process.exit(0);
 }
 
-const required = ['DATABASE_URL', 'APP_URL', 'FRONTEND_URL', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_REDIRECT_URI', 'SMTP_HOST', 'SMTP_FROM', 'SMTP_USER', 'SMTP_PASS', 'AUTH_EMAIL_ENCRYPTION_KEY', 'MFA_ENCRYPTION_KEY', 'CLIENT_IP_HEADER', 'S3_ACCESS_KEY', 'S3_SECRET_KEY'];
+const required = ['DATABASE_URL', 'APP_URL', 'FRONTEND_URL', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_REDIRECT_URI', 'AUTH_EMAIL_ENCRYPTION_KEY', 'MFA_ENCRYPTION_KEY', 'CLIENT_IP_HEADER', 'S3_ACCESS_KEY', 'S3_SECRET_KEY'];
+const emailTransport = process.env.EMAIL_TRANSPORT || (process.env.BREVO_API_KEY ? 'brevo' : 'smtp');
+if (!['smtp', 'brevo'].includes(emailTransport)) throw new Error('Production EMAIL_TRANSPORT must be smtp or brevo');
+required.push(process.env.EMAIL_FROM ? 'EMAIL_FROM' : 'SMTP_FROM');
+if (emailTransport === 'brevo') {
+  required.push('BREVO_API_KEY');
+  if (process.env.BREVO_API_KEY?.startsWith('xsmtpsib-')) throw new Error('BREVO_API_KEY requires an API key, not an SMTP key');
+} else required.push('SMTP_HOST', 'SMTP_USER', 'SMTP_PASS');
 if (process.env.PAYMENTS_ENABLED === 'true') required.push('STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET', 'FLW_SECRET_KEY', 'FLW_SECRET_HASH', 'BANK_NAME', 'BANK_ACCOUNT_NUMBER', 'BANK_ACCOUNT_NAME');
 if (process.env.NODE_ENV !== 'production') throw new Error('Production container must set NODE_ENV=production');
 for (const name of required) {

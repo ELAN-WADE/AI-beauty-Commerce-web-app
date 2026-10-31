@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { exchangeGoogleCode } from '@/modules/auth/google-oauth';
-import { googleConfig } from '@/modules/auth/redirects';
+import { googleConfig, googleConfigurationStatus } from '@/modules/auth/redirects';
 afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 describe('Google server-side exchange failures', () => {
   it.each([
@@ -30,6 +30,26 @@ describe('Google server-side exchange failures', () => {
 
 
 describe('Google callback cookie host', () => {
+  it('uses the public Render origin before database initialization when URL overrides are absent', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('GOOGLE_CLIENT_ID', 'test-client'); vi.stubEnv('GOOGLE_CLIENT_SECRET', 'test-secret');
+    vi.stubEnv('APP_URL', ''); vi.stubEnv('FRONTEND_URL', ''); vi.stubEnv('GOOGLE_REDIRECT_URI', '');
+    vi.stubEnv('RENDER_EXTERNAL_URL', 'https://shop.onrender.com');
+    const config = googleConfig();
+    expect(config.redirectUri).toBe('https://shop.onrender.com/api/auth/oauth/google/callback');
+    expect(config.startOrigin.origin).toBe('https://shop.onrender.com');
+    expect(config.storefront.origin).toBe('https://shop.onrender.com');
+  });
+  it('identifies missing or invalid environment names without credential values', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('GOOGLE_CLIENT_ID', ''); vi.stubEnv('GOOGLE_CLIENT_SECRET', '');
+    expect(googleConfigurationStatus()).toEqual({ configured: false, settings: ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'] });
+    vi.stubEnv('GOOGLE_CLIENT_ID', 'test-client'); vi.stubEnv('GOOGLE_CLIENT_SECRET', 'private-secret');
+    vi.stubEnv('APP_URL', 'https://shop.onrender.com'); vi.stubEnv('FRONTEND_URL', 'https://shop.onrender.com');
+    vi.stubEnv('GOOGLE_REDIRECT_URI', 'http://localhost:3005/api/auth/oauth/google/callback');
+    expect(googleConfigurationStatus()).toEqual({ configured: false, settings: ['GOOGLE_REDIRECT_URI'] });
+    expect(JSON.stringify(googleConfigurationStatus())).not.toContain('private-secret');
+  });
   it('starts on the callback host while preserving the alternate local storefront', () => {
     vi.stubEnv('NODE_ENV', 'development');
     vi.stubEnv('GOOGLE_CLIENT_ID', 'test-client'); vi.stubEnv('GOOGLE_CLIENT_SECRET', 'test-secret');

@@ -2,6 +2,8 @@
 
 Repository: https://github.com/ELAN-WADE/AI-beauty-Commerce-web-app.git
 
+For the existing Render Free service's Google and email settings, see [RENDER_AUTH_SETUP.md](RENDER_AUTH_SETUP.md). It supports an embedded account-email dispatcher and Brevo SMTP port 2525 or HTTPS delivery, without provisioning another service.
+
 ## Choose the production blueprint
 
 Use AI-beauty-Commerce-web-app-main/render.production.yaml as the Blueprint path in this repository. The Git repository contains the application in a nested folder, so both service rootDir values are AI-beauty-Commerce-web-app-main/backend. The legacy render.yaml files describe development/staging settings; do not use them as the production configuration.
@@ -21,7 +23,7 @@ Pre-deploy repeats safe migrations/RBAC seeding and provisions the configured ad
 - AUTH_EMAIL_ENCRYPTION_KEY and MFA_ENCRYPTION_KEY: independent 64-character hexadecimal keys. Preserve established keys when migrating encrypted records. The worker references the web service's values. Do not paste secrets into source or chat.
 - ADMIN_ENTRY_PATH: a private operations path; ADMIN_BOOTSTRAP_EMAIL/password for first provisioning; ADMIN_GOOGLE_EMAIL for the administrator OAuth allowlist. Existing account passwords are not reset automatically.
 - GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and GOOGLE_REDIRECT_URI. Register the exact HTTPS origin plus /api/auth/oauth/google/callback in Google Cloud. Customer, creator and distributor intent never grants an approved role by itself.
-- SMTP_HOST/PORT/FROM/USER/PASS. Verify the sender/domain in Brevo. The dedicated worker sends verification/reset, account-access and partner-approval messages; SMTP settings alone do not run the dispatcher.
+- SMTP_HOST/PORT/FROM/USER/PASS (Brevo port 2525 with STARTTLS on Render Free), or EMAIL_TRANSPORT=brevo with BREVO_API_KEY and EMAIL_FROM. Verify the sender/domain in Brevo. Run the account dispatcher in embedded mode or as a dedicated worker for verification/reset, account-access and partner-approval messages; credentials alone do not run it.
 - Durable storage access/secret keys, region, buckets and COMMUNITY_MEDIA_BASE_URL. Scans use a private bucket. Product/community media uses a publicly readable URL with private writes. For R2/MinIO/custom S3 providers, add S3_ENDPOINT to both services; the optional endpoint is not prefilled in the template.
 
 Payments remain disabled pending the separate payment integration acceptance. Do not enable development bypass/log-email flags to work around missing production configuration.

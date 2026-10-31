@@ -24,7 +24,7 @@ export function frontendOrigin(callerOrigin?: string | null): URL {
       }
     } catch {}
   }
-  const configured = process.env.FRONTEND_URL;
+  const configured = process.env.FRONTEND_URL || process.env.RENDER_EXTERNAL_URL;
   if (!configured && process.env.NODE_ENV === 'production') throw new Error('FRONTEND_URL is required for account emails.');
   const base = new URL(configured || 'http://localhost:3000');
   const localHttp = process.env.NODE_ENV !== 'production' && base.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(base.hostname);

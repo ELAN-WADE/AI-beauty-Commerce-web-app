@@ -1,7 +1,7 @@
 import '../src/lib/load-env';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { closeDb, getDb } from '../src/db/client';
-import { SmtpSender } from '../src/lib/email';
+import { getEmailSender } from '../src/lib/email';
 import { ACCOUNT_EMAIL_TEMPLATES, pendingAccountEmail } from '../src/modules/notifications/account-email';
 import { claimBatch, discardAuthEmail, markFailed, markSent, recoverStaleSending } from '../src/modules/notifications/service';
 
@@ -15,10 +15,11 @@ const shutdown = new AbortController();
 process.on('SIGINT', () => shutdown.abort());
 process.on('SIGTERM', () => shutdown.abort());
 const db = getDb();
-const sender = new SmtpSender();
 try {
-  await sender.verify();
-  console.log(JSON.stringify({ scope: 'auth-email-worker', status: 'ready', mode: newOnly ? 'new-requests-only' : 'due-account-requests' }));
+  const sender = getEmailSender();
+  if (sender.name === 'log') throw Object.assign(new Error('Account email requires a delivery provider.'), { code: 'EMAIL_PROVIDER_REQUIRED' });
+  await sender.verify?.();
+  console.log(JSON.stringify({ scope: 'auth-email-worker', status: 'ready', transport: sender.name, mode: newOnly ? 'new-requests-only' : 'due-account-requests' }));
   do {
     try {
     const filter = { templates: ACCOUNT_EMAIL_TEMPLATES, createdAfter };
@@ -44,6 +45,7 @@ try {
     if (!once && !shutdown.signal.aborted) await sleep(5000, undefined, { signal: shutdown.signal }).catch(() => {});
   } while (!once && !shutdown.signal.aborted);
 } catch (error) {
-  console.error(JSON.stringify({ scope: 'auth-email-worker', status: 'failed', code: (error as { code?: string }).code || 'AUTH_EMAIL_WORKER_ERROR' }));
+  const code = (error as { code?: string }).code;
+  console.error(JSON.stringify({ scope: 'auth-email-worker', status: 'failed', code: code && /^[A-Z_]+$/.test(code) ? code : 'AUTH_EMAIL_WORKER_ERROR' }));
   process.exitCode = 1;
 } finally { await closeDb(); }

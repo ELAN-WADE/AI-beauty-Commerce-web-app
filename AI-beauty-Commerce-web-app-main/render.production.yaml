@@ -27,6 +27,10 @@ services:
         value: "false"
       - key: ALLOW_LOG_EMAIL
         value: "false"
+      - key: AUTH_EMAIL_WORKER_MODE
+        value: "external"
+      - key: EMAIL_TRANSPORT
+        value: "smtp"
       - key: PAYMENTS_ENABLED
         value: "false"
       - key: CLIENT_IP_HEADER
@@ -50,7 +54,9 @@ services:
       - key: SMTP_HOST
         sync: false
       - key: SMTP_PORT
-        sync: false
+        value: "2525"
+      - key: SMTP_SECURE
+        value: "false"
       - key: SMTP_FROM
         sync: false
       - key: SMTP_USER
@@ -114,6 +120,16 @@ services:
           type: web
           name: desla-production
           envVarKey: DATABASE_URL
+      - key: EMAIL_TRANSPORT
+        fromService:
+          type: web
+          name: desla-production
+          envVarKey: EMAIL_TRANSPORT
+      - key: SMTP_SECURE
+        fromService:
+          type: web
+          name: desla-production
+          envVarKey: SMTP_SECURE
       - key: APP_URL
         fromService:
           type: web

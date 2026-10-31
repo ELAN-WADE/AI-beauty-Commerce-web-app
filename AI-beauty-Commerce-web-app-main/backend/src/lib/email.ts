@@ -1,8 +1,9 @@
 import nodemailer from 'nodemailer';
+import { assertEmailConfiguration, emailFrom, emailTransport } from './email-config';
 
 /**
  * Email sender (§S5 worker). Templates are pure functions (unit-tested);
- * transport is SMTP when configured, stdout otherwise (dev-safe default).
+ * delivery uses SMTP or Brevo HTTPS. Logging is a development-only fallback.
  */
 
 export interface EmailMessage {
@@ -13,6 +14,7 @@ export interface EmailMessage {
 
 export interface EmailSender {
   readonly name: string;
+  verify?(): Promise<void>;
   send(msg: EmailMessage): Promise<void>;
 }
 
@@ -101,19 +103,56 @@ export class SmtpSender implements EmailSender {
   }
 
   async send(msg: EmailMessage): Promise<void> {
-    const result = await this.transport.sendMail({ from: process.env.SMTP_FROM ?? 'Glowly <hello@example.com>', ...msg });
+    const result = await this.transport.sendMail({ from: process.env.EMAIL_FROM || process.env.SMTP_FROM || 'Glowly <hello@example.com>', ...msg });
     if (!result.accepted?.length || result.rejected?.length) throw new Error('SMTP did not accept the email recipient.');
   }
 }
 
-export function getEmailSender(): EmailSender {
-  const isDevDeploy =
-    process.env.DEV_DEPLOY === 'true' ||
-    process.env.RENDER_DEV === 'true' ||
-    process.env.ALLOW_LOG_EMAIL === 'true';
+export class EmailDeliveryError extends Error {
+  constructor(public readonly code: string) { super(code); this.name = 'EmailDeliveryError'; }
+}
 
-  if (process.env.NODE_ENV === 'production' && !isDevDeploy && (!process.env.SMTP_HOST?.trim() || !process.env.SMTP_FROM?.trim())) {
-    throw new Error('SMTP_HOST and SMTP_FROM are required; production email cannot use the log driver.');
+/** Brevo over HTTPS: works without outbound SMTP ports or an additional SDK. */
+export class BrevoSender implements EmailSender {
+  readonly name = 'brevo';
+  private readonly sender = emailFrom();
+  private readonly key = process.env.BREVO_API_KEY?.trim();
+  constructor(private readonly fetcher: typeof fetch = fetch) {
+    if (!this.key || this.key.startsWith('xsmtpsib-')) throw new EmailDeliveryError('BREVO_API_KEY_REQUIRED');
   }
-  return process.env.SMTP_HOST ? new SmtpSender() : new LogSender();
+
+  private async request(path: '/account' | '/smtp/email', init: RequestInit = {}) {
+    let response: Response;
+    try {
+      response = await this.fetcher(`https://api.brevo.com/v3${path}`, {
+        ...init, headers: { accept: 'application/json', 'content-type': 'application/json', 'api-key': this.key! },
+        signal: AbortSignal.timeout(12000), cache: 'no-store', redirect: 'error',
+      });
+    } catch { throw new EmailDeliveryError('BREVO_NETWORK_ERROR'); }
+    if (!response.ok) {
+      await response.body?.cancel().catch(() => {});
+      throw new EmailDeliveryError(response.status === 401 || response.status === 403 ? 'BREVO_AUTH_REJECTED' : response.status === 429 ? 'BREVO_RATE_LIMITED' : 'BREVO_REQUEST_REJECTED');
+    }
+    return response;
+  }
+
+  /** Read-only credential check. Does not send an email. */
+  async verify() {
+    const response = await this.request('/account');
+    await response.body?.cancel();
+  }
+
+  async send(msg: EmailMessage) {
+    const response = await this.request('/smtp/email', {
+      method: 'POST', body: JSON.stringify({ sender: this.sender, to: [{ email: msg.to }], subject: msg.subject, textContent: msg.text }),
+    });
+    const result = await response.json().catch(() => null) as { messageId?: unknown } | null;
+    if (response.status !== 201 || typeof result?.messageId !== 'string' || !result.messageId) throw new EmailDeliveryError('BREVO_INVALID_RESPONSE');
+  }
+}
+
+export function getEmailSender(): EmailSender {
+  const transport = emailTransport();
+  if (process.env.NODE_ENV === 'production' || transport === 'brevo') assertEmailConfiguration();
+  return transport === 'brevo' ? new BrevoSender() : transport === 'smtp' ? new SmtpSender() : new LogSender();
 }

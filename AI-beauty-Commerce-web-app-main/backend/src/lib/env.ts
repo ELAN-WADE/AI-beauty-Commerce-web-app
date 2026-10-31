@@ -1,3 +1,5 @@
+import { assertEmailConfiguration } from './email-config';
+
 /**
  * Standalone backend boundary (disconnect from storefront).
  * The API must boot without any frontend files/env. In production we fail
@@ -54,10 +56,7 @@ export function assertProductionEnv(): void {
 
   required('APP_URL');
   required('FRONTEND_URL');
-  required('SMTP_HOST');
-  required('SMTP_FROM');
-  required('SMTP_USER');
-  required('SMTP_PASS');
+  assertEmailConfiguration();
   if (process.env.PAYMENTS_ENABLED === 'true') {
     for (const name of ['BANK_NAME', 'BANK_ACCOUNT_NUMBER', 'BANK_ACCOUNT_NAME'] as const) required(name);
   }

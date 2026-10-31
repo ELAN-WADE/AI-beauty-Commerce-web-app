@@ -51,4 +51,13 @@ describe('account email transport configuration', () => {
     sendMail.mockResolvedValueOnce({ accepted: [], rejected: ['buyer@example.com'] });
     await expect(sender.send(message)).rejects.toThrow('did not accept');
   });
+
+  it('supports Brevo port 2525 with mandatory STARTTLS on Render Free', () => {
+    vi.stubEnv('NODE_ENV', 'production'); vi.stubEnv('EMAIL_TRANSPORT', 'smtp');
+    vi.stubEnv('SMTP_HOST', 'smtp-relay.brevo.com'); vi.stubEnv('SMTP_PORT', '2525');
+    vi.stubEnv('SMTP_SECURE', 'false'); vi.stubEnv('SMTP_USER', 'test-login');
+    vi.stubEnv('SMTP_PASS', 'test-password'); vi.stubEnv('SMTP_FROM', 'verified@example.com');
+    expect(getEmailSender()).toBeInstanceOf(SmtpSender);
+    expect(createTransport).toHaveBeenCalledWith(expect.objectContaining({ port: 2525, secure: false, requireTLS: true }));
+  });
 });
