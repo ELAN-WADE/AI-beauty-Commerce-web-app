@@ -12,6 +12,14 @@ A separate browser failure is reproducible: when WebGL is unavailable, the OGL
 renderer used by the flex carousel dereferences a missing graphics context and
 the homepage is replaced by Next's client-exception page.
 
+The first memory-reduction deployment (`3980411`) still exceeded 512 MB at
+00:25 on 2 November during live browser checks. The in-process worker was
+confirmed active and Next reported 97 MB RSS at startup. Thus startup memory
+alone did not establish that a complete first visit would fit. An expanded local
+fixture including four cold AVIF image conversions peaked at 391 MB for Next
+alone, before launcher memory. Image encoding is an additional memory-pressure
+source; the total Linux instance metric remains authoritative.
+
 ## Changes
 
 - `AUTH_EMAIL_WORKER_MODE=embedded` now runs the account-email dispatcher inside
@@ -29,13 +37,18 @@ the homepage is replaced by Next's client-exception page.
   accumulating an unlimited queue. Reconnecting browsers refresh saved content.
 - Hidden/offline tabs close their stream. Failures use capped exponential
   backoff with jitter rather than synchronized five-second retry loops.
+- Cold image transforms use WebP, one libuv job by default and one libvips
+  thread, an 8 MB native cache and sequential reads. Linux allocator arenas
+  default to two. Explicit `UV_THREADPOOL_SIZE` / `MALLOC_ARENA_MAX` deployment
+  overrides are preserved. Next's in-memory ISR cache is limited to 10 MB while
+  its disk cache remains active. Image dimensions, quality and layout are kept.
 - The flex carousel uses its existing images in a native scrolling fallback
   when WebGL2 is unavailable, its creation fails, or the graphics context is
   lost. The normal graphics-supported carousel and storefront UI are unchanged.
 - Page/global error boundaries offer retry/reload after other page exceptions.
 - Web exit logs include code, signal and uptime. Embedded deployments log
-  `web-memory` RSS, heap and external allocations at startup and every five
-  minutes. These numbers cover the Next process, not its launcher or all native
+  `web-memory` RSS, heap and external allocations at startup and every
+  30 seconds. These numbers cover the Next process, not its launcher or all native
   resources reported by Render's instance-wide memory metric.
 
 ## Deploying to the existing service
@@ -58,6 +71,11 @@ a representative production traffic benchmark. The production build and four
 graphics-failure browser cases passed, along with focused account-email,
 stream-lifetime, reconnect and administrator-session regressions.
 
+With the follow-up image limits, the same expanded fixture (four cold image
+conversions plus 192 page/API reads and 120 stream cycles) peaked at 296 MB RSS,
+compared with 391 MB before the image limits. Both figures describe the local
+Windows Next process, not production-instance-wide memory or a capacity limit.
+
 For production, select a web-service compute plan with memory headroom. The
 proposed production Blueprint specifies `1c-2g` (2 GB, legacy Standard). The
 paid `0.5c-512mb` (legacy Starter) still has the same 512 MB memory ceiling as
@@ -70,4 +88,6 @@ wake, and be restarted by the platform. These limits remain after the fixes.
 Sources: [Render compute plans](https://render.com/docs/compute-plans),
 [Free limits](https://render.com/docs/free),
 [Memory exhaustion troubleshooting](https://render.com/docs/troubleshooting-deploys#memory-exhaustion),
-[Next instrumentation](https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation).
+[Next instrumentation](https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation),
+[Sharp memory and concurrency](https://sharp.pixelplumbing.com/api-utility/),
+[Sharp parallelism and allocator guidance](https://sharp.pixelplumbing.com/performance/).

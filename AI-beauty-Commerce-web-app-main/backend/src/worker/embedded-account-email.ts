@@ -15,7 +15,7 @@ export function startEmbeddedAccountEmail() {
     const { rss, heapUsed, external } = process.memoryUsage();
     console.log(JSON.stringify({ scope: 'web-memory', rssMb: Math.round(rss / 1048576), heapUsedMb: Math.round(heapUsed / 1048576), externalMb: Math.round(external / 1048576) }));
   };
-  const interval = setInterval(memory, 300000); interval.unref();
+  const interval = setInterval(memory, 30000); interval.unref();
   process.once('SIGTERM', stop); process.once('SIGINT', stop);
   const done = (async () => {
     let attempts = 0;

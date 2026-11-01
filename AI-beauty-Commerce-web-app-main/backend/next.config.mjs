@@ -14,6 +14,9 @@ const nextConfig = {
   distDir: process.env.NEXT_DIST_DIR || (process.env.PLAYWRIGHT_NEXT_DIST === '1' ? '.next-browser' : development ? `.next-dev-${developmentPort}` : '.next'),
   devIndicators: false,
   poweredByHeader: false,
+  // The process also holds API modules and the email dispatcher on small hosts.
+  // ISR still persists to disk; keep its duplicate in-memory cache bounded.
+  cacheMaxMemorySize: 10 * 1024 * 1024,
   // Native Render keeps node_modules; Docker still uses its standalone artifact.
   output: process.env.RENDER === 'true' ? undefined : 'standalone',
   // Pin tracing to this app (the repo nests lockfiles; inference picks wrong roots).
@@ -22,11 +25,14 @@ const nextConfig = {
   // hundreds of icons) so route bundles stay small on 3G.
   experimental: {
     optimizePackageImports: ['lucide-react', 'framer-motion', '@hugeicons/react'],
+    imgOptConcurrency: 1,
+    imgOptSequentialRead: true,
   },
   images: {
     // Product packshots are same-origin `public/` files; modern formats for
     // any future remote/optimized images. No markup changes needed today.
-    formats: ['image/avif', 'image/webp'],
+    // WebP avoids AVIF's larger cold-encode working set on the shared web host.
+    formats: ['image/webp'],
     remotePatterns: [
       { protocol: 'https', hostname: 'images.unsplash.com', pathname: '/**' },
       ...(process.env.PUBLIC_MEDIA_URL ? (() => {

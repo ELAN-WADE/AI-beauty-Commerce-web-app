@@ -14,7 +14,14 @@ if (!['embedded', 'external'].includes(emailMode)) throw new Error('AUTH_EMAIL_W
 console.log(JSON.stringify({ scope: 'auth-email-supervisor', mode: emailMode }));
 const child = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', '-p', port, '--hostname', '0.0.0.0'], {
   stdio: 'inherit', windowsHide: true,
-  env: { ...process.env, DESLA_EMBEDDED_AUTH_EMAIL: emailMode === 'embedded' ? '1' : '0' },
+  env: {
+    ...process.env,
+    // Bound simultaneous native image jobs; a first visit otherwise starts
+    // several encoders alongside the web server on the same 512 MB instance.
+    UV_THREADPOOL_SIZE: process.env.UV_THREADPOOL_SIZE || '1',
+    MALLOC_ARENA_MAX: process.env.MALLOC_ARENA_MAX || '2',
+    DESLA_EMBEDDED_AUTH_EMAIL: emailMode === 'embedded' ? '1' : '0',
+  },
 });
 const startedAt = Date.now();
 for (const signal of ['SIGTERM', 'SIGINT']) process.on(signal, () => {
