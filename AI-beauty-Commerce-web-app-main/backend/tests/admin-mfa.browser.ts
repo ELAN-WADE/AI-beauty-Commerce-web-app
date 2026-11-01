@@ -30,14 +30,27 @@ beforeAll(async () => {
 }, 60000);
 afterAll(async () => { await browser?.close(); await new Promise<void>(resolve => server?.close(() => resolve())); });
 
-async function fixture(page: Page) {
+async function fixture(page: Page, enrolling = false) {
   let primary = false, verified = false, failRead = false, proofCount = 0, verifiedReads = 0;
+  let enabled = !enrolling, setupCalls = 0, confirmCalls = 0;
   let holdNext = false; let release: ((status: number) => void) | undefined;
-  const user = () => ({ id: 'admin-ui-fixture', email: 'owner@example.test', emailVerified: true, roles: ['SUPER_ADMIN'], permissions: ['roles:grant'], mfaEnabled: true, mfaVerified: verified, signupIntent: 'CUSTOMER', profile: null });
+  const user = () => ({ id: 'admin-ui-fixture', email: 'owner@example.test', emailVerified: true, roles: ['SUPER_ADMIN'], permissions: ['roles:grant'], mfaEnabled: enabled, mfaVerified: verified, signupIntent: 'CUSTOMER', profile: null });
   await page.route('**/api/**', async route => {
     const path = new URL(route.request().url()).pathname;
     const reply = (status: number, json: unknown) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(json) });
     if (path === '/api/auth/admin/login') { primary = true; return reply(200, { ok: true }); }
+    if (path === '/api/auth/logout') { primary = false; return reply(200, { ok: true }); }
+    if (path === '/api/auth/mfa/setup') {
+      setupCalls++;
+      if (route.request().postDataJSON().password !== 'Browser-fixture-password') return reply(422, { error: { code: 'password_confirmation_failed', message: 'Password confirmation failed.' } });
+      return reply(201, { secret: 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ' });
+    }
+    if (path === '/api/auth/mfa/confirm') {
+      confirmCalls++;
+      if (route.request().postDataJSON().code !== '222222') return reply(422, { error: { code: 'mfa_invalid', message: 'The MFA code is invalid or expired.' } });
+      enabled = true; verified = true;
+      return reply(200, { recoveryCodes: ['12345678-ABCDEF01', 'ABCDEF01-23456789'] });
+    }
     if (path === '/api/auth/mfa/verify') {
       if (!primary) return reply(401, { error: { code: 'unauthorized', message: 'Authentication required.' } });
       proofCount++;
@@ -62,14 +75,63 @@ async function fixture(page: Page) {
   await page.getByLabel('Administrator email').fill('owner@example.test');
   await page.getByLabel('Password', { exact: true }).fill('Browser-fixture-password');
   await page.getByRole('button', { name: 'Sign in as administrator', exact: true }).click();
-  await page.getByLabel('Authenticator or recovery code').waitFor();
-  return { proofCount: () => proofCount, verifiedReads: () => verifiedReads, failRead: () => { failRead = true; }, expire: () => { primary = false; },
+  await page.getByLabel(enrolling ? 'Administrator password' : 'Authenticator or recovery code').waitFor();
+  return { setupCalls: () => setupCalls, confirmCalls: () => confirmCalls, proofCount: () => proofCount, verifiedReads: () => verifiedReads, failRead: () => { failRead = true; }, expire: () => { primary = false; },
     hold: async () => { holdNext = true; await page.evaluate(() => window.dispatchEvent(new Event('focus'))); await expect.poll(() => Boolean(release)).toBe(true); },
     release: (status: number) => release!(status),
   };
 }
 
 describe('administrator MFA through the actual provider, transport, and role gate', () => {
+  it('sends first-time six-digit enrollment codes to confirmation, never back to password setup', async () => {
+    const page = await browser.newPage();
+    try {
+      const controls = await fixture(page, true);
+      await page.getByLabel('Administrator password').fill('Browser-fixture-password');
+      await page.getByRole('button', { name: 'Confirm password and continue', exact: true }).click();
+      await uiExpect(page.getByLabel('Authenticator setup key')).toBeVisible();
+      await page.getByLabel('Authenticator code', { exact: true }).fill('111111');
+      await page.getByRole('button', { name: 'Verify session', exact: true }).click();
+      await uiExpect(page.getByRole('alert')).toHaveText('The MFA code is invalid or expired.');
+      expect(controls.setupCalls()).toBe(1); expect(controls.confirmCalls()).toBe(1);
+      await page.getByLabel('Authenticator code', { exact: true }).fill('222222');
+      await page.getByRole('button', { name: 'Verify session', exact: true }).click();
+      await uiExpect(page.getByRole('heading', { name: 'Save Your Recovery Codes' })).toBeVisible();
+      await page.getByRole('button', { name: 'I saved my codes — continue', exact: true }).click();
+      await uiExpect(page.getByRole('heading', { name: 'Administrator dashboard' })).toBeVisible();
+      expect(controls.setupCalls()).toBe(1); expect(controls.confirmCalls()).toBe(2);
+    } finally { await page.close(); }
+  });
+  it('identifies the password step and blocks a six-digit value before sending it as a password', async () => {
+    const page = await browser.newPage();
+    try {
+      const controls = await fixture(page, true);
+      await uiExpect(page.getByRole('heading', { name: 'Confirm Administrator Password' })).toBeVisible();
+      await page.getByLabel('Administrator password').fill('123456');
+      await page.getByRole('button', { name: 'Confirm password and continue', exact: true }).click();
+      expect(controls.setupCalls()).toBe(0);
+      expect(await page.getByLabel('Administrator password').evaluate((input: HTMLInputElement) => input.validationMessage)).toContain('administrator password');
+      await page.getByRole('button', { name: 'Return to administrator sign-in' }).click();
+      await uiExpect(page.getByLabel('Administrator email')).toBeVisible();
+    } finally { await page.close(); }
+  });
+  it('requires the password before explicitly replacing an unverified setup key', async () => {
+    const page = await browser.newPage();
+    try {
+      const controls = await fixture(page, true);
+      await page.getByLabel('Administrator password').fill('Browser-fixture-password');
+      await page.getByRole('button', { name: 'Confirm password and continue' }).click();
+      await page.getByRole('button', { name: 'Replace unverified setup key' }).click();
+      await uiExpect(page.getByLabel('Administrator password')).toBeVisible();
+      expect(controls.setupCalls()).toBe(1);
+      await page.getByLabel('Administrator password').fill('Browser-fixture-password');
+      const replaced = page.waitForRequest(request => request.url().endsWith('/api/auth/mfa/setup') && request.postDataJSON().restart === true);
+      await page.getByRole('button', { name: 'Confirm password and continue' }).click();
+      await replaced;
+      await uiExpect(page.getByLabel('Authenticator setup key')).toBeVisible();
+      expect(controls.setupCalls()).toBe(2);
+    } finally { await page.close(); }
+  });
   it('keeps a rejected code on the challenge and opens the dashboard after a valid code', async () => {
     const page = await browser.newPage();
     try {

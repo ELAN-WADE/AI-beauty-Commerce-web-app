@@ -8,6 +8,7 @@ import { mfaRecoveryCodes, userSessions, users, userRoles, roles } from '@/modul
 import { createSession, getSessionUser, hashPassword, sha256Hex } from '@/modules/auth/service';
 import { beginMfaEnrollment, confirmMfaEnrollment, currentTotpCode, disableMfa, verifyMfaForSession, verifyTotp } from '@/modules/auth/mfa';
 import { requirePerm } from '@/lib/admin';
+import { openMfaSecret } from '@/lib/outbox-crypto';
 
 const caller = vi.hoisted(() => ({ token: '' }));
 vi.mock('next/headers', () => ({ cookies: async () => ({ get: () => ({ value: caller.token }) }) }));
@@ -51,12 +52,35 @@ async function enroll(role?: string) {
 }
 
 describe('MFA authorization and recovery', () => {
+  it('keeps one pending setup key across repeated requests and tabs', async () => {
+    const { user, first } = await account();
+    const firstSetup = await beginMfaEnrollment(pg(), user.id, user.email, password);
+    const repeated = await Promise.all([
+      beginMfaEnrollment(pg(), user.id, user.email, password),
+      beginMfaEnrollment(pg(), user.id, user.email, password),
+    ]);
+    expect(repeated.map(result => result.secret)).toEqual([firstSetup.secret, firstSetup.secret]);
+    await expect(confirmMfaEnrollment(pg(), user.id, first.id, currentTotpCode(firstSetup.secret))).resolves.toHaveProperty('recoveryCodes');
+  });
+  it('rotates only an unconfirmed key after explicit password-confirmed replacement', async () => {
+    const { user, first } = await account();
+    const old = await beginMfaEnrollment(pg(), user.id, user.email, password);
+    await expect(beginMfaEnrollment(pg(), user.id, user.email, 'incorrect-password', undefined, { restart: true })).rejects.toMatchObject({ code: 'password_confirmation_failed' });
+    const replacement = await beginMfaEnrollment(pg(), user.id, user.email, password, undefined, { restart: true });
+    expect(replacement.secret).not.toBe(old.secret);
+    const [stored] = await db.select().from(users).where(eq(users.id, user.id));
+    expect(openMfaSecret(stored.mfaSecretEncrypted!)).toBe(replacement.secret);
+    await confirmMfaEnrollment(pg(), user.id, first.id, currentTotpCode(replacement.secret));
+    await expect(beginMfaEnrollment(pg(), user.id, user.email, password, undefined, { restart: true })).rejects.toMatchObject({ status: 409 });
+  });
   it('matches independent RFC 6238 SHA-1 vectors', () => {
     const secret = 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ';
     expect(verifyTotp(secret, '287082', 59_000)).toBe(true);
     expect(verifyTotp(secret, '081804', 1111111109000)).toBe(true);
     expect(verifyTotp(secret, '287083', 59_000)).toBe(false);
     expect(verifyTotp(secret, '12x082', 59_000)).toBe(false);
+    expect(verifyTotp(secret, '287082', 89_000)).toBe(true);
+    expect(verifyTotp(secret, '287082', 119_000)).toBe(false);
   });
 
   it('requires password confirmation and rejects mass-assigned setup data', async () => {

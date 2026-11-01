@@ -55,6 +55,8 @@ export const ScreenAuthSuite: React.FC<AuthSuiteProps> = ({ initialMode = 'login
     navigateTo,
     authUser,
     refreshAuth,
+    completeMfaVerification,
+    logout,
     authError,
     login,
     register,
@@ -583,7 +585,7 @@ export const ScreenAuthSuite: React.FC<AuthSuiteProps> = ({ initialMode = 'login
         {/* ======================================================== */}
         {/* VIEW 4: SIGN IN / LOGIN                                 */}
         {/* ======================================================== */}
-        {mode === 'mfa' && authUser && <MfaSignIn key={authUser.id} user={authUser} request={apiFetch} onComplete={async user => { await refreshAuth(); finishSignIn(user); }} />}
+        {mode === 'mfa' && authUser && <MfaSignIn key={authUser.id} user={authUser} request={apiFetch} onComplete={async user => { completeMfaVerification(user); finishSignIn(user); }} onRestart={async () => { await logout(); setMode('login'); }} />}
         {mode === 'login' && (
           <div>
             <div className="text-center mb-6">

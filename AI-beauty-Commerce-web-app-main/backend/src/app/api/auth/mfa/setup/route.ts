@@ -12,7 +12,7 @@ export const POST = api(async ({ req, requestId }) => {
   const rl = await checkSharedRateLimit(db, `mfa:setup:${ctx.userId}`, Limits.mfa);
   if (!rl.allowed) throw Errors.rateLimited(60);
   const input = mfaSetupSchema.parse(await readJson(req));
-  return NextResponse.json(await beginMfaEnrollment(db, ctx.userId, ctx.email, input.password, requestId), {
+  return NextResponse.json(await beginMfaEnrollment(db, ctx.userId, ctx.email, input.password, requestId, { restart: input.restart }), {
     status: 201,
     headers: { 'Cache-Control': 'no-store' },
   });

@@ -19,7 +19,7 @@ export const resetPasswordSchema = z
   .strict();
 
 export const mfaCodeSchema = z.object({ code: z.string().trim().regex(/^(?:\d{6}|[A-Z0-9]{8}-[A-Z0-9]{8})$/i) }).strict();
-export const mfaSetupSchema = z.object({ password: z.string().min(1).max(128) }).strict();
+export const mfaSetupSchema = z.object({ password: z.string().min(1).max(128), restart: z.boolean().optional() }).strict();
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;

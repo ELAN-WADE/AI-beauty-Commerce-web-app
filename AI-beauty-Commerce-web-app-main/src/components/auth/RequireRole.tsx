@@ -67,7 +67,7 @@ export const RequireRole: React.FC<RequireRoleProps> = ({
   if (needsMfa && authUser) {
     return <div className="min-h-screen flex items-center justify-center bg-[#FAF9F6] p-6">
       <div className="w-full max-w-md rounded-3xl border bg-white p-8">
-        <MfaSignIn key={authUser.id} user={authUser} request={apiFetch} onComplete={async user => { completeMfaVerification(user); }} />
+        <MfaSignIn key={authUser.id} user={authUser} request={apiFetch} onComplete={async user => { completeMfaVerification(user); }} onRestart={logout} />
       </div>
     </div>;
   }

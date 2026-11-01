@@ -81,19 +81,23 @@ function normalizedRecoveryHash(code: string): string {
   return sha256Hex(code.replace('-', '').toUpperCase());
 }
 
-export async function beginMfaEnrollment(db: AppDb, userId: string, email: string, password: string, requestId?: string) {
+export async function beginMfaEnrollment(db: AppDb, userId: string, email: string, password: string, requestId?: string, options: { restart?: boolean } = {}) {
   const [credentials] = await db.select({ passwordHash: users.passwordHash }).from(users).where(eq(users.id, userId));
   if (!credentials) throw Errors.unauthorized();
   if (!(await verifyPassword(password, credentials.passwordHash))) throw Errors.passwordConfirmationFailed();
-  const secret = base32Encode(randomBytes(20));
-  await db.transaction(async (tx) => {
+  const secret = await db.transaction(async (tx) => {
     const [user] = await tx.select().from(users).where(eq(users.id, userId)).for('update');
     if (!user || user.passwordHash !== credentials.passwordHash) throw Errors.unauthorized();
     if (user.mfaEnabledAt) throw Errors.conflict('MFA is already enabled. Verify your current factor before changing it.');
-    await tx.update(users).set({ mfaSecretEncrypted: sealMfaSecret(secret), mfaLastTotpStep: null }).where(eq(users.id, userId));
+    // Repeated setup requests/tabs must not invalidate the key already imported
+    // into the authenticator. Only explicit password-confirmed restart rotates it.
+    if (user.mfaSecretEncrypted && !options.restart) return openMfaSecret(user.mfaSecretEncrypted);
+    const pendingSecret = base32Encode(randomBytes(20));
+    await tx.update(users).set({ mfaSecretEncrypted: sealMfaSecret(pendingSecret), mfaLastTotpStep: null }).where(eq(users.id, userId));
     // A re-enrollment must not inherit step-up proofs from an earlier factor.
     await tx.update(userSessions).set({ mfaVerifiedAt: null }).where(eq(userSessions.userId, userId));
     await audit(tx, { actorId: userId, action: 'auth.mfa.setup', entityType: 'user', entityId: userId, requestId });
+    return pendingSecret;
   });
   const label = encodeURIComponent(`Glowly:${email}`);
   const issuer = encodeURIComponent('Glowly');
@@ -109,7 +113,7 @@ export async function confirmMfaEnrollment(db: AppDb, userId: string, sessionId:
     const [user] = await tx.select().from(users).where(eq(users.id, userId)).for('update');
     if (!user || !user.mfaSecretEncrypted || user.mfaEnabledAt) throw Errors.conflict('Start MFA setup before confirming it.');
     const step = matchingTotpStep(openMfaSecret(user.mfaSecretEncrypted), code);
-    if (step === null) throw Errors.mfaInvalid();
+    if (step === null) throw Errors.mfaInvalid('The code did not match this setup key. Check the authenticator entry and automatic device time, then try a new code.');
     const now = new Date();
     await tx.update(users).set({ mfaEnabledAt: now, mfaLastTotpStep: step }).where(eq(users.id, userId));
     await tx.delete(mfaRecoveryCodes).where(eq(mfaRecoveryCodes.userId, userId));

@@ -6,30 +6,35 @@ interface Props {
   user: AuthUser;
   request: <T>(path: string, init?: RequestInit) => Promise<T>;
   onComplete: (user: AuthUser) => Promise<void>;
+  onRestart?: () => Promise<void>;
 }
 
 /** Second-factor step inside the existing sign-in card. API permissions remain authoritative. */
-export function MfaSignIn({ user, request, onComplete }: Props) {
+export function MfaSignIn({ user, request, onComplete, onRestart }: Props) {
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
   const [secret, setSecret] = useState('');
+  const [restartPending, setRestartPending] = useState(false);
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
   const [verifiedUser, setVerifiedUser] = useState<AuthUser | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const acceptedProof = useRef<{ revision: number; recoveryCodes?: string[] } | null>(null);
+  const submitting = useRef(false);
   const enrolling = !user.mfaEnabled;
+  const confirmingPassword = enrolling && !secret && !recoveryCodes.length;
   const field = 'w-full px-4 py-3 rounded-xl border border-[#D1D5DB] bg-white text-sm text-[#0F0F10] focus:outline-none focus:border-[#0F0F10]';
   const button = 'w-full py-3.5 px-6 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-sm font-semibold shadow-md cursor-pointer disabled:opacity-60';
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (busy) return;
+    if (busy || submitting.current) return;
+    submitting.current = true;
     setBusy(true); setError('');
     try {
       if (enrolling && !secret) {
-        const result = await request<{ secret: string }>('/api/auth/mfa/setup', { method: 'POST', body: JSON.stringify({ password }) });
-        setSecret(result.secret); setPassword('');
+        const result = await request<{ secret: string }>('/api/auth/mfa/setup', { method: 'POST', body: JSON.stringify({ password, ...(restartPending ? { restart: true } : {}) }) });
+        setSecret(result.secret); setPassword(''); setRestartPending(false);
         return;
       }
       if (!acceptedProof.current || acceptedProof.current.revision !== authSessionRevision()) {
@@ -43,13 +48,13 @@ export function MfaSignIn({ user, request, onComplete }: Props) {
       if (issuedCodes?.length) { setRecoveryCodes(issuedCodes); setVerifiedUser(me); }
       else await onComplete(me);
     } catch (failure) { setError(failure instanceof Error ? failure.message : 'Verification failed. Please try again.'); }
-    finally { setBusy(false); }
+    finally { submitting.current = false; setBusy(false); }
   }
 
   return <div>
     <div className="text-center mb-6">
-      <h1 className="text-2xl font-bold font-heading text-[#0F0F10] tracking-tight">{recoveryCodes.length ? 'Save Your Recovery Codes' : enrolling ? 'Set Up Administrator Verification' : 'Verify Administrator Sign-In'}</h1>
-      <p className="text-xs text-[#6B7280] mt-2">{recoveryCodes.length ? 'Store these one-use codes somewhere safe. They let you sign in if you lose your authenticator.' : enrolling ? `Set up an authenticator for ${user.email}. No email is sent; the account syncing your authenticator app can be different.` : `Use the authenticator entry you created for ${user.email}. No email is sent; the account syncing your authenticator app can be different.`}</p>
+      <h1 className="text-2xl font-bold font-heading text-[#0F0F10] tracking-tight">{recoveryCodes.length ? 'Save Your Recovery Codes' : confirmingPassword ? 'Confirm Administrator Password' : enrolling ? 'Enter Authenticator Code' : 'Verify Administrator Sign-In'}</h1>
+      <p className="text-xs text-[#6B7280] mt-2">{recoveryCodes.length ? 'Store these one-use codes somewhere safe. They let you sign in if you lose your authenticator.' : confirmingPassword ? `Step 1 of 2: re-enter the password for ${user.email}. You will enter the six-digit authenticator code on the next step.` : enrolling ? `Step 2 of 2: enter the six-digit code from the authenticator entry created with the setup key below. No email is sent.` : `Use the authenticator entry you created for ${user.email}. No email is sent; the account syncing your authenticator app can be different.`}</p>
     </div>
     {recoveryCodes.length && verifiedUser ? <div className="space-y-4">
       <div aria-label="Recovery codes" className="grid grid-cols-2 gap-2 rounded-xl bg-[#FAF9F6] p-4 text-xs font-mono">{recoveryCodes.map(value => <code key={value}>{value}</code>)}</div>
@@ -62,20 +67,24 @@ export function MfaSignIn({ user, request, onComplete }: Props) {
         } catch (failure) { setError(failure instanceof Error ? failure.message : 'Could not continue.'); }
         finally { setBusy(false); }
       }}>I saved my codes — continue</button>
-    </div> : <form className="space-y-4" onSubmit={submit}>
-      {enrolling && !secret ? <label className="block text-xs font-medium text-[#4B5563]">Confirm your password
-        <input className={`${field} mt-2`} type="password" autoComplete="current-password" required maxLength={128} value={password} onChange={event => setPassword(event.target.value)} />
+    </div> : <form key={confirmingPassword ? 'password-confirmation' : 'authenticator-code'} className="space-y-4" onSubmit={submit}>
+      <input type="hidden" name="username" autoComplete="username" value={user.email} />
+      {confirmingPassword ? <label className="block text-xs font-medium text-[#4B5563]">Administrator password
+        <input key="administrator-password" name="password" className={`${field} mt-2`} type="password" autoComplete="current-password" required minLength={8} maxLength={128} value={password} onChange={event => { event.target.setCustomValidity(''); setPassword(event.target.value); }} onInvalid={event => { if (event.currentTarget.validity.tooShort) event.currentTarget.setCustomValidity('Enter your full administrator password. The six-digit authenticator code comes next.'); }} />
       </label> : <>
         {secret && <div className="space-y-2 text-xs text-[#4B5563]">
           <p>Add a time-based account in Google Authenticator, Microsoft Authenticator, or another authenticator app using this setup key:</p>
           <code aria-label="Authenticator setup key" className="block break-all rounded-xl border border-[#E5E7EB] bg-[#FAF9F6] p-3 font-mono select-all">{secret}</code>
+          <p>Use this key in a time-based entry with 6 digits and a 30-second period. Set your device date and time automatically.</p>
+          <button type="button" disabled={busy} className="underline disabled:opacity-50" onClick={() => { setSecret(''); setCode(''); setPassword(''); setRestartPending(true); acceptedProof.current = null; setError('Confirm your administrator password to replace the unverified setup key. Then add the new key to your authenticator.'); }}>Replace unverified setup key</button>
         </div>}
         <label className="block text-xs font-medium text-[#4B5563]">{enrolling ? 'Authenticator code' : 'Authenticator or recovery code'}
-          <input className={`${field} mt-2 font-mono`} autoComplete="one-time-code" required maxLength={17} pattern={enrolling ? '[0-9]{6}' : '(?:[0-9]{6}|[a-zA-Z0-9]{8}-[a-zA-Z0-9]{8})'} value={code} onChange={event => setCode(event.target.value)} />
+          <input key="authenticator-code" name="authenticator-code" className={`${field} mt-2 font-mono`} autoComplete="one-time-code" inputMode={enrolling ? 'numeric' : 'text'} required maxLength={17} pattern={enrolling ? '[0-9]{6}' : '(?:[0-9]{6}|[a-zA-Z0-9]{8}-[a-zA-Z0-9]{8})'} value={code} onChange={event => setCode(event.target.value)} />
         </label>
       </>}
-      <button type="submit" disabled={busy} className={button}>{busy ? 'Verifying…' : enrolling && !secret ? 'Set up authenticator' : 'Verify session'}</button>
+      <button type="submit" disabled={busy} className={button}>{busy ? 'Verifying…' : confirmingPassword ? 'Confirm password and continue' : 'Verify session'}</button>
     </form>}
     {error && <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">{error}</p>}
+    {onRestart && !recoveryCodes.length && <button type="button" disabled={busy} className="mt-4 w-full text-center text-xs underline disabled:opacity-50" onClick={async () => { setBusy(true); setError(''); try { await onRestart(); } catch (failure) { setError(failure instanceof Error ? failure.message : 'Could not return to sign-in.'); } finally { setBusy(false); } }}>Return to administrator sign-in</button>}
   </div>;
 }
