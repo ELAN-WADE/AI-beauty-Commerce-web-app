@@ -3,7 +3,8 @@ import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 import { getDb } from '@/db/client';
-import { api, ApiError, Errors } from '@/lib/errors';
+import { api, Errors } from '@/lib/errors';
+import { assertPublicMediaStorage, mediaStorageFailure } from '@/lib/media-storage';
 import { requirePerm } from '@/lib/admin';
 import { checkMagicBytes, s3, communityBucket, communityMediaUrl } from '@/lib/storage';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
@@ -82,11 +83,12 @@ export const POST = api(async ({ req }) => {
 
   let remoteUrl: string | undefined;
   try {
+    if (process.env.NODE_ENV === 'production') assertPublicMediaStorage();
     const s3Key = `products/${filename}`;
-    await s3().send(new PutObjectCommand({ Bucket: communityBucket(), Key: s3Key, Body: buffer, ContentType: mime }));
+    await s3().send(new PutObjectCommand({ Bucket: communityBucket(), Key: s3Key, Body: buffer, ContentType: mime, CacheControl: 'public, max-age=31536000, immutable' }));
     remoteUrl = communityMediaUrl(s3Key);
-  } catch {
-    if (process.env.NODE_ENV === 'production' || !localSaved) throw new ApiError(503, 'media_storage_unavailable', 'The media could not be saved. Please retry.', true);
+  } catch (error) {
+    if (process.env.NODE_ENV === 'production' || !localSaved) throw mediaStorageFailure(error);
   }
 
   return NextResponse.json({

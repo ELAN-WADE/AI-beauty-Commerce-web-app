@@ -31,7 +31,7 @@ beforeAll(async () => {
 afterAll(async () => { await client?.close(); });
 
 async function session(userId: string) {
-  const { token } = await createSession(pg(), userId);
+  const { token } = await createSession(pg(), userId, { authScope: 'ADMIN' });
   const [row] = await db.select().from(userSessions).where(eq(userSessions.tokenHash, sha256Hex(token)));
   return { ...row, token };
 }

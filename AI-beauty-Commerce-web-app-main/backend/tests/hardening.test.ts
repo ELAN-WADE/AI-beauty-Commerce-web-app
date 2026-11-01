@@ -62,6 +62,7 @@ describe('session cookie names', () => {
   it('uses __Host- prefix in production, plain name in dev', () => {
     (process.env as Record<string, string | undefined>).NODE_ENV = 'production';
     expect(sessionCookieName()).toBe('__Host-desla_sid');
+    expect(sessionCookieName('ADMIN')).toBe('__Host-desla_admin_sid');
     (process.env as Record<string, string | undefined>).NODE_ENV = 'development';
     expect(sessionCookieName()).toBe('desla_sid');
     (process.env as Record<string, string | undefined>).NODE_ENV = OLD_ENV;

@@ -5,14 +5,17 @@ import { ApiError } from '@/lib/errors';
 import { consumeOAuthRequest, completeGoogleOAuth } from '@/modules/auth/google-oauth';
 import { safeReturnTo } from '@/modules/auth/redirects';
 import { databaseDiagnostics, isTransientDatabaseFailure } from '@/lib/database-diagnostics';
+import { oauthBrowserCookieName, type SessionScope } from '@/lib/cookies';
 
 export async function GET(req: Request) {
   const jar = await cookies();
   let returnTo = safeReturnTo(undefined);
   const url = new URL(req.url);
+  let scope: SessionScope | null = null;
   try {
     const db = getDb();
-    const request = await consumeOAuthRequest(db, url.searchParams.get('state'), jar.get('desla_oauth_browser')?.value);
+    const request = await consumeOAuthRequest(db, url.searchParams.get('state'), [jar.get(oauthBrowserCookieName('CUSTOMER'))?.value, jar.get(oauthBrowserCookieName('ADMIN'))?.value]);
+    scope = request.intent === 'ADMIN' ? 'ADMIN' : 'CUSTOMER';
     let callerOrigin: string | null = null;
     try { callerOrigin = new URL(request.returnTo).origin; } catch {}
     returnTo = safeReturnTo(request.returnTo, request.intent, callerOrigin);
@@ -28,6 +31,6 @@ export async function GET(req: Request) {
     if (!(error instanceof ApiError)) console.error(JSON.stringify({ scope: 'oauth-callback', code: 'internal_error', ...databaseDiagnostics(error) }));
     return NextResponse.redirect(target, { headers: { 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' } });
   } finally {
-    jar.set('desla_oauth_browser', '', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/api/auth/oauth/google', maxAge: 0 });
+    if (scope) jar.set(oauthBrowserCookieName(scope), '', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/api/auth/oauth/google', maxAge: 0 });
   }
 }

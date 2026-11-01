@@ -3,7 +3,8 @@ import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 import { getDb } from '@/db/client';
-import { api, ApiError, Errors } from '@/lib/errors';
+import { api, Errors } from '@/lib/errors';
+import { assertPublicMediaStorage, mediaStorageFailure } from '@/lib/media-storage';
 import { requireAuth } from '@/modules/auth/require-auth';
 import { requirePerm } from '@/lib/admin';
 import { creators } from '@/modules/creators/schema';
@@ -95,7 +96,7 @@ export const POST = api(async ({ req }) => {
   const backendUploadsDir = path.resolve(process.cwd(), 'public/uploads/partner');
 
   let localSaved = false;
-  for (const dir of [rootUploadsDir, backendUploadsDir]) {
+  for (const dir of process.env.NODE_ENV === 'production' ? [] : [rootUploadsDir, backendUploadsDir]) {
     try {
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
@@ -110,11 +111,12 @@ export const POST = api(async ({ req }) => {
   // Sync to S3 if configured
   let s3Url: string | undefined;
   try {
+    if (process.env.NODE_ENV === 'production') assertPublicMediaStorage();
     const s3Key = `partner/${fileName}`;
-    await s3().send(new PutObjectCommand({ Bucket: communityBucket(), Key: s3Key, Body: buffer, ContentType: mime }));
+    await s3().send(new PutObjectCommand({ Bucket: communityBucket(), Key: s3Key, Body: buffer, ContentType: mime, CacheControl: 'public, max-age=31536000, immutable' }));
     s3Url = communityMediaUrl(s3Key);
-  } catch {
-    if (process.env.NODE_ENV === 'production' || !localSaved) throw new ApiError(503, 'media_storage_unavailable', 'Media could not be saved. Please retry the upload.', true);
+  } catch (error) {
+    if (process.env.NODE_ENV === 'production' || !localSaved) throw mediaStorageFailure(error);
   }
 
   return NextResponse.json({

@@ -632,11 +632,13 @@ export const ScreenAuthSuite: React.FC<AuthSuiteProps> = ({ initialMode = 'login
 
             <form onSubmit={handleLoginSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-[#4B5563] mb-1">
+                <label htmlFor="sign-in-email" className="block text-xs font-medium text-[#4B5563] mb-1">
                   Email Address
                 </label>
                 <input
                   type="email"
+                  id="sign-in-email"
+                  autoComplete="username"
                   required
                   placeholder="you@example.com"
                   value={email}
@@ -647,7 +649,7 @@ export const ScreenAuthSuite: React.FC<AuthSuiteProps> = ({ initialMode = 'login
 
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-medium text-[#4B5563]">
+                  <label htmlFor="sign-in-password" className="text-xs font-medium text-[#4B5563]">
                     Password
                   </label>
                   <button
@@ -665,6 +667,8 @@ export const ScreenAuthSuite: React.FC<AuthSuiteProps> = ({ initialMode = 'login
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
+                    id="sign-in-password"
+                    autoComplete="current-password"
                     required
                     placeholder="••••••••••••"
                     value={password}

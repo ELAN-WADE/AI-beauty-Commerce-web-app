@@ -44,6 +44,9 @@ describe('Google identity, PKCE and one-use handoff', () => {
     expect(url.searchParams.get('login_hint')).toBe('owner@oauth.test');
     const request = await consumeOAuthRequest(pg(), url.searchParams.get('state'), start.browser);
     expect(request.intent).toBe('ADMIN'); expect(new URL(request.returnTo).pathname).toBe(entry);
+    const provider = vi.fn().mockResolvedValueOnce(Response.json({ access_token: 'test-token' })).mockResolvedValueOnce(Response.json({ sub: 'owner-google', email: 'owner@oauth.test', email_verified: true, name: 'Owner' }));
+    const code = await completeGoogleOAuth(pg(), request, 'test-code', provider);
+    expect((await exchangeOAuthGrant(pg(), code, 'd'.repeat(64))).session.authScope).toBe('ADMIN');
   });
   it.each(['CUSTOMER', 'CREATOR', 'DISTRIBUTOR'])('preserves %s intent without granting a partner role', async intent => {
     const verifier = 'b'.repeat(64);
@@ -60,6 +63,7 @@ describe('Google identity, PKCE and one-use handoff', () => {
     const result = await exchangeOAuthGrant(pg(), code, verifier);
     expect(new URL(result.returnTo).pathname).toBe(intent === 'CREATOR' ? '/creators' : intent === 'DISTRIBUTOR' ? '/distributor' : '/catalogue');
     expect(result.session.token).toHaveLength(64);
+    expect(result.session.authScope).toBe('CUSTOMER');
     await expect(exchangeOAuthGrant(pg(), code, verifier)).rejects.toMatchObject({ status: 410 });
     const [user] = await db.select().from(schema.users).where(eq(schema.users.email, `${intent.toLowerCase()}@oauth.test`));
     expect(user.signupIntent).toBe(intent);

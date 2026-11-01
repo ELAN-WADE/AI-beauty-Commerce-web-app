@@ -12,7 +12,7 @@ const inputSchema = z.object({
 }).strict();
 export const POST = api(async ({ req }) => {
   const db = getDb();
-  const auth = await requireAuth(db);
+  const auth = await requireAuth(db, 'CUSTOMER');
   const input = inputSchema.parse(await readJson(req));
   if (input.expectedUserId && input.expectedUserId !== auth.userId) throw Errors.conflict('Your account changed. Refresh your bag before continuing.');
   if (!(await checkSharedRateLimit(db, 'action:cart:' + auth.userId, Limits.catalog)).allowed) throw Errors.rateLimited(60);

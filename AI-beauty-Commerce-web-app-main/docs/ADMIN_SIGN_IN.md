@@ -1,6 +1,6 @@
 # Administrator sign-in
 
-Open the private URL configured by `ADMIN_ENTRY_PATH`. The old `/admin` entry returns 404. Google and email/password use the persistent backend session. Admin API requests require server-assigned permissions and authenticator verification. Google OAuth never assigns administrator roles from a submitted role or email substring.
+Open the private URL configured by `ADMIN_ENTRY_PATH`. The old `/admin` entry returns 404. Google and email/password use a persistent administrator session, separate from the customer/partner cookie. Signing into the private portal leaves the storefront signed out and does not replace a different customer's session. Admin API requests require server-assigned permissions and authenticator verification. Staff identities use the private login; Google OAuth never assigns administrator roles from a submitted role or email substring. See [session isolation](ADMIN_SESSION_ISOLATION.md).
 
 For the separate root storefront, configure `API_UPSTREAM_URL` with the backend origin and `FRONTEND_URL` on the backend with the exact storefront origin (locally http://localhost:3000). Restart the backend after changing its environment. Keep GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and GOOGLE_REDIRECT_URI on the backend; register the callback URI in Google. A callback must return to the originating storefront so its tab-scoped PKCE proof remains available.
 

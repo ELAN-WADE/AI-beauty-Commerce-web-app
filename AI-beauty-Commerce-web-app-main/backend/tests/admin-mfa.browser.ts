@@ -8,9 +8,12 @@ let server: Server; let browser: Browser; let origin: string;
 beforeAll(async () => {
   const bundle = await build({
     stdin: { contents: `import React from 'react'; import {createRoot} from 'react-dom/client';
-      import {AppProvider} from './src/storefront/context/AppContext';
+      import {AppProvider,useApp} from './src/storefront/context/AppContext';
       import {RequireRole} from './src/storefront/components/auth/RequireRole';
-      createRoot(document.getElementById('root')).render(<AppProvider><RequireRole allowedRoles={['SUPER_ADMIN']}><h1>Administrator dashboard</h1></RequireRole></AppProvider>);`,
+      import {ScreenAuthSuite} from './src/storefront/screens/account/ScreenAuthSuite';
+      function Dashboard(){const {logout}=useApp();return <><h1>Administrator dashboard</h1><button onClick={()=>void logout()}>Sign out admin</button></>}
+      function Harness(){const {authUser,authLoading,logout}=useApp();return location.pathname==='/login'?<ScreenAuthSuite/>:location.pathname.startsWith('/ops-')?<RequireRole allowedRoles={['SUPER_ADMIN']}><Dashboard/></RequireRole>:<><p>{authLoading?'Loading identity':authUser?'Storefront: '+authUser.email:'Storefront signed out'}</p><button onClick={()=>void logout()}>Sign out customer</button></>}
+      createRoot(document.getElementById('root')).render(<AppProvider><Harness/></AppProvider>);`,
       loader: 'tsx', resolveDir: fileURLToPath(new URL('../', import.meta.url)) },
     bundle: true, write: false, platform: 'browser', format: 'iife', logLevel: 'silent',
     define: { 'process.env.NODE_ENV': '"test"', 'process.env.NEXT_PUBLIC_API_URL': 'undefined', 'process.env.NEXT_PUBLIC_SENTRY_DSN': 'undefined', 'process.env.NEXT_PUBLIC_SUPABASE_URL': 'undefined', 'process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY': 'undefined' },
@@ -34,7 +37,7 @@ async function fixture(page: Page, enrolling = false) {
   let primary = false, verified = false, failRead = false, proofCount = 0, verifiedReads = 0;
   let enabled = !enrolling, setupCalls = 0, confirmCalls = 0;
   let holdNext = false; let release: ((status: number) => void) | undefined;
-  const user = () => ({ id: 'admin-ui-fixture', email: 'owner@example.test', emailVerified: true, roles: ['SUPER_ADMIN'], permissions: ['roles:grant'], mfaEnabled: enabled, mfaVerified: verified, signupIntent: 'CUSTOMER', profile: null });
+  const user = () => ({ id: 'admin-ui-fixture', email: 'owner@example.test', sessionScope: 'ADMIN', emailVerified: true, roles: ['SUPER_ADMIN'], permissions: ['roles:grant'], mfaEnabled: enabled, mfaVerified: verified, signupIntent: 'CUSTOMER', profile: null });
   await page.route('**/api/**', async route => {
     const path = new URL(route.request().url()).pathname;
     const reply = (status: number, json: unknown) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(json) });
@@ -83,6 +86,75 @@ async function fixture(page: Page, enrolling = false) {
 }
 
 describe('administrator MFA through the actual provider, transport, and role gate', () => {
+  it('completes a private Google handoff once and keeps the storefront signed out', async () => {
+    const page = await browser.newPage();
+    let primary = false, verified = false, exchanges = 0;
+    try {
+      await page.addInitScript(() => {
+        if (!location.hash.includes('oauth_code')) return;
+        sessionStorage.setItem('desla-auth-intent', JSON.stringify({ intent: 'ADMIN', returnTo: location.pathname }));
+        sessionStorage.setItem('desla-oauth-verifier', 'browser-fixture-proof');
+      });
+      await page.route('**/api/**', async route => {
+        const req = route.request(), path = new URL(req.url()).pathname;
+        const reply = (status: number, body: unknown) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
+        if (path === '/api/auth/oauth/exchange') { expect(req.headers()['x-desla-auth-context']).toBe('ADMIN'); primary = true; exchanges++; return reply(200, { ok: true }); }
+        if (path === '/api/auth/mfa/verify') { verified = true; return reply(200, { verified: true }); }
+        if (path === '/api/auth/me') return primary && req.headers()['x-desla-auth-context'] === 'ADMIN' ? reply(200, { id: 'owner', email: 'owner@example.test', roles: ['SUPER_ADMIN'], sessionScope: 'ADMIN', mfaEnabled: true, mfaVerified: verified, profile: null }) : reply(401, { error: { code: 'unauthorized' } });
+        return reply(200, { products: [], categories: [], creators: [], distributors: [], posts: [], reviews: [], items: [], orders: [], records: [], messages: [] });
+      });
+      await page.goto(origin + '/ops-0123456789abcdef?auth=google_success#oauth_code=test-only-handoff');
+      await page.getByLabel('Authenticator or recovery code').fill('222222');
+      await page.getByRole('button', { name: 'Verify session', exact: true }).click();
+      await uiExpect(page.getByRole('heading', { name: 'Administrator dashboard' })).toBeVisible();
+      expect(exchanges).toBe(1);
+      await page.goto(origin + '/catalogue');
+      await uiExpect(page.getByText('Storefront signed out', { exact: true })).toBeVisible();
+    } finally { await page.close(); }
+  });
+  it.each(['ADMIN', 'CUSTOMER'] as const)('keeps two identities in one browser and isolates %s logout', async logoutScope => {
+    const context = await browser.newContext();
+    const admin = await context.newPage(), store = await context.newPage();
+    let verified = false;
+    try {
+      await context.route('**/api/**', async route => {
+        const req = route.request(); const path = new URL(req.url()).pathname;
+        const scope = req.headers()['x-desla-auth-context']; const cookie = req.headers()['cookie'] || '';
+        const active = scope === 'ADMIN' ? cookie.includes('desla_admin_sid=admin-fixture') : cookie.includes('desla_sid=customer-fixture');
+        const reply = (status: number, body: unknown, setCookie?: string) => route.fulfill({ status, headers: { 'content-type': 'application/json', ...(setCookie ? { 'set-cookie': setCookie + '; HttpOnly; Path=/; SameSite=Lax' } : {}) }, body: JSON.stringify(body) });
+        if (path === '/api/auth/admin/login') return reply(200, { ok: true }, 'desla_admin_sid=admin-fixture');
+        if (path === '/api/auth/login') return reply(200, { ok: true }, 'desla_sid=customer-fixture');
+        if (path === '/api/auth/logout') return reply(200, { ok: true }, (scope === 'ADMIN' ? 'desla_admin_sid' : 'desla_sid') + '=; Max-Age=0');
+        if (path === '/api/auth/mfa/verify') { if (!active || scope !== 'ADMIN') return reply(401, {}); verified = true; return reply(200, { verified: true }); }
+        if (path === '/api/auth/me') return active ? reply(200, { id: scope === 'ADMIN' ? 'owner' : 'shopper', email: scope === 'ADMIN' ? 'owner@example.test' : 'shopper@example.test', emailVerified: true, roles: scope === 'ADMIN' ? ['SUPER_ADMIN'] : ['CUSTOMER'], sessionScope: scope, mfaEnabled: scope === 'ADMIN', mfaVerified: scope === 'ADMIN' && verified, profile: null }) : reply(401, { error: { code: 'unauthorized' } });
+        return reply(200, { products: [], categories: [], creators: [], distributors: [], posts: [], reviews: [], items: [], orders: [], records: [], messages: [] });
+      });
+      await admin.goto(origin + '/ops-0123456789abcdef');
+      await admin.getByLabel('Administrator email').fill('owner@example.test');
+      await admin.getByLabel('Password', { exact: true }).fill('Browser-fixture-password');
+      await admin.getByRole('button', { name: 'Sign in as administrator', exact: true }).click();
+      await admin.getByLabel('Authenticator or recovery code').fill('222222');
+      await admin.getByRole('button', { name: 'Verify session', exact: true }).click();
+      await uiExpect(admin.getByRole('heading', { name: 'Administrator dashboard' })).toBeVisible();
+      await store.goto(origin + '/catalogue');
+      await uiExpect(store.getByText('Storefront signed out', { exact: true })).toBeVisible();
+      await store.goto(origin + '/login');
+      await store.getByLabel('Email Address', { exact: true }).fill('shopper@example.test');
+      await store.getByLabel('Password', { exact: true }).fill('Browser-fixture-password');
+      await store.locator('form').getByRole('button', { name: 'Sign In', exact: true }).click();
+      await uiExpect(store.getByText('Storefront: shopper@example.test', { exact: true })).toBeVisible();
+      await admin.reload(); await uiExpect(admin.getByRole('heading', { name: 'Administrator dashboard' })).toBeVisible();
+      if (logoutScope === 'ADMIN') {
+        await admin.getByRole('button', { name: 'Sign out admin' }).click();
+        await uiExpect(admin.getByLabel('Administrator email')).toBeVisible();
+        await store.reload(); await uiExpect(store.getByText('Storefront: shopper@example.test', { exact: true })).toBeVisible();
+      } else {
+        await store.getByRole('button', { name: 'Sign out customer' }).click();
+        await uiExpect(store.getByText('Storefront signed out', { exact: true })).toBeVisible();
+        await admin.reload(); await uiExpect(admin.getByRole('heading', { name: 'Administrator dashboard' })).toBeVisible();
+      }
+    } finally { await context.close(); }
+  });
   it('sends first-time six-digit enrollment codes to confirmation, never back to password setup', async () => {
     const page = await browser.newPage();
     try {

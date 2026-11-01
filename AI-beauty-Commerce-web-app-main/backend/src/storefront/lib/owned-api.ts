@@ -5,7 +5,7 @@
 import type { CartItem, Order, Product, Category, AdminOrder, AdminTransferClaim, AdminAuditLog, AdminInventoryItem } from '../types';
 
 import { getEnv } from './env';
-import { readAuthIntent } from './auth-flow';
+import { readAuthIntent, requestAuthScope } from './auth-flow';
 import { isPartnerDesignPreview } from './partner-preview';
 import { communityPostFromApi, type CommunityPostDto } from './community-data';
 import { authSessionRevision, noteAuthResponse, shouldExpireAuthSession } from './auth-session';
@@ -32,6 +32,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}, sessionI
   const isFormData = typeof FormData !== 'undefined' && init.body instanceof FormData;
   const headers: Record<string, string> = { ...(isFormData ? {} : { 'Content-Type': 'application/json' }), ...(init.headers as Record<string, string> | undefined) };
   if (sessionId) headers['X-Session-Id'] = sessionId;
+  headers['X-Desla-Auth-Context'] = requestAuthScope(path);
   let res: Response;
   const startedAt = authSessionRevision();
   try { res = await fetch(`${BASE}${path}`, { cache: 'no-store', ...init, headers, credentials: 'include', signal: init.signal ?? AbortSignal.timeout(process.env.NODE_ENV === 'development' ? 120000 : 25000) }); }
@@ -39,7 +40,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}, sessionI
   const body = (await res.json().catch(() => null)) as { error?: { code?: string; message?: string } } | T;
   if (!res.ok) {
     const err = (body as { error?: { code?: string; message?: string } })?.error;
-    if (typeof window !== 'undefined' && shouldExpireAuthSession(path, res.status, err?.code, startedAt)) window.dispatchEvent(new Event('desla:session-expired'));
+    if (typeof window !== 'undefined' && requestAuthScope(path) === requestAuthScope('/api/auth/me') && shouldExpireAuthSession(path, res.status, err?.code, startedAt)) window.dispatchEvent(new Event('desla:session-expired'));
     throw new ApiError(res.status, err?.code ?? 'request_failed', err?.message ?? `Request failed (${res.status}).`);
   }
   if (!body) throw new ApiError(502, 'invalid_response', 'The service returned an invalid response. Please try again.');
@@ -272,6 +273,7 @@ export interface AuthUser {
   email: string;
   emailVerified: boolean;
   roles: string[];
+  sessionScope?: 'CUSTOMER' | 'ADMIN';
   permissions?: string[];
   signupIntent?: string;
   adminEntryPath?: string | null;

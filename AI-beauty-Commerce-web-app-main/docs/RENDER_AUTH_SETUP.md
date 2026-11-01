@@ -2,13 +2,13 @@
 
 For administrator account provisioning/password recovery, see [RENDER_ADMIN_RECOVERY.md](RENDER_ADMIN_RECOVERY.md). The admin password is a database credential; configuring a private URL does not create/reset that account.
 
-The live service is https://ai-beauty-commerce-web-app.onrender.com. The database readiness check passed on revision 86a9a3a. Google preparation returned HTTP 503 `oauth_configuration` for customer, creator, and distributor intent: this happens before contacting Google, when server configuration is missing or invalid.
+The live service is https://ai-beauty-commerce-web-app.onrender.com. On revision fe2388e, customer, creator and distributor starts return 307 to Google with the correct HTTPS callback. The reported `redirect_uri_mismatch` was traced to an HTTP callback still registered in Google Cloud. The user confirmed Google sign-in succeeds after replacing it with `https://ai-beauty-commerce-web-app.onrender.com/api/auth/oauth/google/callback` on the same client configured in Render. Google requires scheme, path and trailing slash to match exactly: [Google OAuth documentation](https://developers.google.com/identity/protocols/oauth2/web-server#authorization-errors-redirect-uri-mismatch). Administrator cookies are now isolated from storefront cookies; see [the administrator session contract](ADMIN_SESSION_ISOLATION.md).
 
 ## Configure the existing web service
 
 Set these values in Render's web-service Environment page, then save and redeploy the latest main commit. Do not create another service just to use embedded email delivery.
 
-In the local working copy, backend/.local/render-auth.env has been prepared with the existing Google and SMTP credentials plus the values below. It is private and Git-ignored. Use Render's Environment → Add from .env option to import its contents, review replacements, then choose Save, rebuild, and deploy. Keep all other existing environment values. If copying individual values instead, omit the surrounding .env quotes. See https://render.com/docs/configure-environment-variables.
+Use the current credentials from the provider dashboards. Private ignored local configuration files may contain older credentials after rotations; do not import an old file over working Render settings. If copying individual values, omit surrounding .env quotes. See https://render.com/docs/configure-environment-variables.
 
 ```dotenv
 NODE_ENV=production
@@ -24,7 +24,7 @@ SMTP_SECURE=false
 ALLOW_LOG_EMAIL=false
 ```
 
-Also set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to the matching Web application OAuth client credentials from Google Cloud (the local backend configuration already contains the working pair). Set SMTP_USER to the Brevo SMTP login, SMTP_PASS to its existing SMTP key, and SMTP_FROM to the sender verified in Brevo. These credentials belong in Render's environment settings, not this document, Git, or NEXT_PUBLIC_* variables. The sender must actually be verified; acceptance by Brevo does not guarantee inbox placement.
+Also set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to the matching current Web application OAuth client credentials from Google Cloud. Set SMTP_USER to the Brevo SMTP login, SMTP_PASS to its current SMTP key, and SMTP_FROM to the sender verified in Brevo. These credentials belong in Render's environment settings, not this document, Git, or NEXT_PUBLIC_* variables. The sender must actually be verified; acceptance by Brevo does not guarantee inbox placement.
 
 Keep the existing DATABASE_URL, AUTH_EMAIL_ENCRYPTION_KEY, MFA_ENCRYPTION_KEY, and other established production settings. The two encryption keys must be independent 64-character hexadecimal values; do not replace keys already used to encrypt stored records.
 

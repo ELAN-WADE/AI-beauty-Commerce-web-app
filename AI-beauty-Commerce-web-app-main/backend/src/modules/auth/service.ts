@@ -4,6 +4,7 @@ import type { AppDb, Db } from '../../db/client';
 import { Errors } from '../../lib/errors';
 import { enqueueAuthEmail, enqueueAccountAccessEmail } from './email';
 import { adminEmail, hasStaffRole } from './admin-policy';
+import type { SessionScope } from '../../lib/cookies';
 import {
   emailVerificationTokens,
   passwordResetTokens,
@@ -75,6 +76,7 @@ export function newRawToken(bytes = 32): string {
 export interface SessionMeta {
   ip?: string;
   userAgent?: string;
+  authScope?: SessionScope;
 }
 
 /** Register: anti-enumeration — existing email returns success without creating (§12.8). */
@@ -210,16 +212,21 @@ export async function login(
     throw Errors.unauthorized('Invalid email or password.');
   }
   if (!user.emailVerifiedAt) throw Errors.unauthorized('Verify your email address before signing in.');
+  const grants = await db.select().from(userRoles).where(eq(userRoles.userId, user.id));
   if (purpose === 'admin') {
-    const grants = await db.select().from(userRoles).where(eq(userRoles.userId, user.id));
     if (email !== adminEmail() || !hasStaffRole(grants.map(grant => grant.roleId))) throw Errors.unauthorized('Invalid administrator credentials.');
+  } else if (hasStaffRole(grants.map(grant => grant.roleId))) {
+    throw Errors.forbidden('Use the private administrator sign-in page for this account.');
   }
   await db
     .update(users)
     .set({ failedLoginAttempts: 0, lockedUntil: null })
     .where(eq(users.id, user.id));
-  await enforceSessionCap(db, user.id);
-  return createSession(db, user.id, meta);
+  const authScope = purpose === 'admin' ? 'ADMIN' : 'CUSTOMER';
+  return db.transaction(async tx => {
+    await enforceSessionCap(tx as unknown as AppDb, user.id, 10, authScope);
+    return createSession(tx as unknown as AppDb, user.id, { ...meta, authScope });
+  });
 }
 
 export async function createSession(db: AppDb, userId: string, meta: SessionMeta = {}) {
@@ -228,11 +235,12 @@ export async function createSession(db: AppDb, userId: string, meta: SessionMeta
   await db.insert(userSessions).values({
     userId,
     tokenHash: sha256Hex(raw),
+    authScope: meta.authScope ?? 'CUSTOMER',
     ip: meta.ip,
     userAgent: meta.userAgent,
     expiresAt,
   });
-  return { token: raw, expiresAt };
+  return { token: raw, expiresAt, authScope: meta.authScope ?? 'CUSTOMER' };
 }
 
 /**
@@ -242,7 +250,7 @@ export async function createSession(db: AppDb, userId: string, meta: SessionMeta
  * out normal multi-device users. Called on login before minting the new
  * session. No migration (updates only).
  */
-export async function enforceSessionCap(db: AppDb, userId: string, maxActive = 10): Promise<{ revoked: number }> {
+export async function enforceSessionCap(db: AppDb, userId: string, maxActive = 10, authScope: SessionScope = 'CUSTOMER'): Promise<{ revoked: number }> {
   // Serialized per user: parallel logins must converge on the same cap
   // instead of each observing a stale count and overshooting it.
   return db.transaction(async (tx) => {
@@ -250,7 +258,7 @@ export async function enforceSessionCap(db: AppDb, userId: string, maxActive = 1
     const active = await tx
       .select({ id: userSessions.id })
       .from(userSessions)
-      .where(and(eq(userSessions.userId, userId), isNull(userSessions.revokedAt), gt(userSessions.expiresAt, new Date())))
+      .where(and(eq(userSessions.userId, userId), eq(userSessions.authScope, authScope), isNull(userSessions.revokedAt), gt(userSessions.expiresAt, new Date())))
       .orderBy(asc(userSessions.createdAt));
     // Keep the newest (maxActive - 1); the login below mints the maxActive-th.
     const revokeIds = active.slice(0, Math.max(0, active.length - (maxActive - 1))).map((s) => s.id);
@@ -289,6 +297,7 @@ export async function getSessionUser(db: AppDb, rawToken: string | undefined) {
     user: row.user,
     roles: roleRows.map((r) => r.roleId),
     sessionId: row.session.id,
+    authScope: row.session.authScope,
   };
 }
 

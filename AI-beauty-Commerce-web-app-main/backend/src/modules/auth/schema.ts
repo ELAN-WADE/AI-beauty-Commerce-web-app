@@ -7,6 +7,7 @@ import {
   primaryKey,
 } from 'drizzle-orm/pg-core';
 import { index } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 
 /** timestamptz alias: timezone-aware timestamps everywhere (audit-safe). */
 const timestamptz = (name: string) => timestamp(name, { withTimezone: true, mode: 'date' });
@@ -49,6 +50,7 @@ export const oauthRequests = pgTable('oauth_requests', {
 export const oauthGrants = pgTable('oauth_grants', {
   codeHash: text('code_hash').primaryKey(),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  authScope: text('auth_scope').$type<'CUSTOMER' | 'ADMIN'>().notNull().default('CUSTOMER'),
   challenge: text('challenge').notNull(),
   returnTo: text('return_to').notNull(),
   expiresAt: timestamptz('expires_at').notNull(),
@@ -62,13 +64,14 @@ export const userSessions = pgTable('user_sessions', {
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
   tokenHash: text('token_hash').notNull().unique(),
+  authScope: text('auth_scope').$type<'CUSTOMER' | 'ADMIN'>().notNull().default('CUSTOMER'),
   ip: text('ip'),
   userAgent: text('user_agent'),
   expiresAt: timestamptz('expires_at').notNull(),
   revokedAt: timestamptz('revoked_at'),
   mfaVerifiedAt: timestamptz('mfa_verified_at'),
   createdAt: timestamptz('created_at').notNull().defaultNow(),
-});
+}, (t) => [index('user_sessions_active_scope_idx').on(t.userId, t.authScope, t.createdAt).where(sql`${t.revokedAt} is null`)]);
 
 /** One-time recovery codes are SHA-256 hashed and deleted on use. */
 export const mfaRecoveryCodes = pgTable('mfa_recovery_codes', {

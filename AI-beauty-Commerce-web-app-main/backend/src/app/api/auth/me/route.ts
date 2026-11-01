@@ -8,11 +8,12 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { userSessions, users } from '@/modules/auth/schema';
 import { isMfaVerificationFresh } from '@/modules/auth/mfa';
 import { adminEntryPath, hasStaffRole } from '@/modules/auth/admin-policy';
+import { sessionScopeFromHeaders } from '@/lib/cookies';
 
-export const GET = api(async () => {
+export const GET = api(async ({ req }) => {
   const db = getDb();
-  const ctx = await requireAuth(db);
-  const access = await userPermissions(db, ctx.userId);
+  const ctx = await requireAuth(db, sessionScopeFromHeaders(req.headers));
+  const access = ctx.authScope === 'ADMIN' ? await userPermissions(db, ctx.userId) : { permissions: new Set<string>() };
   const profile = await getProfile(db, ctx.userId);
   const [mfa] = await db.select({ enabledAt: users.mfaEnabledAt, verifiedAt: userSessions.mfaVerifiedAt, signupIntent: users.signupIntent })
     .from(users)
@@ -24,11 +25,12 @@ export const GET = api(async () => {
     email: ctx.email,
     emailVerified: ctx.emailVerified,
     roles: ctx.roles,
+    sessionScope: ctx.authScope,
     ...(hasStaffRole(ctx.roles) ? { adminEntryPath: adminEntryPath() } : {}),
     permissions: [...access.permissions],
     signupIntent: mfa?.signupIntent ?? 'CUSTOMER',
-    mfaEnabled: Boolean(mfa?.enabledAt),
-    mfaVerified: Boolean(mfa && isMfaVerificationFresh(mfa.enabledAt, mfa.verifiedAt)),
+    mfaEnabled: ctx.authScope === 'ADMIN' && Boolean(mfa?.enabledAt),
+    mfaVerified: ctx.authScope === 'ADMIN' && Boolean(mfa && isMfaVerificationFresh(mfa.enabledAt, mfa.verifiedAt)),
     profile: profile
       ? { displayName: profile.displayName, phone: profile.phone, avatarUrl: profile.avatarUrl }
       : null,

@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { and, eq, gt, isNull, sql } from 'drizzle-orm';
+import { and, eq, gt, inArray, isNull, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { AppDb, Db } from '../../db/client';
 import { users, userRoles, googleIdentities, oauthRequests, oauthGrants } from './schema';
@@ -26,9 +26,10 @@ export async function startGoogleOAuth(db: Db, input: { redirect?: string; inten
   return { browser, url: `https://accounts.google.com/o/oauth2/v2/auth?${params}` };
 }
 
-export async function consumeOAuthRequest(db: Db, state: string | null, browser: string | undefined) {
-  if (!state || !browser || !/^[a-f0-9]{64}$/.test(state)) throw Errors.gone('Google sign-in expired. Start again from the sign-in page.');
-  const [request] = await db.update(oauthRequests).set({ consumedAt: new Date() }).where(and(eq(oauthRequests.stateHash, sha256Hex(state)), eq(oauthRequests.browserHash, sha256Hex(browser)), isNull(oauthRequests.consumedAt), gt(oauthRequests.expiresAt, new Date()))).returning();
+export async function consumeOAuthRequest(db: Db, state: string | null, browser: string | (string | undefined)[] | undefined) {
+  const proofs = (Array.isArray(browser) ? browser : [browser]).filter((value): value is string => Boolean(value));
+  if (!state || !proofs.length || !/^[a-f0-9]{64}$/.test(state)) throw Errors.gone('Google sign-in expired. Start again from the sign-in page.');
+  const [request] = await db.update(oauthRequests).set({ consumedAt: new Date() }).where(and(eq(oauthRequests.stateHash, sha256Hex(state)), inArray(oauthRequests.browserHash, proofs.map(sha256Hex)), isNull(oauthRequests.consumedAt), gt(oauthRequests.expiresAt, new Date()))).returning();
   if (!request) throw Errors.gone('Google sign-in expired. Start again from the sign-in page.');
   return request;
 }
@@ -77,6 +78,7 @@ export async function authenticateGoogleUser(db: Db, google: GoogleUserProfile, 
     let [user] = await tx.select().from(users).where(identity ? eq(users.id, identity.userId) : eq(users.email, email)).for('update');
     const grants = user ? await tx.select().from(userRoles).where(eq(userRoles.userId, user.id)) : [];
     const privileged = hasStaffRole(grants.map(grant => grant.roleId));
+    if (privileged && intent !== 'ADMIN') throw Errors.forbidden('Use the private administrator sign-in page for this Google account.');
     if ((privileged && (email !== adminEmail() || user?.email !== adminEmail())) || (intent === 'ADMIN' && (!privileged || user?.email !== adminEmail()))) throw Errors.forbidden('This Google account is not permitted for administrator sign-in.');
     if (!identity && user && !user.emailVerifiedAt) throw new ApiError(409, 'verify_before_link', 'Verify your existing account email before using Google sign-in. Request a new verification link from sign-in.');
     if (!user) {
@@ -89,7 +91,7 @@ export async function authenticateGoogleUser(db: Db, google: GoogleUserProfile, 
       if (!linked) throw Errors.conflict('Use the Google account already linked to this account.');
     }
     await tx.insert(profiles).values({ userId: user.id, displayName: google.name, avatarUrl: google.picture ?? null }).onConflictDoNothing();
-    await tx.insert(userRoles).values({ userId: user.id, roleId: 'CUSTOMER' }).onConflictDoNothing();
+    if (intent !== 'ADMIN') await tx.insert(userRoles).values({ userId: user.id, roleId: 'CUSTOMER' }).onConflictDoNothing();
     // Intent selects onboarding only. Partner approval/role grants stay in their existing services.
     return { userId: user.id, email: user.email };
   });
@@ -99,7 +101,7 @@ export async function completeGoogleOAuth(db: Db, request: typeof oauthRequests.
   const google = await exchangeGoogleCode(code, openAuthUrl(request.verifierEncrypted), fetchFn);
   const user = await authenticateGoogleUser(db, google, {}, request.intent);
   const grant = newRawToken();
-  await db.insert(oauthGrants).values({ codeHash: sha256Hex(grant), userId: user.userId, challenge: request.returnChallenge, returnTo: request.returnTo, expiresAt: new Date(Date.now() + 60000) });
+  await db.insert(oauthGrants).values({ codeHash: sha256Hex(grant), userId: user.userId, authScope: request.intent === 'ADMIN' ? 'ADMIN' : 'CUSTOMER', challenge: request.returnChallenge, returnTo: request.returnTo, expiresAt: new Date(Date.now() + 60000) });
   return grant;
 }
 
@@ -107,8 +109,8 @@ export async function exchangeOAuthGrant(db: AppDb, code: string, verifier: stri
   return db.transaction(async tx => {
     const [grant] = await tx.update(oauthGrants).set({ consumedAt: new Date() }).where(and(eq(oauthGrants.codeHash, sha256Hex(code)), eq(oauthGrants.challenge, pkceChallenge(verifier)), isNull(oauthGrants.consumedAt), gt(oauthGrants.expiresAt, new Date()))).returning();
     if (!grant) throw Errors.gone('Sign-in expired or was already completed. Please sign in again.');
-    await enforceSessionCap(tx as unknown as AppDb, grant.userId);
-    const session = await createSession(tx as unknown as AppDb, grant.userId, meta);
+    await enforceSessionCap(tx as unknown as AppDb, grant.userId, 10, grant.authScope);
+    const session = await createSession(tx as unknown as AppDb, grant.userId, { ...meta, authScope: grant.authScope });
     return { session, returnTo: grant.returnTo };
   });
 }

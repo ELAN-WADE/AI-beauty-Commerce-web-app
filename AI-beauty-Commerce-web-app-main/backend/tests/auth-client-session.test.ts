@@ -13,6 +13,18 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 describe.each(clients)('%s authentication transport', (_name, load) => {
+  it('selects the portal context and does not sign a customer out when an admin request is rejected', async () => {
+    browser.location = new URL('https://shop.example.com/catalogue');
+    const expired = vi.fn(); browser.addEventListener('desla:session-expired', expired);
+    fetcher.mockResolvedValue(Response.json({ error: { code: 'unauthorized' } }, { status: 401 }));
+    const { apiFetch } = await load();
+    await expect(apiFetch('/api/admin/catalogue')).rejects.toMatchObject({ status: 401 });
+    expect(fetcher.mock.calls[0][1].headers['X-Desla-Auth-Context']).toBe('ADMIN');
+    expect(expired).not.toHaveBeenCalled();
+    await expect(apiFetch('/api/auth/me')).rejects.toMatchObject({ status: 401 });
+    expect(fetcher.mock.calls[1][1].headers['X-Desla-Auth-Context']).toBe('CUSTOMER');
+    expect(expired).toHaveBeenCalledTimes(1);
+  });
   it('keeps the primary session after an invalid authenticator code', async () => {
     const expired = vi.fn(); browser.addEventListener('desla:session-expired', expired);
     fetcher.mockResolvedValue(Response.json({ error: { code: 'mfa_invalid', message: 'The MFA code is invalid or expired.' } }, { status: 422 }));

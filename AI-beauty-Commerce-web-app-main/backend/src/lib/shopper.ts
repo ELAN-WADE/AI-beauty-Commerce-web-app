@@ -22,6 +22,6 @@ export function parseSessionId(raw: string | null | undefined): string | undefin
  * guest session UUID (X-Session-Id, client-generated), or anonymous.
  */
 export async function shopper(db: AppDb, req: Request): Promise<Shopper> {
-  const auth = await optionalAuth(db);
+  const auth = await optionalAuth(db, 'CUSTOMER');
   return { userId: auth?.userId, sessionId: parseSessionId(req.headers.get('x-session-id')) };
 }

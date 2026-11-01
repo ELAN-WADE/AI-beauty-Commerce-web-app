@@ -43,7 +43,7 @@ export async function mergeCartAction(
   try {
     const db = getDb();
     const { optionalAuth } = await import('@/modules/auth/require-auth');
-    const auth = await optionalAuth(db);
+    const auth = await optionalAuth(db, 'CUSTOMER');
     if (!auth) return { ok: false, status: 401, code: 'unauthorized', message: 'Login required.' };
     const rl = await checkSharedRateLimit(db, `action:cart-merge:${auth.userId}`, Limits.cartWrite);
     if (!rl.allowed) return { ok: false, status: 429, code: 'rate_limited', message: 'Too many cart updates. Slow down and try again.' };

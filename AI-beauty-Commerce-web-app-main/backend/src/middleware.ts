@@ -49,7 +49,7 @@ export function middleware(req: NextRequest) {
     res.headers.set('Access-Control-Allow-Methods', 'GET, POST, PATCH, PUT, DELETE, OPTIONS');
     res.headers.set(
       'Access-Control-Allow-Headers',
-      'Content-Type, Authorization, Idempotency-Key, X-Session-Id, X-Guest-Order-Token, X-Request-Id',
+      'Content-Type, Authorization, Idempotency-Key, X-Session-Id, X-Guest-Order-Token, X-Request-Id, X-Desla-Auth-Context',
     );
     res.headers.set('Access-Control-Max-Age', '600');
   }

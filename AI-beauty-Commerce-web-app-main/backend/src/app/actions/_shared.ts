@@ -74,7 +74,7 @@ export function withTimeout<T>(work: Promise<T>, ms = ACTION_TIMEOUT_MS): Promis
 
 /** Same resolution as REST `shopper()`: cookie session + explicit guest id. */
 export async function resolveActionShopper(db: AppDb, sessionId?: string): Promise<ActionShopper> {
-  const auth = await optionalAuth(db);
+  const auth = await optionalAuth(db, 'CUSTOMER');
   return { userId: auth?.userId, sessionId: parseSessionId(sessionId) };
 }
 

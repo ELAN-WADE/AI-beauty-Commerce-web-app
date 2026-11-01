@@ -12,7 +12,7 @@ const querySchema = z.object({
 
 export const GET = api(async ({ req }) => {
   const db = getDb();
-  const ctx = await requireAuth(db);
+  const ctx = await requireAuth(db, 'CUSTOMER');
   const q = querySchema.parse(Object.fromEntries(new URL(req.url).searchParams));
   return NextResponse.json(await listOwnOrders(db, ctx.userId, q.limit, q.cursor));
 });

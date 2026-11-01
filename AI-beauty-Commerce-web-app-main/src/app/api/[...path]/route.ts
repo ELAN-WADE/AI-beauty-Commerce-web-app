@@ -33,7 +33,7 @@ async function proxy(req: NextRequest) {
   if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method) && (isCrossSite || (origin && !isAllowedProxyOrigin(origin, req.nextUrl.origin)))) return fail(403, 'forbidden_origin', 'Cross-origin requests are not allowed.');
   const target = new URL(req.nextUrl.pathname + req.nextUrl.search, upstream);
   const headers = new Headers();
-  for (const name of ['content-type', 'cookie', 'idempotency-key', 'x-session-id', 'x-guest-order-token']) {
+  for (const name of ['content-type', 'cookie', 'idempotency-key', 'x-session-id', 'x-guest-order-token', 'x-desla-auth-context']) {
     const value = req.headers.get(name); if (value) headers.set(name, value);
   }
   if (origin) headers.set('origin', origin);

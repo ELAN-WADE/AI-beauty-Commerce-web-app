@@ -44,7 +44,7 @@ import { creators as initialCreators } from '../data/creators';
 import { communityPosts as initialCommunityPosts } from '../data/communityPosts';
 import { reviews as initialReviews } from '../data/reviews';
 import { routingKey, type CheckoutFulfilment } from '../lib/fulfilment';
-import { beginGoogleSignIn, restoreOAuthCallback, rememberSignInFrom, rememberAuthIntent, localReturnTo, isStaffAccount } from '../lib/auth-flow';
+import { beginGoogleSignIn, restoreOAuthCallback, rememberSignInFrom, rememberAuthIntent, localReturnTo, isStaffAccount, administratorSignInPath } from '../lib/auth-flow';
 import { authSessionRevision } from '../lib/auth-session';
 import { useCustomerCart } from '../lib/use-customer-cart';
 import { clearPendingBag } from '../lib/customer-journey';
@@ -1233,6 +1233,7 @@ export const AppProvider: React.FC<{ children: ReactNode; initialScreen?: Screen
 
   // Navigation handlers with browser URL synchronization
   const navigateTo = (screen: ScreenId, stateData?: any) => {
+    if (screen === 'account' && authUser && administratorSignInPath(authUser)) screen = 'admin-console';
     if (screen === 'admin-console') {
       const target = authUser?.adminEntryPath;
       if (target && window.location.pathname !== target) window.location.assign(target);
@@ -1333,7 +1334,7 @@ export const AppProvider: React.FC<{ children: ReactNode; initialScreen?: Screen
   }, []);
   const { cartItems, addToCart, addToCartBatch, removeFromCart, updateQuantity, clearCart,
     isAddToCartSheetOpen, lastAddedCartItem, closeAddToCartSheet, cartReady, cartError, cartSaving, retryCart, flushCart } =
-    useCustomerCart({ userId: authUser?.id, authLoading, onSignIn: requestCustomerSignIn, onResumed: resumeCustomerCart, catalogue: products });
+    useCustomerCart({ userId: authUser?.sessionScope === 'ADMIN' ? undefined : authUser?.id, authLoading, onSignIn: requestCustomerSignIn, onResumed: resumeCustomerCart, catalogue: products });
 
   // Calculations
   const cartSubtotal = cartItems.reduce(
@@ -1795,9 +1796,12 @@ export const AppProvider: React.FC<{ children: ReactNode; initialScreen?: Screen
     if (isPartnerDesignPreview()) { setAuthLoading(false); return; }
     let cancelled = false;
     let revision = authSessionRevision();
-    restoreOAuthCallback(apiFetch).then(() => { revision = authSessionRevision(); return apiMe(); })
-      .then((me) => {
-        if (!cancelled && revision === authSessionRevision()) setAuthUser(me);
+    restoreOAuthCallback(apiFetch).then(async callback => { revision = authSessionRevision(); return { callback, me: await apiMe() }; })
+      .then(({ callback, me }) => {
+        if (cancelled || revision !== authSessionRevision()) return;
+        setAuthUser(me);
+        const target = callback && me ? administratorSignInPath(me, callback.intent) : null;
+        if (target && window.location.pathname !== target) window.location.assign(target);
       })
       .catch(error => { if (!cancelled) setAuthError(error instanceof Error ? error.message : 'Could not restore your session.'); })
       .finally(() => {

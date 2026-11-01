@@ -6,6 +6,7 @@ import { checkSharedRateLimit } from '@/lib/rate-limit';
 import { startGoogleOAuth } from '@/modules/auth/google-oauth';
 import { googleConfig, safeReturnTo, oauthIntent } from '@/modules/auth/redirects';
 import { adminEntryPath } from '@/modules/auth/admin-policy';
+import { oauthBrowserCookieName } from '@/lib/cookies';
 
 export const GET = api(async ({ req }) => {
   const url = new URL(req.url);
@@ -36,6 +37,6 @@ export const GET = api(async ({ req }) => {
   const db = getDb();
   if (!(await checkSharedRateLimit(db, `oauth-start:${clientIp(req)}`, { limit: 20, windowMs: 900000 })).allowed) throw Errors.rateLimited(60);
   const result = await startGoogleOAuth(db, { redirect: redirectParam ?? undefined, intent: url.searchParams.get('role') ?? undefined, challenge: url.searchParams.get('challenge') ?? '', callerOrigin: callerOrigin ?? undefined });
-  (await cookies()).set('desla_oauth_browser', result.browser, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/api/auth/oauth/google', maxAge: 600 });
+  (await cookies()).set(oauthBrowserCookieName(oauthIntent(url.searchParams.get('role')) === 'ADMIN' ? 'ADMIN' : 'CUSTOMER'), result.browser, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/api/auth/oauth/google', maxAge: 600 });
   return NextResponse.redirect(result.url, { headers: { 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' } });
 });

@@ -18,6 +18,6 @@ describe('Google callback during a database outage', () => {
     expect(consume).toHaveBeenCalledTimes(1); expect(complete).not.toHaveBeenCalled();
     expect(JSON.stringify(logger.mock.calls)).toContain('CONNECT_TIMEOUT');
     expect(JSON.stringify(logger.mock.calls)).not.toMatch(/private-code|private-state|private database/);
-    expect(setCookie).toHaveBeenCalledWith('desla_oauth_browser', '', expect.objectContaining({ maxAge: 0 }));
+    expect(setCookie).not.toHaveBeenCalled(); // An unrecognized callback must not clear another portal's browser proof.
   });
 });

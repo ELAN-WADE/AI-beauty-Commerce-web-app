@@ -6,6 +6,17 @@ const verifierKey = 'desla-oauth-verifier';
 export const asIntent = (value: unknown): AccountIntent => value === 'CREATOR' || value === 'DISTRIBUTOR' || value === 'ADMIN' ? value : 'CUSTOMER';
 export const intentPath = (intent: AccountIntent) => intent === 'CREATOR' ? '/creators' : intent === 'DISTRIBUTOR' ? '/distributor' : '/catalogue';
 export const isStaffAccount = (roles: string[]) => roles.some(role => ['ADMIN', 'STAFF', 'SUPER_ADMIN', 'INVENTORY_MANAGER', 'SUPPORT'].includes(role));
+type SignInUser = { roles: string[]; signupIntent?: string; adminEntryPath?: string | null; sessionScope?: 'CUSTOMER' | 'ADMIN' };
+export function administratorSignInPath(user: SignInUser, intent: AccountIntent = 'CUSTOMER'): string | null {
+  if (user.sessionScope !== 'ADMIN' || !isStaffAccount(user.roles) || (intent !== 'CUSTOMER' && intent !== 'ADMIN')) return null;
+  // Only the authenticated server response supplies the private operations path.
+  return localReturnTo(user.adminEntryPath);
+}
+export function requestAuthScope(path: string): 'CUSTOMER' | 'ADMIN' {
+  if (/^\/api\/(?:admin\/|auth\/(?:admin\/|mfa\/))/.test(path)) return 'ADMIN';
+  if (['/api/auth/login', '/api/auth/register', '/api/auth/verify-email'].includes(path.split('?')[0])) return 'CUSTOMER';
+  return typeof window !== 'undefined' && /^\/ops-[a-z0-9-]{16,80}$/.test(window.location.pathname) ? 'ADMIN' : 'CUSTOMER';
+}
 export function localReturnTo(value: unknown): string | null {
   if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//') || /[\\\x00-\x20]/.test(value) || value.length > 1500) return null;
   const url = new URL(value, 'https://local.invalid');
@@ -31,12 +42,13 @@ export function rememberSignInFrom(screen: string, currentUrl: string) {
   const paths: Record<string, string> = { creators: '/creators', 'creator-dashboard': '/creators', 'distributor-portal': '/distributor', 'distributor-dashboard': '/distributor', 'admin-console': url.pathname };
   rememberAuthIntent(intent, paths[screen] || (screen === 'home' ? '/catalogue' : url.pathname + url.search));
 }
-export function finishSignIn(user: { roles: string[]; signupIntent?: string; adminEntryPath?: string | null }, navigate?: (target: string) => void) {
+export function finishSignIn(user: SignInUser, navigate?: (target: string) => void) {
   const { intent, returnTo } = readAuthIntent();
-  const fallback = intent === 'ADMIN' ? user.adminEntryPath || '/account' : intent !== 'CUSTOMER' ? intentPath(intent) : isStaffAccount(user.roles) ? user.adminEntryPath || '/account' : '/catalogue';
+  const fallback = intent === 'ADMIN' && user.sessionScope === 'ADMIN' ? user.adminEntryPath || '/account' : intentPath(intent);
   try { sessionStorage.removeItem(intentKey); } catch { /* Optional storage. */ }
-  if (navigate) navigate(returnTo || fallback);
-  else window.location.assign(returnTo || fallback);
+  const target = administratorSignInPath(user, intent) || returnTo || fallback;
+  if (navigate) navigate(target);
+  else window.location.assign(target);
 }
 export async function beginGoogleSignIn(api: RequestApi, redirect?: string, role?: string) {
   const saved = readAuthIntent();
@@ -63,8 +75,8 @@ export async function beginGoogleSignIn(api: RequestApi, redirect?: string, role
   window.location.assign(target.toString());
 }
 
-let restoring: Promise<void> | null = null;
-export function restoreOAuthCallback(api: RequestApi): Promise<void> {
+let restoring: Promise<{ intent: AccountIntent } | null> | null = null;
+export function restoreOAuthCallback(api: RequestApi): Promise<{ intent: AccountIntent } | null> {
   if (restoring) return restoring;
   const fragment = new URLSearchParams(window.location.hash.slice(1));
   const code = fragment.get('oauth_code');
@@ -72,7 +84,8 @@ export function restoreOAuthCallback(api: RequestApi): Promise<void> {
   const cancelled = params.get('auth') === 'cancelled';
   const message = params.get('message');
   try { localStorage.removeItem('glowly-auth-token'); } catch { /* Remove legacy credentials if possible. */ }
-  if (!code && !cancelled && !fragment.has('session')) return Promise.resolve();
+  if (!code && !cancelled && !fragment.has('session')) return Promise.resolve(null);
+  const { intent } = readAuthIntent();
   for (const key of ['auth', 'message', 'user', 'role', 'sid']) params.delete(key);
   window.history.replaceState(window.history.state, '', window.location.pathname + (params.size ? `?${params}` : ''));
   restoring = (async () => {
@@ -83,6 +96,7 @@ export function restoreOAuthCallback(api: RequestApi): Promise<void> {
     if (!verifier) throw new Error('Sign-in must be completed in the browser tab where it started. Please try again.');
     await api('/api/auth/oauth/exchange', { method: 'POST', body: JSON.stringify({ code, verifier }) });
     try { sessionStorage.removeItem(verifierKey); sessionStorage.removeItem(intentKey); } catch { /* Optional cleanup. */ }
+    return { intent };
   })();
   return restoring;
 }

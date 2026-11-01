@@ -12,7 +12,7 @@ import { isMfaVerificationFresh } from '@/modules/auth/mfa';
  * kept for the few routes where role identity (not capability) matters.
  */
 export async function requirePerm(db: AppDb, ...perms: string[]): Promise<AuthContext> {
-  const ctx = await requireAuth(db);
+  const ctx = await requireAuth(db, 'ADMIN');
   if (!(await hasPermission(db, ctx.userId, ...perms))) throw Errors.forbidden();
   const [mfa] = await db.select({ enabledAt: users.mfaEnabledAt, verifiedAt: userSessions.mfaVerifiedAt })
     .from(users)

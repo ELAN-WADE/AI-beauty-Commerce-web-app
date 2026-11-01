@@ -8,7 +8,7 @@ import { mergeCartSchema } from '@/modules/cart/validation';
 /** Login merge: fold the pre-login guest cart into the user cart. */
 export const POST = api(async ({ req }) => {
   const db = getDb();
-  const ctx = await requireAuth(db);
+  const ctx = await requireAuth(db, 'CUSTOMER');
   const input = mergeCartSchema.parse(await readJson(req));
   return NextResponse.json(await mergeGuestCart(db, ctx.userId, input.sessionId));
 });

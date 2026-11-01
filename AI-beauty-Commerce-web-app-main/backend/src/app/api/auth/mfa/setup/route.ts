@@ -8,7 +8,7 @@ import { mfaSetupSchema } from '@/modules/auth/validation';
 
 export const POST = api(async ({ req, requestId }) => {
   const db = getDb();
-  const ctx = await requireAuth(db);
+  const ctx = await requireAuth(db, 'ADMIN');
   const rl = await checkSharedRateLimit(db, `mfa:setup:${ctx.userId}`, Limits.mfa);
   if (!rl.allowed) throw Errors.rateLimited(60);
   const input = mfaSetupSchema.parse(await readJson(req));

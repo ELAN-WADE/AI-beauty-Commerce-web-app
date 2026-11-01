@@ -12,6 +12,14 @@ import { enforceOrigin } from '../src/lib/errors';
 afterEach(() => { vi.useRealTimers(); vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
 
 describe('storefront authentication boundary', () => {
+  it('forwards the selected administrator context and its independent HttpOnly cookie', async () => {
+    vi.stubEnv('API_UPSTREAM_URL', 'http://localhost:3005');
+    const fetcher = vi.fn().mockResolvedValue(Response.json({ ok: true }, { headers: { 'set-cookie': 'desla_admin_sid=admin-fixture; Path=/; HttpOnly; SameSite=Lax' } }));
+    vi.stubGlobal('fetch', fetcher);
+    const result = await authPost(new StorefrontRequest('http://localhost:3000/api/auth/admin/login', { method: 'POST', headers: { origin: 'http://localhost:3000', 'x-desla-auth-context': 'ADMIN' }, body: '{}' }));
+    expect(fetcher.mock.calls[0][1].headers.get('x-desla-auth-context')).toBe('ADMIN');
+    expect(result.headers.get('set-cookie')).toContain('desla_admin_sid=admin-fixture');
+  });
   it('keeps an established catalogue sync stream alive beyond the ordinary deadline and cancels with its client', async () => {
     vi.useFakeTimers();
     vi.stubEnv('NODE_ENV', 'development');
@@ -87,11 +95,11 @@ describe('sign-in destination handoff', () => {
     vi.stubGlobal('sessionStorage', { getItem: (key: string) => memory.get(key) ?? null, setItem: (key: string, value: string) => memory.set(key, value), removeItem: (key: string) => memory.delete(key) });
     return { assign, memory };
   }
-  it('keeps the chosen partner destination for a staff account without a document reload', () => {
+  it('keeps the chosen partner destination for an approved partner without a document reload', () => {
     const { assign, memory } = browser();
     rememberAuthIntent('CREATOR', '/creators?workspace=content');
     const navigate = vi.fn();
-    finishSignIn({ roles: ['ADMIN', 'CREATOR'] }, navigate);
+    finishSignIn({ roles: ['CUSTOMER', 'CREATOR'], sessionScope: 'CUSTOMER' }, navigate);
     expect(navigate).toHaveBeenCalledWith('/creators?workspace=content');
     expect(assign).not.toHaveBeenCalled();
     expect(memory.has('desla-auth-intent')).toBe(false);
@@ -100,7 +108,7 @@ describe('sign-in destination handoff', () => {
     const { memory } = browser();
     memory.set('desla-auth-intent', JSON.stringify({ intent: 'CUSTOMER', returnTo: '//untrusted.example' }));
     const navigate = vi.fn();
-    finishSignIn({ roles: ['SUPPORT'], adminEntryPath: '/ops-0123456789abcdef01234567' }, navigate);
+    finishSignIn({ roles: ['SUPPORT'], sessionScope: 'ADMIN', adminEntryPath: '/ops-0123456789abcdef01234567' }, navigate);
     expect(navigate).toHaveBeenCalledWith('/ops-0123456789abcdef01234567');
   });
 });

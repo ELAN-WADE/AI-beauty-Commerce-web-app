@@ -32,6 +32,7 @@
     "worker:once": "tsx src/worker/index.ts --once",
     "admin:local": "tsx scripts/bootstrap-local-admin.ts",
     "auth:check": "tsx scripts/check-auth-config.ts",
+    "media:check": "tsx scripts/check-media-config.ts",
     "worker:auth": "tsx scripts/auth-email-worker.ts",
     "admin:bootstrap": "tsx scripts/bootstrap-dev-admin.ts",
     "render:deploy": "npm run db:migrate && npm run db:seed && npm run admin:bootstrap",

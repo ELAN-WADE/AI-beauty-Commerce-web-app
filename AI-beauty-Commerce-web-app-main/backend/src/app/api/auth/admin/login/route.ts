@@ -25,6 +25,6 @@ export const POST = api(async ({ req }) => {
     userAgent: req.headers.get('user-agent') ?? undefined,
   }, 'admin');
   const jar = await cookies();
-  jar.set(sessionCookieName(), session.token, sessionCookieOptions(SESSION_TTL_SEC));
+  jar.set(sessionCookieName('ADMIN'), session.token, sessionCookieOptions(SESSION_TTL_SEC));
   return NextResponse.json({ ok: true });
 });
