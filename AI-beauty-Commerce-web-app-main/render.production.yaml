@@ -5,7 +5,9 @@ services:
   - type: web
     name: desla-production
     runtime: node
-    plan: starter
+    # Extra headroom after the 512 MB deployment exhausted runtime memory.
+    # This template does not change the existing service until explicitly applied.
+    plan: 1c-2g
     rootDir: AI-beauty-Commerce-web-app-main/backend
     autoDeployTrigger: "off"
     buildCommand: node scripts/render-build.mjs

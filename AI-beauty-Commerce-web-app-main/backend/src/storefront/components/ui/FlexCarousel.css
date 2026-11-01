@@ -28,6 +28,24 @@
   box-shadow: inset 0 0 0 2px rgba(128, 128, 140, 0.55);
 }
 
+/* Same hero images and card proportions when a device cannot render WebGL. */
+.flex-carousel__fallback {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding-inline: 16px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  touch-action: pan-x pan-y;
+}
+
+.flex-carousel__fallback-image {
+  flex: 0 0 auto;
+  height: calc(var(--flex-carousel-half) * 2);
+  object-fit: cover;
+  scroll-snap-align: center;
+}
+
 .flex-carousel__caption {
   position: absolute;
   left: 0;

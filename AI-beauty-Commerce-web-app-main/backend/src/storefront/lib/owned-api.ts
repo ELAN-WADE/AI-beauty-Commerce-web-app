@@ -5,6 +5,7 @@
 import type { CartItem, Order, Product, Category, AdminOrder, AdminTransferClaim, AdminAuditLog, AdminInventoryItem } from '../types';
 
 import { getEnv } from './env';
+import { subscribeStorefrontSync } from './storefront-sync';
 import { readAuthIntent, requestAuthScope } from './auth-flow';
 import { isPartnerDesignPreview } from './partner-preview';
 import { communityPostFromApi, type CommunityPostDto } from './community-data';
@@ -74,49 +75,7 @@ export function guestOrderToken(id: string): string | null {
  * without requiring a manual page refresh.
  */
 export function subscribeStorefrontSyncApi(onSync: (slug?: string | null) => void): () => void {
-  if (typeof window === 'undefined' || typeof EventSource === 'undefined') {
-    return () => {};
-  }
-  let es: EventSource | null = null;
-  let reconnectTimer: any = null;
-  let active = true;
-
-  const connect = () => {
-    if (!active) return;
-    try {
-      es = new EventSource(`${BASE}/api/storefront/sync`);
-      es.addEventListener('sync', (e: MessageEvent) => {
-        try {
-          const data = JSON.parse(e.data);
-          onSync(data?.slug);
-        } catch {
-          onSync();
-        }
-      });
-      es.onerror = () => {
-        if (es) {
-          es.close();
-          es = null;
-        }
-        if (active) {
-          reconnectTimer = setTimeout(connect, 5000);
-        }
-      };
-    } catch {
-      // EventSource unavailable
-    }
-  };
-
-  connect();
-
-  return () => {
-    active = false;
-    if (reconnectTimer) clearTimeout(reconnectTimer);
-    if (es) {
-      es.close();
-      es = null;
-    }
-  };
+  return subscribeStorefrontSync(`${BASE}/api/storefront/sync`, onSync);
 }
 
 export async function resendVerificationEmail(email: string): Promise<{ ok: boolean }> {

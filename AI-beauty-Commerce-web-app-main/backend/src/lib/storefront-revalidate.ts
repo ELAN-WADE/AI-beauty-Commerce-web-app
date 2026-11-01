@@ -17,8 +17,10 @@ import { productVariants, products } from '@/modules/catalog/schema';
 export type SyncEvent = { type: 'CATALOG_UPDATE'; slug?: string | null; timestamp: number };
 type SyncListener = (event: SyncEvent) => void;
 
-// In-memory set of connected clients for live SSE revalidation
-const listeners = new Set<SyncListener>();
+// Route handlers can be emitted into separate Next bundles. Keep a single
+// registry per process, without retaining listeners after a stream disconnects.
+const state = globalThis as typeof globalThis & { __deslaStorefrontListeners?: Set<SyncListener> };
+const listeners = state.__deslaStorefrontListeners ??= new Set<SyncListener>();
 
 export function subscribeStorefrontSync(listener: SyncListener): () => void {
   listeners.add(listener);

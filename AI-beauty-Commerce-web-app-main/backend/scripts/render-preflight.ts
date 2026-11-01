@@ -9,6 +9,7 @@ try {
   console.log(JSON.stringify({ scope: 'google-oauth', status: google.configured ? 'configured' : 'not_configured', settings: google.settings, callback: google.callback }));
   const web = databasePoolOptions();
   const worker = databasePoolOptions({ ...process.env, DATABASE_POOL_MAX: process.env.AUTH_EMAIL_DATABASE_POOL_MAX || '2' });
-  console.log(JSON.stringify({ scope: 'database-pool', webMax: web.max, authWorkerMax: worker.max, connectTimeoutSeconds: web.connect_timeout }));
+  const embedded = process.env.AUTH_EMAIL_WORKER_MODE === 'embedded';
+  console.log(JSON.stringify({ scope: 'database-pool', webMax: web.max, authWorkerMax: embedded ? web.max : worker.max, authWorkerPool: embedded ? 'shared-web' : 'separate', connectTimeoutSeconds: web.connect_timeout }));
 }
 catch (error) { console.error(error instanceof Error ? error.message : 'Backend configuration is incomplete.'); process.exitCode = 1; }

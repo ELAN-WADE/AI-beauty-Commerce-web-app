@@ -407,6 +407,7 @@ export const FlexCarousel: React.FC<FlexCarouselProps> = ({
   const [active, setActive] = useState(0);
   const [revealed, setRevealed] = useState(false);
   const [focusOpen, setFocusOpen] = useState(false);
+  const [fallback, setFallback] = useState(false);
 
   const base = BEND_PRESETS[preset] || BEND_PRESETS.ribbon;
   const pick = <K extends keyof PresetValues>(value: PresetValues[K] | undefined, key: K): PresetValues[K] =>
@@ -449,19 +450,30 @@ export const FlexCarousel: React.FC<FlexCarouselProps> = ({
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container) return undefined;
+    if (!container || fallback) return;
 
-    const renderer = new Renderer({
-      dpr: Math.min(window.devicePixelRatio || 1, 2),
+    // Mobile browsers can disable WebGL, exhaust GPU contexts, or lose one
+    // under memory pressure. The decorative hero must never take down shopping.
+    let renderer: Renderer;
+    const attributes = {
       alpha: true,
       premultipliedAlpha: true,
       antialias: false,
       depth: false
-    });
+    };
+    try {
+      const canvas = document.createElement('canvas');
+      if (!canvas.getContext('webgl2', attributes)) { setFallback(true); return; }
+      renderer = new Renderer({ canvas, ...attributes, dpr: Math.min(window.devicePixelRatio || 1, 2) });
+    } catch {
+      setFallback(true);
+      return;
+    }
     const gl = renderer.gl;
     if (!renderer.isWebgl2) {
       gl.getExtension('WEBGL_lose_context')?.loseContext();
-      return undefined;
+      setFallback(true);
+      return;
     }
     gl.clearColor(0, 0, 0, 0);
     const canvas = gl.canvas as HTMLCanvasElement;
@@ -470,6 +482,8 @@ export const FlexCarousel: React.FC<FlexCarouselProps> = ({
     canvas.style.height = '100%';
     canvas.setAttribute('aria-hidden', 'true');
     container.prepend(canvas);
+    const onContextLost = (event: Event) => { event.preventDefault(); setFallback(true); };
+    canvas.addEventListener('webglcontextlost', onContextLost);
 
     const cardProgram = new Program(gl, {
       vertex: cardVertex,
@@ -817,7 +831,7 @@ export const FlexCarousel: React.FC<FlexCarouselProps> = ({
       start();
     };
 
-    const frame = (now: number) => {
+    const renderFrame = (now: number) => {
       raf = 0;
       if (!alive) return;
       const s = settingsRef.current;
@@ -1097,6 +1111,11 @@ export const FlexCarousel: React.FC<FlexCarouselProps> = ({
       if (visible && (animating || waiting || dirty || pointer.down)) raf = requestAnimationFrame(frame);
     };
 
+    const frame = (now: number) => {
+      try { renderFrame(now); }
+      catch { setFallback(true); }
+    };
+
     const start = () => {
       if (raf || !visible || !alive) return;
       last = performance.now();
@@ -1350,10 +1369,11 @@ export const FlexCarousel: React.FC<FlexCarouselProps> = ({
       document.removeEventListener('visibilitychange', onVisibility);
       slots.forEach((slot) => slot.dispose());
       slots = [];
+      canvas.removeEventListener('webglcontextlost', onContextLost);
       gl.getExtension('WEBGL_lose_context')?.loseContext();
       if (canvas.parentNode) canvas.parentNode.removeChild(canvas);
     };
-  }, []);
+  }, [fallback]);
 
   const current = list[active] || list[0];
   const label = current ? current.title || current.alt || `Image ${active + 1}` : '';
@@ -1368,6 +1388,11 @@ export const FlexCarousel: React.FC<FlexCarouselProps> = ({
       aria-label="Image carousel"
       tabIndex={0}
     >
+      {fallback && <div className="flex-carousel__fallback" style={{ gap }}>
+        {list.map((item, index) => <img key={`${item.src}-${index}`} src={item.src} alt={item.alt || item.title || ''}
+          className="flex-carousel__fallback-image" style={{ borderRadius: radius, aspectRatio: FIT_ASPECT[fit] || 0.75 }}
+          loading={index === 0 ? 'eager' : 'lazy'} onClick={() => { setActive(index); onChange?.(index, item); onSelect?.(index, item); }} />)}
+      </div>}
       {captions && current && revealed && (
         <div className="flex-carousel__caption" aria-hidden="true">
           <span key={active} className="flex-carousel__title">

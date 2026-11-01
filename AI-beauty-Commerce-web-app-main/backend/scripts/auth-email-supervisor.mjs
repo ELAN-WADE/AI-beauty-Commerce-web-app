@@ -9,12 +9,12 @@ export function superviseAccountEmail(root) {
       env: { ...process.env, DATABASE_POOL_MAX: process.env.AUTH_EMAIL_DATABASE_POOL_MAX || '2' } });
     const started = Date.now();
     let handled = false;
-    function retry() {
+    function retry(code = null, signal = null) {
       if (handled || stopping) return;
       handled = true;
       attempts = Date.now() - started > 60000 ? 1 : attempts + 1;
       const delay = Math.min(30000, 1000 * 2 ** Math.min(attempts - 1, 5));
-      console.error(JSON.stringify({ scope: 'auth-email-supervisor', status: 'restarting', delayMs: delay }));
+      console.error(JSON.stringify({ scope: 'auth-email-supervisor', status: 'restarting', delayMs: delay, code: typeof code === 'number' ? code : null, signal, uptimeSeconds: Math.round((Date.now() - started) / 1000) }));
       timer = setTimeout(start, delay);
     }
     worker.on('error', retry);
