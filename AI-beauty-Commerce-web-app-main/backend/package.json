@@ -16,6 +16,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:admin-ui": "vitest run --config vitest.admin-ui.config.ts",
     "test:browser": "playwright test",
     "test:postgres": "node scripts/test-postgres.mjs",
     "db:local": "node scripts/postgres-local.mjs",

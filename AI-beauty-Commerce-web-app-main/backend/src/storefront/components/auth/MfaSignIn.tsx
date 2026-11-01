@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import type { AuthUser } from '../../lib/owned-api';
+import { authSessionRevision } from '../../lib/auth-session';
 
 interface Props {
   user: AuthUser;
@@ -16,6 +17,7 @@ export function MfaSignIn({ user, request, onComplete }: Props) {
   const [verifiedUser, setVerifiedUser] = useState<AuthUser | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const acceptedProof = useRef<{ revision: number; recoveryCodes?: string[] } | null>(null);
   const enrolling = !user.mfaEnabled;
   const field = 'w-full px-4 py-3 rounded-xl border border-[#D1D5DB] bg-white text-sm text-[#0F0F10] focus:outline-none focus:border-[#0F0F10]';
   const button = 'w-full py-3.5 px-6 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-sm font-semibold shadow-md cursor-pointer disabled:opacity-60';
@@ -30,11 +32,15 @@ export function MfaSignIn({ user, request, onComplete }: Props) {
         setSecret(result.secret); setPassword('');
         return;
       }
-      const result = await request<{ recoveryCodes?: string[] }>(`/api/auth/mfa/${enrolling ? 'confirm' : 'verify'}`, { method: 'POST', body: JSON.stringify({ code: code.trim() }) });
+      if (!acceptedProof.current || acceptedProof.current.revision !== authSessionRevision()) {
+        const result = await request<{ recoveryCodes?: string[] }>(`/api/auth/mfa/${enrolling ? 'confirm' : 'verify'}`, { method: 'POST', body: JSON.stringify({ code: code.trim() }) });
+        acceptedProof.current = { ...result, revision: authSessionRevision() };
+      }
+      const { revision, recoveryCodes: issuedCodes } = acceptedProof.current;
       const me = await request<AuthUser>('/api/auth/me');
-      if (!me.mfaVerified) throw new Error('Your session could not be verified. Please try again.');
+      if (revision !== authSessionRevision() || me.id !== user.id || !me.mfaVerified) { acceptedProof.current = null; throw new Error('Your session could not be verified. Please try again.'); }
       setCode(''); setSecret('');
-      if (result.recoveryCodes?.length) { setRecoveryCodes(result.recoveryCodes); setVerifiedUser(me); }
+      if (issuedCodes?.length) { setRecoveryCodes(issuedCodes); setVerifiedUser(me); }
       else await onComplete(me);
     } catch (failure) { setError(failure instanceof Error ? failure.message : 'Verification failed. Please try again.'); }
     finally { setBusy(false); }
@@ -49,7 +55,11 @@ export function MfaSignIn({ user, request, onComplete }: Props) {
       <div aria-label="Recovery codes" className="grid grid-cols-2 gap-2 rounded-xl bg-[#FAF9F6] p-4 text-xs font-mono">{recoveryCodes.map(value => <code key={value}>{value}</code>)}</div>
       <button type="button" disabled={busy} className={button} onClick={async () => {
         setBusy(true); setError('');
-        try { await onComplete(verifiedUser); } catch (failure) { setError(failure instanceof Error ? failure.message : 'Could not continue.'); }
+        try {
+          const me = await request<AuthUser>('/api/auth/me');
+          if (me.id !== verifiedUser.id || !me.mfaVerified) throw new Error('Your session could not be verified. Please sign in again.');
+          await onComplete(me);
+        } catch (failure) { setError(failure instanceof Error ? failure.message : 'Could not continue.'); }
         finally { setBusy(false); }
       }}>I saved my codes — continue</button>
     </div> : <form className="space-y-4" onSubmit={submit}>

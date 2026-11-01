@@ -1,5 +1,7 @@
 # Administrator login recovery on Render
 
+If password sign-in succeeds but the authenticator step sends you back to login, see [ADMIN_MFA_SESSION_FIX.md](ADMIN_MFA_SESSION_FIX.md). Password recovery and the MFA session transition are separate concerns.
+
 Administrator access requires a verified database user, the configured administrator email, a staff role, the correct password, and no active login lockout. The private URL alone does not create the account. MFA remains a separate step after password authentication.
 
 Two deployment gaps were corrected: native Render startup now runs the optional administrator bootstrap (without depending on a pre-deploy hook), and existing-account password recovery is explicitly supported. Previously bootstrap granted roles but silently retained the old password.

@@ -45,7 +45,7 @@ export const RequireRole: React.FC<RequireRoleProps> = ({
   title,
   description,
 }) => {
-  const { authUser, authLoading, authError, refreshAuth, navigateTo, loginWithGoogle, previewRole, enterPreviewRole, logout } = useApp();
+  const { authUser, authLoading, authError, completeMfaVerification, navigateTo, loginWithGoogle, previewRole, enterPreviewRole, logout } = useApp();
   const [connecting, setConnecting] = useState(false);
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
@@ -67,7 +67,7 @@ export const RequireRole: React.FC<RequireRoleProps> = ({
   if (needsMfa && authUser) {
     return <div className="min-h-screen flex items-center justify-center bg-[#FAF9F6] p-6">
       <div className="w-full max-w-md rounded-3xl border bg-white p-8">
-        <MfaSignIn key={authUser.id} user={authUser} request={apiFetch} onComplete={async () => { await refreshAuth(); }} />
+        <MfaSignIn key={authUser.id} user={authUser} request={apiFetch} onComplete={async user => { completeMfaVerification(user); }} />
       </div>
     </div>;
   }

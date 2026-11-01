@@ -83,7 +83,8 @@ function normalizedRecoveryHash(code: string): string {
 
 export async function beginMfaEnrollment(db: AppDb, userId: string, email: string, password: string, requestId?: string) {
   const [credentials] = await db.select({ passwordHash: users.passwordHash }).from(users).where(eq(users.id, userId));
-  if (!credentials || !(await verifyPassword(password, credentials.passwordHash))) throw Errors.unauthorized('Password confirmation failed.');
+  if (!credentials) throw Errors.unauthorized();
+  if (!(await verifyPassword(password, credentials.passwordHash))) throw Errors.passwordConfirmationFailed();
   const secret = base32Encode(randomBytes(20));
   await db.transaction(async (tx) => {
     const [user] = await tx.select().from(users).where(eq(users.id, userId)).for('update');
@@ -108,7 +109,7 @@ export async function confirmMfaEnrollment(db: AppDb, userId: string, sessionId:
     const [user] = await tx.select().from(users).where(eq(users.id, userId)).for('update');
     if (!user || !user.mfaSecretEncrypted || user.mfaEnabledAt) throw Errors.conflict('Start MFA setup before confirming it.');
     const step = matchingTotpStep(openMfaSecret(user.mfaSecretEncrypted), code);
-    if (step === null) throw Errors.unauthorized('The MFA code is invalid or expired.');
+    if (step === null) throw Errors.mfaInvalid();
     const now = new Date();
     await tx.update(users).set({ mfaEnabledAt: now, mfaLastTotpStep: step }).where(eq(users.id, userId));
     await tx.delete(mfaRecoveryCodes).where(eq(mfaRecoveryCodes.userId, userId));
@@ -127,13 +128,13 @@ export async function verifyMfaForSession(db: AppDb, userId: string, sessionId: 
     const secret = openMfaSecret(user.mfaSecretEncrypted);
     const step = matchingTotpStep(secret, code);
     if (step !== null) {
-      if (user.mfaLastTotpStep !== null && step <= user.mfaLastTotpStep) throw Errors.unauthorized('This MFA code has already been used. Wait for a new code.');
+      if (user.mfaLastTotpStep !== null && step <= user.mfaLastTotpStep) throw Errors.mfaInvalid('This MFA code has already been used. Wait for a new code.');
       await tx.update(users).set({ mfaLastTotpStep: step }).where(eq(users.id, userId));
     } else {
       const [recovery] = await tx.select({ id: mfaRecoveryCodes.id }).from(mfaRecoveryCodes)
         .where(and(eq(mfaRecoveryCodes.userId, userId), eq(mfaRecoveryCodes.codeHash, normalizedRecoveryHash(code))))
         .for('update').limit(1);
-      if (!recovery) throw Errors.unauthorized('The MFA code is invalid or expired.');
+      if (!recovery) throw Errors.mfaInvalid();
       await tx.delete(mfaRecoveryCodes).where(eq(mfaRecoveryCodes.id, recovery.id));
     }
     const [session] = await tx.update(userSessions).set({ mfaVerifiedAt: new Date() })
@@ -147,15 +148,15 @@ export async function verifyMfaForSession(db: AppDb, userId: string, sessionId: 
 export async function disableMfa(db: AppDb, userId: string, code: string, requestId?: string): Promise<void> {
   await db.transaction(async (tx) => {
     const [user] = await tx.select().from(users).where(eq(users.id, userId)).for('update');
-    if (!user?.mfaEnabledAt || !user.mfaSecretEncrypted) throw Errors.unauthorized('A valid MFA code is required to disable MFA.');
+    if (!user?.mfaEnabledAt || !user.mfaSecretEncrypted) throw Errors.mfaInvalid('A valid MFA code is required to disable MFA.');
     const step = matchingTotpStep(openMfaSecret(user.mfaSecretEncrypted), code);
     if (step !== null) {
-      if (user.mfaLastTotpStep !== null && step <= user.mfaLastTotpStep) throw Errors.unauthorized('This MFA code has already been used. Wait for a new code.');
+      if (user.mfaLastTotpStep !== null && step <= user.mfaLastTotpStep) throw Errors.mfaInvalid('This MFA code has already been used. Wait for a new code.');
     } else {
       const [recovery] = await tx.select({ id: mfaRecoveryCodes.id }).from(mfaRecoveryCodes)
         .where(and(eq(mfaRecoveryCodes.userId, userId), eq(mfaRecoveryCodes.codeHash, normalizedRecoveryHash(code))))
         .for('update').limit(1);
-      if (!recovery) throw Errors.unauthorized('A valid MFA code is required to disable MFA.');
+      if (!recovery) throw Errors.mfaInvalid('A valid MFA code is required to disable MFA.');
       await tx.delete(mfaRecoveryCodes).where(eq(mfaRecoveryCodes.id, recovery.id));
     }
     await tx.delete(mfaRecoveryCodes).where(eq(mfaRecoveryCodes.userId, userId));

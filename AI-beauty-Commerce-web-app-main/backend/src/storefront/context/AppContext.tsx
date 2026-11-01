@@ -2,7 +2,8 @@ import type { StorefrontSeed } from '@/lib/server-storefront';
 import React, { createContext, useCallback, useContext, useState, useEffect, useRef, useMemo, ReactNode } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { SCREEN_PATHS, screenForPath } from '../../lib/screen-routes';
-import { beginGoogleSignIn, restoreOAuthCallback, rememberSignInFrom, rememberAuthIntent, localReturnTo } from '../lib/auth-flow';
+import { beginGoogleSignIn, restoreOAuthCallback, rememberSignInFrom, rememberAuthIntent, localReturnTo, isStaffAccount } from '../lib/auth-flow';
+import { authSessionRevision } from '../lib/auth-session';
 import { useCustomerCart } from '../lib/use-customer-cart';
 import { clearPendingBag } from '../lib/customer-journey';
 import { DEFAULT_HERO_SETTINGS, type HeroSettings } from '../lib/hero-settings';
@@ -259,6 +260,7 @@ interface AppContextType {
   authLoading: boolean;
   authError: string;
   refreshAuth: () => Promise<void>;
+  completeMfaVerification: (user: AuthUser) => void;
   login: (email: string, password: string) => Promise<{ success: boolean; message: string; user?: AuthUser }>;
   loginWithGoogle: (redirect?: string, role?: string, email?: string) => Promise<void>;
   register: (email: string, password: string) => Promise<{ success: boolean; message: string }>;
@@ -1646,8 +1648,10 @@ export const AppProvider: React.FC<{ children: ReactNode; initialCatalogue?: Pro
   const [distributorAvailableBalanceNgn, setDistributorAvailableBalanceNgn] = useState<number | null>(null);
   const refreshAuth = useCallback(async (silent = false) => {
     if (!silent) setAuthLoading(true);
+    const revision = authSessionRevision();
     try {
       const me = await apiMe();
+      if (revision !== authSessionRevision()) return;
       if (me) {
         setAuthUser(me);
         setAuthError('');
@@ -1659,6 +1663,10 @@ export const AppProvider: React.FC<{ children: ReactNode; initialCatalogue?: Pro
     } finally {
       if (!silent) setAuthLoading(false);
     }
+  }, [authUser?.id]);
+  const completeMfaVerification = useCallback((user: AuthUser) => {
+    if (user.id !== authUser?.id || !user.mfaVerified || !isStaffAccount(user.roles)) throw new Error('Your administrator session could not be verified. Please sign in again.');
+    setAuthUser(user); setAuthError(''); setAuthLoading(false);
   }, [authUser?.id]);
   const [livePayment, setLivePayment] = useState<{
     status: 'idle' | 'preparing' | 'redirecting' | 'verifying' | 'error';
@@ -1783,9 +1791,10 @@ export const AppProvider: React.FC<{ children: ReactNode; initialCatalogue?: Pro
   useEffect(() => {
     if (isPartnerDesignPreview()) { setAuthLoading(false); return; }
     let cancelled = false;
-    restoreOAuthCallback(apiFetch).then(() => apiMe())
+    let revision = authSessionRevision();
+    restoreOAuthCallback(apiFetch).then(() => { revision = authSessionRevision(); return apiMe(); })
       .then((me) => {
-        if (!cancelled) setAuthUser(me);
+        if (!cancelled && revision === authSessionRevision()) setAuthUser(me);
       })
       .catch(error => { if (!cancelled) setAuthError(error instanceof Error ? error.message : 'Could not restore your session.'); })
       .finally(() => {
@@ -2224,6 +2233,7 @@ export const AppProvider: React.FC<{ children: ReactNode; initialCatalogue?: Pro
         authLoading,
         authError,
         refreshAuth,
+        completeMfaVerification,
         login,
         loginWithGoogle,
         register,

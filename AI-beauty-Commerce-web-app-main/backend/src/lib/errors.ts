@@ -35,6 +35,8 @@ export const Errors = {
     new ApiError(400, 'bad_request', msg, false, details),
   unauthorized: (msg = 'Authentication required.') =>
     new ApiError(401, 'unauthorized', msg),
+  mfaInvalid: (msg = 'The MFA code is invalid or expired.') => new ApiError(422, 'mfa_invalid', msg),
+  passwordConfirmationFailed: () => new ApiError(422, 'password_confirmation_failed', 'Password confirmation failed.'),
   forbidden: (msg = 'You do not have access to this resource.') =>
     new ApiError(403, 'forbidden', msg),
   mfaRequired: () => new ApiError(403, 'mfa_required', 'Set up and verify multi-factor authentication to access staff operations.'),

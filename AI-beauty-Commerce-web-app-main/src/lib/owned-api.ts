@@ -8,6 +8,7 @@ import { getEnv } from './env';
 import { readAuthIntent } from './auth-flow';
 import { isPartnerDesignPreview } from './partner-preview';
 import { communityPostFromApi, type CommunityPostDto } from './community-data';
+import { authSessionRevision, noteAuthResponse, shouldExpireAuthSession } from './auth-session';
 const BASE = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
 
 export const isOwnedApiConfigured = true;
@@ -32,15 +33,17 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}, sessionI
   const headers: Record<string, string> = { ...(isFormData ? {} : { 'Content-Type': 'application/json' }), ...(init.headers as Record<string, string> | undefined) };
   if (sessionId) headers['X-Session-Id'] = sessionId;
   let res: Response;
+  const startedAt = authSessionRevision();
   try { res = await fetch(`${BASE}${path}`, { cache: 'no-store', ...init, headers, credentials: 'include', signal: init.signal ?? AbortSignal.timeout(process.env.NODE_ENV === 'development' ? 120000 : 25000) }); }
   catch { throw new ApiError(0, 'network_error', 'Cannot reach the service. Check your connection and try again.'); }
   const body = (await res.json().catch(() => null)) as { error?: { code?: string; message?: string } } | T;
   if (!res.ok) {
-    if (res.status === 401 && path !== '/api/auth/login' && typeof window !== 'undefined') window.dispatchEvent(new Event('desla:session-expired'));
     const err = (body as { error?: { code?: string; message?: string } })?.error;
+    if (typeof window !== 'undefined' && shouldExpireAuthSession(path, res.status, err?.code, startedAt)) window.dispatchEvent(new Event('desla:session-expired'));
     throw new ApiError(res.status, err?.code ?? 'request_failed', err?.message ?? `Request failed (${res.status}).`);
   }
   if (!body) throw new ApiError(502, 'invalid_response', 'The service returned an invalid response. Please try again.');
+  noteAuthResponse(path, init.method || 'GET', true);
   return body as T;
 }
 

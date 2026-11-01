@@ -5,7 +5,7 @@ import { migrate } from 'drizzle-orm/pglite/migrator';
 import { eq, sql } from 'drizzle-orm';
 import * as schema from '@/db/schema';
 import { mfaRecoveryCodes, userSessions, users, userRoles, roles } from '@/modules/auth/schema';
-import { createSession, hashPassword, sha256Hex } from '@/modules/auth/service';
+import { createSession, getSessionUser, hashPassword, sha256Hex } from '@/modules/auth/service';
 import { beginMfaEnrollment, confirmMfaEnrollment, currentTotpCode, disableMfa, verifyMfaForSession, verifyTotp } from '@/modules/auth/mfa';
 import { requirePerm } from '@/lib/admin';
 
@@ -61,7 +61,7 @@ describe('MFA authorization and recovery', () => {
 
   it('requires password confirmation and rejects mass-assigned setup data', async () => {
     const { user } = await account();
-    await expect(beginMfaEnrollment(pg(), user.id, user.email, 'wrong')).rejects.toMatchObject({ status: 401 });
+    await expect(beginMfaEnrollment(pg(), user.id, user.email, 'wrong')).rejects.toMatchObject({ status: 422, code: 'password_confirmation_failed' });
     const [unchanged] = await db.select().from(users).where(eq(users.id, user.id));
     expect(unchanged.mfaSecretEncrypted).toBeNull();
     const { mfaSetupSchema } = await import('@/modules/auth/validation');
@@ -71,10 +71,10 @@ describe('MFA authorization and recovery', () => {
   it('rejects a consumed TOTP across sessions and factor-disable, but accepts one-time recovery', async () => {
     const { user, first, code, recovery, enrollment } = await enroll();
     const second = await session(user.id);
-    await expect(verifyMfaForSession(pg(), user.id, second.id, code)).rejects.toMatchObject({ status: 401 });
-    await expect(disableMfa(pg(), user.id, code)).rejects.toMatchObject({ status: 401 });
+    await expect(verifyMfaForSession(pg(), user.id, second.id, code)).rejects.toMatchObject({ status: 422, code: 'mfa_invalid' });
+    await expect(disableMfa(pg(), user.id, code)).rejects.toMatchObject({ status: 422, code: 'mfa_invalid' });
     await verifyMfaForSession(pg(), user.id, second.id, recovery.recoveryCodes[0]);
-    await expect(verifyMfaForSession(pg(), user.id, second.id, recovery.recoveryCodes[0])).rejects.toMatchObject({ status: 401 });
+    await expect(verifyMfaForSession(pg(), user.id, second.id, recovery.recoveryCodes[0])).rejects.toMatchObject({ status: 422, code: 'mfa_invalid' });
     const [stored] = await db.select().from(users).where(eq(users.id, user.id));
     expect(stored.mfaSecretEncrypted).not.toContain(enrollment.secret);
     const codes = await db.select().from(mfaRecoveryCodes).where(eq(mfaRecoveryCodes.userId, user.id));
@@ -100,6 +100,18 @@ describe('MFA authorization and recovery', () => {
     }
     const valid = await session(user.id);
     await verifyMfaForSession(pg(), user.id, valid.id, recovery.recoveryCodes[0]);
+  });
+  it('retains password authentication after a rejected factor and opens admin permissions after a valid proof', async () => {
+    const { user, recovery, enrollment } = await enroll();
+    const second = await session(user.id);
+    let invalid = '000000';
+    while (verifyTotp(enrollment.secret, invalid)) invalid = String(Number(invalid) + 1).padStart(6, '0');
+    await expect(verifyMfaForSession(pg(), user.id, second.id, invalid)).rejects.toMatchObject({ status: 422, code: 'mfa_invalid' });
+    expect((await getSessionUser(pg(), second.token))?.user.id).toBe(user.id);
+    caller.token = second.token;
+    await expect(requirePerm(pg(), 'roles:grant')).rejects.toMatchObject({ code: 'mfa_required' });
+    await verifyMfaForSession(pg(), user.id, second.id, recovery.recoveryCodes[0]);
+    await expect(requirePerm(pg(), 'roles:grant')).resolves.toMatchObject({ userId: user.id });
   });
 
   it('does not allow enrollment confirmation into an expired session', async () => {
