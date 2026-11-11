@@ -319,9 +319,7 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                 <div className="p-3 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] flex flex-col justify-between gap-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center font-bold text-xs shadow-xs">
-                        TT
-                      </div>
+                      <div className="w-8 h-8 rounded-full bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center font-bold text-xs shadow-xs"><img src="/icons/tiktok.svg" alt="TikTok" width={18} height={18}/></div>
                       <div>
                         <div className="flex items-center gap-1">
                           <span className="font-bold text-xs text-[#0F0F10]">{tiktokAccount.handle}</span>
@@ -365,9 +363,7 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                 <div className="p-3 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] flex flex-col justify-between gap-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-[#0F0F10] text-white flex items-center justify-center font-bold text-xs shadow-xs">
-                        IG
-                      </div>
+                      <div className="w-8 h-8 rounded-full bg-[#0F0F10] text-white flex items-center justify-center font-bold text-xs shadow-xs"><img src="/icons/instagram.svg" alt="Instagram" width={18} height={18}/></div>
                       <div>
                         <div className="flex items-center gap-1">
                           <span className="font-bold text-xs text-[#0F0F10]">{instagramAccount.handle}</span>
