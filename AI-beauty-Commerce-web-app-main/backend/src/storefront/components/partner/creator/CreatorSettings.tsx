@@ -57,7 +57,7 @@ export const CreatorSettings: React.FC = () => {
           Studio Settings
         </h1>
         <p className="text-xs sm:text-sm text-[#6B7280] mt-0.5">
-          Manage your creator dossier, connected social handles, and Nigerian settlement bank details.
+          Manage your creator dossier, saved social profile links, and Nigerian settlement bank details.
         </p>
       </div>
 

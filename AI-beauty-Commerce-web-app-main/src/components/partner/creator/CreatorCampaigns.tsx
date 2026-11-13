@@ -459,9 +459,9 @@ export const CreatorCampaigns: React.FC = () => {
               </div>
 
               <div className="p-3.5 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] text-[11px] text-[#6B7280] space-y-1">
-                <span className="font-bold text-[#0F0F10] block">Automated Verification Checklist:</span>
+                <span className="font-bold text-[#0F0F10] block">Admin Review Checklist:</span>
                 <p>• Post must tag <strong className="text-[#0F0F10]">@deslabeauty</strong> and include your promo code.</p>
-                <p>• Once verified by natural marketing, milestone bonus is automatically cleared to your NUBAN balance.</p>
+                <p>• DESLA reviews the submitted link. Any eligible payment follows your agreed campaign terms and payout approval.</p>
               </div>
 
               <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#E5E7EB]">

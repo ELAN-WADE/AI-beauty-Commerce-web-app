@@ -1,5 +1,5 @@
 import { useSocialConnections } from '../../../lib/use-social-connections';
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Video,
   Star,
@@ -63,13 +63,30 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
   const [copyFeedback, setCopyFeedback] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Social Connections & OAuth
+  // Saved social profile links
   const [socialModal, setSocialModal] = useState<'tiktok' | 'instagram' | null>(null);
   const social = useSocialConnections(authUser?.id);
   const tiktokAccount = social.account('tiktok'), instagramAccount = social.account('instagram');
-  const isAuthorizing = social.authorizing;
+  const isAuthorizing = social.saving;
+  const [profileUrl, setProfileUrl] = useState('');
   const modalAccount = socialModal === 'tiktok' ? tiktokAccount : instagramAccount;
-  const modalHandle = modalAccount.handle, modalFollowers = modalAccount.followers;
+  const dialogRef = useRef<HTMLFormElement>(null);
+  const triggerRef = useRef<HTMLElement | null>(null);
+  const savingProfile = useRef(isAuthorizing); savingProfile.current = isAuthorizing;
+  useEffect(() => {
+    if (!socialModal) return;
+    const previous = triggerRef.current;
+    const key = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !savingProfile.current) { event.preventDefault(); setSocialModal(null); }
+      if (event.key !== 'Tab') return;
+      const nodes = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>('a[href],button:not([disabled]),input:not([disabled])') || []);
+      const first = nodes[0], last = nodes[nodes.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    };
+    document.addEventListener('keydown', key);
+    return () => { document.removeEventListener('keydown', key); previous?.focus(); };
+  }, [socialModal]);
 
   const [postToCommunity, setPostToCommunity] = useState(true);
   const [selectedHashtags, setSelectedHashtags] = useState<string[]>([
@@ -189,9 +206,8 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
     }
   };
 
-  const openSocialConnect = (platform: 'tiktok' | 'instagram') => setSocialModal(platform);
-  const handleSaveSocialChannel = () => { if (socialModal) void social.connect(socialModal); };
-  const handleDisconnectSocial = (platform: 'tiktok' | 'instagram') => { void social.disconnect(platform); };
+  const openSocialConnect = (platform: 'tiktok' | 'instagram') => { triggerRef.current = document.activeElement as HTMLElement; setProfileUrl(social.account(platform).profileUrl); setSocialModal(platform); };
+  const handleSaveSocialChannel = async () => { if (socialModal && await social.save(socialModal, profileUrl)) setSocialModal(null); };
 
   const saveContent = async (status: 'DRAFT' | 'SUBMITTED') => {
     if (saving) return;
@@ -310,7 +326,7 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                   </h3>
                 </div>
                 <span className="text-[10px] font-mono font-bold text-[#0F0F10] bg-[#FAF9F6] px-2.5 py-0.5 rounded-full border border-[#E5E7EB]">
-                  ● {Number(tiktokAccount.connected) + Number(instagramAccount.connected)} CHANNELS ACTIVE
+                  ● {Number(tiktokAccount.saved) + Number(instagramAccount.saved)} PROFILE LINKS SAVED
                 </span>
               </div>
 
@@ -319,22 +335,20 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                 <div className="p-3 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] flex flex-col justify-between gap-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center font-bold text-xs shadow-xs">
-                        TT
-                      </div>
+                      <div className="w-8 h-8 rounded-full bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center font-bold text-xs shadow-xs"><img src="/icons/tiktok.svg" alt="TikTok" width={20} height={20}/></div>
                       <div>
                         <div className="flex items-center gap-1">
                           <span className="font-bold text-xs text-[#0F0F10]">{tiktokAccount.handle}</span>
-                          {tiktokAccount.connected && <CheckCircle2 size={11} className="text-[#997A2E]" />}
+
                         </div>
                         <span className="text-[10px] text-[#6B7280]">{tiktokAccount.followers}</span>
                       </div>
                     </div>
-                    {tiktokAccount.connected && (
+                    {tiktokAccount.saved && (
                       <a
                         href={tiktokAccount.profileUrl}
                         target="_blank"
-                        rel="noreferrer"
+                        rel="noopener noreferrer"
                         className="text-[#9CA3AF] hover:text-[#0F0F10] p-1"
                         title="Open TikTok Profile"
                       >
@@ -345,18 +359,18 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
 
                   <div className="flex items-center justify-between pt-1 border-t border-[#E5E7EB]/60">
                     <span className="text-[9.5px] font-mono text-[#6B7280]">
-                      {tiktokAccount.connected ? 'Account Connected' : 'Not Connected'}
+                      {tiktokAccount.saved ? 'Profile link saved' : 'No profile link'}
                     </span>
                     <button
                       type="button"
                       onClick={() => openSocialConnect('tiktok')}
                       className={`text-[11px] font-bold px-3 py-1 rounded-full cursor-pointer transition-all ${
-                        tiktokAccount.connected
+                        tiktokAccount.saved
                           ? 'bg-[#0F0F10] text-white hover:bg-[#27272A]'
                           : 'bg-[#0F0F10] text-[#D4AF37] hover:bg-[#27272A]'
                       }`}
                     >
-                      {tiktokAccount.connected ? 'Configure' : '+ Connect TikTok'}
+                      {tiktokAccount.saved ? 'Edit link' : '+ Add TikTok'}
                     </button>
                   </div>
                 </div>
@@ -365,22 +379,20 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                 <div className="p-3 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] flex flex-col justify-between gap-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-[#0F0F10] text-white flex items-center justify-center font-bold text-xs shadow-xs">
-                        IG
-                      </div>
+                      <div className="w-8 h-8 rounded-full bg-[#0F0F10] text-white flex items-center justify-center font-bold text-xs shadow-xs"><img src="/icons/instagram.svg" alt="Instagram" width={20} height={20}/></div>
                       <div>
                         <div className="flex items-center gap-1">
                           <span className="font-bold text-xs text-[#0F0F10]">{instagramAccount.handle}</span>
-                          {instagramAccount.connected && <CheckCircle2 size={11} className="text-[#997A2E]" />}
+
                         </div>
                         <span className="text-[10px] text-[#6B7280]">{instagramAccount.followers}</span>
                       </div>
                     </div>
-                    {instagramAccount.connected && (
+                    {instagramAccount.saved && (
                       <a
                         href={instagramAccount.profileUrl}
                         target="_blank"
-                        rel="noreferrer"
+                        rel="noopener noreferrer"
                         className="text-[#9CA3AF] hover:text-[#0F0F10] p-1"
                         title="Open Instagram Profile"
                       >
@@ -391,18 +403,18 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
 
                   <div className="flex items-center justify-between pt-1 border-t border-[#E5E7EB]/60">
                     <span className="text-[9.5px] font-mono text-[#6B7280]">
-                      {instagramAccount.connected ? 'Account Connected' : 'Not Connected'}
+                      {instagramAccount.saved ? 'Profile link saved' : 'No profile link'}
                     </span>
                     <button
                       type="button"
                       onClick={() => openSocialConnect('instagram')}
                       className={`text-[11px] font-bold px-3 py-1 rounded-full cursor-pointer transition-all ${
-                        instagramAccount.connected
+                        instagramAccount.saved
                           ? 'bg-[#0F0F10] text-white hover:bg-[#27272A]'
                           : 'bg-[#0F0F10] text-[#D4AF37] hover:bg-[#27272A]'
                       }`}
                     >
-                      {instagramAccount.connected ? 'Configure' : '+ Connect Instagram'}
+                      {instagramAccount.saved ? 'Edit link' : '+ Add Instagram'}
                     </button>
                   </div>
                 </div>
@@ -650,7 +662,7 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
             {/* Live 9:16 Mobile Reel Preview */}
             <div className="p-5 rounded-3xl bg-white border border-[#E5E7EB] shadow-xs space-y-3">
               <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#6B7280] block text-center">
-                Live Community &amp; TikTok Mobile Preview
+                Content Mobile Preview
               </span>
 
               {/* 9:16 Reel Container */}
@@ -714,7 +726,7 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                   <div className="flex items-center gap-1.5">
                     <span className="font-bold text-xs">{tiktokAccount.handle || ''}</span>
                     <span className="text-[9px] font-mono text-[#D4AF37] bg-[#D4AF37]/20 px-1.5 py-0.2 rounded-full border border-[#D4AF37]/30">
-                      {tiktokAccount.connected ? 'CONNECTED' : 'DELSLA'}
+                      {tiktokAccount.saved ? 'LINK SAVED' : 'DESLA'}
                     </span>
                   </div>
 
@@ -1125,137 +1137,18 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
         </div>
       )}
 
-      {/* Social Account Linking Modal */}
-      {socialModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-[#E5E7EB] space-y-4 animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center font-bold text-xs shadow-xs">
-                  {socialModal === 'tiktok' ? 'TT' : 'IG'}
-                </div>
-                <div>
-                  <h3 className="font-heading font-bold text-sm text-[#0F0F10]">
-                    {socialModal === 'tiktok' ? 'TikTok Creator Connection' : 'Instagram Reels API'}
-                  </h3>
-                  <span className="text-[10px] font-mono text-[#6B7280]">
-                    OAuth 2.0 Partner Integration
-                  </span>
-                </div>
-              </div>
-              <button
-                onClick={() => setSocialModal(null)}
-                className="w-8 h-8 rounded-full bg-[#FAF9F6] border border-[#E5E7EB] text-[#6B7280] hover:text-[#0F0F10] flex items-center justify-center cursor-pointer"
-              >
-                <X size={14} />
-              </button>
-            </div>
-
-            <p className="text-xs text-[#6B7280] leading-relaxed">
-              Authorize your {socialModal === 'tiktok' ? 'TikTok' : 'Instagram professional'} account to read its profile. Instagram uses Facebook Login and requires a linked Facebook Page. Channel connection does not publish content automatically.
-            </p>
-
-            {/* Direct Web Authentication Link */}
-            <div className="p-3 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] flex items-center justify-between">
-              <div>
-                <span className="text-xs font-bold text-[#0F0F10] block">
-                  Authenticate on {socialModal === 'tiktok' ? 'TikTok.com' : 'Facebook.com'}
-                </span>
-                <span className="text-[10px] text-[#6B7280]">
-                  Opens official login page in a new window
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={handleSaveSocialChannel}
-                disabled={isAuthorizing || !modalAccount.configured}
-                className="px-3 py-1.5 rounded-full bg-white border border-[#E5E7EB] hover:bg-[#FAF9F6] text-xs font-bold text-[#0F0F10] flex items-center gap-1 shadow-2xs cursor-pointer active:scale-95 transition-all"
-              >
-                <span>Open Login</span>
-                <ExternalLink size={12} />
-              </button>
-            </div>
-
-            {/* Form Fields */}
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs font-bold text-[#0F0F10] block mb-1">
-                  Creator Vanity Handle
-                </label>
-                <input
-                  type="text"
-                  value={modalHandle}
-                  readOnly
-                  placeholder="Available after authorization"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#E5E7EB] text-xs text-[#0F0F10] bg-[#FAF9F6] font-mono focus:outline-none focus:border-[#D4AF37]"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-[#0F0F10] block mb-1">
-                  Verified Follower Community
-                </label>
-                <input
-                  type="text"
-                  value={modalFollowers}
-                  readOnly
-                  placeholder="Not provided by the channel"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#E5E7EB] text-xs text-[#0F0F10] bg-[#FAF9F6] font-medium focus:outline-none focus:border-[#D4AF37]"
-                />
-              </div>
-            </div>
-
-            <div className="p-3 rounded-2xl bg-[#FBF5E8]/60 border border-[#D4AF37]/30 space-y-2 text-xs">
-              <p>{modalAccount.configured ? 'Profile access is requested on the provider’s consent screen.' : 'Developer app credentials and callback URLs have not been configured yet.'}</p>
-              <p>No social passwords are collected by Desla.</p>
-              {social.error && <p role="alert">{social.error}</p>}
-              {social.pending.filter(item => item.provider === socialModal).map(item => <div key={item.grant}>
-                <p>Choose the Instagram account to connect:</p>
-                {item.accounts.map(account => <button key={account.accountId} type="button" className="block underline py-2" onClick={() => { void social.select(item.provider, item.grant, account.accountId); }}>{account.handle} — {account.displayName}</button>)}
-              </div>)}
-              {isAuthorizing && <button type="button" className="underline" onClick={social.cancel}>Stop waiting</button>}
-            </div>
-
-            {/* CTAs */}
-            <div className="flex items-center justify-between gap-3 pt-2">
-              {(socialModal === 'tiktok' ? tiktokAccount.connected : instagramAccount.connected) ? (
-                <button
-                  type="button"
-                  onClick={() => handleDisconnectSocial(socialModal)}
-                  className="px-4 py-2 rounded-full border border-rose-200 text-rose-600 hover:bg-rose-50 text-xs font-bold cursor-pointer transition-colors"
-                >
-                  Disconnect
-                </button>
-              ) : <div />}
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setSocialModal(null)}
-                  className="px-4 py-2 rounded-full border border-[#E5E7EB] bg-white text-xs font-bold text-[#6B7280] hover:text-[#0F0F10] cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  disabled={isAuthorizing || !modalAccount.configured}
-                  onClick={handleSaveSocialChannel}
-                  className="px-5 py-2 rounded-full bg-[#0F0F10] text-[#D4AF37] hover:bg-[#27272A] text-xs font-bold cursor-pointer shadow-sm active:scale-95 transition-all flex items-center gap-1.5 disabled:opacity-50"
-                >
-                  {isAuthorizing ? (
-                    <span>Authorizing API…</span>
-                  ) : (
-                    <>
-                      <Check size={13} />
-                      <span>Authorize &amp; Link Channel</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Saved profile links; sign-in happens on the external platform. */}
+      {socialModal && <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
+        <form ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="social-link-title" onSubmit={event=>{event.preventDefault();void handleSaveSocialChannel();}} className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-[#E5E7EB] space-y-4">
+          <div className="flex items-center justify-between"><h3 id="social-link-title" className="font-bold">{socialModal==='tiktok'?'TikTok':'Instagram'} profile link</h3><button type="button" aria-label="Close profile settings" disabled={isAuthorizing} onClick={()=>setSocialModal(null)}><X size={18}/></button></div>
+          <p className="text-sm text-[#6B7280]">Save your profile address. Sign in and publish directly on the social platform, then submit the published post link in Campaigns for DESLA review.</p>
+          <label className="block text-sm font-semibold">Profile URL<input autoFocus required type="url" value={profileUrl} onChange={event=>setProfileUrl(event.target.value)} placeholder={socialModal==='tiktok'?'https://www.tiktok.com/@yourname':'https://www.instagram.com/yourname/'} className="mt-2 w-full rounded-xl border p-3 text-base font-normal"/></label>
+          <a href={modalAccount.profileUrl || (socialModal==='tiktok'?'https://www.tiktok.com/':'https://www.instagram.com/')} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm underline">Open {socialModal==='tiktok'?'TikTok':'Instagram'}<ExternalLink size={14}/></a>
+          <p className="text-xs text-[#6B7280]">A saved link does not verify account ownership or sync followers, views or posts.</p>
+          {social.error && <p role="alert" className="text-sm text-rose-600">{social.error}</p>}
+          <div className="flex items-center justify-between gap-3">{modalAccount.saved && <button type="button" disabled={isAuthorizing} onClick={async()=>{if(await social.disconnect(socialModal))setSocialModal(null);}} className="text-sm text-rose-600">Remove link</button>}<button type="submit" disabled={isAuthorizing} className="ml-auto rounded-full bg-[#0F0F10] px-5 py-3 text-sm font-semibold text-white disabled:opacity-50">{isAuthorizing?'Saving…':'Save profile link'}</button></div>
+        </form>
+      </div>}
     </div>
   );
 };

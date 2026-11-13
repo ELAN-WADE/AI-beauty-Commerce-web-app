@@ -1,0 +1,10 @@
+import { ProfileLinkError } from '@/modules/social/profile-link';
+import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import { getDb } from '@/db/client';
+import { api, readJson, Errors } from '@/lib/errors';
+import { requireAuth } from '@/modules/auth/require-auth';
+import { profileLinks, saveProfileLink } from '@/modules/social/profile-links';
+const input = z.object({ provider:z.enum(['tiktok','instagram']), profileUrl:z.string().max(500).nullable() }).strict();
+export const GET = api(async()=>{const db=getDb(),auth=await requireAuth(db,'CUSTOMER');return NextResponse.json({links:await profileLinks(db,auth.userId)},{headers:{'Cache-Control':'private, no-store'}});});
+export const POST = api(async({req})=>{const db=getDb(),auth=await requireAuth(db,'CUSTOMER'),body=input.parse(await readJson(req,2048));try{await saveProfileLink(db,auth.userId,body.provider,body.profileUrl);}catch(error){if(error instanceof ProfileLinkError)throw Errors.badRequest(error.message);throw error;}return NextResponse.json({ok:true},{headers:{'Cache-Control':'private, no-store'}});});
