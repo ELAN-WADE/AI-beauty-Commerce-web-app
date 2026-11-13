@@ -31,7 +31,7 @@ export const CreatorCommunitySection: React.FC<CreatorCommunitySectionProps> = (
       eyebrow: 'Affiliate Studio',
       desc: 'Collaborate with our Lagos formulation labs, test pre-release preparations, and earn creator commissions.',
       image: '/connect_creator.jpg',
-      action: () => window.location.assign('/partners?programme=creative'),
+      action: onCreatorPortalClick,
       actionText: 'Join Creator Studio'
     },
     {
@@ -40,7 +40,7 @@ export const CreatorCommunitySection: React.FC<CreatorCommunitySectionProps> = (
       eyebrow: 'Commercial Dispensaries',
       desc: 'Dispensary bulk allocations, wholesale margins, and authorized regional stockist dispatch.',
       image: '/connect_distributor.jpg',
-      action: () => window.location.assign('/partners?programme=trade'),
+      action: onDistributorPortalClick,
       actionText: 'Join Distributor Hub'
     }
   ];
