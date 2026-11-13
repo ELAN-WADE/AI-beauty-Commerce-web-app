@@ -1,2 +1,3 @@
+import path from 'node:path';
 import { defineConfig } from 'vitest/config';
-export default defineConfig({ test: { environment: 'node', include: ['tests/partner-programmes.browser.ts'], testTimeout: 15000 } });
+export default defineConfig({ resolve: { alias: { '@': path.resolve(__dirname, 'src') } }, test: { environment: 'node', include: ['tests/partner-programmes.browser.ts', 'tests/combined-partner-role.browser.ts'], testTimeout: 15000, hookTimeout: 60000 } });

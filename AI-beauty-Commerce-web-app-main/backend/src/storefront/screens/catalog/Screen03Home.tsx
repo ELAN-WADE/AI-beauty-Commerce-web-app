@@ -96,6 +96,11 @@ export const Screen03Home: React.FC = () => {
       {/* Mobile Footprint & Hub Assurance */}
       <footer className="mt-8 px-5 py-8 bg-white border-t border-[#E5E7EB] text-[#6B7280] space-y-4 text-center">
         <BrandLogo variant="dark" size="sm" showTagline={true} className="mx-auto" />
+        <nav aria-label="Partner programmes" className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs">
+          <button type="button" onClick={() => navigateTo('creators')} className="min-h-11 underline">Creator</button>
+          <button type="button" onClick={() => navigateTo('partner-programme')} className="min-h-11 underline">Influencer / Ambassador</button>
+          <button type="button" onClick={() => navigateTo('distributor-portal')} className="min-h-11 underline">Distributor</button>
+        </nav>
         <p className="text-xs text-[#4B5563] leading-relaxed max-w-xs mx-auto">
           Dermatological formulations engineered for natural skin. 100% NAFDAC certified.
         </p>

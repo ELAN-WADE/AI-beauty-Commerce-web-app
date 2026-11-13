@@ -30,6 +30,7 @@ export const SCREEN_PATHS: Record<ScreenId, string> = {
   distributors: '/distributors',
   'distributor-portal': '/distributor',
   creators: '/creators',
+  'partner-programme': '/partner-programme',
   'creator-storefront': '/creator-storefront',
   'admin-console': '/admin',
   login: '/login',
@@ -71,7 +72,7 @@ const IMMERSIVE_PATHS = new Set([
   '/guest-order-lookup',
 ]);
 
-const PARTNER_PREFIXES = ['/distributor', '/creators'];
+const PARTNER_PREFIXES = ['/distributor', '/creators', '/partner-programme'];
 const ADMIN_PREFIXES = ['/admin'];
 
 /** No storefront DesktopNav/Header on immersive, admin, or partner workspaces. */

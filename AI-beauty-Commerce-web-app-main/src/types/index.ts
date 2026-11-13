@@ -381,6 +381,7 @@ export type ScreenId =
   | 'community'
   | 'distributors'
   | 'distributor-portal'
+  | 'partner-programme'
   | 'creators'
   | 'admin-console'
   | 'login'

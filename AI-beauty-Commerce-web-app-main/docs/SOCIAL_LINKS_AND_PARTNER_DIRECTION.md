@@ -24,54 +24,62 @@ Persistence uses existing workspace records (`SOCIAL_PROFILE_LINK`) rather than
 a schema change. No sample records, public profile directory or financial credit
 is created. Publication to GitHub is authorized; deployment follows the hosting configuration.
 
-## Implemented dashboard programme selector
+## Three partner roles
 
-A compact Programme selector appears above content in the existing creator and
-distributor dashboards, including the overview. It also appears on application
-pages so a partner can return to an approved workspace without another sign-in.
+Customer and Administrator remain separate from these three partner roles:
 
-Creator Studio and Distributor Hub are listed as approved only when this account
-has both the role and a verified partner profile. Switching refreshes account
-access and uses the existing navigation to reset incompatible workspace tabs.
-All workspace APIs continue to enforce role, approval and resource ownership.
+| Role | Programme names | Responsibilities |
+| --- | --- | --- |
+| Creator | Creative Collective | Content production, briefs and reviewed content. |
+| Influencer / Ambassador | Influence Circle and Inner Circle | Brand promotion, assigned campaigns, ambassador activities and reviewed published links. |
+| Distributor | Trade Network | Stock, restocking, orders, fulfilment and sales. |
 
-Other programmes use application actions with current pending/declined states.
-An approved application without active role/profile access does not unlock a
-workspace. Discovery is private, uncached, refreshed on window focus and supports
-retry. Responses from a previous account are discarded. Opening the selector
-creates no partner records, memberships, wallets or financial credits.
+Influencer and Ambassador are one persisted role, `INFLUENCER`. There is no separate
+Ambassador grant, duplicate sign-in or automatic conversion of existing creators.
+Referral tracking is a capability, not an additional partner role.
 
-Influence Circle, Inner Circle and Referral Partners remain proposals below.
-They are not assigned to existing creators or displayed as approved programmes.
-Separate eligibility, approval and financial terms must be defined for them.
+## Account and application journey
 
-## Remaining partner integration direction - existing dashboards first
+Visitors can open the Influencer / Ambassador link alongside the other partner
+links, or visit `/partner-programme`. Google and email sign-in use the existing
+customer identity and return to that page. Signing in does not grant partner access.
 
-Do not restore the separate black-and-gold shared portal that was reverted.
-Keep the storefront and the creator/distributor dashboards in their current
-visual system. Use one identity and preserve all existing approvals.
+The applicant submits a name, public social profile and partnership proposal.
+The request appears under Admin > Partner Applications and contributes to the
+pending request count. An administrator with `partners:review` records a review
+note, verification reference and the actual programme agreement before approval.
 
-A small programme selector in the existing workspace header/sidebar can expose
-only the programmes already approved for that account. Unapproved programmes
-belong in the existing application flow, with pending/declined states. Switching
-programme changes available actions and data scope, not credentials or accounts.
+Approval queues a decision email through the existing account-email worker.
+The applicant signs in with the same account, reads the agreement and accepts
+its current version. Only then does the combined role activate. Declined or revoked
+applicants can update their information and submit again for a new review.
 
-Suggested capability mapping:
+## Workspaces and permissions
 
-- Creative Collective: content editor, library, briefs and reviewed deliverables.
-- Influence Circle: campaign participation, published links, referral performance.
-- Trade Network: the existing distributor inventory, fulfilment and restock tools.
-- Inner Circle: assigned ambassador campaigns, agreements and deliverables.
-- Referral Partners: attributable referral links and eligible earnings records.
+The existing creator/distributor designs remain in place. Their Programme selector
+lists only approved, verified workspaces; other choices lead to application/status
+pages. The combined Influencer / Ambassador workspace follows the same visual system.
 
-Admin should review these within the existing Partner Applications tab, with
-programme-specific approval, recorded agreements, verification and revocation.
-Server checks must enforce each capability; hiding sidebar entries is insufficient.
-Do not silently reclassify current creators as influencers, grant stock permissions
-through ambassador approval, or unlock payouts merely for registering.
+Admins assign campaign or ambassador briefs to an activated member. That member
+submits a published HTTPS link and delivery note. Admin can approve the deliverable
+or request changes; resubmission updates the same delivery record. Completed work
+and review notes remain visible to its owner. Activity assignment supports safe retries.
 
-Before implementing financial or programme-specific automation, define eligibility,
-commission/fee rules, agreement requirements and the payment provider. Referral
-attribution and accepted deliverables must feed the existing audited ledger,
-with idempotent booking, reversals and explicit payout states. No new programme
-roles, memberships, portal or automatic payouts are introduced in this change.
+Server operations enforce the membership, role, verification, accepted agreement
+and resource owner. Revocation removes only the combined role and immediately
+blocks its operations, including requests from an existing session. Creator and
+distributor approvals, data and permissions are preserved.
+
+Programme records, agreement versions, assignments and deliveries use the existing
+workspace records with unique account/programme keys and transactional audit logs.
+No schema migration or sample profile is introduced by this role change. Programme
+role definitions are provisioned transactionally during administrator review.
+
+## Financial boundary
+
+Existing creator and distributor financial integrations remain unchanged. Influencer
+or ambassador registration, approval and accepted deliverables do not manufacture
+balances, commissions or payouts. Automatic attribution and compensation for the
+combined role still require explicit commission rules, payment terms and integration
+with the audited ledger. The workspace displays actual assigned work, not estimated
+or fabricated social metrics or earnings.

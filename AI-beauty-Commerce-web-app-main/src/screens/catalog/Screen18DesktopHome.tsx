@@ -203,6 +203,11 @@ export const Screen18DesktopHome: React.FC = () => {
                 </button>
               </li>
               <li>
+                <button type="button" onClick={() => navigateTo('partner-programme')} className="hover:text-[#0F0F10] transition-colors cursor-pointer">
+                  Influencer / Ambassador
+                </button>
+              </li>
+              <li>
                 <button
                   type="button"
                   onClick={() => navigateTo('distributor-portal')}

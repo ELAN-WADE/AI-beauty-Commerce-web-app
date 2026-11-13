@@ -1,3 +1,4 @@
+import { ProgrammeApplicationsPanel } from './ProgrammeApplicationsPanel';
 import React, { useCallback, useEffect, useState } from 'react';
 import { apiFetch } from '../../lib/owned-api';
 
@@ -56,7 +57,7 @@ export const PartnerApplicationsPanel: React.FC<{ onReviewed: () => void }> = ({
     finally { setBusy(null); }
   };
   const visible = rows.filter(row => kind === 'all' || row.kind === kind);
-  return <section aria-label="Partner application reviews" className="space-y-5">
+  return <><section aria-label="Partner application reviews" className="space-y-5">
     <div className="flex flex-wrap items-start justify-between gap-4">
       <div><h2 className="font-heading text-2xl font-bold">Partner Applications</h2><p className="mt-1 text-sm text-[#71717A]">Review account-linked creator and distributor requests. Approval grants partner access, provisions the segregated wallet ledger, and activates distributor locations.</p></div>
       <button type="button" disabled={loading || Boolean(busy)} onClick={() => void refresh()} className="rounded-full border px-4 py-2 text-sm cursor-pointer hover:bg-black/5">Refresh applications</button>
@@ -88,5 +89,5 @@ export const PartnerApplicationsPanel: React.FC<{ onReviewed: () => void }> = ({
         </article>
       );
     })}
-  </section>;
+  </section><ProgrammeApplicationsPanel onReviewed={onReviewed} /></>;
 };

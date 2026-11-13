@@ -1,4 +1,5 @@
 import React from 'react';
+const InfluencerProgramme = React.lazy(() => import('./components/partner/InfluencerProgramme').then(module => ({ default: module.InfluencerProgramme })));
 import { isPortalDesignPreview } from './lib/portal-preview';
 import { useViewport } from './context/ViewportContext';
 import { StorefrontOverlays } from './components/common/StorefrontOverlays';
@@ -99,6 +100,8 @@ export const App: React.FC = () => {
             <ScreenDistributorPortal />
           </RequireRole>
         );
+      case 'partner-programme':
+        return <InfluencerProgramme />;
       case 'creators':
         return (
           <RequireRole
@@ -160,7 +163,7 @@ export const App: React.FC = () => {
   ].includes(currentScreen);
   // Admin console and Partner Workspaces are separate operational surfaces (own shells, own chrome).
   const isAdminScreen = currentScreen === 'admin-console';
-  const isPartnerWorkspace = ['creators', 'creator-dashboard', 'distributor-portal', 'distributor-dashboard'].includes(currentScreen);
+  const isPartnerWorkspace = ['creators', 'creator-dashboard', 'distributor-portal', 'distributor-dashboard', 'partner-programme'].includes(currentScreen);
   const showBottomNav =
     !isDesktop &&
     !isPartnerWorkspace &&

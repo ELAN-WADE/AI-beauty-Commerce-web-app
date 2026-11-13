@@ -1,4 +1,5 @@
-export function portalForScreen(screen: string): 'CREATOR' | 'DISTRIBUTOR' | 'ADMIN' | null {
+export function portalForScreen(screen: string): 'CREATOR' | 'DISTRIBUTOR' | 'INFLUENCER' | 'ADMIN' | null {
+  if (screen === 'partner-programme') return 'INFLUENCER';
   if (['creators', 'creator-dashboard'].includes(screen)) return 'CREATOR';
   if (['distributor-portal', 'distributor-dashboard'].includes(screen)) return 'DISTRIBUTOR';
   return screen === 'admin-console' ? 'ADMIN' : null;

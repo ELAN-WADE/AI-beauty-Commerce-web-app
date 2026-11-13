@@ -359,7 +359,7 @@ export const ScreenAdminConsole: React.FC = () => {
   const can = (permission: string) => !isLiveBackend || Boolean(authUser?.roles.includes('SUPER_ADMIN') || authUser?.permissions?.includes(permission));
   const tabPermission: Record<string, string> = { overview: 'audit:read', products: 'products:write', cms: 'products:write', orders: 'orders:read:all', applications: 'partners:review', creators: 'partners:review', customers: 'users:read:all', inventory: 'inventory:write', network: 'network:manage', claims: 'payments:confirm', crypto: 'payments:confirm', audit: 'audit:read' };
   const canOpen = (tab: string) => can(tabPermission[tab]);
-  const [pendingApplications, setPendingApplications] = useState({ creators: 0, distributors: 0 });
+  const [pendingApplications, setPendingApplications] = useState({ creators: 0, distributors: 0, influencers: 0 });
   const [applicationsError, setApplicationsError] = useState('');
   useEffect(() => {
     if (!isLiveBackend || !can('partners:review')) return;
@@ -367,15 +367,16 @@ export const ScreenAdminConsole: React.FC = () => {
     const load = () => Promise.all([
       apiFetch<ApplicationQueue>('/api/admin/creators?status=pending'),
       apiFetch<ApplicationQueue>('/api/admin/distributors?status=pending'),
-    ]).then(([creators, distributors]) => {
-      if (!cancelled) { setPendingApplications({ creators: creators.counts.pending, distributors: distributors.counts.pending }); setApplicationsError(''); }
+      apiFetch<{ pending: number }>('/api/admin/partner-programmes?summary=1'),
+    ]).then(([creators, distributors, programmes]) => {
+      if (!cancelled) { setPendingApplications({ creators: creators.counts.pending, distributors: distributors.counts.pending, influencers: programmes.pending }); setApplicationsError(''); }
     }).catch(error => { if (!cancelled) setApplicationsError(error instanceof Error ? error.message : 'Could not load partner requests.'); });
     void load();
     window.addEventListener('focus', load);
     const timer = window.setInterval(load, 30000);
     return () => { cancelled = true; window.clearInterval(timer); window.removeEventListener('focus', load); };
   }, [isLiveBackend, authUser?.id, authUser?.permissions?.join('|'), refreshTick]);
-  const pendingApplicationCount = pendingApplications.creators + pendingApplications.distributors;
+  const pendingApplicationCount = pendingApplications.creators + pendingApplications.distributors + pendingApplications.influencers;
 
   useEffect(() => {
     if (!isLiveBackend) return;
@@ -870,7 +871,7 @@ export const ScreenAdminConsole: React.FC = () => {
         {/* ======================================================== */}
         {activeTab === 'applications' && <PartnerApplicationsPanel onReviewed={() => setRefreshTick(value => value + 1)} />}
         {activeTab === 'overview' && can('partners:review') && <section aria-label="Pending partner applications" className="mb-5 flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-[#EAE8E3] bg-white p-5">
-          <div><h2 className="font-heading text-lg font-bold">Partner Applications</h2><p className="text-sm text-[#71717A]">{pendingApplications.creators} creator requests · {pendingApplications.distributors} distributor requests awaiting review</p>{applicationsError && <p role="alert" className="text-sm text-rose-700">{applicationsError}</p>}</div>
+          <div><h2 className="font-heading text-lg font-bold">Partner Applications</h2><p className="text-sm text-[#71717A]">{pendingApplications.creators} creator requests · {pendingApplications.distributors} distributor requests - {pendingApplications.influencers} influencer/ambassador requests awaiting review</p>{applicationsError && <p role="alert" className="text-sm text-rose-700">{applicationsError}</p>}</div>
           <button type="button" onClick={() => setActiveTab('applications')} className="rounded-full bg-[#0F0F10] px-5 py-3 text-sm text-white">Review partner applications</button>
         </section>}
         {activeTab === 'overview' && (

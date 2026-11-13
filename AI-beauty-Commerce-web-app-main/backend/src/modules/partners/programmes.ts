@@ -1,3 +1,5 @@
+import { programmeMembership } from './programme-memberships';
+import { userRoles as programmeRoles } from '@/modules/auth/schema';
 import { and, desc, eq } from 'drizzle-orm';
 import type { Db } from '@/db/client';
 import { userRoles } from '@/modules/auth/schema';
@@ -22,8 +24,16 @@ export async function partnerProgrammes(db: Db, userId: string) {
     : application?.status === 'pending' ? 'pending' as const
     : application?.status === 'rejected' ? 'rejected' as const
     : application?.status === 'approved' ? 'unavailable' as const : 'not_applied' as const;
+  const additional = await Promise.all((['INFLUENCER'] as const).map(async kind => {
+    const member = await programmeMembership(db, userId, kind);
+    const [role] = await db.select().from(programmeRoles).where(and(eq(programmeRoles.userId, userId), eq(programmeRoles.roleId, kind))).limit(1);
+    const detail = member?.data.details;
+    const active = member?.status === 'APPROVED' && Boolean(role && detail?.verified && detail?.agreementVersion && detail.acceptedAgreementVersion === detail.agreementVersion);
+    return { kind, label: 'Influencer / Ambassador', status: active ? 'approved' as const : member?.status === 'APPROVED' ? 'agreement_required' as const : member?.status === 'SUBMITTED' ? 'pending' as const : member ? 'rejected' as const : 'not_applied' as const };
+  }));
   return [
     { kind: 'CREATOR' as const, label: 'Creator Studio', status: status(creator.length > 0, creatorApplication[0]) },
     { kind: 'DISTRIBUTOR' as const, label: 'Distributor Hub', status: status(distributor.length > 0, distributorApplication[0]) },
+    ...additional,
   ];
 }

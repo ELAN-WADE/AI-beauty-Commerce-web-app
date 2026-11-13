@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useApp } from '../../../context/AppContext';
 import { apiFetch } from '../../../lib/owned-api';
 
-type Kind = 'CREATOR' | 'DISTRIBUTOR';
-type Programme = { kind: Kind; label: string; status: 'approved' | 'pending' | 'rejected' | 'unavailable' | 'not_applied' };
+import { isAdditionalProgramme, programmePath, type ProgrammeRole as Kind } from '../../../lib/partner-programmes';
+type Programme = { kind: Kind; label: string; status: 'approved' | 'pending' | 'rejected' | 'unavailable' | 'not_applied' | 'agreement_required' };
 
 /** Switches existing workspaces with the same identity; never grants a role. */
 export function PartnerProgrammeSelector({ kind }: { kind: Kind }) {
@@ -32,13 +32,14 @@ export function PartnerProgrammeSelector({ kind }: { kind: Kind }) {
   const programmes = result?.owner === owner ? result.programmes : [];
   const approved = programmes.filter(programme => programme.status === 'approved');
   const current = approved.find(programme => programme.kind === kind);
-  const other = programmes.find(programme => programme.kind !== kind && programme.status !== 'approved');
+  const others = programmes.filter(programme => programme.kind !== kind && programme.status !== 'approved');
   const open = async (target: Kind) => {
     if (busy) return;
     setBusy(true);
     try {
       await refreshAuth();
-      navigateTo(target === 'CREATOR' ? 'creators' : 'distributor-portal');
+      if (isAdditionalProgramme(target)) window.location.assign(programmePath(target));
+      else navigateTo(target === 'CREATOR' ? 'creators' : 'distributor-portal');
     } catch { setError('Could not refresh your access. Please try again.'); }
     finally { setBusy(false); }
   };
@@ -52,10 +53,10 @@ export function PartnerProgrammeSelector({ kind }: { kind: Kind }) {
         {approved.map(programme => <option key={programme.kind} value={programme.kind}>{programme.label}</option>)}
       </select>
     </label>
-    {other && <button type="button" disabled={busy} onClick={() => void open(other.kind)}
+    {others.map(other => <button key={other.kind} type="button" disabled={busy} onClick={() => void open(other.kind)}
       className="min-h-11 text-xs text-[#6B7280] underline underline-offset-4 hover:text-[#0F0F10] disabled:opacity-60">
-      {other.status === 'not_applied' ? `Apply for ${other.label}` : other.status === 'pending' ? `${other.label} application pending` : `Review ${other.label} application`}
-    </button>}
+      {other.status === 'not_applied' ? `Apply for ${other.label}` : other.status === 'pending' ? `${other.label} application pending` : other.status === 'agreement_required' ? `Accept ${other.label} agreement` : `Review ${other.label} application`}
+    </button>)}
     {busy && <span role="status" className="text-xs text-[#6B7280]">Opening programme...</span>}
     {error && <span role="alert" className="text-xs text-rose-700">{error} <button type="button" onClick={() => setRevision(value => value + 1)} className="min-h-11 underline">Retry</button></span>}
   </nav>;
