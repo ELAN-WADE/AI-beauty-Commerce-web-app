@@ -1,3 +1,4 @@
+import { PartnerProgrammeSelector } from './PartnerProgrammeSelector';
 import React, { useState } from 'react';
 import { usePartnerRecords } from '../../../lib/use-partner-records';
 import { PartnerMobileBottomNav } from './PartnerMobileBottomNav';
@@ -71,6 +72,7 @@ export const PartnerAppShell: React.FC<PartnerAppShellProps> = ({
               : 'p-4 sm:p-6 lg:p-8 max-w-7xl lg:pl-24'
           }`}
         >
+          <PartnerProgrammeSelector kind={kind} />
           {children}
         </main>
 

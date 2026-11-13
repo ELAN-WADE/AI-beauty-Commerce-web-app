@@ -24,7 +24,28 @@ Persistence uses existing workspace records (`SOCIAL_PROFILE_LINK`) rather than
 a schema change. No sample records, public profile directory or financial credit
 is created. Publication to GitHub is authorized; deployment follows the hosting configuration.
 
-## Proposed shared partner integration — existing dashboards first
+## Implemented dashboard programme selector
+
+A compact Programme selector appears above content in the existing creator and
+distributor dashboards, including the overview. It also appears on application
+pages so a partner can return to an approved workspace without another sign-in.
+
+Creator Studio and Distributor Hub are listed as approved only when this account
+has both the role and a verified partner profile. Switching refreshes account
+access and uses the existing navigation to reset incompatible workspace tabs.
+All workspace APIs continue to enforce role, approval and resource ownership.
+
+Other programmes use application actions with current pending/declined states.
+An approved application without active role/profile access does not unlock a
+workspace. Discovery is private, uncached, refreshed on window focus and supports
+retry. Responses from a previous account are discarded. Opening the selector
+creates no partner records, memberships, wallets or financial credits.
+
+Influence Circle, Inner Circle and Referral Partners remain proposals below.
+They are not assigned to existing creators or displayed as approved programmes.
+Separate eligibility, approval and financial terms must be defined for them.
+
+## Remaining partner integration direction - existing dashboards first
 
 Do not restore the separate black-and-gold shared portal that was reverted.
 Keep the storefront and the creator/distributor dashboards in their current

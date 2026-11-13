@@ -1,3 +1,4 @@
+import { PartnerProgrammeSelector } from '../partner/shell/PartnerProgrammeSelector';
 import React, { useEffect, useState } from 'react';
 import { ArrowLeft, Lock, Sparkles, Store, ShieldAlert, LogIn, ChevronRight, UserCheck } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
@@ -148,7 +149,7 @@ export const RequireRole: React.FC<RequireRoleProps> = ({
 
   const targetRole = isCreator ? 'CREATOR' : isDistributor ? 'DISTRIBUTOR' : 'CUSTOMER';
 
-  if (authUser && !isAdmin) return <div className="min-h-screen bg-[#FAF9F6] p-6"><div className="mx-auto max-w-2xl space-y-5"><h1 className="text-2xl font-bold">Apply for your {targetRole.toLowerCase()} workspace</h1><p className="text-sm text-[#6B7280]">Signed in as {authUser.email}. Partner access opens after your application is approved.</p><PartnerApplication kind={isCreator ? 'CREATOR' : 'DISTRIBUTOR'} /><div className="flex gap-4 text-sm underline"><button onClick={() => window.location.reload()}>Check approval status</button><button onClick={() => navigateTo('home')}>Return to storefront</button><button onClick={() => void logout()}>Sign out</button></div></div></div>;
+  if (authUser && !isAdmin) return <div className="min-h-screen bg-[#FAF9F6] p-6"><div className="mx-auto max-w-2xl space-y-5"><PartnerProgrammeSelector kind={isCreator ? 'CREATOR' : 'DISTRIBUTOR'} /><h1 className="text-2xl font-bold">Apply for your {targetRole.toLowerCase()} workspace</h1><p className="text-sm text-[#6B7280]">Signed in as {authUser.email}. Partner access opens after your application is approved.</p><PartnerApplication kind={isCreator ? 'CREATOR' : 'DISTRIBUTOR'} /><div className="flex gap-4 text-sm underline"><button onClick={() => window.location.reload()}>Check approval status</button><button onClick={() => navigateTo('home')}>Return to storefront</button><button onClick={() => void logout()}>Sign out</button></div></div></div>;
 
   const handleGoogleSignIn = async () => {
     setConnecting(true);
