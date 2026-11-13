@@ -171,8 +171,15 @@ export async function disableMfa(db: AppDb, userId: string, code: string, reques
 }
 
 export function isMfaVerificationFresh(enabledAt: Date | null, verifiedAt: Date | null, now = Date.now()): boolean {
-  // Temporary client-access mode; existing factors remain available for re-enabling.
-  if (process.env.ADMIN_MFA_REQUIRED === 'false') return true;
   return Boolean(enabledAt && verifiedAt && verifiedAt >= enabledAt && verifiedAt.getTime() <= now
     && now - verifiedAt.getTime() < 12 * 60 * 60_000);
+}
+
+/** Temporary password-only client access. Set ADMIN_MFA_REQUIRED=true to restore MFA.
+ * Call only after administrator session and role/permission checks. Saved factors are preserved.
+ */
+export function meetsAdminMfaRequirement(enabledAt: Date | null, verifiedAt: Date | null, now = Date.now()): boolean {
+  const required = process.env.ADMIN_MFA_REQUIRED?.trim().toLowerCase();
+  if (required === undefined || required === '' || required === 'false') return true;
+  return isMfaVerificationFresh(enabledAt, verifiedAt, now);
 }

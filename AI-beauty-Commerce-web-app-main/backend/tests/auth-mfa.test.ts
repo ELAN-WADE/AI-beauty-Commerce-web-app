@@ -20,6 +20,7 @@ const password = 'Staff-password-for-tests';
 const pg = () => db as never;
 
 beforeAll(async () => {
+  vi.stubEnv('ADMIN_MFA_REQUIRED', 'true');
   const { pgcrypto } = await import('@electric-sql/pglite/contrib/pgcrypto');
   const { uuid_ossp } = await import('@electric-sql/pglite/contrib/uuid_ossp');
   client = new PGlite({ extensions: { pgcrypto, uuid_ossp } });
@@ -28,7 +29,7 @@ beforeAll(async () => {
   passwordHash = await hashPassword(password);
   await db.insert(roles).values([{ id: 'CUSTOMER' }, { id: 'SUPER_ADMIN' }]).onConflictDoNothing();
 }, 120000);
-afterAll(async () => { await client?.close(); });
+afterAll(async () => { vi.unstubAllEnvs(); await client?.close(); });
 
 async function session(userId: string) {
   const { token } = await createSession(pg(), userId, { authScope: 'ADMIN' });
@@ -52,6 +53,16 @@ async function enroll(role?: string) {
 }
 
 describe('MFA authorization and recovery', () => {
+  it('allows an authenticated administrator without a factor in temporary client-access mode', async () => {
+    const { first } = await account();
+    caller.token = first.token;
+    vi.stubEnv('ADMIN_MFA_REQUIRED', 'false');
+    try {
+      await expect(requirePerm(pg(), 'products:write')).resolves.toHaveProperty('sessionId', first.id);
+    } finally {
+      vi.stubEnv('ADMIN_MFA_REQUIRED', 'true');
+    }
+  });
   it('keeps one pending setup key across repeated requests and tabs', async () => {
     const { user, first } = await account();
     const firstSetup = await beginMfaEnrollment(pg(), user.id, user.email, password);

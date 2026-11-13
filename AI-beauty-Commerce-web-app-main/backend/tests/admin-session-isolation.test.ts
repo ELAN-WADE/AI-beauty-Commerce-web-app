@@ -33,6 +33,7 @@ let staffId: string, shopperId: string;
 const password = 'Session-fixture-password';
 const pg = () => db as never;
 beforeAll(async () => {
+  vi.stubEnv('ADMIN_MFA_REQUIRED', 'true');
   vi.stubEnv('NODE_ENV', 'test'); vi.stubEnv('ADMIN_GOOGLE_EMAIL', 'owner@sessions.test');
   const { pgcrypto } = await import('@electric-sql/pglite/contrib/pgcrypto');
   const { uuid_ossp } = await import('@electric-sql/pglite/contrib/uuid_ossp');
@@ -48,7 +49,7 @@ beforeAll(async () => {
   await db.insert(schema.userRoles).values([{ userId: staffId, roleId: 'SUPER_ADMIN' }, { userId: shopperId, roleId: 'CUSTOMER' }]);
 }, 120000);
 beforeEach(() => { state.cookies.clear(); state.headers = new Headers(); });
-afterAll(async () => { vi.unstubAllEnvs(); await client?.close(); });
+afterAll(async () => { vi.unstubAllEnvs(); vi.unstubAllEnvs(); await client?.close(); });
 
 async function call(handler: (req: Request) => Promise<Response>, path: string, body?: unknown, scope = 'CUSTOMER') {
   state.headers = new Headers({ 'content-type': 'application/json', 'x-desla-auth-context': scope });

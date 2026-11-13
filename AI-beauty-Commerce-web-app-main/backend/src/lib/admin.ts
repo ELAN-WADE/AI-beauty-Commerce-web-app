@@ -4,7 +4,7 @@ import { Errors } from '@/lib/errors';
 import { hasPermission } from '@/lib/permissions';
 import { requireAuth, type AuthContext } from '@/modules/auth/require-auth';
 import { userSessions, users } from '@/modules/auth/schema';
-import { isMfaVerificationFresh } from '@/modules/auth/mfa';
+import { meetsAdminMfaRequirement } from '@/modules/auth/mfa';
 
 /**
  * Permission-gated admin access (§8 BFLA). Roles remain as bundles in the DB;
@@ -19,7 +19,7 @@ export async function requirePerm(db: AppDb, ...perms: string[]): Promise<AuthCo
     .innerJoin(userSessions, eq(userSessions.userId, users.id))
     .where(and(eq(users.id, ctx.userId), eq(userSessions.id, ctx.sessionId), isNull(userSessions.revokedAt), gt(userSessions.expiresAt, new Date())))
     .limit(1);
-  if (!mfa || !isMfaVerificationFresh(mfa.enabledAt, mfa.verifiedAt)) throw Errors.mfaRequired();
+  if (!mfa || !meetsAdminMfaRequirement(mfa.enabledAt, mfa.verifiedAt)) throw Errors.mfaRequired();
   return ctx;
 }
 

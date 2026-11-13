@@ -6,7 +6,7 @@ import { requireAuth } from '@/modules/auth/require-auth';
 import { getProfile } from '@/modules/users/service';
 import { and, eq, isNull } from 'drizzle-orm';
 import { userSessions, users } from '@/modules/auth/schema';
-import { isMfaVerificationFresh } from '@/modules/auth/mfa';
+import { meetsAdminMfaRequirement } from '@/modules/auth/mfa';
 import { adminEntryPath, hasStaffRole } from '@/modules/auth/admin-policy';
 import { sessionScopeFromHeaders } from '@/lib/cookies';
 
@@ -30,7 +30,7 @@ export const GET = api(async ({ req }) => {
     permissions: [...access.permissions],
     signupIntent: mfa?.signupIntent ?? 'CUSTOMER',
     mfaEnabled: ctx.authScope === 'ADMIN' && Boolean(mfa?.enabledAt),
-    mfaVerified: ctx.authScope === 'ADMIN' && Boolean(mfa && isMfaVerificationFresh(mfa.enabledAt, mfa.verifiedAt)),
+    mfaVerified: ctx.authScope === 'ADMIN' && Boolean(mfa && meetsAdminMfaRequirement(mfa.enabledAt, mfa.verifiedAt)),
     profile: profile
       ? { displayName: profile.displayName, phone: profile.phone, avatarUrl: profile.avatarUrl }
       : null,
