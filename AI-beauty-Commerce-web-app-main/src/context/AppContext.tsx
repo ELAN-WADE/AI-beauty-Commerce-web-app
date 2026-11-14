@@ -1,3 +1,4 @@
+import { useAssistantThread } from '../lib/use-assistant-thread';
 import type { StorefrontSeed } from '../../backend/src/storefront/lib/storefront-seed';
 import React, { createContext, useCallback, useContext, useState, useEffect, useRef, useMemo, ReactNode } from 'react';
 import {
@@ -197,6 +198,8 @@ interface AppContextType {
   openAIAssistant: () => void;
   closeAIAssistant: () => void;
   aiMessages: AIMessage[];
+  aiBusy: boolean;
+  resetAIConversation: () => void;
   sendAIMessage: (text: string) => void;
 
   // Desla Community
@@ -562,14 +565,15 @@ export const AppProvider: React.FC<{ children: ReactNode; initialScreen?: Screen
 
   // AI Concierge Messages
   const [isAIAssistantOpen, setIsAIAssistantOpen] = useState(false);
-  const [aiMessages, setAiMessages] = useState<AIMessage[]>([
+  const { messages: assistantThreadMessages, busy: aiBusy, reset: resetAIConversation, send: sendAIMessage } = useAssistantThread(authUser?.id ?? null, authUser ? 'account' : 'guest');
+  const aiMessages = React.useMemo<AIMessage[]>(() => assistantThreadMessages.length ? assistantThreadMessages : [
     {
       id: 'ai-welcome',
       sender: 'assistant',
       text: 'Greetings. I am your Desla!™ AI Diagnostic & Formulation Concierge. How may I assist your skin, body, or fragrance ritual today?',
       timestamp: 'Just now'
     }
-  ]);
+  ], [assistantThreadMessages]);
 
   // Community Messages (Direct Chat)
   const [isCommunityOpen, setIsCommunityOpen] = useState(false);
@@ -1512,19 +1516,6 @@ export const AppProvider: React.FC<{ children: ReactNode; initialScreen?: Screen
   const openAIAssistant = () => setIsAIAssistantOpen(true);
   const closeAIAssistant = () => setIsAIAssistantOpen(false);
 
-  const sendAIMessage = async (text: string) => {
-    const content = text.trim();
-    if (!content) return;
-    const stamp = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    setAiMessages(previous => [...previous, { id: crypto.randomUUID(), sender: 'user', text: content, timestamp: stamp() }]);
-    try {
-      const reply = await apiFetch<{ text: string; recommendedProductIds: string[] }>('/api/ai/guest-chat', { method: 'POST', body: JSON.stringify({ content }) });
-      setAiMessages(previous => [...previous, { id: crypto.randomUUID(), sender: 'assistant', text: reply.text, timestamp: stamp(), recommendedProductIds: reply.recommendedProductIds }]);
-    } catch (error) {
-      setAiMessages(previous => [...previous, { id: crypto.randomUUID(), sender: 'assistant', text: error instanceof Error ? error.message : 'The assistant is unavailable. Please try again.', timestamp: stamp(), recommendedProductIds: [] }]);
-    }
-  };
-
   // Location / Distributor Handlers
   const getDistributorsForCity = (city: string) => {
     return distributorsList.filter((d) => d.city.toLowerCase() === city.toLowerCase());
@@ -2198,6 +2189,8 @@ export const AppProvider: React.FC<{ children: ReactNode; initialScreen?: Screen
         openAIAssistant,
         closeAIAssistant,
         aiMessages,
+        aiBusy,
+        resetAIConversation,
         sendAIMessage,
         isCommunityOpen,
         openCommunity,

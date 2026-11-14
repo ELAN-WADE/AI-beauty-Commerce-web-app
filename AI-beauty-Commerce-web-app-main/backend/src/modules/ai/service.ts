@@ -1,6 +1,6 @@
 import { and, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import type { AppDb, Db } from '../../db/client';
-import { Errors } from '../../lib/errors';
+import { ApiError, Errors } from '../../lib/errors';
 import { getAiProvider } from '../../lib/ai-provider';
 import { products } from '../catalog/schema';
 import { productVariants } from '../catalog/schema';
@@ -52,7 +52,8 @@ export async function listConversations(db: Db, userId: string) {
 export async function getMessages(db: Db, userId: string, conversationId: string) {
   const conv = await db.select().from(aiConversations).where(and(eq(aiConversations.id, conversationId), eq(aiConversations.userId, userId))).limit(1);
   if (!conv[0]) throw Errors.notFound('Conversation not found.');
-  return db.select().from(aiMessages).where(eq(aiMessages.conversationId, conversationId)).orderBy(aiMessages.createdAt).limit(100);
+  const recent = await db.select().from(aiMessages).where(eq(aiMessages.conversationId, conversationId)).orderBy(desc(aiMessages.createdAt), desc(aiMessages.id)).limit(100);
+  return recent.reverse();
 }
 
 /**
@@ -63,20 +64,31 @@ export async function getMessages(db: Db, userId: string, conversationId: string
 export async function postMessage(db: AppDb, userId: string, conversationId: string, content: string) {
   const conv = await db.select().from(aiConversations).where(and(eq(aiConversations.id, conversationId), eq(aiConversations.userId, userId))).limit(1);
   if (!conv[0]) throw Errors.notFound('Conversation not found.');
-  const [userMsg] = await db.insert(aiMessages).values({ conversationId, role: 'user', content }).returning();
-
-  const history = await db.select({ role: aiMessages.role, content: aiMessages.content }).from(aiMessages).where(eq(aiMessages.conversationId, conversationId)).orderBy(aiMessages.createdAt).limit(10);
+  const provider = getAiProvider();
+  const recent = await db.select({ role: aiMessages.role, content: aiMessages.content }).from(aiMessages)
+    .where(eq(aiMessages.conversationId, conversationId)).orderBy(desc(aiMessages.createdAt), desc(aiMessages.id)).limit(9);
+  const history = [...recent.reverse(), { role: 'user', content }];
   const grounded = await groundProducts(db, content);
   let reply: string;
   try {
-    reply = await getAiProvider().chat({ history, catalog: grounded });
+    reply = await provider.chat({ history, catalog: grounded });
   } catch {
-    throw Errors.badRequest('Assistant is temporarily unavailable — please retry.');
+    throw new ApiError(503, 'assistant_unavailable', 'The assistant is temporarily unavailable. Please try again.', true);
   }
-  const [assistantMsg] = await db
-    .insert(aiMessages)
-    .values({ conversationId, role: 'assistant', content: reply.slice(0, 2000), groundedSlugs: grounded.map((g) => g.slug) })
-    .returning();
-  await db.update(aiConversations).set({ updatedAt: new Date() }).where(eq(aiConversations.id, conversationId));
-  return { userMessage: userMsg, assistantMessage: assistantMsg, grounded, provider: getAiProvider().name };
+  // No database connection is held while awaiting the provider. Persist a complete
+  // pair atomically, with deterministic chronological order even for simultaneous tabs.
+  return db.transaction(async tx => {
+    const [owned] = await tx.select({ id: aiConversations.id }).from(aiConversations)
+      .where(and(eq(aiConversations.id, conversationId), eq(aiConversations.userId, userId))).for('update');
+    if (!owned) throw Errors.notFound('Conversation not found.');
+    const [latest] = await tx.select({ at: aiMessages.createdAt }).from(aiMessages)
+      .where(eq(aiMessages.conversationId, conversationId)).orderBy(desc(aiMessages.createdAt)).limit(1);
+    const at = Math.max(Date.now(), (latest?.at.getTime() ?? 0) + 1);
+    const [userMessage, assistantMessage] = await tx.insert(aiMessages).values([
+      { conversationId, role: 'user', content, createdAt: new Date(at) },
+      { conversationId, role: 'assistant', content: reply.slice(0, 2000), groundedSlugs: grounded.map(product => product.slug), createdAt: new Date(at + 1) },
+    ]).returning();
+    await tx.update(aiConversations).set({ updatedAt: new Date(at + 1) }).where(eq(aiConversations.id, conversationId));
+    return { userMessage, assistantMessage, grounded, provider: provider.name };
+  });
 }

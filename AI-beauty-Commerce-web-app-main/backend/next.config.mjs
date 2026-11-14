@@ -24,7 +24,7 @@ const nextConfig = {
   // Phase 2 low-bandwidth diet: dedupe barrel imports (lucide alone ships
   // hundreds of icons) so route bundles stay small on 3G.
   experimental: {
-    optimizePackageImports: ['lucide-react', 'framer-motion', '@hugeicons/react'],
+    optimizePackageImports: ['lucide-react', 'framer-motion', '@hugeicons/react', '@phosphor-icons/react'],
     imgOptConcurrency: 1,
     imgOptSequentialRead: true,
   },

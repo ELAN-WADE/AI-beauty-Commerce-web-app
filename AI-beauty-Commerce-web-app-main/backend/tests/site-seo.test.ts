@@ -21,6 +21,8 @@ describe('public search metadata boundaries', () => {
   });
   it('separates private role workspaces from the public distributor directory', () => {
     expect(privateSearchSurface('/distributor')).toBe(true);
+    expect(privateSearchSurface('/partner-programme')).toBe(true);
+    expect(privateSearchSurface('/', 'partner-programme')).toBe(true);
     expect(privateSearchSurface('/distributors')).toBe(false);
     expect(privateSearchSurface('/', 'account')).toBe(true);
     expect(privateSearchSurface('/', 'creators')).toBe(true);

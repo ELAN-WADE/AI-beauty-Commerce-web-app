@@ -26,7 +26,7 @@ export function productStructuredData(product: Product, origin: string | null) {
 }
 export const safeJsonLd = (value: unknown) => JSON.stringify(value).replace(/</g, '\\u003c');
 export function privateSearchSurface(pathname: string, screen?: string | null) {
-  const paths = ['admin', 'account', 'orders', 'cart', 'checkout', 'creators', 'distributor', 'login', 'signup', 'forgot-password', 'reset-password', 'verify-email', 'community'];
+  const paths = ['admin', 'account', 'orders', 'cart', 'checkout', 'creators', 'partner-programme', 'distributor', 'login', 'signup', 'forgot-password', 'reset-password', 'verify-email', 'community'];
   return paths.some(path => pathname === '/' + path || pathname.startsWith('/' + path + '/')) ||
-    ['admin-console', 'account', 'orders', 'cart', 'checkout', 'payment', 'creators', 'distributor-portal', 'login', 'signup', 'verify-email', 'reset-password', 'forgot-password', 'community'].includes(screen || '');
+    ['admin-console', 'account', 'orders', 'cart', 'checkout', 'payment', 'creators', 'partner-programme', 'distributor-portal', 'login', 'signup', 'verify-email', 'reset-password', 'forgot-password', 'community'].includes(screen || '');
 }

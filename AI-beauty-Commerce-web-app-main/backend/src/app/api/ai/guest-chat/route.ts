@@ -7,6 +7,12 @@ import { BulkheadLimits, tryAcquire } from '@/lib/bulkhead';
 import { getAiProvider } from '@/lib/ai-provider';
 import { groundProducts } from '@/modules/ai/service';
 
+export async function GET() {
+  let available = false;
+  try { available = getAiProvider().name === 'gemini'; } catch { /* No configured provider. */ }
+  return NextResponse.json({ available }, { headers: { 'Cache-Control': 'no-store' } });
+}
+
 const inputSchema = z.object({ content: z.string().trim().min(1).max(2000) }).strict();
 export const POST = api(async ({ req }) => {
   const db = getDb();

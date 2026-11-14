@@ -1,3 +1,4 @@
+import { useAssistantAvailability } from '../../lib/use-assistant-thread';
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Send,
@@ -26,14 +27,16 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useViewport } from '../../context/ViewportContext';
-import { products } from '../../data/products';
-import { aiChat, isOwnedApiConfigured, type ChatMsg } from '../../lib/owned-api';
+import { isOwnedApiConfigured, type ChatMsg } from '../../lib/owned-api';
 import { BrandLogo } from '../../components/common/BrandLogo';
 
 export const ScreenAskAI: React.FC = () => {
   const { isDesktop } = useViewport();
   const {
     aiMessages,
+    aiBusy,
+    resetAIConversation,
+    products,
     sendAIMessage,
     addToCart,
     viewProductDetails,
@@ -46,30 +49,12 @@ export const ScreenAskAI: React.FC = () => {
     authUser
   } = useApp();
 
-  // Live thread (owned assistant, authenticated only; mock thread otherwise)
   const liveMode = isOwnedApiConfigured && !!authUser;
-  const [liveMsgs, setLiveMsgs] = useState<ChatMsg[]>([]);
-  const [liveBusy, setLiveBusy] = useState(false);
-  const liveFeed: ChatMsg[] = liveMode
-    ? liveMsgs.length > 0
-      ? liveMsgs
-      : [{ id: 'live-greeting', sender: 'assistant', text: 'Hello — I am linked to the live catalogue. Ask me about routines, ingredients, or orders.', timestamp: 'Just now' }]
-    : [];
-
-  const sendLive = async (text: string) => {
-    const trimmed = text.trim();
-    if (!trimmed || liveBusy) return;
-    setLiveBusy(true);
-    setLiveMsgs((prev) => [...prev, { id: `u-${Date.now()}`, sender: 'user', text: trimmed, timestamp: 'Just now' }]);
-    try {
-      const { assistant } = await aiChat(trimmed);
-      setLiveMsgs((prev) => [...prev, assistant]);
-    } catch {
-      setLiveMsgs((prev) => [...prev, { id: `e-${Date.now()}`, sender: 'assistant', text: 'The assistant is unavailable right now — please try again shortly.', timestamp: 'Just now' }]);
-    } finally {
-      setLiveBusy(false);
-    }
-  };
+  const liveMsgs = React.useMemo(() => aiMessages.filter(message => message.id !== 'ai-welcome'), [aiMessages]);
+  const liveBusy = aiBusy;
+  const sendLive = sendAIMessage;
+  const assistantConfigured = useAssistantAvailability();
+  const liveFeed: ChatMsg[] = liveMode ? liveMsgs.length ? liveMsgs : [{ id: 'live-greeting', sender: 'assistant', text: 'Hello - ask me about the catalogue, ingredients or routines. For personal order updates, open your Orders page.', timestamp: 'Just now' }] : [];
 
   const [inputVal, setInputVal] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -78,6 +63,16 @@ export const ScreenAskAI: React.FC = () => {
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const activeTrackingId = activeOrder?.id || '';
+  useEffect(() => {
+    const startFresh = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault(); resetAIConversation(); setInputVal(''); inputRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', startFresh);
+    return () => window.removeEventListener('keydown', startFresh);
+  }, [resetAIConversation]);
+
 
   const quickPrompts = [
     { label: 'Track My Package', icon: Package, query: `Where is my package #${activeTrackingId}?` },
@@ -96,7 +91,7 @@ export const ScreenAskAI: React.FC = () => {
 
   const handleSend = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (inputVal.trim()) {
+    if (!aiBusy && inputVal.trim()) {
       if (liveMode) {
         void sendLive(inputVal.trim());
       } else {
@@ -117,6 +112,7 @@ export const ScreenAskAI: React.FC = () => {
   };
 
   const handlePromptClick = (query: string) => {
+    if (aiBusy) return;
     if (liveMode) {
       void sendLive(query);
     } else {
@@ -222,7 +218,7 @@ export const ScreenAskAI: React.FC = () => {
                   <h1 className="font-heading font-bold text-xs sm:text-sm text-[#0F0F10]">
                     AI Concierge
                   </h1>
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" title="System Online" />
+                  <span className={`w-1.5 h-1.5 rounded-full ${assistantConfigured ? 'bg-emerald-500' : 'bg-gray-300'}`} title={assistantConfigured ? 'Assistant configured' : 'Assistant unavailable'} />
                 </div>
                 <p className="text-[9.5px] text-[#6B7280]">
                   Natural Formulations &amp; Courier Telemetry
@@ -282,7 +278,9 @@ export const ScreenAskAI: React.FC = () => {
             {/* New Consultation CTA */}
             <button
               onClick={() => {
-                sendAIMessage('Hello! What natural recommendations, orders, or package tracking can you assist me with today?');
+                resetAIConversation();
+                setInputVal('');
+                inputRef.current?.focus();
                 if (window.innerWidth < 1024) setSidebarOpen(false);
               }}
               className="w-full py-2.5 px-3.5 rounded-xl bg-[#0F0F10] text-white hover:bg-[#1F1D22] text-xs font-heading font-bold flex items-center justify-between active:scale-[0.98] transition-all cursor-pointer shadow-xs"
@@ -324,7 +322,8 @@ export const ScreenAskAI: React.FC = () => {
                 <button
                   key={item.id}
                   onClick={() => {
-                    handlePromptClick(item.title);
+                    setInputVal(item.title);
+                    inputRef.current?.focus();
                     if (window.innerWidth < 1024) setSidebarOpen(false);
                   }}
                   className="w-full text-left p-2.5 rounded-lg hover:bg-white hover:text-[#0F0F10] text-[#4B5563] text-xs transition-colors flex items-center justify-between group cursor-pointer"

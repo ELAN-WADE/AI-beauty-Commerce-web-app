@@ -935,47 +935,45 @@ export interface ChatMsg {
   recommendedProductIds?: string[];
 }
 
-const CONV_KEY = 'glowly-ai-conv';
-
-function convId(): string | null {
-  try {
-    return localStorage.getItem(CONV_KEY);
-  } catch {
-    return null;
-  }
+const conversationVersions = new Map<string, number>();
+export function resetAiConversation(ownerId: string) {
+  conversationVersions.set(ownerId, (conversationVersions.get(ownerId) ?? 0) + 1);
+  try { localStorage.removeItem('desla-ai-conversation:' + ownerId); } catch { /* Storage is optional. */ }
 }
 
-/** One chat turn against the owned assistant (catalogue-grounded, quota'd). */
-export async function aiChat(content: string): Promise<{ user: ChatMsg; assistant: ChatMsg; provider: string }> {
-  let id = convId();
-  if (!id) {
-    const created = await apiFetch<{ conversation: { id: string } }>('/api/ai/conversations', { method: 'POST', body: JSON.stringify({}) });
-    id = created.conversation.id;
+/** A conversation ID is a reference, never an authentication credential. */
+export async function aiChat(content: string, ownerId: string): Promise<{ user: ChatMsg; assistant: ChatMsg; provider: string }> {
+  if (!ownerId) throw new ApiError(401, 'unauthorized', 'Sign in to use your saved conversation.');
+  const key = 'desla-ai-conversation:' + ownerId;
+  const revision = authSessionRevision();
+  const conversationVersion = conversationVersions.get(ownerId) ?? 0;
+  const current = () => {
+    if (revision !== authSessionRevision()) throw new ApiError(409, 'session_changed', 'Your account changed. Please send your message again.');
+    if (conversationVersion !== (conversationVersions.get(ownerId) ?? 0)) throw new ApiError(409, 'conversation_changed', 'Your conversation was restarted. Please send your message again.');
+  };
+  let id: string | null = null;
+  try { localStorage.removeItem('glowly-ai-conv'); id = localStorage.getItem(key); } catch { /* Storage is optional. */ }
+  for (let attempt = 0; attempt < 2; attempt++) {
+    current();
+    if (!id) {
+      const created = await apiFetch<{ conversation: { id: string } }>('/api/ai/conversations', { method: 'POST', body: JSON.stringify({}) });
+      current();
+      id = created.conversation.id;
+      try { localStorage.setItem(key, id); } catch { /* This turn still works without storage. */ }
+    }
     try {
-      localStorage.setItem(CONV_KEY, id);
-    } catch {
-      // storage unavailable — conversation simply won't persist
+      const res = await apiFetch<{ userMessage: { id: string; content: string }; assistantMessage: { id: string; content: string }; grounded: { slug: string }[]; provider: string }>(`/api/ai/conversations/${encodeURIComponent(id)}/messages`, { method: 'POST', body: JSON.stringify({ content }) });
+      current();
+      if (!res.assistantMessage || !res.userMessage) throw new ApiError(502, 'chat_failed', 'The assistant returned an incomplete reply.');
+      return { user: { id: res.userMessage.id, sender: 'user', text: res.userMessage.content, timestamp: 'Just now' }, assistant: { id: res.assistantMessage.id, sender: 'assistant', text: res.assistantMessage.content, timestamp: 'Just now', recommendedProductIds: (res.grounded ?? []).map(product => product.slug) }, provider: res.provider };
+    } catch (error) {
+      current();
+      if (!(error instanceof ApiError) || error.status !== 404 || attempt > 0) throw error;
+      id = null;
+      try { localStorage.removeItem(key); } catch { /* Storage is optional. */ }
     }
   }
-  const res = await apiFetch<{
-    userMessage: { id: string; content: string };
-    assistantMessage: { id: string; content: string };
-    grounded: { slug: string }[];
-    provider: string;
-  }>(`/api/ai/conversations/${encodeURIComponent(id)}/messages`, { method: 'POST', body: JSON.stringify({ content }) });
-  // Dead conversation (deleted server-side): reset once and retry.
-  if (!res?.assistantMessage) throw new ApiError(500, 'chat_failed', 'Assistant is unavailable.');
-  return {
-    user: { id: res.userMessage.id, sender: 'user', text: res.userMessage.content, timestamp: 'Just now' },
-    assistant: {
-      id: res.assistantMessage.id,
-      sender: 'assistant',
-      text: res.assistantMessage.content,
-      timestamp: 'Just now',
-      recommendedProductIds: (res.grounded ?? []).map((g) => g.slug),
-    },
-    provider: res.provider,
-  };
+  throw new ApiError(502, 'chat_failed', 'The assistant could not open your conversation.');
 }
 
 // ---------- Skin profile mirror (fire-and-forget after local scan) ----------

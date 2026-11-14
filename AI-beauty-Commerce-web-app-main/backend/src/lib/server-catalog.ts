@@ -102,7 +102,10 @@ async function readCatalogSeed(limit = 100, db?: AppDb): Promise<StorefrontProdu
 }
 
 const cachedCatalogue = unstable_cache((limit: number) => readCatalogSeed(limit), ['public-catalogue-v1'], { revalidate: 60, tags: ['public-catalogue'] });
-export const getCatalogSeed = cache((limit = 100, db?: AppDb) => db ? readCatalogSeed(limit, db) : cachedCatalogue(limit));
+export const getCatalogSeed = cache(async (limit = 100, db?: AppDb) => {
+  if (db) return readCatalogSeed(limit, db);
+  try { return await cachedCatalogue(limit); } catch { return readCatalogSeed(limit); }
+});
 
 /** Single-product seed + metadata source. `null` = product unavailable. */
 async function readProductSeed(slug: string, db?: AppDb): Promise<StorefrontProduct | null> {
@@ -117,7 +120,10 @@ async function readProductSeed(slug: string, db?: AppDb): Promise<StorefrontProd
 }
 
 const cachedProduct = unstable_cache((slug: string) => readProductSeed(slug), ['public-product-v1'], { revalidate: 60, tags: ['public-catalogue'] });
-export const getProductSeed = cache((slug: string, db?: AppDb) => db ? readProductSeed(slug, db) : cachedProduct(slug.toLowerCase()));
+export const getProductSeed = cache(async (slug: string, db?: AppDb) => {
+  if (db) return readProductSeed(slug, db);
+  try { return await cachedProduct(slug.toLowerCase()); } catch { return readProductSeed(slug); }
+});
 
 /** Slugs for `generateStaticParams` (capped; unknown slugs render on demand). */
 export async function listProductSlugs(limit = 1000, db?: AppDb): Promise<string[]> {

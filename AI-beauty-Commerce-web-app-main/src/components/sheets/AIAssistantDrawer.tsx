@@ -1,13 +1,15 @@
+import { useAssistantAvailability } from '../../lib/use-assistant-thread';
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Send, Plus, ArrowRight, ShieldCheck, CheckCircle2, Maximize2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { products } from '../../data/products';
 
 export const AIAssistantDrawer: React.FC = () => {
   const {
     isAIAssistantOpen,
     closeAIAssistant,
     aiMessages,
+    aiBusy,
+    products,
     sendAIMessage,
     addToCart,
     viewProductDetails,
@@ -15,6 +17,7 @@ export const AIAssistantDrawer: React.FC = () => {
     navigateTo
   } = useApp();
 
+  const assistantConfigured = useAssistantAvailability();
   const [inputVal, setInputVal] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -35,13 +38,14 @@ export const AIAssistantDrawer: React.FC = () => {
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
-    if (inputVal.trim()) {
+    if (!aiBusy && inputVal.trim()) {
       sendAIMessage(inputVal.trim());
       setInputVal('');
     }
   };
 
   const handlePromptClick = (prompt: string) => {
+    if (aiBusy) return;
     sendAIMessage(prompt);
   };
 
@@ -70,7 +74,7 @@ export const AIAssistantDrawer: React.FC = () => {
                 <h3 className="font-heading font-bold text-sm text-[#0F0F10]">
                   Desla<span className="text-[#D4AF37]">!™</span> AI Concierge
                 </h3>
-                <span className="w-2 h-2 rounded-full bg-emerald-500" title="System Online" />
+                <span className={`w-2 h-2 rounded-full ${assistantConfigured ? 'bg-emerald-500' : 'bg-gray-300'}`} title={assistantConfigured ? 'Assistant configured' : 'Assistant unavailable'} />
               </div>
               <p className="text-[10px] text-[#6B7280]">
                 Natural Formulations, Regimens &amp; Courier Telemetry
@@ -209,7 +213,7 @@ export const AIAssistantDrawer: React.FC = () => {
           />
           <button
             type="submit"
-            disabled={!inputVal.trim()}
+            disabled={aiBusy || !inputVal.trim()}
             className="w-10 h-10 rounded-full bg-[#0F0F10] text-white flex items-center justify-center shrink-0 disabled:opacity-40 hover:bg-[#1F1D22] active:scale-95 transition-all shadow-md cursor-pointer"
             aria-label="Send message"
           >

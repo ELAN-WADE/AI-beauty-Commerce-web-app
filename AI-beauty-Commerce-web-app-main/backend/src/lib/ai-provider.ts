@@ -121,7 +121,7 @@ export class GeminiProvider implements AiProvider {
 
 /** Only tests may use a deterministic fixture; live requests require configuration. */
 export function getAiProvider(): AiProvider {
-  const key = process.env.GEMINI_API_KEY;
+  const key = process.env.GEMINI_API_KEY?.trim();
   if (key) return new GeminiProvider(key);
   if (process.env.NODE_ENV === 'test') return new MockAiProvider();
   throw new ApiError(503, 'assistant_unavailable', 'The assistant is temporarily unavailable. You can still explore the catalogue.', true);
