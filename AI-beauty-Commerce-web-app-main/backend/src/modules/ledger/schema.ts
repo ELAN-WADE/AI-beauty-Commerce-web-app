@@ -1,3 +1,4 @@
+import {partnerReferrals} from '../referrals/schema';
 import { bigint, check, index, integer, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { users } from '../auth/schema';
@@ -13,11 +14,12 @@ export const walletAccounts = pgTable('wallet_accounts', {
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'restrict' }),
   distributorId: uuid('distributor_id').references(() => distributors.id, { onDelete: 'restrict' }).unique(),
   creatorId: uuid('creator_id').references(() => creators.id, { onDelete: 'restrict' }).unique(),
+  referralId: uuid('referral_id').references(() => partnerReferrals.id, { onDelete: 'restrict' }).unique(),
   currency: text('currency').notNull().default('NGN'),
   createdAt: time('created_at').notNull().defaultNow(),
 }, (t) => [
   index('wallets_user_idx').on(t.userId),
-  check('wallet_exactly_one_owner', sql`("distributor_id" IS NOT NULL)::int + ("creator_id" IS NOT NULL)::int = 1`),
+  check('wallet_exactly_one_owner', sql`("distributor_id" IS NOT NULL)::int + ("creator_id" IS NOT NULL)::int + ("referral_id" IS NOT NULL)::int = 1`),
   check('wallet_ngn_only', sql`"currency" = 'NGN'`),
 ]);
 

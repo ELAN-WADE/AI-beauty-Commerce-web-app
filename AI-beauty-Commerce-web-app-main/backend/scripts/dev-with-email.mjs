@@ -24,6 +24,8 @@ function startWorker() {
   };
   worker.on('error', retry); worker.on('exit', retry);
 }
+const developmentPort = process.env.PORT || '3000';
+if (!/^\d+$/.test(developmentPort) || Number(developmentPort) < 1 || Number(developmentPort) > 65535) throw new Error('Invalid development PORT.');
 let web;
 function shutdown(code = 0) {
   if (stopping) return; stopping = true; clearTimeout(timer); process.exitCode = code;
@@ -32,7 +34,7 @@ function shutdown(code = 0) {
 }
 for (const signal of ['SIGTERM', 'SIGINT']) process.on(signal, () => shutdown());
 if (!process.argv.includes('--email-only')) {
-  web = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'dev', '-p', '3005', '--hostname', '127.0.0.1'], { cwd: root, stdio: 'inherit', windowsHide: true });
+  web = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'dev', '-p', developmentPort, '--hostname', '127.0.0.1'], { cwd: root, stdio: 'inherit', windowsHide: true });
   web.on('error', () => shutdown(1)); web.on('exit', code => shutdown(code ?? 1));
 }
 startWorker();

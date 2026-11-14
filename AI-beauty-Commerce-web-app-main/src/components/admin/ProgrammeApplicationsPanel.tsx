@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { apiFetch } from '../../lib/owned-api';
 import { partnerInput, partnerButton } from '../partner/PartnerApplication';
 
-type Item = { id: string; ownerId: string; parentId: string | null; audience: string; title: string; body: string; url: string; status: string; reviewNote: string; version: number; email?: string; emailVerified?: boolean; data: { details?: Record<string, unknown> } };
+type Item = { id: string; ownerId: string; parentId: string | null; audience: string; title: string; body: string; url: string; status: string; reviewNote: string; version: number; commissionBps?:number; email?: string; emailVerified?: boolean; data: { details?: Record<string, unknown> } };
 type Queue = { applications: Item[]; tasks: Item[]; submissions: Item[] };
 export function ProgrammeApplicationsPanel({ onReviewed }: { onReviewed: () => void }) {
   const [data, setData] = useState<Queue>({ applications: [], tasks: [], submissions: [] });
@@ -34,7 +34,8 @@ export function ProgrammeApplicationsPanel({ onReviewed }: { onReviewed: () => v
 }
 function ProgrammeReview({ application: row, tasks, submissions, busy, command }: { application: Item; tasks: Item[]; submissions: Item[]; busy: boolean; command: (input: object) => Promise<boolean> }) {
   const [note, setNote] = useState('');
-  const [agreement, setAgreement] = useState('');
+  const [agreement, setAgreement] = useState(String(row.data.details?.agreement||''));
+  const [commissionRate,setCommissionRate]=useState(String((row.commissionBps??0)/100));
   const [verificationReference, setVerificationReference] = useState('');
   const [title, setTitle] = useState('');
   const [brief, setBrief] = useState('');
@@ -42,21 +43,24 @@ function ProgrammeReview({ application: row, tasks, submissions, busy, command }
   const [deliveryNotes, setDeliveryNotes] = useState<Record<string, string>>({});
   const detail = row.data.details ?? {};
   const accepted = Boolean(detail.agreementVersion && detail.acceptedAgreementVersion === detail.agreementVersion);
-  const review = (decision: 'APPROVED' | 'REJECTED' | 'REVOKED') => void command({ action: 'review', id: row.id, version: row.version, decision, note, agreement, verificationReference });
+  const review = (decision: 'APPROVED' | 'REJECTED' | 'REVOKED') => void command({ action: 'review', id: row.id, version: row.version, decision, note, agreement, verificationReference, commissionBps:Math.round(Number(commissionRate)*100) });
   return <article aria-label={`${row.title} influencer ambassador application`} className="space-y-4 rounded-2xl border border-[#EAE8E3] bg-white p-5 shadow-xs">
     <div className="flex flex-wrap justify-between gap-3"><div><h3 className="font-bold">{row.title}</h3><p className="text-sm text-[#6B7280]">Influencer / Ambassador - {row.email}</p></div><span className="text-xs uppercase text-[#6B7280]">{row.status.toLowerCase()}</span></div>
     <a href={row.url} target="_blank" rel="noopener noreferrer" className="inline-block text-sm underline">Review public social profile</a>
     <p className="whitespace-pre-wrap text-sm">{row.body}</p>
     {row.reviewNote && <p className="text-sm text-[#6B7280]">Review note: {row.reviewNote}</p>}
     {['SUBMITTED', 'APPROVED'].includes(row.status) && <label className="block space-y-1 text-sm">Review note<textarea className={partnerInput} aria-label={`Programme review note for ${row.title}`} maxLength={1000} value={note} onChange={event => setNote(event.target.value)} /></label>}
+    {['SUBMITTED','APPROVED'].includes(row.status) && <label className="block space-y-1 text-sm">Commission percentage<input aria-label={`Commission percentage for ${row.title}`} type="number" min="0" max="50" step="0.01" className={partnerInput} value={commissionRate} onChange={event=>setCommissionRate(event.target.value)} /></label>}
     {row.status === 'SUBMITTED' && <>
       <label className="block space-y-1 text-sm">Verification reference<input className={partnerInput} value={verificationReference} maxLength={500} onChange={event => setVerificationReference(event.target.value)} placeholder="Reference to completed eligibility and identity review" /></label>
       <label className="block space-y-1 text-sm">Programme agreement<textarea className={partnerInput} rows={6} value={agreement} maxLength={10000} onChange={event => setAgreement(event.target.value)} placeholder="Enter the actual approved responsibilities, duration and compensation terms for the applicant to review and accept." /></label>
       {!row.emailVerified && <p className="text-sm text-amber-800">The applicant must verify their email before approval.</p>}
-      <div className="flex flex-wrap gap-3"><button type="button" className={partnerButton} disabled={busy || !row.emailVerified || note.trim().length < 3 || verificationReference.trim().length < 3 || agreement.trim().length < 20} onClick={() => review('APPROVED')}>Approve Influencer / Ambassador</button><button type="button" className="min-h-11 text-sm text-rose-700 underline" disabled={busy || note.trim().length < 3} onClick={() => review('REJECTED')}>Decline application</button></div>
+      <div className="flex flex-wrap gap-3"><button type="button" className={partnerButton} disabled={busy || commissionRate==='' || !Number.isFinite(Number(commissionRate)) || Number(commissionRate)<0 || Number(commissionRate)>50 || !row.emailVerified || note.trim().length < 3 || verificationReference.trim().length < 3 || agreement.trim().length < 20} onClick={() => review('APPROVED')}>Approve Influencer / Ambassador</button><button type="button" className="min-h-11 text-sm text-rose-700 underline" disabled={busy || note.trim().length < 3} onClick={() => review('REJECTED')}>Decline application</button></div>
     </>}
     {row.status === 'APPROVED' && <>
       <p className="text-sm text-[#6B7280]">Agreement: {accepted ? 'Accepted - programme access active' : 'Awaiting applicant acceptance - role not active'}</p>
+      <label className="block space-y-1 text-sm">Updated agreement<textarea className={partnerInput} value={agreement} maxLength={10000} onChange={event=>setAgreement(event.target.value)} /></label>
+      <button type="button" className={partnerButton} disabled={busy||note.trim().length<3||agreement.trim().length<20||commissionRate===''||Number(commissionRate)<0||Number(commissionRate)>50} onClick={()=>void command({action:'commission',id:row.id,version:row.version,commissionBps:Math.round(Number(commissionRate)*100),agreement,note})}>Update commission and request agreement acceptance</button>
       <details className="text-sm"><summary className="cursor-pointer">View approved agreement</summary><p className="mt-3 whitespace-pre-wrap">{String(detail.agreement || '')}</p></details>
       <button type="button" className="min-h-11 text-sm text-rose-700 underline" disabled={busy || note.trim().length < 3} onClick={() => review('REVOKED')}>Revoke programme access</button>
       {accepted && <form aria-label={`Assign activity to ${row.title}`} onSubmit={event => { event.preventDefault(); void command({ action: 'assign', requestId, id: row.id, title, brief }).then(saved => { if (saved) { setTitle(''); setBrief(''); setRequestId(crypto.randomUUID()); } }); }} className="space-y-3 border-t border-[#E5E7EB] pt-4">

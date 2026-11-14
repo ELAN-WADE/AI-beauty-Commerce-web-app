@@ -7,7 +7,6 @@ import {
   Scan,
   UsersThree,
   UserCircle,
-  Sparkle,
   MapPin,
 } from '@phosphor-icons/react';
 
@@ -41,7 +40,7 @@ export function NavigationIcon({
     case 'account':
       return <UserCircle size={size} weight="fill" className={className} aria-hidden="true" />;
     case 'assistant':
-      return <Sparkle size={size} weight="fill" className={className} aria-hidden="true" />;
+      return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={className}><use href="/icons/mobile-navigation.svg#assistant" /></svg>;
     case 'location':
       return <MapPin size={size} weight="fill" className={className} aria-hidden="true" />;
     default:

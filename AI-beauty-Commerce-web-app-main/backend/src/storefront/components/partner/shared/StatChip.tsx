@@ -20,28 +20,28 @@ export const StatChip: React.FC<StatChipProps> = ({
   badge
 }) => {
   return (
-    <article className="p-5 rounded-2xl bg-white border border-[#E5E7EB] shadow-xs flex flex-col justify-between">
-      <div className="flex items-center justify-between gap-2 mb-2.5">
-        <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-[#6B7280] truncate">
+    <article className="p-4 sm:p-5 rounded-2xl bg-white border border-[#E5E7EB] flex flex-col justify-between">
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <span className="text-xs font-medium text-[#6B7280] truncate">
           {label}
         </span>
         {badge && (
-          <span className="text-[9.5px] font-mono font-bold uppercase tracking-wider text-[#0F0F10] shrink-0">
+          <span className="text-[11px] font-mono font-medium uppercase tracking-wider text-[#4B5563] shrink-0">
             {badge}
           </span>
         )}
       </div>
 
       <div>
-        <p className="font-heading font-extrabold text-2xl text-[#0F0F10] tracking-tight font-digit">
+        <p className="font-heading font-semibold text-xl sm:text-2xl text-[#0F0F10] tracking-tight font-digit">
           {value}
         </p>
       </div>
 
       {(change || subtext) && (
-        <div className="flex items-center gap-1.5 mt-2 text-xs font-medium text-[#6B7280]">
+        <div className="flex items-center gap-1.5 mt-2 text-xs text-[#6B7280]">
           {change && (
-            <span className="inline-flex items-center gap-1 font-bold text-[#0F0F10]">
+            <span className="inline-flex items-center gap-1 font-medium text-[#0F0F10]">
               {trend === 'up' && <TrendingUp size={12} className="text-[#0F0F10]" />}
               {trend === 'down' && <TrendingDown size={12} className="text-[#0F0F10]" />}
               <span>{change}</span>

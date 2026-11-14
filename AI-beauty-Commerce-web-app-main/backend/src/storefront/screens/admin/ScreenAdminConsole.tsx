@@ -1,6 +1,8 @@
 import { AdminContentComposer } from '../../components/admin/AdminContentComposer';
 import { HeroCmsEditor } from '../../components/admin/HeroCmsEditor';
+import { BrandLogo } from '../../components/common/BrandLogo';
 import React, { useState, useEffect, useMemo } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
   LayoutGrid,
   ShoppingBag,
@@ -51,7 +53,9 @@ import {
   Sliders,
   Gift,
   Video,
-  Send
+  Send,
+  Menu,
+  X
 } from '../../components/common/SolidIcons';
 import { useApp } from '../../context/AppContext';
 import {
@@ -183,6 +187,8 @@ export const ScreenAdminConsole: React.FC = () => {
   const [adminCryptoSuccess, setAdminCryptoSuccess] = useState<string | null>(null);
 
   const pendingCryptoCount = cryptoTransactions.filter(t => t.status === 'PENDING').length;
+  const [adminDrawerOpen, setAdminDrawerOpen] = useState(false);
+  const shouldReduceMotion = useReducedMotion();
 
   const filteredCryptoTransactions = useMemo(() => {
     return cryptoTransactions.filter((tx) => {
@@ -679,38 +685,155 @@ export const ScreenAdminConsole: React.FC = () => {
 
   if (loadingLive) return <div role="status" className="p-10 text-center">Loading your admin workspace…</div>;
 
+  const adminNavItems = [
+    { id: 'overview', icon: LayoutGrid, label: 'Overview' },
+    { id: 'products', icon: Package, label: 'Formulations & Taxonomy', badge: productsList.length },
+    { id: 'cms', icon: Palette, label: 'Editorial CMS' },
+    { id: 'orders', icon: ShoppingBag, label: 'Orders & Dispatch', badge: orders.filter((o) => o.status === 'PENDING').length },
+    { id: 'applications', icon: UserCheck, label: 'Partner Applications', badge: pendingApplicationCount },
+    { id: 'creators', icon: Award, label: 'Creator Press Room', badge: pendingCreatorAppsCount },
+    { id: 'customers', icon: UserCheck, label: 'Customer Intelligence' },
+    { id: 'inventory', icon: Boxes, label: 'Inventory Management', badge: inventoryItems.filter((i) => i.isLowStock).length || undefined },
+    { id: 'network', icon: Building2, label: 'Distributor Hubs' },
+    { id: 'claims', icon: CreditCard, label: 'NIP Claims', badge: pendingClaimsCount },
+    { id: 'crypto', icon: Coins, label: 'Crypto Ledger', badge: pendingCryptoCount },
+    { id: 'audit', icon: ShieldCheck, label: 'Security & Audit' }
+  ].filter(tab => canOpen(tab.id));
+
   return (
-    <div className="min-h-screen bg-[#FAF9F6] text-[#0F0F10] font-body flex selection:bg-[#D4AF37]/20 selection:text-[#997A2E]">
+    <div className="min-h-[100dvh] bg-[#FAF9F6] text-[#0F0F10] font-body flex flex-col lg:flex-row selection:bg-[#0F0F10]/10 selection:text-[#0F0F10]">
+      {/* Mobile Compact Branded Header + Hamburger Drawer Trigger */}
+      <header className="lg:hidden sticky top-0 z-40 h-14 px-4 bg-white/95 backdrop-blur-md border-b border-[#EAE8E3] flex items-center justify-between gap-3 select-none">
+        <div className="flex items-center gap-2">
+          <BrandLogo
+            variant="dark"
+            size="sm"
+            onClick={() => setActiveTab('overview')}
+          />
+          <button
+            type="button"
+            onClick={() => setAdminDrawerOpen(true)}
+            aria-label="Open admin navigation menu"
+            aria-expanded={adminDrawerOpen}
+            className="min-h-11 min-w-11 rounded-lg flex items-center justify-center text-[#0F0F10] hover:bg-[#FAF9F6] transition-colors cursor-pointer touch-manipulation"
+          >
+            <Menu size={20} />
+          </button>
+        </div>
+
+        <span className="text-xs font-medium text-[#6B7280] truncate">
+          {adminNavItems.find((t) => t.id === activeTab)?.label || 'Overview'}
+        </span>
+      </header>
+
+      {/* Mobile Slide-Out Admin Navigation Drawer */}
+      <AnimatePresence>
+        {adminDrawerOpen && (
+          <div className="lg:hidden fixed inset-0 z-50 flex" role="dialog" aria-modal="true" aria-label="Admin navigation">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: shouldReduceMotion ? 0 : 0.2 }}
+              onClick={() => setAdminDrawerOpen(false)}
+              className="fixed inset-0 bg-black/35 backdrop-blur-[1px]"
+            />
+            <motion.aside
+              initial={shouldReduceMotion ? false : { x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={shouldReduceMotion ? undefined : { x: '-100%' }}
+              transition={{ duration: shouldReduceMotion ? 0 : 0.28, ease: [0.32, 0.72, 0, 1] }}
+              className="relative z-10 w-80 max-w-[85vw] h-[100dvh] bg-white border-r border-[#EAE8E3] flex flex-col justify-between shadow-2xl"
+            >
+              <div className="h-14 px-4 border-b border-[#EAE8E3] flex items-center justify-between shrink-0">
+                <BrandLogo variant="dark" size="sm" onClick={() => { setActiveTab('overview'); setAdminDrawerOpen(false); }} />
+                <button
+                  type="button"
+                  onClick={() => setAdminDrawerOpen(false)}
+                  aria-label="Close admin navigation menu"
+                  className="min-h-11 min-w-11 rounded-lg flex items-center justify-center text-[#4B5563] hover:text-[#0F0F10] cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+                {adminNavItems.map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => {
+                        setActiveTab(tab.id as any);
+                        setAdminDrawerOpen(false);
+                      }}
+                      className={`w-full min-h-11 px-3 rounded-xl flex items-center justify-between text-sm transition-colors cursor-pointer ${
+                        isActive
+                          ? 'bg-[#0F0F10] text-white font-medium'
+                          : 'text-[#4B5563] hover:bg-[#FAF9F6] hover:text-[#0F0F10] font-normal'
+                      }`}
+                    >
+                      <span className="flex items-center gap-3">
+                        <Icon size={17} className={isActive ? 'text-white' : 'text-[#6B7280]'} />
+                        <span>{tab.label}</span>
+                      </span>
+                      {tab.badge ? (
+                        <span className={`text-xs font-mono px-2 py-0.5 rounded-full ${isActive ? 'bg-white/15 text-white' : 'bg-[#FAF9F6] text-[#0F0F10]'}`}>
+                          {tab.badge}
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </nav>
+              <div className="p-4 border-t border-[#EAE8E3] space-y-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAdminDrawerOpen(false);
+                    navigateTo('home');
+                  }}
+                  className="w-full min-h-11 px-3 rounded-xl border border-[#EAE8E3] bg-white hover:bg-[#FAF9F6] text-xs font-medium text-[#0F0F10] flex items-center justify-between cursor-pointer"
+                >
+                  <span>Storefront Preview</span>
+                  <Globe size={15} className="text-[#6B7280]" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAdminDrawerOpen(false);
+                    logout();
+                    navigateTo('home');
+                  }}
+                  className="w-full min-h-11 px-3 rounded-xl border border-[#EAE8E3] bg-white hover:bg-[#FAF9F6] text-xs font-medium text-rose-700 flex items-center justify-between cursor-pointer"
+                >
+                  <span>Sign Out</span>
+                  <LogOut size={15} />
+                </button>
+              </div>
+            </motion.aside>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* ======================================================== */}
       {/* 1. LEFT MINIMALIST ICON DOCK                              */}
       {/* ======================================================== */}
-      <aside className="hidden lg:flex sticky top-4 self-start h-[calc(100dvh-2rem)] shrink-0 flex-col items-center justify-between w-20 m-4 py-6 bg-white border border-[#EAE8E3] rounded-3xl shadow-[0_4px_24px_rgba(15,15,16,0.04)] z-20">
+      <aside className="hidden lg:flex sticky top-4 self-start h-[calc(100dvh-2rem)] shrink-0 flex-col items-center justify-between w-20 m-4 py-6 bg-white border border-[#EAE8E3] rounded-2xl shadow-[0_4px_20px_rgba(15,15,16,0.03)] z-20">
         <div className="flex flex-col items-center gap-6">
           {/* Brand Monogram */}
           <button
             onClick={() => navigateTo('home')}
             title="Return to Storefront"
-            className="w-11 h-11 rounded-2xl bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center font-heading font-black text-lg border border-[#D4AF37]/30 hover:scale-105 active:scale-95 transition-transform cursor-pointer"
+            className="w-11 h-11 rounded-xl bg-[#0F0F10] text-white flex items-center justify-center font-heading font-semibold text-base hover:bg-[#27272A] transition-colors cursor-pointer"
           >
-            D!
+            D
           </button>
 
           {/* Navigation Icon List */}
-          <nav className="flex flex-col items-center gap-2.5 overflow-y-auto min-h-0 max-h-[calc(100dvh-15rem)] py-1 px-2">
-            {[
-              { id: 'overview', icon: LayoutGrid, label: 'Overview' },
-              { id: 'products', icon: Package, label: 'Formulations & Taxonomy', badge: productsList.length },
-              { id: 'cms', icon: Palette, label: 'Editorial CMS' },
-              { id: 'orders', icon: ShoppingBag, label: 'Orders & Dispatch', badge: orders.filter((o) => o.status === 'PENDING').length },
-              { id: 'applications', icon: UserCheck, label: 'Partner Applications', badge: pendingApplicationCount },
-              { id: 'creators', icon: Award, label: 'Creator Press Room', badge: pendingCreatorAppsCount },
-              { id: 'customers', icon: UserCheck, label: 'Customer Intelligence' },
-              { id: 'inventory', icon: Boxes, label: 'Inventory Management', badge: inventoryItems.filter((i) => i.isLowStock).length || undefined },
-              { id: 'network', icon: Building2, label: 'Distributor Hubs' },
-              { id: 'claims', icon: CreditCard, label: 'NIP Claims', badge: pendingClaimsCount },
-              { id: 'crypto', icon: Coins, label: 'Crypto Ledger', badge: pendingCryptoCount },
-              { id: 'audit', icon: ShieldCheck, label: 'Security & Audit' }
-            ].filter(tab => canOpen(tab.id)).map((tab) => {
+          <nav className="flex flex-col items-center gap-2 overflow-y-auto min-h-0 max-h-[calc(100dvh-15rem)] py-1 px-2">
+            {adminNavItems.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
               return (
@@ -720,7 +843,7 @@ export const ScreenAdminConsole: React.FC = () => {
                   title={tab.label}
                   className={`w-11 h-11 rounded-xl flex items-center justify-center relative transition-colors duration-200 cursor-pointer ${
                     isActive
-                      ? 'bg-[#0F0F10] text-[#D4AF37]'
+                      ? 'bg-[#0F0F10] text-white'
                       : 'text-[#71717A] hover:bg-[#FAF9F6] hover:text-[#0F0F10]'
                   }`}
                 >
@@ -766,31 +889,31 @@ export const ScreenAdminConsole: React.FC = () => {
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] font-mono tracking-widest text-[#997A2E] uppercase font-bold">
+              <span className="text-xs font-medium text-[#6B7280]">
                 Administrative Control Console
               </span>
-              <span className="text-[9.5px] font-mono px-2 py-0.5 rounded-full bg-white border border-[#EAE8E3] text-[#0F0F10]">
-                {isLiveBackend ? 'Live Backend Connected' : 'Staff Sandbox Workspace'}
+              <span className="text-xs font-mono px-2 py-0.5 rounded-md bg-white border border-[#EAE8E3] text-[#0F0F10]">
+                {isLiveBackend ? 'Live Backend' : 'Sandbox Workspace'}
               </span>
             </div>
-            <h1 className="text-xl sm:text-2xl font-heading font-extrabold tracking-tight text-[#0F0F10]">
-              Delsla!™ Central Operations
+            <h1 className="text-xl sm:text-2xl font-heading font-semibold tracking-tight text-[#0F0F10]">
+              Delsla Operations
             </h1>
           </div>
 
-          <div className="flex items-center flex-wrap gap-2.5">
+          <div className="flex items-center flex-wrap gap-2">
             {/* Direct Inventory Console Button */}
             <button
               onClick={() => setActiveTab('inventory')}
-              className={`px-4 py-2 rounded-full border text-xs font-bold shadow-xs flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer ${
+              className={`min-h-10 px-3.5 rounded-xl border text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer ${
                 activeTab === 'inventory'
-                  ? 'bg-[#0F0F10] text-[#D4AF37] border-[#0F0F10]'
-                  : 'bg-white text-[#0F0F10] border-[#D4AF37]/50 hover:bg-[#FAF9F6]'
+                  ? 'bg-[#0F0F10] text-white border-[#0F0F10]'
+                  : 'bg-white text-[#0F0F10] border-[#EAE8E3] hover:bg-[#FAF9F6]'
               }`}
             >
-              <Boxes className="w-3.5 h-3.5 text-[#997A2E]" />
-              <span>Inventory Management</span>
-              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-[#FAF9F6] border border-[#EAE8E3] text-[#0F0F10]">
+              <Boxes className="w-3.5 h-3.5" />
+              <span>Inventory</span>
+              <span className={`text-[11px] font-mono px-1.5 py-0.2 rounded-md ${activeTab === 'inventory' ? 'bg-white/15 text-white' : 'bg-[#FAF9F6] text-[#6B7280]'}`}>
                 5 Hubs
               </span>
             </button>
@@ -798,27 +921,27 @@ export const ScreenAdminConsole: React.FC = () => {
             {/* Quick Export CSV */}
             <button
               onClick={exportOperationalLedgerCsv}
-              className="px-4 py-2 rounded-full bg-white border border-[#EAE8E3] hover:bg-[#FAF9F6] text-xs font-semibold text-[#0F0F10] shadow-xs flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer"
+              className="min-h-10 px-3.5 rounded-xl bg-white border border-[#EAE8E3] hover:bg-[#FAF9F6] text-xs font-medium text-[#0F0F10] flex items-center gap-1.5 transition-colors cursor-pointer"
             >
-              <FileSpreadsheet className="w-3.5 h-3.5 text-[#0F0F10]" />
+              <FileSpreadsheet className="w-3.5 h-3.5" />
               <span>Export CSV</span>
             </button>
 
-            {/* Quick Add Formulation (Opens Centered Modal) */}
+            {/* Quick Add Formulation */}
             <button
               onClick={handleOpenCreateProduct}
-              className="px-4 py-2 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-[#D4AF37] border border-[#D4AF37]/30 text-xs font-bold shadow-xs flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer"
+              className="min-h-10 px-4 rounded-xl bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
             >
-              <Plus className="w-3.5 h-3.5 text-[#D4AF37]" />
-              <span>+ New Formulation</span>
+              <Plus className="w-3.5 h-3.5" />
+              <span>New Formulation</span>
             </button>
 
             {/* Manage Categories */}
             <button
               onClick={() => setIsCategoryModalOpen(true)}
-              className="px-4 py-2 rounded-full bg-white border border-[#EAE8E3] hover:bg-[#FAF9F6] text-xs font-semibold text-[#0F0F10] shadow-xs flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer"
+              className="min-h-10 px-3.5 rounded-xl bg-white border border-[#EAE8E3] hover:bg-[#FAF9F6] text-xs font-medium text-[#0F0F10] flex items-center gap-1.5 transition-colors cursor-pointer"
             >
-              <Tag className="w-3.5 h-3.5 text-[#997A2E]" />
+              <Tag className="w-3.5 h-3.5 text-[#6B7280]" />
               <span>Taxonomy ({appCategories.length})</span>
             </button>
           </div>
@@ -826,45 +949,15 @@ export const ScreenAdminConsole: React.FC = () => {
 
         {/* Global Toast Action Notice */}
         {actionNotice && (
-          <div className="mb-5 p-3 rounded-2xl bg-[#0F0F10] text-white text-xs font-semibold flex items-center justify-between shadow-lg animate-in fade-in duration-200 border border-[#D4AF37]/30">
+          <div className="mb-5 p-3.5 rounded-xl bg-[#0F0F10] text-white text-xs font-medium flex items-center justify-between shadow-md">
             <span className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-[#D4AF37]" /> {actionNotice}
+              <CheckCircle2 className="w-4 h-4 text-white" /> {actionNotice}
             </span>
-            <button onClick={() => setActionNotice(null)} className="text-[#9CA3AF] hover:text-white text-xs cursor-pointer">
+            <button onClick={() => setActionNotice(null)} className="text-white/70 hover:text-white text-xs cursor-pointer">
               Dismiss
             </button>
           </div>
         )}
-
-        {/* Tab Pills for Mobile / Tablet View */}
-        <div className="lg:hidden flex items-center gap-2 overflow-x-auto pb-2 mb-4 scrollbar-none">
-          {[
-            { id: 'overview', label: 'Overview' },
-            { id: 'inventory', label: 'Inventory Management' },
-            { id: 'products', label: `Catalog (${productsList.length})` },
-            { id: 'cms', label: 'Editorial CMS' },
-            { id: 'orders', label: `Orders (${orders.length})` },
-            { id: 'applications', label: `Partner Applications (${pendingApplicationCount})` },
-            { id: 'creators', label: `Creators (${creatorsList.length})` },
-            { id: 'customers', label: `Customers (${customersList.length})` },
-            { id: 'claims', label: `Claims (${pendingClaimsCount})` },
-            { id: 'crypto', label: `Crypto (${pendingCryptoCount})` },
-            { id: 'network', label: 'Partner Network' },
-            { id: 'audit', label: 'Security Audit' }
-          ].filter(tab => canOpen(tab.id)).map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
-                activeTab === tab.id
-                  ? 'bg-[#0F0F10] text-[#D4AF37] shadow-xs'
-                  : 'bg-white text-[#71717A] border border-[#EAE8E3]'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
 
         {/* ======================================================== */}
         {/* WORKSPACE 1: EXECUTIVE OVERVIEW                           */}
@@ -972,42 +1065,42 @@ export const ScreenAdminConsole: React.FC = () => {
             <div className="lg:col-span-8 flex flex-col gap-6">
               {/* Stat Metrics Row */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div className="p-4 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs">
-                  <span className="text-[10px] font-mono uppercase text-[#71717A] block">Paid sales in loaded orders</span>
-                  <span className="text-xl font-heading font-extrabold text-[#0F0F10] mt-1 block">
+                <div className="p-4 rounded-2xl bg-white border border-[#EAE8E3]">
+                  <span className="text-xs text-[#71717A] block">Paid sales in loaded orders</span>
+                  <span className="text-xl font-heading font-semibold text-[#0F0F10] mt-1 block">
                     {isLiveBackend ? `₦${orders.filter(o => o.paymentStatus === 'PAID').reduce((sum, o) => sum + o.totalNgn, 0).toLocaleString()}` : '₦0'}
                   </span>
-                  <span className="text-[10px] font-mono text-[#0F0F10] flex items-center gap-1 mt-0.5">
-                    <TrendingUp className="w-3 h-3 text-[#D4AF37]" /> {isLiveBackend ? 'Latest 100 orders' : 'No historical comparison'}
+                  <span className="text-xs text-[#6B7280] flex items-center gap-1 mt-0.5">
+                    <TrendingUp className="w-3 h-3 text-[#0F0F10]" /> {isLiveBackend ? 'Latest 100 orders' : 'No historical comparison'}
                   </span>
                 </div>
 
-                <div className="p-4 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs">
-                  <span className="text-[10px] font-mono uppercase text-[#71717A] block">Active Orders</span>
-                  <span className="text-xl font-heading font-extrabold text-[#0F0F10] mt-1 block">
+                <div className="p-4 rounded-2xl bg-white border border-[#EAE8E3]">
+                  <span className="text-xs text-[#71717A] block">Active Orders</span>
+                  <span className="text-xl font-heading font-semibold text-[#0F0F10] mt-1 block">
                     {orders.length}
                   </span>
-                  <span className="text-[10px] font-mono text-[#71717A]">
+                  <span className="text-xs text-[#71717A]">
                     {orders.filter((o) => o.status === 'PENDING').length} awaiting courier
                   </span>
                 </div>
 
-                <div className="p-4 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs">
-                  <span className="text-[10px] font-mono uppercase text-[#71717A] block">Active Creators</span>
-                  <span className="text-xl font-heading font-extrabold text-[#0F0F10] mt-1 block">
+                <div className="p-4 rounded-2xl bg-white border border-[#EAE8E3]">
+                  <span className="text-xs text-[#71717A] block">Active Creators</span>
+                  <span className="text-xl font-heading font-semibold text-[#0F0F10] mt-1 block">
                     {creatorsList.length}
                   </span>
-                  <span className="text-[10px] font-mono text-[#71717A]">
+                  <span className="text-xs text-[#71717A]">
                     {pendingCreatorAppsCount} apps pending
                   </span>
                 </div>
 
-                <div className="p-4 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs">
-                  <span className="text-[10px] font-mono uppercase text-[#71717A] block">NIP Claims</span>
-                  <span className="text-xl font-heading font-extrabold text-[#0F0F10] mt-1 block">
+                <div className="p-4 rounded-2xl bg-white border border-[#EAE8E3]">
+                  <span className="text-xs text-[#71717A] block">NIP Claims</span>
+                  <span className="text-xl font-heading font-semibold text-[#0F0F10] mt-1 block">
                     {pendingClaimsCount}
                   </span>
-                  <span className="text-[10px] font-mono text-[#0F0F10]">
+                  <span className="text-xs text-[#6B7280]">
                     Verification queue
                   </span>
                 </div>
@@ -1114,28 +1207,28 @@ export const ScreenAdminConsole: React.FC = () => {
               </div>
 
               {/* Regional Multi-Hub Inventory Health & Live Reorder Matrix */}
-              <div className="p-6 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs space-y-4">
+              <div className="p-5 sm:p-6 rounded-2xl bg-white border border-[#EAE8E3] space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[10px] font-mono uppercase tracking-wider text-[#997A2E] font-bold">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                      <span className="text-xs font-medium text-[#6B7280]">
                         Stock Telemetry
                       </span>
-                      <span className="text-[9.5px] font-mono px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        ● 5 Regional Hubs Operational
+                      <span className="text-xs font-mono px-2 py-0.5 rounded-md bg-[#FAF9F6] text-[#0F0F10] border border-[#EAE8E3]">
+                        5 Regional Hubs Operational
                       </span>
                     </div>
-                    <h3 className="text-base font-heading font-bold text-[#0F0F10]">
+                    <h3 className="text-base font-heading font-semibold text-[#0F0F10]">
                       Multi-Hub Inventory Distribution &amp; Health
                     </h3>
                   </div>
 
                   <button
                     onClick={() => setActiveTab('inventory')}
-                    className="px-4 py-2 rounded-full bg-[#0F0F10] text-[#D4AF37] hover:bg-[#27272A] text-xs font-bold font-mono flex items-center gap-1.5 self-start sm:self-auto cursor-pointer shadow-xs active:scale-95 transition-all"
+                    className="min-h-10 px-4 rounded-xl bg-[#0F0F10] text-white hover:bg-[#27272A] text-xs font-medium flex items-center gap-1.5 self-start sm:self-auto cursor-pointer transition-colors"
                   >
-                    <Boxes className="w-3.5 h-3.5 text-[#D4AF37]" />
-                    <span>Open Full 5-Hub Matrix</span>
+                    <Boxes className="w-3.5 h-3.5" />
+                    <span>Open 5-Hub Matrix</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -1148,14 +1241,14 @@ export const ScreenAdminConsole: React.FC = () => {
                     { hub: 'Port Harcourt', units: inventoryItems.reduce((acc, i) => acc + i.phHub, 0), badge: 'Low Buffer' },
                     { hub: 'Kano Hub', units: inventoryItems.reduce((acc, i) => acc + i.kanoHub, 0), badge: 'Reorder Due' }
                   ].map((h) => (
-                    <div key={h.hub} className="p-3 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] text-center">
-                      <span className="text-[10px] font-mono text-[#71717A] block truncate">{h.hub}</span>
-                      <span className="text-lg font-heading font-extrabold text-[#0F0F10] block mt-0.5">
+                    <div key={h.hub} className="p-3 rounded-xl bg-[#FAF9F6] border border-[#EAE8E3] text-center">
+                      <span className="text-xs text-[#71717A] block truncate">{h.hub}</span>
+                      <span className="text-lg font-heading font-semibold text-[#0F0F10] block mt-0.5">
                         {h.units}
                       </span>
-                      <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded-full inline-block mt-1 ${
+                      <span className={`text-[11px] font-mono px-2 py-0.5 rounded-md inline-block mt-1 ${
                         h.badge === 'Reorder Due' || h.badge === 'Low Buffer'
-                          ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                          ? 'bg-[#0F0F10] text-white'
                           : 'bg-white text-[#71717A] border border-[#EAE8E3]'
                       }`}>
                         {h.badge}
@@ -1166,23 +1259,23 @@ export const ScreenAdminConsole: React.FC = () => {
 
                 <div className="divide-y divide-[#EAE8E3] pt-1">
                   {inventoryItems.map((item) => (
-                    <div key={item.id} className="py-2.5 flex items-center justify-between text-xs">
+                    <div key={item.id} className="py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
                       <div>
-                        <span className="font-bold text-[#0F0F10] block">{item.productName}</span>
-                        <span className="font-mono text-[10px] text-[#71717A]">
-                          SKU: {item.sku} • Central: {item.centralStock} • Lagos: {item.lagosHub} • Abuja: {item.abujaHub} • PH: {item.phHub} • Kano: {item.kanoHub}
+                        <span className="font-medium text-[#0F0F10] block">{item.productName}</span>
+                        <span className="font-mono text-[11px] text-[#71717A]">
+                          SKU: {item.sku} / Central: {item.centralStock} / Lagos: {item.lagosHub} / Abuja: {item.abujaHub} / PH: {item.phHub} / Kano: {item.kanoHub}
                         </span>
                       </div>
                       <div className="text-right">
-                        <span className="font-mono font-bold text-[#0F0F10] block">
+                        <span className="font-mono font-medium text-[#0F0F10] block">
                           {item.centralStock + item.lagosHub + item.abujaHub + item.phHub + item.kanoHub} Units Total
                         </span>
                         {item.isLowStock ? (
-                          <span className="text-[9px] font-mono text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.2 rounded-full">
+                          <span className="text-[11px] font-mono text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">
                             Low Buffer Warning
                           </span>
                         ) : (
-                          <span className="text-[9px] font-mono text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.2 rounded-full">
+                          <span className="text-[11px] font-mono text-[#4B5563] bg-[#FAF9F6] border border-[#EAE8E3] px-2 py-0.5 rounded-md">
                             Optimal Stock
                           </span>
                         )}
@@ -1906,25 +1999,25 @@ export const ScreenAdminConsole: React.FC = () => {
               <div className="space-y-6">
                 {/* Creator Performance KPI Strip */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="p-4 rounded-2xl bg-white border border-[#EAE8E3] shadow-xs">
-                    <span className="text-[10px] font-mono uppercase text-[#71717A] block font-bold">Total Creator GMV</span>
-                    <strong className="text-lg font-mono font-black text-[#0F0F10] mt-1 block">{`₦${creatorsList.reduce((sum, creator) => sum + (creator.totalSalesNgn || 0), 0).toLocaleString()}`}</strong>
-                    <span className="text-[10px] text-[#997A2E] font-medium">Recorded attributed orders</span>
+                  <div className="p-4 rounded-2xl bg-white border border-[#EAE8E3]">
+                    <span className="text-xs text-[#71717A] block">Total Creator GMV</span>
+                    <strong className="text-lg font-mono font-semibold text-[#0F0F10] mt-1 block">{`₦${creatorsList.reduce((sum, creator) => sum + (creator.totalSalesNgn || 0), 0).toLocaleString()}`}</strong>
+                    <span className="text-xs text-[#6B7280]">Recorded attributed orders</span>
                   </div>
-                  <div className="p-4 rounded-2xl bg-white border border-[#EAE8E3] shadow-xs">
-                    <span className="text-[10px] font-mono uppercase text-[#71717A] block font-bold">Commissions Settled</span>
-                    <strong className="text-lg font-mono font-black text-[#0F0F10] mt-1 block">Ledger only</strong>
-                    <span className="text-[10px] text-[#71717A]">No automated payout claimed</span>
+                  <div className="p-4 rounded-2xl bg-white border border-[#EAE8E3]">
+                    <span className="text-xs text-[#71717A] block">Commissions Settled</span>
+                    <strong className="text-lg font-mono font-semibold text-[#0F0F10] mt-1 block">Ledger only</strong>
+                    <span className="text-xs text-[#71717A]">No automated payout claimed</span>
                   </div>
-                  <div className="p-4 rounded-2xl bg-white border border-[#EAE8E3] shadow-xs">
-                    <span className="text-[10px] font-mono uppercase text-[#71717A] block font-bold">Outstanding Balances</span>
-                    <strong className="text-lg font-mono font-black text-[#997A2E] mt-1 block">Ledger only</strong>
-                    <span className="text-[10px] text-[#71717A]">Pending withdrawal</span>
+                  <div className="p-4 rounded-2xl bg-white border border-[#EAE8E3]">
+                    <span className="text-xs text-[#71717A] block">Outstanding Balances</span>
+                    <strong className="text-lg font-mono font-semibold text-[#0F0F10] mt-1 block">Ledger only</strong>
+                    <span className="text-xs text-[#71717A]">Pending withdrawal</span>
                   </div>
-                  <div className="p-4 rounded-2xl bg-white border border-[#EAE8E3] shadow-xs">
-                    <span className="text-[10px] font-mono uppercase text-[#71717A] block font-bold">Active Roster Size</span>
-                    <strong className="text-lg font-mono font-black text-[#0F0F10] mt-1 block">{creatorsList.length} Partners</strong>
-                    <span className="text-[10px] text-[#71717A]">Approved partner roster</span>
+                  <div className="p-4 rounded-2xl bg-white border border-[#EAE8E3]">
+                    <span className="text-xs text-[#71717A] block">Active Roster Size</span>
+                    <strong className="text-lg font-mono font-semibold text-[#0F0F10] mt-1 block">{creatorsList.length} Partners</strong>
+                    <span className="text-xs text-[#71717A]">Approved partner roster</span>
                   </div>
                 </div>
 
@@ -2562,26 +2655,26 @@ export const ScreenAdminConsole: React.FC = () => {
             {/* Quick Metrics Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3]">
-                <span className="text-[11px] font-semibold text-[#71717A] block">Total Transactions</span>
-                <span className="text-lg font-bold font-price text-[#0F0F10] mt-1 block">
+                <span className="text-xs font-medium text-[#71717A] block">Total Transactions</span>
+                <span className="text-lg font-semibold font-price text-[#0F0F10] mt-1 block">
                   {cryptoTransactions.length}
                 </span>
               </div>
-              <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200/60">
-                <span className="text-[11px] font-semibold text-amber-800 block">Pending Escrow</span>
-                <span className="text-lg font-bold font-price text-amber-900 mt-1 block">
+              <div className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3]">
+                <span className="text-xs font-medium text-[#71717A] block">Pending Escrow</span>
+                <span className="text-lg font-semibold font-price text-[#0F0F10] mt-1 block">
                   {cryptoTransactions.filter(t => t.status === 'PENDING').length}
                 </span>
               </div>
-              <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200/60">
-                <span className="text-[11px] font-semibold text-emerald-800 block">Settled On-Chain</span>
-                <span className="text-lg font-bold font-price text-emerald-900 mt-1 block">
+              <div className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3]">
+                <span className="text-xs font-medium text-[#71717A] block">Settled On-Chain</span>
+                <span className="text-lg font-semibold font-price text-[#0F0F10] mt-1 block">
                   {cryptoTransactions.filter(t => t.status === 'COMPLETED').length}
                 </span>
               </div>
               <div className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3]">
-                <span className="text-[11px] font-semibold text-[#71717A] block">Total Volume (NGN)</span>
-                <span className="text-lg font-bold font-price text-[#0F0F10] mt-1 block">
+                <span className="text-xs font-medium text-[#71717A] block">Total Volume (NGN)</span>
+                <span className="text-lg font-semibold font-price text-[#0F0F10] mt-1 block">
                   ₦{cryptoTransactions.reduce((acc, t) => acc + (Number(t.amountNgn) || 0), 0).toLocaleString()}
                 </span>
               </div>
@@ -2589,8 +2682,8 @@ export const ScreenAdminConsole: React.FC = () => {
 
             {/* Success / Error notification */}
             {adminCryptoSuccess && (
-              <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2 font-medium">
-                <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+              <div className="p-3.5 rounded-xl bg-[#FAF9F6] border border-[#EAE8E3] text-xs text-[#0F0F10] flex items-center gap-2 font-medium">
+                <CheckCircle2 size={16} className="text-[#0F0F10] shrink-0" />
                 <span>{adminCryptoSuccess}</span>
               </div>
             )}
@@ -2670,16 +2763,11 @@ export const ScreenAdminConsole: React.FC = () => {
                           </span>
                         </td>
                         <td className="py-3 px-4">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
-                            tx.asset === 'USDT' ? 'bg-emerald-100 text-emerald-800' :
-                            tx.asset === 'BTC' ? 'bg-amber-100 text-amber-800' :
-                            tx.asset === 'ETH' ? 'bg-indigo-100 text-indigo-800' :
-                            'bg-purple-100 text-purple-800'
-                          }`}>
-                            {tx.asset} • {tx.network}
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-md bg-[#FAF9F6] border border-[#EAE8E3] text-[#0F0F10] text-xs font-mono font-medium">
+                            {tx.asset} / {tx.network}
                           </span>
                         </td>
-                        <td className="py-3 px-4 font-mono font-bold text-[#0F0F10]">
+                        <td className="py-3 px-4 font-mono font-medium text-[#0F0F10]">
                           {tx.totalCrypto || tx.cryptoAmount} {tx.asset}
                         </td>
                         <td className="py-3 px-4 font-price font-semibold text-[#0F0F10]">
@@ -2707,16 +2795,11 @@ export const ScreenAdminConsole: React.FC = () => {
                           )}
                         </td>
                         <td className="py-3 px-4">
-                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                            tx.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-800' :
-                            tx.status === 'PENDING' ? 'bg-amber-100 text-amber-800' :
-                            'bg-gray-100 text-gray-700'
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium border ${
+                            tx.status === 'COMPLETED' ? 'bg-[#0F0F10] text-white border-[#0F0F10]' :
+                            tx.status === 'PENDING' ? 'bg-amber-50 text-amber-800 border-amber-200' :
+                            'bg-[#FAF9F6] text-[#6B7280] border-[#EAE8E3]'
                           }`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${
-                              tx.status === 'COMPLETED' ? 'bg-emerald-500' :
-                              tx.status === 'PENDING' ? 'bg-amber-500 animate-pulse' :
-                              'bg-gray-400'
-                            }`} />
                             {tx.status}
                           </span>
                         </td>

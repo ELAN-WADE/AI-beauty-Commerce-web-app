@@ -31,11 +31,12 @@
     }
   },
   "include": [
+    ".next-dev-3005/types/**/*.ts",
     ".next/types/**/*.ts",
     "next-env.d.ts",
     "src/**/*.ts",
     "src/**/*.tsx",
-    ".next-dev-3005/types/**/*.ts"
+    ".next-dev-3000/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

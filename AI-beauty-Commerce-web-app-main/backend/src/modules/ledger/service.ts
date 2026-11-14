@@ -1,3 +1,5 @@
+import {orderPartnerAttributions,partnerReferrals} from '../referrals/schema';
+import {referralWallet} from '../referrals/service';
 import { createHash } from 'node:crypto';
 import { and, asc, desc, eq, isNull, sql } from 'drizzle-orm';
 import type { AppDb, Db } from '../../db/client';
@@ -77,7 +79,7 @@ export async function balances(db: Db, walletId: string) {
  */
 export async function awardOrderCommissions(db: AppDb, orderId: string) {
   return db.transaction(async (tx) => {
-    const [order] = await tx.select().from(orders).where(eq(orders.id, orderId));
+    const [order] = await tx.select().from(orders).where(eq(orders.id, orderId)).for('update');
     if (!order || order.paymentStatus !== 'PAID') throw Errors.conflict('Commission requires verified payment.');
     if (order.kind === 'WHOLESALE') return;
     const recipients: { walletId: string; bps: number }[] = [];
@@ -89,6 +91,8 @@ export async function awardOrderCommissions(db: AppDb, orderId: string) {
       const [partner] = await tx.select().from(distributors).where(eq(distributors.id, order.distributorId));
       if (partner?.userId) recipients.push({ walletId: (await walletFor(tx, 'DISTRIBUTOR', partner.id, partner.userId)).id, bps: order.distributorCommissionBps });
     }
+    const [attribution]=await tx.select().from(orderPartnerAttributions).where(eq(orderPartnerAttributions.orderId,order.id));
+    if(attribution?.commissionBps){const [referral]=await tx.select().from(partnerReferrals).where(eq(partnerReferrals.id,attribution.referralId));if(referral&&referral.userId!==order.userId)recipients.push({walletId:(await referralWallet(tx,referral.id,referral.userId)).id,bps:attribution.commissionBps});}
     for (const recipient of recipients.sort((a, b) => a.walletId.localeCompare(b.walletId))) {
       await lockWallet(tx, recipient.walletId);
       const amount = commissionFor(Math.max(0, order.subtotalKobo - order.discountKobo), recipient.bps);

@@ -195,71 +195,72 @@ export const CreatorEarnings: React.FC = () => {
       )}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E5E7EB]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E5E7EB]">
         <div>
-          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
+          <span className="text-xs font-medium text-[#6B7280]">
             Financial Settlement
           </span>
-          <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-[#0F0F10]">
+          <h1 className="font-heading font-semibold text-xl sm:text-2xl text-[#0F0F10] mt-0.5">
             Creator Earnings &amp; Ledger
           </h1>
-          <p className="text-xs sm:text-sm text-[#6B7280] mt-0.5">
-            Transparent commission ledger, cleared balances, and direct Nigerian NUBAN payouts.
+          <p className="text-sm text-[#6B7280] mt-0.5">
+            Commission ledger, cleared balances, and Nigerian NUBAN payouts.
           </p>
         </div>
 
         <button
           onClick={() => setIsWithdrawModalOpen(true)}
           disabled={availableBalance <= 0}
-          className="px-5 py-2.5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-bold shadow-xs active:scale-[0.97] transition-all flex items-center gap-1.5 cursor-pointer self-start sm:self-auto shrink-0"
+          className="min-h-11 px-5 rounded-xl bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-medium active:scale-[0.98] transition-all flex items-center gap-1.5 cursor-pointer self-start sm:self-auto shrink-0 disabled:opacity-50"
         >
-          <ArrowUpRight size={14} className="text-[#D4AF37]" />
+          <ArrowUpRight size={14} />
           <span>Withdraw to Bank (NIP)</span>
         </button>
       </div>
 
       {/* 3 Metric Cards with Live Calculations */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatChip
-          label="AVAILABLE WITHDRAWABLE BALANCE"
+          label="Available Balance"
           value={`₦${availableBalance.toLocaleString('en-NG')}`}
           subtext="Ready for instant bank transfer"
-          badge="CLEARED"
+          badge="Cleared"
         />
         <StatChip
-          label="PENDING CLEARANCE"
+          label="Pending Clearance"
           value={`₦${pendingClearance.toLocaleString('en-NG')}`}
           subtext="Held in 7-day client satisfaction window"
-          badge="PENDING"
+          badge="Pending"
         />
         <StatChip
-          label="LIFETIME PAYOUTS RECEIVED"
+          label="Lifetime Payouts"
           value={`₦${lifetimePayouts.toLocaleString('en-NG')}`}
           subtext="Transferred to verified NUBAN"
-          badge="PAID OUT"
+          badge="Paid"
         />
       </div>
 
       {/* Verified Bank Account Card */}
-      <div className="p-5 sm:p-6 rounded-2xl sm:rounded-3xl bg-white border border-[#E5E7EB] shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="p-4 sm:p-5 rounded-2xl bg-white border border-[#E5E7EB] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-[#FBF5E8] border border-[#D4AF37]/30 text-[#997A2E] flex items-center justify-center shrink-0">
-            <Building size={22} />
+          <div className="w-11 h-11 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] text-[#0F0F10] flex items-center justify-center shrink-0">
+            <Building size={20} />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-bold text-sm sm:text-base text-[#0F0F10]">
-                {bankAccount.nuban ? `${bankAccount.bank} • ${bankAccount.nuban}` : 'No Payout Account Linked'}
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="font-medium text-sm sm:text-base text-[#0F0F10]">
+                {bankAccount.nuban ? `${bankAccount.bank} (${bankAccount.nuban})` : 'No Payout Account Linked'}
               </h3>
               {bankAccount.nuban && (
-                <span className="text-[11px] font-mono font-bold text-[#0F0F10] flex items-center gap-1">
-                  Verified <CheckCircle2 size={12} className="inline text-[#0F0F10]" />
+                <span className="text-xs font-medium text-[#0F0F10] inline-flex items-center gap-1">
+                  <CheckCircle2 size={13} />
+                  <span>Verified</span>
                 </span>
               )}
             </div>
             <p className="text-xs text-[#6B7280] font-mono mt-0.5">
               {bankAccount.nuban
-                ? `Account Name: ${bankAccount.name} • BVN Linked & NIP Real-Time Settlement`
+                ? `Account Name: ${bankAccount.name}`
                 : 'Link your verified Nigerian NUBAN account to receive instant commission settlements.'}
             </p>
           </div>
@@ -272,26 +273,23 @@ export const CreatorEarnings: React.FC = () => {
             setEditName(bankAccount.name || '');
             setIsBankModalOpen(true);
           }}
-          className="px-5 py-2 rounded-full border border-[#E5E7EB] bg-white hover:bg-[#FAF9F6] text-xs font-semibold text-[#0F0F10] transition-colors cursor-pointer self-start sm:self-auto shrink-0 shadow-2xs"
+          className="min-h-11 px-4 rounded-xl border border-[#E5E7EB] bg-white hover:bg-[#FAF9F6] text-xs font-medium text-[#0F0F10] transition-colors cursor-pointer self-start sm:self-auto shrink-0"
         >
           {bankAccount.nuban ? 'Change Account' : 'Link Bank Account'}
         </button>
       </div>
 
       {/* Commission Transaction Ledger Table */}
-      <div className="rounded-2xl sm:rounded-3xl bg-white border border-[#E5E7EB] shadow-2xs overflow-hidden">
-        <div className="p-5 sm:p-6 border-b border-[#E5E7EB] flex items-center justify-between">
+      <div className="rounded-2xl bg-white border border-[#E5E7EB] overflow-hidden">
+        <div className="p-4 sm:p-5 border-b border-[#E5E7EB] flex items-center justify-between gap-2">
           <div>
-            <h2 className="font-heading font-extrabold text-lg sm:text-xl text-[#0F0F10] tracking-tight">
+            <h2 className="font-heading font-semibold text-lg text-[#0F0F10] tracking-tight">
               Commission Transaction Ledger ({creatorLedger.length})
             </h2>
             <p className="text-xs text-[#6B7280] mt-0.5">
-              Immutable attribution log of client orders, affiliate credits, and banking settlements.
+              Attribution log of client orders, affiliate credits, and banking settlements.
             </p>
           </div>
-          <span className="text-xs text-[#9CA3AF] font-mono hidden sm:inline">
-            Real-time ledger entries
-          </span>
         </div>
 
         <div className="overflow-x-auto">

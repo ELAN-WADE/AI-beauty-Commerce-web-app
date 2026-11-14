@@ -1,13 +1,12 @@
 import { scheduleBackgroundWarmup } from '../../lib/background-warmup';
 import React, { useState, useEffect } from 'react';
+import { LayoutGroup } from 'framer-motion';
 import { PartnerAppShell } from './shell/PartnerAppShell';
 import { partnerRoute } from '../../lib/portal-navigation';
+import { CreatorOverview } from './creator/CreatorOverview';
+import { CreatorContentEditor } from './creator/CreatorContentEditor';
 
-// Creator Studio Screens
-const loadCreatorOverview = () => import('./creator/CreatorOverview');
-const CreatorOverview = React.lazy(() => loadCreatorOverview().then(module => ({ default: module.CreatorOverview })));
-const loadCreatorContentEditor = () => import('./creator/CreatorContentEditor');
-const CreatorContentEditor = React.lazy(() => loadCreatorContentEditor().then(module => ({ default: module.CreatorContentEditor })));
+// Remaining Creator Studio Screens (lazy loaded to keep initial bundle lean while Overview <-> Create share Motion layoutId immediately)
 const loadCreatorContentLibrary = () => import('./creator/CreatorContentLibrary');
 const CreatorContentLibrary = React.lazy(() => loadCreatorContentLibrary().then(module => ({ default: module.CreatorContentLibrary })));
 const loadCreatorCampaigns = () => import('./creator/CreatorCampaigns');
@@ -57,7 +56,7 @@ export interface PartnerPortalProps {
 
 export const PartnerPortal: React.FC<PartnerPortalProps> = ({ kind: initialKind }) => {
   const currentKind = initialKind;
-  useEffect(() => scheduleBackgroundWarmup(initialKind === 'CREATOR' ? [loadCreatorOverview,loadCreatorContentEditor,loadCreatorContentLibrary,loadCreatorCampaigns,loadCreatorPRRoom,loadCreatorStorefront,loadCreatorReferralLinks,loadCreatorEarnings,loadCreatorNotifications,loadCreatorResources,loadCreatorSupport,loadCreatorSettings] : [loadDistributorOverview,loadDistributorOrders,loadDistributorInventory,loadDistributorRestock,loadDistributorSales,loadDistributorEarnings,loadDistributorTerritory,loadDistributorReports,loadDistributorSupport,loadDistributorSettings]), [initialKind]);
+  useEffect(() => scheduleBackgroundWarmup(initialKind === 'CREATOR' ? [loadCreatorContentLibrary,loadCreatorCampaigns,loadCreatorPRRoom,loadCreatorStorefront,loadCreatorReferralLinks,loadCreatorEarnings,loadCreatorNotifications,loadCreatorResources,loadCreatorSupport,loadCreatorSettings] : [loadDistributorOverview,loadDistributorOrders,loadDistributorInventory,loadDistributorRestock,loadDistributorSales,loadDistributorEarnings,loadDistributorTerritory,loadDistributorReports,loadDistributorSupport,loadDistributorSettings]), [initialKind]);
 
   const [activeRoute, setActiveRoute] = useState<string>(() => partnerRoute(initialKind, typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('workspace') : null));
   const changeRoute = (route: string) => {
@@ -197,9 +196,11 @@ export const PartnerPortal: React.FC<PartnerPortalProps> = ({ kind: initialKind 
         notifications: 0
       }}
     >
-      <React.Suspense fallback={<div role="status" className="min-h-[40vh] flex items-center justify-center text-sm">Loading workspace…</div>}>
-        {renderActiveScreen()}
-      </React.Suspense>
+      <LayoutGroup id="partner-portal-layout">
+        <React.Suspense fallback={<div role="status" className="min-h-[40vh] flex items-center justify-center text-sm text-[#6B7280]">Loading workspace…</div>}>
+          {renderActiveScreen()}
+        </React.Suspense>
+      </LayoutGroup>
     </PartnerAppShell>
   );
 };

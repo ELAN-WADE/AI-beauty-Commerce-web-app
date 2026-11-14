@@ -1,3 +1,5 @@
+import {partnerReferrals} from '../referrals/schema';
+import {validateReferral} from '../referrals/service';
 import { enqueuePartnerReviewEmail } from '../partners/email';
 import { getTableColumns, and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 
@@ -47,11 +49,17 @@ export async function validateCode(db: Db, code: string) {
 
   const creator = rows[0];
 
-  if (!creator || !creator.verified) throw Errors.notFound('Creator code not found.');
+  if (!creator) {
+    const referral=await validateReferral(db,normalizeCode(code));
+    return {id:referral.id,userId:referral.userId,commissionBps:referral.commissionBps,name:'Influencer / Ambassador',handle:'',promoCode:referral.code,discountPercent:0,recipientKind:'INFLUENCER' as const};
+  }
+  if (!creator.verified) throw Errors.notFound('Creator code not found.');
+  if(/^IA[A-F0-9]{32}$/.test(creator.promoCode)){const [conflict]=await db.select().from(partnerReferrals).where(eq(partnerReferrals.code,creator.promoCode));if(conflict)throw Errors.conflict('Ambiguous partner code.');}
 
   return {
 
     id: creator.id,
+    recipientKind: 'CREATOR' as const,
 
     userId: creator.userId,
 
@@ -213,6 +221,7 @@ export async function reviewApplication(
 
       }
 
+      if(/^IA[A-F0-9]{32}$/.test(code))throw Errors.badRequest('This code format is reserved for influencer and ambassador referrals.');
       let finalCode = code;
 
       let candidate = await tx.select({ id: creators.id }).from(creators).where(eq(creators.promoCode, finalCode)).limit(1);

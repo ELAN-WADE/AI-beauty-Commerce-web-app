@@ -25,3 +25,5 @@ export * from '../modules/workspaces/schema';
 export * from '../modules/newsletter/schema';
 export * from '../modules/social/schema';
 export * from '../modules/crypto/schema';
+
+export * from '../modules/referrals/schema';

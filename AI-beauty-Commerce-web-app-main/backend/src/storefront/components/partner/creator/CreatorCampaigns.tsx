@@ -94,7 +94,7 @@ export const CreatorCampaigns: React.FC = () => {
           <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
             Opportunities &amp; Brand Collaborations
           </span>
-          <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-[#0F0F10]">
+          <h1 className="font-heading font-semibold text-xl sm:text-2xl text-[#0F0F10]">
             Creator Campaigns
           </h1>
           <p className="text-xs sm:text-sm text-[#6B7280] mt-0.5">
@@ -148,7 +148,7 @@ export const CreatorCampaigns: React.FC = () => {
                 </div>
 
                 <div className="p-6 space-y-3">
-                  <h2 className="font-heading font-extrabold text-xl text-[#0F0F10]">
+                  <h2 className="font-heading font-semibold text-lg sm:text-xl text-[#0F0F10]">
                     {camp.title}
                   </h2>
                   <p className="text-xs text-[#6B7280] leading-relaxed line-clamp-2">
@@ -219,11 +219,11 @@ export const CreatorCampaigns: React.FC = () => {
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-bold text-[#0F0F10]">{sub.campaignTitle}</span>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase ${
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold uppercase ${
                         sub.status === 'APPROVED'
                           ? 'bg-black text-[#D4AF37] border border-[#D4AF37]/30'
                           : sub.status === 'PAID'
-                          ? 'bg-emerald-900 text-white'
+                          ? 'bg-[#0F0F10] text-white'
                           : 'bg-amber-100 text-amber-900'
                       }`}>
                         {sub.status}
@@ -231,7 +231,6 @@ export const CreatorCampaigns: React.FC = () => {
                     </div>
                     <div className="flex items-center gap-3 text-xs text-[#6B7280]">
                       <span className="font-mono text-[11px]">{sub.submittedAt}</span>
-                      <span>•</span>
                       <a
                         href={sub.deliverableUrl}
                         target="_blank"
@@ -249,8 +248,8 @@ export const CreatorCampaigns: React.FC = () => {
                   </div>
 
                   <div className="flex items-center gap-2 self-start sm:self-auto">
-                    <span className="text-xs font-mono font-bold text-[#0F0F10]">
-                      {sub.status === 'APPROVED' ? 'Milestone Bonus Cleared ✓' : 'Under Review'}
+                    <span className="text-xs font-mono font-semibold text-[#0F0F10]">
+                      {sub.status === 'APPROVED' ? 'Milestone Bonus Cleared' : 'Under Review'}
                     </span>
                   </div>
                 </div>
@@ -260,16 +259,16 @@ export const CreatorCampaigns: React.FC = () => {
 
           {/* Active Briefs List */}
           <div className="rounded-3xl bg-white border border-[#E5E7EB] shadow-xs p-6 space-y-4">
-            <h3 className="font-heading font-extrabold text-base text-[#0F0F10]">
+            <h3 className="font-heading font-semibold text-base text-[#0F0F10]">
               Active Collaborative Briefs In Production
             </h3>
             <div className="space-y-3">
               {campaigns.filter((c) => appliedCampaignIds.includes(c.id)).map((c) => (
                 <div key={c.id} className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
-                    <h4 className="font-heading font-bold text-sm text-[#0F0F10]">{c.title}</h4>
+                    <h4 className="font-heading font-semibold text-sm text-[#0F0F10]">{c.title}</h4>
                     <p className="text-xs text-[#6B7280] font-mono mt-0.5">
-                      Deadline: {c.deadline} • Rate: {c.commissionRate} ({c.bonus})
+                      Deadline: {c.deadline} / Rate: {c.commissionRate} ({c.bonus})
                     </p>
                   </div>
                   <button
@@ -301,7 +300,7 @@ export const CreatorCampaigns: React.FC = () => {
               <div>
                 <div className="flex items-center gap-2">
                   <h4 className="font-heading font-bold text-sm text-[#0F0F10]">{item.title}</h4>
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-mono font-bold">
+                  <span className="px-2 py-0.5 rounded-full bg-[#F3F4F6] text-[#111827] border border-[#E5E7EB] text-[10px] font-mono font-semibold">
                     Completed campaign
                   </span>
                 </div>

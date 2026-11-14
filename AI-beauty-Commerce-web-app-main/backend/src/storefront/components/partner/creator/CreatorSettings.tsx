@@ -48,117 +48,119 @@ export const CreatorSettings: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-200 max-w-3xl mx-auto">
-      <div className="pb-2 border-b border-[#E5E7EB]">
-        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
+    <div className="space-y-6 max-w-3xl mx-auto">
+      <div className="pb-4 border-b border-[#E5E7EB]">
+        <span className="text-xs font-medium text-[#6B7280]">
           Profile &amp; Bank Configuration
         </span>
-        <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-[#0F0F10]">
+        <h1 className="font-heading font-semibold text-xl sm:text-2xl text-[#0F0F10] mt-0.5">
           Studio Settings
         </h1>
-        <p className="text-xs sm:text-sm text-[#6B7280] mt-0.5">
-          Manage your creator dossier, saved social profile links, and Nigerian settlement bank details.
+        <p className="text-sm text-[#6B7280] mt-1">
+          Manage your creator profile and settlement bank details.
         </p>
       </div>
 
-      {error && <p role="alert" className="rounded-xl bg-rose-50 p-4 text-sm text-rose-700">{error}</p>}
-      {loading && <p role="status">Loading your creator settings…</p>}
-      <form onSubmit={handleSave} className="space-y-6">
+      {error && <p role="alert" className="rounded-xl bg-rose-50 border border-rose-200 p-4 text-sm text-rose-700">{error}</p>}
+      {saved && <p role="status" className="rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] p-3.5 text-sm font-medium text-[#0F0F10]">Creator settings saved.</p>}
+      {loading && <p role="status" className="text-sm text-[#6B7280]">Loading your creator settings...</p>}
+      <form onSubmit={handleSave} className="space-y-5">
         {/* Profile Card */}
-        <div className="p-6 rounded-3xl bg-white border border-[#E5E7EB] shadow-xs space-y-4">
-          <h2 className="font-heading font-bold text-base text-[#0F0F10]">Creator Profile</h2>
+        <div className="p-4 sm:p-5 rounded-2xl bg-white border border-[#E5E7EB] space-y-4">
+          <h2 className="font-heading font-medium text-base text-[#0F0F10]">Creator Profile</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-[11px] font-bold text-[#0F0F10] block mb-1">Full Legal Name</label>
+              <label className="text-xs font-medium text-[#0F0F10] block mb-1.5">Full Legal Name</label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-[#E5E7EB] text-xs bg-[#FAF9F6]"
+                className="w-full min-h-11 px-3.5 py-2.5 rounded-xl border border-[#E5E7EB] text-base sm:text-sm bg-[#FAF9F6] focus:outline-none focus:border-[#0F0F10]"
               />
             </div>
             <div>
-              <label className="text-[11px] font-bold text-[#0F0F10] block mb-1">Public Creator Handle</label>
+              <label className="text-xs font-medium text-[#0F0F10] block mb-1.5">Public Creator Handle</label>
               <input
                 type="text"
                 value={handle}
                 onChange={(e) => setHandle(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-[#E5E7EB] text-xs bg-[#FAF9F6] font-mono"
+                className="w-full min-h-11 px-3.5 py-2.5 rounded-xl border border-[#E5E7EB] text-base sm:text-sm bg-[#FAF9F6] font-mono focus:outline-none focus:border-[#0F0F10]"
               />
             </div>
             <div>
-              <label className="text-[11px] font-bold text-[#0F0F10] block mb-1">Notification Email</label>
+              <label className="text-xs font-medium text-[#0F0F10] block mb-1.5">Notification Email</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 readOnly
-                className="w-full px-3.5 py-2.5 rounded-xl border border-[#E5E7EB] text-xs bg-[#FAF9F6]"
+                className="w-full min-h-11 px-3.5 py-2.5 rounded-xl border border-[#E5E7EB] text-base sm:text-sm bg-[#FAF9F6] text-[#6B7280]"
               />
             </div>
             <div>
-              <label className="text-[11px] font-bold text-[#0F0F10] block mb-1">WhatsApp / Phone</label>
+              <label className="text-xs font-medium text-[#0F0F10] block mb-1.5">WhatsApp / Phone</label>
               <input
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-[#E5E7EB] text-xs bg-[#FAF9F6] font-mono"
+                className="w-full min-h-11 px-3.5 py-2.5 rounded-xl border border-[#E5E7EB] text-base sm:text-sm bg-[#FAF9F6] font-mono focus:outline-none focus:border-[#0F0F10]"
               />
             </div>
           </div>
         </div>
 
         {/* Bank Settlement Dossier */}
-        <div className="p-6 rounded-3xl bg-white border border-[#E5E7EB] shadow-xs space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="font-heading font-bold text-base text-[#0F0F10]">
+        <div className="p-4 sm:p-5 rounded-2xl bg-white border border-[#E5E7EB] space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-heading font-medium text-base text-[#0F0F10]">
               Settlement Bank Account (NUBAN)
             </h2>
-            <span className="text-[10px] font-mono font-bold text-[#0F0F10] bg-[#FAF9F6] px-2.5 py-0.5 rounded-full border border-[#E5E7EB]">
-               {bankVerified ? 'Verified for payout' : 'Awaiting verification'}
+            <span className="text-xs font-medium text-[#4B5563] bg-[#FAF9F6] px-2.5 py-1 rounded-lg border border-[#E5E7EB]">
+              {bankVerified ? 'Verified for payout' : 'Awaiting verification'}
             </span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-[11px] font-bold text-[#0F0F10] block mb-1">Bank Name</label>
+              <label className="text-xs font-medium text-[#0F0F10] block mb-1.5">Bank Name</label>
               <input
                 type="text"
                 value={bankName}
                 onChange={(e) => setBankName(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-[#E5E7EB] text-xs bg-[#FAF9F6]"
+                className="w-full min-h-11 px-3.5 py-2.5 rounded-xl border border-[#E5E7EB] text-base sm:text-sm bg-[#FAF9F6] focus:outline-none focus:border-[#0F0F10]"
               />
             </div>
             <div>
-              <label className="text-[11px] font-bold text-[#0F0F10] block mb-1">10-Digit Account Number</label>
+              <label className="text-xs font-medium text-[#0F0F10] block mb-1.5">10-Digit Account Number</label>
               <input
                 type="text"
                 value={accountNumber}
                 onChange={(e) => setAccountNumber(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-[#E5E7EB] text-xs bg-[#FAF9F6] font-mono"
+                className="w-full min-h-11 px-3.5 py-2.5 rounded-xl border border-[#E5E7EB] text-base sm:text-sm bg-[#FAF9F6] font-mono focus:outline-none focus:border-[#0F0F10]"
               />
             </div>
           </div>
 
           <div className="p-3 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] text-xs">
             <span className="text-[#6B7280]">{bankVerified ? 'Verified beneficiary name: ' : 'Beneficiary name (requires review): '}</span>
-            <strong className="text-[#0F0F10] font-mono">{accountName || name.toUpperCase() || 'Not provided'}</strong>
+            <strong className="text-[#0F0F10] font-mono font-medium">{accountName || name.toUpperCase() || 'Not provided'}</strong>
           </div>
         </div>
 
         {/* Submit */}
         <div className="flex justify-end pt-2">
           <button
-            type="submit" disabled={loading || saving}
-            className="px-8 py-3 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-bold shadow-xs active:scale-[0.97] transition-all cursor-pointer flex items-center gap-2"
+            type="submit"
+            disabled={loading || saving}
+            className="min-h-11 px-6 rounded-xl bg-[#0F0F10] hover:bg-[#27272A] text-white text-sm font-medium active:scale-[0.98] transition-all cursor-pointer flex items-center gap-2 disabled:opacity-50"
           >
             {saved ? (
               <>
-                <Check size={14} className="text-[#0F0F10]" />
-                <span>Changes Saved ✓</span>
+                <Check size={15} />
+                <span>Changes Saved</span>
               </>
             ) : (
-              <span>{saving ? 'Saving settings…' : 'Save Studio Settings'}</span>
+              <span>{saving ? 'Saving settings...' : 'Save Studio Settings'}</span>
             )}
           </button>
         </div>

@@ -462,16 +462,16 @@ export const CreatorPRRoom: React.FC<CreatorPRRoomProps> = ({
                   <div key={idx} className="flex items-start gap-3 relative">
                     <div className="mt-0.5">
                       {s.status === 'done' ? (
-                        <div className="w-6 h-6 rounded-full bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center text-xs">
-                          ✓
+                        <div className="w-6 h-6 rounded-full bg-[#0F0F10] text-white flex items-center justify-center">
+                          <CheckCircle2 size={13} />
                         </div>
                       ) : s.status === 'active' ? (
-                        <div className="w-6 h-6 rounded-full bg-[#D4AF37] text-[#0F0F10] flex items-center justify-center text-xs font-bold animate-pulse">
-                          ●
+                        <div className="w-6 h-6 rounded-full bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center">
+                          <Truck size={13} />
                         </div>
                       ) : (
-                        <div className="w-6 h-6 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center text-xs">
-                          ○
+                        <div className="w-6 h-6 rounded-full bg-[#F3F4F6] text-[#71717A] flex items-center justify-center">
+                          <Clock size={12} />
                         </div>
                       )}
                     </div>

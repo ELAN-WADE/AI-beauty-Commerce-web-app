@@ -1,3 +1,6 @@
+import {configureReferral,referralWallet} from '../referrals/service';
+import {partnerReferrals} from '../referrals/schema';
+import {walletView} from '../ledger/service';
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import type { Db } from '@/db/client';
 import { Errors } from '@/lib/errors';
@@ -27,7 +30,9 @@ export async function programmeWorkspace(db: Db, userId: string, programme: Addi
   try { await requireProgrammeAccess(db, userId, programme); canOperate = true; } catch (error) { if (!(error instanceof Error && 'status' in error && error.status === 403)) throw error; }
   const tasks = canOperate && membership ? await db.select().from(workspaceRecords).where(and(eq(workspaceRecords.ownerId, userId), eq(workspaceRecords.audience, programme), eq(workspaceRecords.parentId, membership.id), eq(workspaceRecords.kind, 'PROGRAMME_TASK'))).orderBy(desc(workspaceRecords.createdAt)).limit(100) : [];
   const submissions = tasks.length ? await db.select().from(workspaceRecords).where(and(eq(workspaceRecords.ownerId, userId), eq(workspaceRecords.audience, programme), eq(workspaceRecords.kind, 'PROGRAMME_SUBMISSION'), inArray(workspaceRecords.parentId, tasks.map(task => task.id)))).limit(100) : [];
-  return { membership: membership ? { id: membership.id, status: membership.status, name: membership.title, motivation: membership.body, profileUrl: membership.url, reviewNote: membership.reviewNote, version: membership.version, agreement: String(membership.data.details?.agreement ?? ''), agreementVersion: Number(membership.data.details?.agreementVersion ?? 0), acceptedAgreementVersion: Number(membership.data.details?.acceptedAgreementVersion ?? 0) } : null, canOperate, tasks, submissions };
+  const [referral]=membership?await db.select().from(partnerReferrals).where(eq(partnerReferrals.membershipId,membership.id)):[];
+  const earnings=canOperate&&referral?{code:referral.code,commissionBps:referral.commissionBps,wallet:await walletView(db,(await referralWallet(db,referral.id,userId)).id,userId)}:null;
+  return { earnings, membership: membership ? { id: membership.id, status: membership.status, commissionBps:Number(membership.data.details?.commissionBps??0), name: membership.title, motivation: membership.body, profileUrl: membership.url, reviewNote: membership.reviewNote, version: membership.version, agreement: String(membership.data.details?.agreement ?? ''), agreementVersion: Number(membership.data.details?.agreementVersion ?? 0), acceptedAgreementVersion: Number(membership.data.details?.acceptedAgreementVersion ?? 0) } : null, canOperate, tasks, submissions };
 }
 export async function writeProgramme(db: Db, userId: string, input: z.infer<typeof programmeCommand>) {
   return db.transaction(async tx => {
@@ -71,9 +76,9 @@ export async function programmePendingCount(db: Db) {
   return row.count;
 }
 export async function adminProgrammeList(db: Db) {
-  const applications = await db.select({ record: workspaceRecords, email: users.email, emailVerifiedAt: users.emailVerifiedAt }).from(workspaceRecords).innerJoin(users, eq(users.id, workspaceRecords.ownerId)).where(eq(workspaceRecords.kind, 'PARTNER_PROGRAMME')).orderBy(desc(workspaceRecords.updatedAt)).limit(200);
+  const applications = await db.select({ record: workspaceRecords, commissionBps:partnerReferrals.commissionBps, email: users.email, emailVerifiedAt: users.emailVerifiedAt }).from(workspaceRecords).innerJoin(users, eq(users.id, workspaceRecords.ownerId)).leftJoin(partnerReferrals,eq(partnerReferrals.membershipId,workspaceRecords.id)).where(eq(workspaceRecords.kind, 'PARTNER_PROGRAMME')).orderBy(desc(workspaceRecords.updatedAt)).limit(200);
   const records = await db.select().from(workspaceRecords).where(inArray(workspaceRecords.kind, ['PROGRAMME_TASK','PROGRAMME_SUBMISSION'])).orderBy(desc(workspaceRecords.updatedAt)).limit(500);
-  return { applications: applications.map(row => ({ ...row.record, email: row.email, emailVerified: Boolean(row.emailVerifiedAt) })), tasks: records.filter(record => record.kind === 'PROGRAMME_TASK'), submissions: records.filter(record => record.kind === 'PROGRAMME_SUBMISSION') };
+  return { applications: applications.map(row => ({ ...row.record, commissionBps:row.commissionBps??0, email: row.email, emailVerified: Boolean(row.emailVerifiedAt) })), tasks: records.filter(record => record.kind === 'PROGRAMME_TASK'), submissions: records.filter(record => record.kind === 'PROGRAMME_SUBMISSION') };
 }
 export async function reviewProgramme(db: Db, actorId: string, input: z.infer<typeof adminProgrammeCommand>) {
   return db.transaction(async tx => {
@@ -107,14 +112,25 @@ export async function reviewProgramme(db: Db, actorId: string, input: z.infer<ty
       return task;
     }
     if (record.version !== input.version) throw Errors.conflict('This application has changed. Refresh before reviewing.');
+    if(input.action==='commission'){
+      if(record.status!=='APPROVED')throw Errors.conflict('Approve the partner before updating commission terms.');
+      await configureReferral(tx,record.id,record.ownerId,input.commissionBps);
+      await tx.delete(userRoles).where(and(eq(userRoles.userId,record.ownerId),eq(userRoles.roleId,programme)));
+      const [updated]=await tx.update(workspaceRecords).set({data:{...record.data,details:{...record.data.details,commissionBps:input.commissionBps,agreement:input.agreement,agreementVersion:record.version+1,acceptedAgreementVersion:0}},reviewNote:input.note,version:record.version+1,updatedAt:new Date()}).where(eq(workspaceRecords.id,record.id)).returning();
+      await audit(tx,{actorId,action:'partner.commission.terms',entityType:'workspace',entityId:record.id,after:{commissionBps:input.commissionBps}});
+      await enqueueNotification(tx,{userId:record.ownerId,channel:'email',template:PROGRAMME_REVIEW_TEMPLATE,payload:{membershipId:record.id,version:updated.version,status:'APPROVED'}});
+      return updated;
+    }
+
     if (input.decision === 'APPROVED' && (input.agreement.length < 20 || input.verificationReference.length < 3)) throw Errors.badRequest('Record the programme agreement and verification reference before approval.');
     if (input.decision === 'APPROVED' && record.status !== 'SUBMITTED') throw Errors.conflict('Only a submitted application can be approved.');
     if (input.decision === 'REJECTED' && record.status !== 'SUBMITTED') throw Errors.conflict('Only a submitted application can be declined.');
     if (input.decision === 'REVOKED' && record.status !== 'APPROVED') throw Errors.conflict('Only approved access can be revoked.');
     const [user] = await tx.select().from(users).where(eq(users.id, record.ownerId));
     if (input.decision === 'APPROVED' && !user?.emailVerifiedAt) throw Errors.forbidden('The applicant must verify their email first.');
+    if(input.decision==='APPROVED')await configureReferral(tx,record.id,record.ownerId,(input.commissionBps??0));
     const detail = record.data.details ?? {};
-    const data = input.decision === 'APPROVED' ? { ...record.data, details: { ...detail, verified: true, verificationReference: input.verificationReference, agreement: input.agreement, agreementVersion: record.version + 1, acceptedAgreementVersion: 0, reviewedBy: actorId } } : record.data;
+    const data = input.decision === 'APPROVED' ? { ...record.data, details: { ...detail, commissionBps:input.commissionBps??0, verified: true, verificationReference: input.verificationReference, agreement: input.agreement, agreementVersion: record.version + 1, acceptedAgreementVersion: 0, reviewedBy: actorId } } : record.data;
     await tx.insert(roles).values({ id: programme, description: programmeDefinitions[programme].description }).onConflictDoNothing();
     await tx.delete(userRoles).where(and(eq(userRoles.userId, record.ownerId), eq(userRoles.roleId, programme)));
     const [saved] = await tx.update(workspaceRecords).set({ status: input.decision, reviewNote: input.note, data, version: record.version + 1, updatedAt: new Date() }).where(eq(workspaceRecords.id, record.id)).returning();

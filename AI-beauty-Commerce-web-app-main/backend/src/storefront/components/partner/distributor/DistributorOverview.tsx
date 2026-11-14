@@ -1,17 +1,10 @@
 import React, { useState } from 'react';
 import {
-  Share2,
   BarChart2,
-  Grid3X3,
-  LayoutGrid,
   ChevronDown,
   ChevronUp,
   Package,
-  Truck,
-  Layers,
-  ArrowRight,
-  ShieldCheck,
-  CheckCircle2
+  Truck
 } from '../../common/SolidIcons';
 import {
   DistributorEditorialGrid,
@@ -55,273 +48,213 @@ export const DistributorOverview: React.FC<DistributorOverviewProps> = ({
 
   const inTransitLab = labShipments.find((s) => s.status === 'IN_TRANSIT') || labShipments[0];
 
+  const hubDisplayName = authUser?.profile?.displayName || (authUser?.email ? `${authUser.email.split('@')[0]} Hub` : `${selectedCity} Central Hub`);
+
   return (
-    <div className="space-y-5 animate-in fade-in duration-300">
-      {/* 1. Top Utility Action Header */}
-      <div className="flex items-center justify-between gap-4 pb-1">
-        {/* Subtle Hub Identity Stamp */}
-        <div className="flex items-center gap-2">
-          <span className="font-mono text-[10px] uppercase tracking-widest text-[#997A2E] font-bold">
-            Distributor Hub
-          </span>
-          <span className="w-1.5 h-1.5 rounded-full bg-[#D4AF37]" />
-          <button
-            onClick={() => setShowExecutiveStrip(!showExecutiveStrip)}
-            className="font-mono text-[9.5px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#FAF9F6] text-[#6B7280] hover:text-[#0F0F10] border border-[#E5E7EB] font-bold flex items-center gap-1 transition-colors cursor-pointer"
-            title="Toggle live telemetry and courier overview"
-          >
-            <span>{authUser?.profile?.displayName || (authUser?.email ? `${authUser.email.split('@')[0]}'s Hub` : `${selectedCity} Central Hub`)} </span>
-            {showExecutiveStrip ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
-          </button>
+    <div className="space-y-6">
+      {/* Compact Hub Greeting & Telemetry Control */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="font-heading font-semibold text-xl sm:text-2xl text-[#0F0F10] tracking-tight">
+            {hubDisplayName}
+          </h1>
         </div>
 
-        {/* Top Right Utility Buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <button
-            onClick={() => setTelemetryOpen(true)}
-            className="px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full border border-[#E5E7EB] bg-white hover:bg-[#FAF9F6] text-xs font-semibold text-[#0F0F10] transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-[0.97]"
-            title="Inspect real-time facility telemetry and dispatch velocity"
+            type="button"
+            onClick={() => setShowExecutiveStrip(!showExecutiveStrip)}
+            className="min-h-10 px-3 rounded-lg border border-[#E5E7EB] bg-white hover:bg-[#FAF9F6] text-xs font-medium text-[#4B5563] hover:text-[#0F0F10] flex items-center gap-1.5 transition-colors cursor-pointer"
           >
-            <BarChart2 size={13} className="text-[#997A2E]" />
-            <span>Hub Telemetry</span>
+            <span>Summary</span>
+            {showExecutiveStrip ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
           </button>
 
           <button
-            onClick={() => {
-              window.open('/?screen=catalogue', '_blank');
-            }}
-            className="px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full border border-[#E5E7EB] bg-white hover:bg-[#FAF9F6] text-xs font-semibold text-[#0F0F10] transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-[0.97]"
-            title="Preview public shoppable storefront"
+            type="button"
+            onClick={() => setTelemetryOpen(true)}
+            className="min-h-10 px-3 rounded-lg border border-[#E5E7EB] bg-white hover:bg-[#FAF9F6] text-xs font-medium text-[#0F0F10] flex items-center gap-1.5 transition-colors cursor-pointer"
           >
-            <Share2 size={13} className="text-[#6B7280]" />
-            <span>Storefront</span>
+            <BarChart2 size={14} className="text-[#4B5563]" />
+            <span>Hub Telemetry</span>
           </button>
         </div>
       </div>
 
-      {/* 2. Optional Expandable Executive Strip */}
+      {/* Expandable Summary Metrics Strip */}
       {showExecutiveStrip && (
-        <div className="space-y-3 p-4 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="space-y-3 p-4 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB]">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-[#E5E7EB]">
-            <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#0F0F10]" />
-              <span className="font-mono text-[10px] uppercase tracking-wider text-[#0F0F10] font-bold">
-                Live Hub Telemetry
-              </span>
-            </div>
+            <span className="text-xs font-medium text-[#0F0F10]">
+              Live Hub Telemetry
+            </span>
             {inTransitLab && (
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] text-[#6B7280]">
-                  Lab Restock #{inTransitLab.batchNumber}: <strong className="text-[#0F0F10]">{inTransitLab.status}</strong> ({inTransitLab.courier})
-                </span>
-              </div>
+              <span className="text-xs text-[#6B7280]">
+                Lab Restock #{inTransitLab.batchNumber}: <strong className="font-medium text-[#0F0F10]">{inTransitLab.status}</strong> ({inTransitLab.courier})
+              </span>
             )}
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-mono">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div>
-              <span className="text-[10px] text-[#6B7280] uppercase block">Pending Dispatch</span>
-              <span className="font-heading font-extrabold text-xl text-[#0F0F10]">
+              <span className="text-xs text-[#6B7280] block">Pending Dispatch</span>
+              <span className="font-heading font-semibold text-lg text-[#0F0F10] mt-0.5 block">
                 {pendingOrders.length} Orders
               </span>
-              <span className="text-[9.5px] font-mono text-[#0F0F10] font-bold block">● NEEDS PACKING</span>
+              <span className="text-xs text-[#4B5563] block">Needs packing</span>
             </div>
             <div>
-              <span className="text-[10px] text-[#6B7280] uppercase block">Cleared Margin</span>
-              <span className="font-heading font-extrabold text-xl text-[#0F0F10]">
+              <span className="text-xs text-[#6B7280] block">Cleared Margin</span>
+              <span className="font-heading font-semibold text-lg text-[#0F0F10] mt-0.5 block">
                 ₦{totalMargin.toLocaleString('en-NG')}
               </span>
-              <span className="text-[9.5px] font-mono text-[#0F0F10] font-bold block">● RECORDED BALANCE</span>
+              <span className="text-xs text-[#4B5563] block">Recorded balance</span>
             </div>
             <div>
-              <span className="text-[10px] text-[#6B7280] uppercase block">Stock Health</span>
-              <span className="font-heading font-extrabold text-xl text-[#0F0F10]">
-                {lowStockItems.length > 0 ? `${lowStockItems.length} LOW` : 'OPTIMAL'}
+              <span className="text-xs text-[#6B7280] block">Stock Health</span>
+              <span className="font-heading font-semibold text-lg text-[#0F0F10] mt-0.5 block">
+                {lowStockItems.length > 0 ? `${lowStockItems.length} Low` : 'Optimal'}
               </span>
-              <span className="text-[9.5px] font-mono text-[#6B7280] block">
-                {lowStockItems.length} SKUS BELOW THRESHOLD
+              <span className="text-xs text-[#6B7280] block">
+                {lowStockItems.length} SKUs below threshold
               </span>
             </div>
             <div>
-              <span className="text-[10px] text-[#6B7280] uppercase block">Fulfilment SLA</span>
-              <span className="font-heading font-extrabold text-xl text-[#0F0F10]">Not measured</span>
-              <span className="text-[9.5px] text-[#6B7280] block">SAME-DAY DISPATCH</span>
+              <span className="text-xs text-[#6B7280] block">Fulfilment SLA</span>
+              <span className="font-heading font-semibold text-lg text-[#0F0F10] mt-0.5 block">Not measured</span>
+              <span className="text-xs text-[#6B7280] block">Same-day dispatch</span>
             </div>
           </div>
         </div>
       )}
 
-      {/* 3. Hub Navigation Workspace Header & Controls */}
-      <section className="space-y-4">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pt-1">
-          <div>
-            <h1 className="font-heading font-bold text-xl sm:text-2xl text-[#0F0F10] tracking-tight">
-              Distributor Operations Console
-            </h1>
-            <p className="text-xs text-[#6B7280]">
-              9 Facility Operations Modules • Tap to inspect and dispatch
-            </p>
-          </div>
+      {/* Hub Operations Workspace Header & Underline Filter Tabs */}
+      <section className="space-y-5">
+        <div className="space-y-3">
+          <h2 className="font-heading font-medium text-lg text-[#0F0F10] tracking-tight">
+            Operations Workspace
+          </h2>
 
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Category Filter Pills */}
-            <div className="flex items-center gap-1 p-1 rounded-full bg-[#FAF9F6] border border-[#E5E7EB] text-xs">
-              {[
-                { id: 'all', label: 'All Operations' },
-                { id: 'fulfillment', label: 'Fulfillment & Orders' },
-                { id: 'wholesale', label: 'Lab & Wholesale' },
-                { id: 'territory', label: 'Territory & Hub' }
-              ].map((f) => (
+          <div className="flex items-center gap-6 border-b border-[#E5E7EB] overflow-x-auto no-scrollbar touch-pan-x">
+            {[
+              { id: 'all', label: 'All Operations' },
+              { id: 'fulfillment', label: 'Fulfillment' },
+              { id: 'wholesale', label: 'Wholesale' },
+              { id: 'territory', label: 'Territory' }
+            ].map((f) => {
+              const isSelected = categoryFilter === f.id;
+              return (
                 <button
                   key={f.id}
+                  type="button"
                   onClick={() => setCategoryFilter(f.id as DistributorCategoryFilter)}
-                  className={`px-3 py-1 rounded-full text-[11px] font-bold transition-all cursor-pointer ${
-                    categoryFilter === f.id
-                      ? 'bg-[#0F0F10] text-white shadow-xs'
-                      : 'text-[#6B7280] hover:text-[#0F0F10]'
+                  className={`relative pb-3 pt-1 min-h-11 whitespace-nowrap text-sm transition-colors cursor-pointer touch-manipulation ${
+                    isSelected
+                      ? 'text-[#0F0F10] font-medium'
+                      : 'text-[#6B7280] hover:text-[#0F0F10] font-normal'
                   }`}
                 >
-                  {f.label}
+                  <span>{f.label}</span>
+                  {isSelected && (
+                    <span className="absolute bottom-0 inset-x-0 h-[1.5px] bg-[#0F0F10]" />
+                  )}
                 </button>
-              ))}
-            </div>
-
-            {/* Layout Switcher */}
-            <div className="hidden sm:flex items-center gap-1 p-1 rounded-full bg-[#FAF9F6] border border-[#E5E7EB] text-xs">
-              <button
-                onClick={() => setLayoutMode('matrix')}
-                className={`px-2.5 py-1 rounded-full text-[10.5px] font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                  layoutMode === 'matrix'
-                    ? 'bg-[#0F0F10] text-white shadow-xs'
-                    : 'text-[#6B7280] hover:text-[#0F0F10]'
-                }`}
-              >
-                <Grid3X3 size={11} />
-                <span>Matrix</span>
-              </button>
-
-              <button
-                onClick={() => setLayoutMode('bento')}
-                className={`px-2.5 py-1 rounded-full text-[10.5px] font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                  layoutMode === 'bento'
-                    ? 'bg-[#0F0F10] text-white shadow-xs'
-                    : 'text-[#6B7280] hover:text-[#0F0F10]'
-                }`}
-              >
-                <LayoutGrid size={11} />
-                <span>Bento</span>
-              </button>
-            </div>
+              );
+            })}
           </div>
         </div>
 
-        {/* 4. The 9-Tile Navigation Grid */}
         <DistributorEditorialGrid
           onNavigate={onNavigate}
           onOpenAnalytics={() => setTelemetryOpen(true)}
           activeFilter={categoryFilter}
-          layoutMode={layoutMode}
+          layoutMode="matrix"
         />
       </section>
 
-      {/* 5. Distributor-only settings shortcut in the original floating pill. */}
-      <div className="fixed left-5 bottom-6 z-40">
-        <button
-          onClick={() => onNavigate('settings')}
-          className="px-4 py-2 rounded-full bg-[#0F0F10] hover:bg-black text-white text-[11px] font-bold shadow-md cursor-pointer tracking-tight transition-all active:scale-95 border border-white/10"
-          title="Open Hub Settings"
-        >
-          Hub Settings
-        </button>
-      </div>
-
-      {/* 6. Hub Telemetry Slide-Out Drawer */}
+      {/* Hub Telemetry Slide-Out Drawer */}
       <ActionDrawer
         isOpen={telemetryOpen}
         onClose={() => setTelemetryOpen(false)}
         title="Hub Operations Telemetry"
-        subtitle="Real-time fulfillment metrics, SLA benchmarks, and margin accounting"
+        subtitle="Fulfillment metrics and margin accounting"
         width="lg"
       >
         <div className="space-y-6">
-          {/* Header Metric Summary */}
           <div className="grid grid-cols-2 gap-3">
             <div className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB]">
-              <span className="text-[10px] font-mono text-[#6B7280] uppercase block">Cleared Wholesale Margin</span>
-              <p className="font-heading font-extrabold text-2xl text-[#0F0F10] mt-1 font-digit">
+              <span className="text-xs text-[#6B7280] block">Cleared Wholesale Margin</span>
+              <p className="font-heading font-semibold text-xl sm:text-2xl text-[#0F0F10] mt-1 font-digit">
                 ₦{totalMargin.toLocaleString('en-NG')}
               </p>
-              <span className="text-[10px] font-mono text-[#0F0F10] font-bold block mt-1">● CLEARED FOR PAYOUT</span>
+              <span className="text-xs text-[#4B5563] block mt-1">Cleared for payout</span>
             </div>
             <div className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB]">
-              <span className="text-[10px] font-mono text-[#6B7280] uppercase block">Orders In Queue</span>
-              <p className="font-heading font-extrabold text-2xl text-[#0F0F10] mt-1 font-digit">
+              <span className="text-xs text-[#6B7280] block">Orders In Queue</span>
+              <p className="font-heading font-semibold text-xl sm:text-2xl text-[#0F0F10] mt-1 font-digit">
                 {pendingOrders.length}
               </p>
-              <span className="text-[10px] font-mono text-[#6B7280] font-bold block mt-1">● AWAITING FULFILLMENT</span>
+              <span className="text-xs text-[#6B7280] block mt-1">Awaiting fulfillment</span>
             </div>
           </div>
 
-          {/* Operational Turnover & Rates */}
-          <div className="p-5 rounded-2xl border border-[#E5E7EB] bg-white space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-[#0F0F10]">Lagos Dispatch Velocity &amp; Turnaround</span>
-              <span className="text-[10px] font-mono font-bold text-[#0F0F10] bg-[#FAF9F6] px-2.5 py-0.5 rounded-full border border-[#E5E7EB]">
-                Not measured ON-TIME SLA
-              </span>
+          <div className="p-4 rounded-2xl border border-[#E5E7EB] bg-white space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-medium text-[#0F0F10]">Lagos Dispatch Turnaround</span>
+              <span className="text-xs font-mono text-[#4B5563]">On-time SLA pending</span>
             </div>
 
             <div className="grid grid-cols-3 gap-2 pt-2 text-center border-t border-[#E5E7EB]">
               <div className="p-2.5 rounded-xl bg-[#FAF9F6]">
-                <span className="text-[10px] font-mono text-[#6B7280] block">Average Handoff</span>
-                <span className="text-sm font-extrabold text-[#0F0F10]">1.8 hrs</span>
+                <span className="text-xs text-[#6B7280] block">Average Handoff</span>
+                <span className="text-sm font-semibold text-[#0F0F10]">1.8 hrs</span>
               </div>
               <div className="p-2.5 rounded-xl bg-[#FAF9F6]">
-                <span className="text-[10px] font-mono text-[#6B7280] block">Courier Fleet</span>
-                <span className="text-sm font-extrabold text-[#0F0F10]">12 Couriers</span>
+                <span className="text-xs text-[#6B7280] block">Courier Fleet</span>
+                <span className="text-sm font-semibold text-[#0F0F10]">12 Couriers</span>
               </div>
               <div className="p-2.5 rounded-xl bg-[#FAF9F6]">
-                <span className="text-[10px] font-mono text-[#6B7280] block">Same-Day Rate</span>
-                <span className="text-sm font-extrabold text-[#0F0F10]">96.8%</span>
+                <span className="text-xs text-[#6B7280] block">Same-Day Rate</span>
+                <span className="text-sm font-semibold text-[#0F0F10]">96.8%</span>
               </div>
             </div>
           </div>
 
-          {/* Top Formulations Movement */}
-          <div className="p-5 rounded-2xl border border-[#E5E7EB] bg-white space-y-3">
-            <h4 className="text-xs font-bold text-[#0F0F10]">Top Moving Skincare Formulations</h4>
+          <div className="p-4 rounded-2xl border border-[#E5E7EB] bg-white space-y-3">
+            <h4 className="text-xs font-medium text-[#0F0F10]">Top Moving Skincare Formulations</h4>
             <div className="space-y-2 text-xs">
               {inventoryItems.slice(0, 3).map((item) => (
                 <div key={item.sku} className="flex items-center justify-between py-1.5 border-b border-[#E5E7EB]/70">
                   <span className="text-[#0F0F10] font-medium">{item.productName}</span>
-                  <span className="font-mono text-[#0F0F10] font-bold">
-                    {item.lagosHub} units in Lagos Hub {item.lagosHub <= item.lowStockThreshold && '(Low Stock)'}
+                  <span className="font-mono text-[#0F0F10] font-medium">
+                    {item.lagosHub} units {item.lagosHub <= item.lowStockThreshold && '(Low Stock)'}
                   </span>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Quick Action Navigation Buttons */}
           <div className="pt-2 flex flex-col sm:flex-row gap-2">
             <button
+              type="button"
               onClick={() => {
                 setTelemetryOpen(false);
                 onNavigate('orders');
               }}
-              className="flex-1 py-2.5 rounded-full bg-[#0F0F10] text-white text-xs font-bold hover:bg-[#27272A] transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+              className="flex-1 min-h-11 rounded-xl bg-[#0F0F10] text-white text-xs font-medium hover:bg-[#27272A] transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
             >
-              <Package size={14} className="text-[#D4AF37]" />
+              <Package size={14} />
               <span>Open Orders Queue ({pendingOrders.length})</span>
             </button>
             <button
+              type="button"
               onClick={() => {
                 setTelemetryOpen(false);
                 onNavigate('restock');
               }}
-              className="flex-1 py-2.5 rounded-full border border-[#E5E7EB] bg-white text-xs font-bold text-[#0F0F10] hover:bg-[#FAF9F6] transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+              className="flex-1 min-h-11 rounded-xl border border-[#E5E7EB] bg-white text-xs font-medium text-[#0F0F10] hover:bg-[#FAF9F6] transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
             >
-              <Truck size={14} className="text-[#997A2E]" />
+              <Truck size={14} />
               <span>Order Bulk Restock</span>
             </button>
           </div>

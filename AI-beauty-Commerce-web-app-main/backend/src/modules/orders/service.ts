@@ -1,3 +1,4 @@
+import {orderPartnerAttributions} from '../referrals/schema';
 import { shipments } from '../shipping/schema';
 import { createHash, randomBytes } from 'node:crypto';
 import { and, desc, eq, lt, or, sql } from 'drizzle-orm';
@@ -284,13 +285,17 @@ export async function checkout(
     let creatorCode: string | null = null;
     let creatorDiscount = 0;
     let creatorId: string | null = null;
+    let influencerReferral: {id:string;commissionBps:number} | null = null;
     let creatorCommissionBps = 0;
     if (params.input.creatorCode) {
       try {
         const creator = await validateCode(tx, params.input.creatorCode);
+        let selfReferral=creator.userId===params.userId;
+        if(!params.userId&&creator.userId&&email){const [owner]=await tx.select({email:users.email}).from(users).where(eq(users.id,creator.userId));selfReferral=owner?.email.toLowerCase()===email.toLowerCase();}
         creatorCode = creator.promoCode;
-        creatorId = creator.id;
-        creatorCommissionBps = creator.userId && creator.userId !== params.userId ? creator.commissionBps : 0;
+        if(creator.recipientKind==='INFLUENCER'){if(!selfReferral)influencerReferral={id:creator.id,commissionBps:creator.commissionBps};}
+        else creatorId = creator.id;
+        creatorCommissionBps = creator.recipientKind==='CREATOR' && creator.userId && !selfReferral ? creator.commissionBps : 0;
         creatorDiscount = creatorDiscountKobo(subtotalKobo, creator.discountPercent);
       } catch {
         throw Errors.badRequest('Invalid creator code.');
@@ -327,6 +332,7 @@ export async function checkout(
       .returning({ id: orders.id });
 
     if (!params.userId && !params.input.guestAccessToken) throw Errors.badRequest('Guest access token is required.');
+    if(influencerReferral)await tx.insert(orderPartnerAttributions).values({orderId:order.id,referralId:influencerReferral.id,commissionBps:influencerReferral.commissionBps});
     // Loyalty voucher (if supplied): validated + consumed atomically here.
     let discountKobo = creatorDiscount;
     if (params.input.voucherCode) {

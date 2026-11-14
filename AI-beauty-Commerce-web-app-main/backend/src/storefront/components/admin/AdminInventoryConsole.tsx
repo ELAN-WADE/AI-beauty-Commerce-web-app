@@ -255,7 +255,7 @@ export const AdminInventoryConsole: React.FC = () => {
             <span className="text-[11px] font-mono uppercase font-bold tracking-wider">Total Active Units</span>
             <Boxes size={18} className="text-[#0F0F10]" />
           </div>
-          <div className="text-2xl sm:text-3xl font-heading font-extrabold text-[#0F0F10]">
+          <div className="text-2xl sm:text-3xl font-heading font-semibold text-[#0F0F10]">
             {metrics.totalUnits.toLocaleString('en-NG')}
           </div>
           <p className="text-[11px] text-[#71717A] mt-1 font-mono">{isLiveBackend ? `Across ${locations.length} inventory locations` : 'Across 5 Nationwide Depots'}</p>
@@ -266,7 +266,7 @@ export const AdminInventoryConsole: React.FC = () => {
             <span className="text-[11px] font-mono uppercase font-bold tracking-wider">Wholesale Inventory GMV</span>
             <Building2 size={18} className="text-[#997A2E]" />
           </div>
-          <div className="text-2xl sm:text-3xl font-heading font-extrabold text-[#0F0F10]">
+          <div className="text-2xl sm:text-3xl font-heading font-semibold text-[#0F0F10]">
             {isLiveBackend ? 'Not reconciled' : `₦${(metrics.totalValuation / 1_000_000).toFixed(1)}M`}
           </div>
           <p className="text-[11px] text-[#71717A] mt-1 font-mono">{isLiveBackend ? 'Cost basis is not configured' : 'Cost Basis @ ₦16K/unit avg'}</p>
@@ -277,7 +277,7 @@ export const AdminInventoryConsole: React.FC = () => {
             <span className="text-[11px] font-mono uppercase font-bold tracking-wider">Low Stock Warnings</span>
             <AlertTriangle size={18} className="text-[#D4AF37]" />
           </div>
-          <div className="text-2xl sm:text-3xl font-heading font-extrabold text-[#0F0F10] flex items-center gap-2">
+          <div className="text-2xl sm:text-3xl font-heading font-semibold text-[#0F0F10] flex items-center gap-2">
             <span>{metrics.lowStockCount}</span>
             {metrics.lowStockCount > 0 && (
               <span className="text-xs px-2 py-0.5 rounded-full bg-[#FBF5E8] text-[#997A2E] font-mono font-bold">
@@ -293,7 +293,7 @@ export const AdminInventoryConsole: React.FC = () => {
             <span className="text-[11px] font-mono uppercase font-bold tracking-wider">Lab Shipments In Transit</span>
             <Truck size={18} className="text-[#0F0F10]" />
           </div>
-          <div className="text-2xl sm:text-3xl font-heading font-extrabold text-[#0F0F10]">
+          <div className="text-2xl sm:text-3xl font-heading font-semibold text-[#0F0F10]">
             {labShipments.filter((s) => s.status === 'IN_TRANSIT').length}
           </div>
           <p className="text-[11px] text-[#71717A] mt-1 font-mono">Cold-chain tracked batches</p>
@@ -529,7 +529,7 @@ export const AdminInventoryConsole: React.FC = () => {
                               <AlertTriangle size={10} /> Low Stock
                             </span>
                           ) : (
-                            <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-mono font-bold">
+                            <span className="px-2 py-0.5 rounded-full bg-[#F3F4F6] text-[#111827] border border-[#E5E7EB] text-[10px] font-mono font-semibold">
                               Optimal
                             </span>
                           )}
@@ -630,9 +630,9 @@ export const AdminInventoryConsole: React.FC = () => {
                       </td>
                       <td className="py-3.5 px-4">
                         <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold ${
                             isPositive
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              ? 'bg-[#0F0F10] text-white border border-[#0F0F10]'
                               : isNegative
                               ? 'bg-rose-50 text-rose-700 border border-rose-200'
                               : 'bg-[#FAF9F6] text-[#0F0F10] border border-[#EAE8E3]'
@@ -646,7 +646,7 @@ export const AdminInventoryConsole: React.FC = () => {
                         <span className="text-[10px] text-[#71717A]">{log.sku}</span>
                       </td>
                       <td className="py-3.5 px-3 text-center font-mono font-bold">
-                        <span className={isPositive ? 'text-emerald-600' : isNegative ? 'text-rose-600' : 'text-[#0F0F10]'}>
+                        <span className={isPositive ? 'text-[#0F0F10]' : isNegative ? 'text-rose-600' : 'text-[#0F0F10]'}>
                           {isPositive ? `+${log.quantity}` : isNegative ? `-${log.quantity}` : log.quantity}
                         </span>
                       </td>
@@ -696,14 +696,14 @@ export const AdminInventoryConsole: React.FC = () => {
                     <span className="font-mono text-[10px] uppercase font-bold text-[#997A2E] tracking-wider">
                       Batch Restock Shipment
                     </span>
-                    <h4 className="font-heading font-extrabold text-lg text-[#0F0F10] mt-0.5 font-mono">
+                    <h4 className="font-heading font-semibold text-lg text-[#0F0F10] mt-0.5 font-mono">
                       {ship.batchNumber}
                     </h4>
                   </div>
                   <span
-                    className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-bold uppercase ${
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-semibold uppercase ${
                       ship.status === 'DELIVERED'
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        ? 'bg-[#F3F4F6] text-[#111827] border border-[#E5E7EB]'
                         : ship.status === 'IN_TRANSIT'
                         ? 'bg-[#0F0F10] text-[#D4AF37]'
                         : 'bg-amber-50 text-amber-700 border border-amber-200'

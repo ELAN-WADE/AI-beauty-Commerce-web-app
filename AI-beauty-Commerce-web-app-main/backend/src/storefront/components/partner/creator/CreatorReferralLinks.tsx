@@ -534,7 +534,7 @@ export const CreatorReferralLinks: React.FC = () => {
                 {/* Visual QR Pattern */}
                 <div className="w-full h-full bg-[radial-gradient(#0F0F10_2px,transparent_2px)] [background-size:10px_10px] relative flex items-center justify-center">
                   <div className="absolute inset-2 border-4 border-[#0F0F10] rounded-lg pointer-events-none" />
-                  <div className="w-12 h-12 rounded-xl bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center font-serif font-black text-lg shadow-md">
+                  <div className="w-12 h-12 rounded-xl bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center font-serif font-semibold text-lg shadow-md">
                     D!
                   </div>
                 </div>

@@ -1,5 +1,6 @@
 import { useSocialConnections } from '../../../lib/use-social-connections';
 import React, { useState, useRef, useEffect } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import {
   Video,
   Star,
@@ -41,7 +42,8 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
   onPublishSuccess,
   onCancel
 }) => {
-  const { products, createCommunityPost, authUser, navigateTo, addToCart, isLiveBackend } = useApp();
+  const { products, authUser, isLiveBackend } = useApp();
+  const shouldReduceMotion = useReducedMotion();
   const [saving, setSaving] = useState(false);
   const [savedRecord, setSavedRecord] = useState<{id: string; version: number} | null>(null);
   const [selectedFormat, setSelectedFormat] = useState<ContentFormat>('video');
@@ -187,11 +189,11 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
     setMediaType(isVideo ? 'video' : 'image');
     setMediaFileSize(`${sizeMb} MB`);
 
-    setToastMessage(`✓ ${file.name} loaded (${sizeMb} MB) • Uploading media…`);
+    setToastMessage(`${file.name} loaded (${sizeMb} MB). Uploading media...`);
     uploadPartnerMedia(file).then(res => {
       if (res?.url) {
         setVideoPreviewUrl(res.url);
-        setToastMessage(`✓ ${file.name} uploaded successfully`);
+        setToastMessage(`${file.name} uploaded successfully`);
       }
     }).catch(() => {
       setToastMessage(`Upload failed. ${file.name} is a local preview only. Select the file again to retry or enter a hosted HTTPS URL.`);
@@ -224,52 +226,93 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
 
   const handlePublish = async () => { await saveContent('SUBMITTED'); };
 
-  // ----------------------------------------------------
+  const studioEase = [0.23, 1, 0.32, 1] as const;
+
   // Content is submitted for administrator review through saveContent.
   return (
-    <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-200 pb-16">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E5E7EB]">
-        <div>
-          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
-            Creator Studio Suite
-          </span>
-          <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-[#0F0F10]">
-            Create New Content
-          </h1>
-          <p className="text-xs sm:text-sm text-[#6B7280] mt-0.5">
-            Craft high-converting short video reels, step-by-step regimens, and verified natural reviews.
-          </p>
+    <div className="space-y-6 pb-16">
+      {/* Studio Composition Header with Shared-Element Hero Card */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 pb-6 border-b border-[#E5E7EB]">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5">
+          {/* Settled Shared-Element Studio Card (capped width on mobile so it integrates into layout) */}
+          <motion.div
+            layoutId={!shouldReduceMotion ? 'creator-studio-hero-card' : undefined}
+            transition={{ duration: shouldReduceMotion ? 0 : 0.36, ease: studioEase }}
+            className="relative w-full max-w-[240px] sm:w-48 md:w-52 aspect-[16/10] rounded-2xl overflow-hidden bg-[#18181B] shadow-[0_8px_24px_-6px_rgba(0,0,0,0.16)] shrink-0"
+          >
+            <img
+              src="/tile_create_studio.jpg"
+              alt="Creator Studio"
+              className="w-full h-full object-cover object-center"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+            <div className="absolute bottom-2.5 left-3 right-3 flex items-center justify-between text-white">
+              <span className="font-mono text-[10px] tracking-wider text-white/80">01</span>
+              <span className="text-xs font-medium text-white">Creator Studio</span>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.28, delay: 0.05, ease: studioEase }}
+            className="space-y-1"
+          >
+            <p className="text-xs font-medium text-[#6B7280]">
+              Creator Studio Suite
+            </p>
+            <h1 className="font-heading font-semibold text-xl sm:text-2xl text-[#0F0F10] tracking-tight">
+              Create New Content
+            </h1>
+            <p className="text-sm text-[#6B7280] max-w-md leading-relaxed">
+              Craft short video reels, step-by-step regimens, and verified product reviews.
+            </p>
+          </motion.div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <motion.div
+          initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.28, delay: 0.08, ease: studioEase }}
+          className="flex flex-wrap items-center gap-2.5"
+        >
           {onCancel && (
             <button
+              type="button"
               onClick={onCancel}
-              className="px-4 py-2 rounded-full border border-[#E5E7EB] bg-white hover:bg-[#FAF9F6] text-xs font-semibold text-[#0F0F10] cursor-pointer"
+              className="min-h-11 px-4 rounded-xl border border-[#E5E7EB] bg-white hover:bg-[#FAF9F6] text-xs font-medium text-[#0F0F10] cursor-pointer transition-colors touch-manipulation"
             >
               Cancel
             </button>
           )}
           <button
-            disabled={saving} onClick={() => void saveContent('DRAFT')}
-            className="px-4 py-2 rounded-full border border-[#D4AF37] bg-[#FBF5E8] hover:bg-[#F3EEE3] text-xs font-bold text-[#997A2E] cursor-pointer active:scale-95 transition-all"
+            type="button"
+            disabled={saving}
+            onClick={() => void saveContent('DRAFT')}
+            className="min-h-11 px-4 rounded-xl border border-[#E5E7EB] bg-white hover:bg-[#FAF9F6] text-xs font-medium text-[#0F0F10] cursor-pointer active:scale-[0.98] transition-all disabled:opacity-50 touch-manipulation"
           >
-            Save Draft
+            {saving ? 'Saving...' : 'Save Draft'}
           </button>
           <button
-            disabled={saving} onClick={handlePublish}
-            className="px-6 py-2 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-[#D4AF37] text-xs font-bold shadow-md cursor-pointer flex items-center gap-1.5 active:scale-95 transition-all"
+            type="button"
+            disabled={saving}
+            onClick={handlePublish}
+            className="min-h-11 px-5 rounded-xl bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-medium cursor-pointer flex items-center gap-2 active:scale-[0.98] transition-all disabled:opacity-50 touch-manipulation"
           >
-            <span>Submit for review</span>
-            <ArrowRight size={13} />
+            <span>{saving ? 'Submitting...' : 'Submit for review'}</span>
+            <ArrowRight size={14} />
           </button>
-        </div>
+        </motion.div>
       </div>
 
       {/* Format Selector Pills */}
-      <section className="space-y-3">
-        <label className="text-xs font-bold text-[#0F0F10] block">
+      <motion.section
+        initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.1, ease: studioEase }}
+        className="space-y-3"
+      >
+        <label className="text-sm font-medium text-[#0F0F10] block">
           Select Content Type
         </label>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -281,31 +324,26 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                 key={f.id}
                 type="button"
                 onClick={() => setSelectedFormat(f.id as ContentFormat)}
-                className={`p-4 rounded-2xl border text-left flex flex-col justify-between min-h-[96px] transition-all cursor-pointer ${
+                className={`p-4 rounded-2xl border text-left flex flex-col justify-between min-h-[96px] transition-colors cursor-pointer touch-manipulation ${
                   isSelected
-                    ? 'border-[#D4AF37] bg-[#FDFBF7] shadow-sm ring-1 ring-[#D4AF37]/50'
-                    : 'border-[#E5E7EB] bg-white hover:border-[#D4AF37]/40 hover:bg-[#FAF9F6]'
+                    ? 'border-[#0F0F10] bg-[#FAF9F6]'
+                    : 'border-[#E5E7EB] bg-white hover:border-[#9CA3AF]'
                 }`}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${isSelected ? 'bg-[#0F0F10] text-[#D4AF37]' : 'bg-[#FAF9F6] text-[#6B7280]'}`}>
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isSelected ? 'bg-[#0F0F10] text-white' : 'bg-[#FAF9F6] text-[#6B7280]'}`}>
                     <Icon size={16} />
                   </div>
-                  {f.popular && (
-                    <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-[#997A2E] bg-white px-2 py-0.5 rounded-full border border-[#D4AF37]/40">
-                      VIRAL
-                    </span>
-                  )}
                 </div>
                 <div>
-                  <h3 className="text-xs font-bold text-[#0F0F10]">{f.label}</h3>
-                  <p className="text-[10px] text-[#6B7280] line-clamp-1 mt-0.5">{f.desc}</p>
+                  <h3 className="text-sm font-medium text-[#0F0F10]">{f.label}</h3>
+                  <p className="text-xs text-[#6B7280] line-clamp-1 mt-0.5">{f.desc}</p>
                 </div>
               </button>
             );
           })}
         </div>
-      </section>
+      </motion.section>
 
       {/* ==================================================== */}
       {/* 1. SHORT VIDEO / REEL CREATION INTERFACE */}
@@ -315,33 +353,30 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
           {/* Left Column (7 cols): Video Upload, TikTok Sync & Caption */}
           <div className="lg:col-span-7 space-y-5">
             {/* Social Accounts Sync Card */}
-            <div className="p-5 rounded-3xl bg-white border border-[#E5E7EB] shadow-xs space-y-3">
-              <div className="flex items-center justify-between">
+            <div className="p-4 sm:p-5 rounded-2xl bg-white border border-[#E5E7EB] space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
+                  <span className="text-xs text-[#6B7280] block">
                     Social Cross-Publishing
                   </span>
-                  <h3 className="font-heading font-bold text-sm text-[#0F0F10]">
+                  <h3 className="font-heading font-medium text-base text-[#0F0F10]">
                     Connected Creator Accounts
                   </h3>
                 </div>
-                <span className="text-[10px] font-mono font-bold text-[#0F0F10] bg-[#FAF9F6] px-2.5 py-0.5 rounded-full border border-[#E5E7EB]">
-                  ● {Number(tiktokAccount.saved) + Number(instagramAccount.saved)} PROFILE LINKS SAVED
+                <span className="text-xs font-mono text-[#4B5563] bg-[#FAF9F6] px-2.5 py-1 rounded-lg border border-[#E5E7EB]">
+                  {Number(tiktokAccount.saved) + Number(instagramAccount.saved)} profile links saved
                 </span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                 {/* TikTok Account */}
-                <div className="p-3 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] flex flex-col justify-between gap-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center font-bold text-xs shadow-xs"><img src="/icons/tiktok.svg" alt="TikTok" width={20} height={20}/></div>
-                      <div>
-                        <div className="flex items-center gap-1">
-                          <span className="font-bold text-xs text-[#0F0F10]">{tiktokAccount.handle}</span>
-
-                        </div>
-                        <span className="text-[10px] text-[#6B7280]">{tiktokAccount.followers}</span>
+                <div className="p-3.5 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] flex flex-col justify-between gap-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-[#0F0F10] flex items-center justify-center shrink-0"><img src="/icons/tiktok.svg" alt="TikTok" width={18} height={18}/></div>
+                      <div className="min-w-0">
+                        <span className="font-medium text-sm text-[#0F0F10] block truncate">{tiktokAccount.handle || 'TikTok'}</span>
+                        <span className="text-xs text-[#6B7280] block truncate">{tiktokAccount.followers}</span>
                       </div>
                     </div>
                     {tiktokAccount.saved && (
@@ -349,26 +384,23 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                         href={tiktokAccount.profileUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[#9CA3AF] hover:text-[#0F0F10] p-1"
+                        className="min-h-10 min-w-10 rounded-lg text-[#6B7280] hover:text-[#0F0F10] hover:bg-white flex items-center justify-center shrink-0"
                         title="Open TikTok Profile"
+                        aria-label="Open TikTok Profile"
                       >
-                        <ExternalLink size={12} />
+                        <ExternalLink size={14} />
                       </a>
                     )}
                   </div>
 
-                  <div className="flex items-center justify-between pt-1 border-t border-[#E5E7EB]/60">
-                    <span className="text-[9.5px] font-mono text-[#6B7280]">
-                      {tiktokAccount.saved ? 'Profile link saved' : 'No profile link'}
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-[#E5E7EB]/80">
+                    <span className="text-xs text-[#6B7280]">
+                      {tiktokAccount.saved ? 'Profile link saved' : 'Not linked'}
                     </span>
                     <button
                       type="button"
                       onClick={() => openSocialConnect('tiktok')}
-                      className={`text-[11px] font-bold px-3 py-1 rounded-full cursor-pointer transition-all ${
-                        tiktokAccount.saved
-                          ? 'bg-[#0F0F10] text-white hover:bg-[#27272A]'
-                          : 'bg-[#0F0F10] text-[#D4AF37] hover:bg-[#27272A]'
-                      }`}
+                      className="min-h-10 text-xs font-medium px-3.5 rounded-lg bg-[#0F0F10] text-white hover:bg-[#27272A] cursor-pointer transition-colors touch-manipulation"
                     >
                       {tiktokAccount.saved ? 'Edit link' : '+ Add TikTok'}
                     </button>
@@ -376,16 +408,13 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                 </div>
 
                 {/* Instagram Reels Account */}
-                <div className="p-3 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] flex flex-col justify-between gap-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-[#0F0F10] text-white flex items-center justify-center font-bold text-xs shadow-xs"><img src="/icons/instagram.svg" alt="Instagram" width={20} height={20}/></div>
-                      <div>
-                        <div className="flex items-center gap-1">
-                          <span className="font-bold text-xs text-[#0F0F10]">{instagramAccount.handle}</span>
-
-                        </div>
-                        <span className="text-[10px] text-[#6B7280]">{instagramAccount.followers}</span>
+                <div className="p-3.5 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] flex flex-col justify-between gap-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-[#0F0F10] flex items-center justify-center shrink-0"><img src="/icons/instagram.svg" alt="Instagram" width={18} height={18}/></div>
+                      <div className="min-w-0">
+                        <span className="font-medium text-sm text-[#0F0F10] block truncate">{instagramAccount.handle || 'Instagram'}</span>
+                        <span className="text-xs text-[#6B7280] block truncate">{instagramAccount.followers}</span>
                       </div>
                     </div>
                     {instagramAccount.saved && (
@@ -393,26 +422,23 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                         href={instagramAccount.profileUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[#9CA3AF] hover:text-[#0F0F10] p-1"
+                        className="min-h-10 min-w-10 rounded-lg text-[#6B7280] hover:text-[#0F0F10] hover:bg-white flex items-center justify-center shrink-0"
                         title="Open Instagram Profile"
+                        aria-label="Open Instagram Profile"
                       >
-                        <ExternalLink size={12} />
+                        <ExternalLink size={14} />
                       </a>
                     )}
                   </div>
 
-                  <div className="flex items-center justify-between pt-1 border-t border-[#E5E7EB]/60">
-                    <span className="text-[9.5px] font-mono text-[#6B7280]">
-                      {instagramAccount.saved ? 'Profile link saved' : 'No profile link'}
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-[#E5E7EB]/80">
+                    <span className="text-xs text-[#6B7280]">
+                      {instagramAccount.saved ? 'Profile link saved' : 'Not linked'}
                     </span>
                     <button
                       type="button"
                       onClick={() => openSocialConnect('instagram')}
-                      className={`text-[11px] font-bold px-3 py-1 rounded-full cursor-pointer transition-all ${
-                        instagramAccount.saved
-                          ? 'bg-[#0F0F10] text-white hover:bg-[#27272A]'
-                          : 'bg-[#0F0F10] text-[#D4AF37] hover:bg-[#27272A]'
-                      }`}
+                      className="min-h-10 text-xs font-medium px-3.5 rounded-lg bg-[#0F0F10] text-white hover:bg-[#27272A] cursor-pointer transition-colors touch-manipulation"
                     >
                       {instagramAccount.saved ? 'Edit link' : '+ Add Instagram'}
                     </button>
@@ -422,7 +448,7 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
             </div>
 
             {/* Video & Media File Uploader (Native HTML5 Drag & Drop) */}
-            <div className="p-5 rounded-3xl bg-white border border-[#E5E7EB] shadow-xs space-y-4">
+            <div className="p-4 sm:p-5 rounded-2xl bg-white border border-[#E5E7EB] space-y-4">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -435,21 +461,24 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                 className="hidden"
               />
 
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <label className="text-xs font-bold text-[#0F0F10] block mb-0.5">
-                    Upload Reel Media (CapCut / Phone / Camera)
+                  <label className="text-sm font-medium text-[#0F0F10] block mb-0.5">
+                    Upload Reel Media
                   </label>
-                  <p className="text-[11px] text-[#6B7280]">
-                    Select from device or drag &amp; drop your vertical 9:16 MP4, MOV, or photography.
+                  <p className="text-xs text-[#6B7280]">
+                    Select from device or drop a vertical 9:16 video or image.
                   </p>
                 </div>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#FAF9F6] border border-[#E5E7EB] text-[#6B7280]">
-                  {mediaType === 'video' ? 'VIDEO ENGINE' : 'PHOTO ENGINE'}
+                <span className="text-xs font-mono px-2.5 py-1 rounded-lg bg-[#FAF9F6] border border-[#E5E7EB] text-[#4B5563]">
+                  {mediaType === 'video' ? 'Video' : 'Photo'}
                 </span>
               </div>
 
               <div
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInputRef.current?.click(); } }}
                 onDragOver={(e) => {
                   e.preventDefault();
                   setIsDragging(true);
@@ -457,39 +486,44 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                 onDragLeave={() => setIsDragging(false)}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-2xl p-6 text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-2 ${
+                className={`border border-dashed rounded-2xl p-5 text-center transition-colors cursor-pointer flex flex-col items-center justify-center gap-2.5 ${
                   isDragging
-                    ? 'border-[#D4AF37] bg-[#FBF5E8]'
-                    : 'border-[#D4AF37]/50 bg-[#FAF9F6]/80 hover:bg-[#FAF9F6] hover:border-[#D4AF37]'
+                    ? 'border-[#0F0F10] bg-[#FAF9F6]'
+                    : 'border-[#D1D5DB] bg-[#FAF9F6]/70 hover:bg-[#FAF9F6] hover:border-[#0F0F10]'
                 }`}
               >
-                <div className="w-12 h-12 rounded-full bg-[#FBF5E8] text-[#997A2E] flex items-center justify-center shadow-xs">
-                  {mediaType === 'video' ? <Film size={22} /> : <ImageIcon size={22} />}
+                <div className="w-11 h-11 rounded-xl bg-white border border-[#E5E7EB] text-[#0F0F10] flex items-center justify-center">
+                  {mediaType === 'video' ? <Film size={20} /> : <ImageIcon size={20} />}
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-[#0F0F10] flex items-center justify-center gap-1.5">
-                    <span>Active File:</span>
-                    <span className="font-mono text-[#997A2E] underline underline-offset-2">{videoFileName}</span>
-                  </p>
-                  <p className="text-[10px] text-[#6B7280] mt-1 font-mono">
-                    Size: {mediaFileSize} • {mediaType === 'video' ? 'Vertical 1080x1920 (9:16) MP4/WebM' : 'High-Res Regimen Image'}
+                  {videoFileName ? (
+                    <p className="text-xs font-medium text-[#0F0F10] flex flex-wrap items-center justify-center gap-1.5">
+                      <span>Selected file:</span>
+                      <span className="font-mono underline underline-offset-2">{videoFileName}</span>
+                    </p>
+                  ) : (
+                    <p className="text-sm font-medium text-[#0F0F10]">
+                      Drop media here or browse device
+                    </p>
+                  )}
+                  <p className="text-xs text-[#6B7280] mt-1">
+                    {mediaFileSize ? `${mediaFileSize} — ` : ''}
+                    {mediaType === 'video' ? 'Vertical 1080x1920 (9:16) MP4 or WebM' : 'High-resolution photography'}
                   </p>
                 </div>
-                <div className="flex items-center gap-2 mt-2">
-                  <span className="px-3 py-1.5 rounded-full bg-white border border-[#E5E7EB] text-[11px] font-bold text-[#0F0F10] hover:bg-[#FAF9F6] shadow-xs flex items-center gap-1.5">
-                    <Upload size={12} className="text-[#997A2E]" />
-                    <span>Choose File from Device</span>
-                  </span>
-                </div>
+                <span className="mt-1 min-h-10 px-4 rounded-xl bg-white border border-[#E5E7EB] text-xs font-medium text-[#0F0F10] inline-flex items-center gap-1.5">
+                  <Upload size={13} />
+                  <span>Choose File</span>
+                </span>
               </div>
 
               {/* Beauty Filter Preset */}
               <div>
-                <label className="text-xs font-bold text-[#0F0F10] block mb-1.5 flex items-center gap-1.5">
-                  <Sliders size={13} className="text-[#997A2E]" />
-                  <span>Beauty Lighting &amp; Color Grading Preset</span>
+                <label className="text-sm font-medium text-[#0F0F10] mb-2 flex items-center gap-1.5">
+                  <Sliders size={14} className="text-[#4B5563]" />
+                  <span>Color &amp; Lighting Preset</span>
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[
                     'Natural Radiance 4K',
                     'Warm Golden Hour',
@@ -500,10 +534,10 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                       key={filter}
                       type="button"
                       onClick={() => setVideoFilter(filter)}
-                      className={`px-3 py-2 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${
+                      className={`min-h-10 px-3 py-2 rounded-xl text-xs font-medium border transition-colors cursor-pointer touch-manipulation ${
                         videoFilter === filter
-                          ? 'border-[#D4AF37] bg-[#FBF5E8] text-[#997A2E]'
-                          : 'border-[#E5E7EB] bg-[#FAF9F6] text-[#6B7280] hover:text-[#0F0F10]'
+                          ? 'border-[#0F0F10] bg-[#0F0F10] text-white'
+                          : 'border-[#E5E7EB] bg-[#FAF9F6] text-[#4B5563] hover:text-[#0F0F10]'
                       }`}
                     >
                       {filter}
@@ -514,9 +548,9 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
             </div>
 
             {/* Video Details & Caption */}
-            <div className="p-5 rounded-3xl bg-white border border-[#E5E7EB] shadow-xs space-y-4">
+            <div className="p-4 sm:p-5 rounded-2xl bg-white border border-[#E5E7EB] space-y-4">
               <div>
-                <label className="text-xs font-bold text-[#0F0F10] block mb-1.5">
+                <label className="text-sm font-medium text-[#0F0F10] block mb-1.5">
                   Reel Title
                 </label>
                 <input
@@ -524,12 +558,12 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                   value={videoTitle}
                   onChange={(e) => setVideoTitle(e.target.value)}
                   placeholder="e.g. My 3-Drop Radiance Routine for Lekki Sun"
-                  className="w-full px-4 py-2.5 rounded-xl border border-[#E5E7EB] text-xs text-[#0F0F10] focus:outline-none focus:border-[#D4AF37] bg-[#FAF9F6] font-medium"
+                  className="w-full min-h-11 px-3.5 py-2.5 rounded-xl border border-[#E5E7EB] text-base sm:text-sm text-[#0F0F10] focus:outline-none focus:border-[#0F0F10] bg-[#FAF9F6]"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-[#0F0F10] block mb-1.5">
+                <label className="text-sm font-medium text-[#0F0F10] block mb-1.5">
                   Caption &amp; Creator Takeaway
                 </label>
                 <textarea
@@ -537,7 +571,7 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                   value={videoCaption}
                   onChange={(e) => setVideoCaption(e.target.value)}
                   placeholder="Explain why you love these formulations..."
-                  className="w-full px-4 py-2.5 rounded-xl border border-[#E5E7EB] text-xs text-[#0F0F10] focus:outline-none focus:border-[#D4AF37] bg-[#FAF9F6] font-medium"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#E5E7EB] text-base sm:text-sm text-[#0F0F10] focus:outline-none focus:border-[#0F0F10] bg-[#FAF9F6]"
                 />
               </div>
 
@@ -598,23 +632,23 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
           {/* Right Column (5 cols): Tag Formulations & 9:16 Video Player Preview */}
           <div className="lg:col-span-5 space-y-5">
             {/* Tagged Beauty Products Card */}
-            <div className="p-5 rounded-3xl bg-white border border-[#E5E7EB] shadow-xs space-y-3">
-              <div className="flex items-center justify-between">
+            <div className="p-4 sm:p-5 rounded-2xl bg-white border border-[#E5E7EB] space-y-3">
+              <div className="flex items-center justify-between gap-2">
                 <div>
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
+                  <span className="text-xs text-[#6B7280] block">
                     Shoppable Attribution
                   </span>
-                  <h3 className="font-heading font-bold text-sm text-[#0F0F10]">
+                  <h3 className="font-heading font-medium text-base text-[#0F0F10]">
                     Tag Formulations in Reel
                   </h3>
                 </div>
-                <span className="text-[10px] font-mono font-bold text-[#997A2E]">
-                  Your assigned commission
+                <span className="text-xs text-[#6B7280]">
+                  Assigned commission
                 </span>
               </div>
 
-              <p className="text-[11px] text-[#6B7280]">
-                Select the authentic laboratory products featured in this clip:
+              <p className="text-xs text-[#6B7280]">
+                Select the formulations featured in this clip:
               </p>
 
               <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
@@ -624,34 +658,34 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                     <div
                       key={p.id}
                       onClick={() => toggleProductSelection(p.id)}
-                      className={`p-2.5 rounded-2xl border flex items-center justify-between gap-3 cursor-pointer transition-all ${
+                      className={`p-2.5 rounded-xl border flex items-center justify-between gap-3 cursor-pointer transition-colors ${
                         isTagged
-                          ? 'border-[#D4AF37] bg-[#FDFBF7] shadow-2xs'
+                          ? 'border-[#0F0F10] bg-[#FAF9F6]'
                           : 'border-[#E5E7EB] bg-white hover:bg-[#FAF9F6]'
                       }`}
                     >
-                      <div className="flex items-center gap-2.5">
+                      <div className="flex items-center gap-2.5 min-w-0">
                         <img
                           src={p.image}
                           alt={p.name}
-                          className="w-10 h-10 rounded-xl object-cover border border-[#E5E7EB] shrink-0"
+                          className="w-10 h-10 rounded-lg object-cover border border-[#E5E7EB] shrink-0"
                         />
-                        <div>
-                          <span className="font-bold text-xs text-[#0F0F10] block line-clamp-1">
+                        <div className="min-w-0">
+                          <span className="font-medium text-xs text-[#0F0F10] block truncate">
                             {p.name}
                           </span>
-                          <span className="font-mono text-[11px] text-[#6B7280]">
-                            ₦{p.price.toLocaleString('en-NG')} • Earn ₦{Math.round(p.price * 0.12).toLocaleString('en-NG')}
+                          <span className="font-mono text-xs text-[#6B7280]">
+                            ₦{p.price.toLocaleString('en-NG')} (Est. ₦{Math.round(p.price * 0.12).toLocaleString('en-NG')})
                           </span>
                         </div>
                       </div>
 
                       <div
                         className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${
-                          isTagged ? 'bg-[#0F0F10] text-[#D4AF37]' : 'border border-[#D1D5DB]'
+                          isTagged ? 'bg-[#0F0F10] text-white' : 'border border-[#D1D5DB]'
                         }`}
                       >
-                        {isTagged && <Check size={11} strokeWidth={3} />}
+                        {isTagged && <Check size={11} />}
                       </div>
                     </div>
                   );
@@ -660,13 +694,13 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
             </div>
 
             {/* Live 9:16 Mobile Reel Preview */}
-            <div className="p-5 rounded-3xl bg-white border border-[#E5E7EB] shadow-xs space-y-3">
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#6B7280] block text-center">
+            <div className="p-4 sm:p-5 rounded-2xl bg-white border border-[#E5E7EB] space-y-3">
+              <span className="text-xs font-medium text-[#6B7280] block text-center">
                 Content Mobile Preview
               </span>
 
               {/* 9:16 Reel Container */}
-              <div className="relative aspect-[9/16] w-full max-w-[260px] mx-auto rounded-3xl overflow-hidden bg-black shadow-lg border border-black/10">
+              <div className="relative aspect-[9/16] w-full max-w-[260px] mx-auto rounded-2xl overflow-hidden bg-black shadow-md">
                 {!mediaPreviewUrl ? (
                   <div className="relative z-10 flex h-full flex-col items-center justify-center gap-3 p-6 text-center text-white/80">
                     <Video size={28} aria-hidden="true" />
@@ -695,52 +729,52 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                 <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/30 pointer-events-none" />
 
                 {/* Filter Stamp Badge */}
-                <div className="absolute top-3 left-3 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-md text-[9px] font-mono text-white/90 border border-white/20">
+                <div className="absolute top-3 left-3 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-md text-[10px] font-mono text-white/90">
                   {videoFilter}
                 </div>
 
-                {/* Right Reel Action Icons (TikTok / IG style) */}
+                {/* Right Reel Action Icons */}
                 <div className="absolute right-2.5 bottom-16 flex flex-col items-center gap-3 text-white pointer-events-none">
                   <div className="flex flex-col items-center">
                     <div className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-rose-500">
-                      <Heart size={16} fill="currentColor" />
+                      <Heart size={16} />
                     </div>
-                    <span className="text-[9px] font-mono mt-0.5">Preview</span>
+                    <span className="text-[10px] font-mono mt-0.5">Preview</span>
                   </div>
                   <div className="flex flex-col items-center">
                     <div className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center">
                       <MessageCircle size={15} />
                     </div>
-                    <span className="text-[9px] font-mono mt-0.5">148</span>
+                    <span className="text-[10px] font-mono mt-0.5">Comments</span>
                   </div>
                   <div className="flex flex-col items-center">
                     <div className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center">
                       <Share2 size={14} />
                     </div>
-                    <span className="text-[9px] font-mono mt-0.5">Share</span>
+                    <span className="text-[10px] font-mono mt-0.5">Share</span>
                   </div>
                 </div>
 
                 {/* Bottom Creator Info & Shoppable Tag */}
                 <div className="absolute bottom-3 left-3 right-12 text-white space-y-1.5 pointer-events-none">
                   <div className="flex items-center gap-1.5">
-                    <span className="font-bold text-xs">{tiktokAccount.handle || ''}</span>
-                    <span className="text-[9px] font-mono text-[#D4AF37] bg-[#D4AF37]/20 px-1.5 py-0.2 rounded-full border border-[#D4AF37]/30">
-                      {tiktokAccount.saved ? 'LINK SAVED' : 'DESLA'}
+                    <span className="font-medium text-xs">{tiktokAccount.handle || ''}</span>
+                    <span className="text-[10px] font-mono text-white/80 bg-white/15 px-1.5 py-0.5 rounded-md">
+                      {tiktokAccount.saved ? 'Linked' : 'Desla'}
                     </span>
                   </div>
 
-                  <p className="text-[10px] text-white/90 line-clamp-2 leading-snug">
+                  <p className="text-[11px] text-white/90 line-clamp-2 leading-snug">
                     {videoCaption}
                   </p>
 
                   {/* Shoppable Tag Banner */}
-                  <div className="flex items-center gap-1.5 p-1.5 rounded-xl bg-white/20 backdrop-blur-md border border-white/30 text-[9.5px]">
-                    <ShoppingBag size={12} className="text-[#D4AF37] shrink-0" />
-                    <span className="truncate font-semibold">
+                  <div className="flex items-center gap-1.5 p-1.5 rounded-xl bg-white/20 backdrop-blur-md text-[10px]">
+                    <ShoppingBag size={12} className="text-white shrink-0" />
+                    <span className="truncate font-medium">
                       {products.find((p) => p.id === selectedProductIds[0])?.name || 'Radiant Glow Oil'}
                     </span>
-                    <span className="font-mono text-[#D4AF37] font-bold shrink-0 ml-auto">Shop</span>
+                    <span className="font-mono text-white font-medium shrink-0 ml-auto">Shop</span>
                   </div>
                 </div>
               </div>
@@ -755,10 +789,10 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
       {selectedFormat === 'routine' && (
         <section className="space-y-6">
           {/* Routine Metadata */}
-          <div className="p-6 rounded-3xl bg-white border border-[#E5E7EB] shadow-xs space-y-4">
+          <div className="p-4 sm:p-5 rounded-2xl bg-white border border-[#E5E7EB] space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="sm:col-span-2">
-                <label className="text-xs font-bold text-[#0F0F10] block mb-1.5">
+                <label className="text-sm font-medium text-[#0F0F10] block mb-1.5">
                   Routine Regimen Title
                 </label>
                 <input
@@ -766,18 +800,18 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                   value={routineTitle}
                   onChange={(e) => setRoutineTitle(e.target.value)}
                   placeholder="e.g. Morning Natural Barrier Shield"
-                  className="w-full px-4 py-2.5 rounded-xl border border-[#E5E7EB] text-xs text-[#0F0F10] focus:outline-none focus:border-[#D4AF37] bg-[#FAF9F6] font-medium"
+                  className="w-full min-h-11 px-3.5 py-2.5 rounded-xl border border-[#E5E7EB] text-base sm:text-sm text-[#0F0F10] focus:outline-none focus:border-[#0F0F10] bg-[#FAF9F6]"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-[#0F0F10] block mb-1.5">
+                <label className="text-sm font-medium text-[#0F0F10] block mb-1.5">
                   Primary Skin Concern
                 </label>
                 <select
                   value={routineCategory}
                   onChange={(e) => setRoutineCategory(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-[#E5E7EB] text-xs text-[#0F0F10] focus:outline-none focus:border-[#D4AF37] bg-[#FAF9F6] font-medium cursor-pointer"
+                  className="w-full min-h-11 px-3.5 py-2.5 rounded-xl border border-[#E5E7EB] text-base sm:text-sm text-[#0F0F10] focus:outline-none focus:border-[#0F0F10] bg-[#FAF9F6] cursor-pointer"
                 >
                   <option>Hydration &amp; Barrier Repair</option>
                   <option>Dark Spot &amp; Hyperpigmentation</option>
@@ -789,7 +823,7 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-[#E5E7EB]">
               <div>
-                <label className="text-xs font-bold text-[#0F0F10] block mb-1.5">
+                <label className="text-sm font-medium text-[#0F0F10] block mb-1.5">
                   Target Skin Type
                 </label>
                 <input
@@ -797,12 +831,12 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                   value={routineSkinType}
                   onChange={(e) => setRoutineSkinType(e.target.value)}
                   placeholder="e.g. Combination & Natural"
-                  className="w-full px-4 py-2.5 rounded-xl border border-[#E5E7EB] text-xs text-[#0F0F10] bg-[#FAF9F6] font-medium"
+                  className="w-full min-h-11 px-3.5 py-2.5 rounded-xl border border-[#E5E7EB] text-base sm:text-sm text-[#0F0F10] bg-[#FAF9F6] focus:outline-none focus:border-[#0F0F10]"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-[#0F0F10] block mb-1.5">
+                <label className="text-sm font-medium text-[#0F0F10] block mb-1.5">
                   Time of Day
                 </label>
                 <div className="grid grid-cols-3 gap-2">
@@ -811,9 +845,9 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                       key={tod}
                       type="button"
                       onClick={() => setRoutineTimeOfDay(tod)}
-                      className={`py-2 rounded-xl text-xs font-bold capitalize transition-colors cursor-pointer ${
+                      className={`min-h-11 rounded-xl text-xs font-medium capitalize transition-colors cursor-pointer touch-manipulation ${
                         routineTimeOfDay === tod
-                          ? 'bg-[#0F0F10] text-[#D4AF37]'
+                          ? 'bg-[#0F0F10] text-white'
                           : 'bg-[#FAF9F6] text-[#6B7280] border border-[#E5E7EB]'
                       }`}
                     >
@@ -827,8 +861,8 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
 
           {/* Step-by-Step Regimen Cards */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-heading font-bold text-base text-[#0F0F10]">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="font-heading font-medium text-base text-[#0F0F10]">
                 Regimen Steps ({routineSteps.length})
               </h3>
               <button
@@ -845,19 +879,18 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                     }
                   ]);
                 }}
-                className="px-4 py-1.5 rounded-full border border-[#D4AF37] bg-[#FBF5E8] text-[#997A2E] text-xs font-bold flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all"
+                className="min-h-10 px-4 rounded-xl border border-[#0F0F10] bg-white hover:bg-[#FAF9F6] text-[#0F0F10] text-xs font-medium flex items-center gap-1.5 cursor-pointer transition-colors"
               >
-                <Plus size={13} />
+                <Plus size={14} />
                 <span>Add Regimen Step</span>
               </button>
             </div>
 
             {routineSteps.map((step, idx) => {
-              const matchedProduct = products.find((p) => p.id === step.productId);
               return (
                 <div
                   key={step.id}
-                  className="p-5 rounded-3xl bg-white border border-[#E5E7EB] shadow-xs flex flex-col md:flex-row md:items-start justify-between gap-4"
+                  className="p-4 sm:p-5 rounded-2xl bg-white border border-[#E5E7EB] flex flex-col md:flex-row md:items-start justify-between gap-4"
                 >
                   <div className="flex items-start gap-4">
                     <span className="w-8 h-8 rounded-2xl bg-[#0F0F10] text-[#D4AF37] font-mono font-bold text-xs flex items-center justify-center shrink-0">
@@ -935,27 +968,27 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
       {/* ==================================================== */}
       {selectedFormat === 'review' && (
         <section className="space-y-6">
-          <div className="p-6 rounded-3xl bg-white border border-[#E5E7EB] shadow-xs space-y-5">
+          <div className="p-4 sm:p-5 rounded-2xl bg-white border border-[#E5E7EB] space-y-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-bold text-[#0F0F10] block mb-1.5">
+                <label className="text-sm font-medium text-[#0F0F10] block mb-1.5">
                   Select Formulation to Review
                 </label>
                 <select
                   value={reviewProductId}
                   onChange={(e) => setReviewProductId(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-[#E5E7EB] text-xs text-[#0F0F10] focus:outline-none focus:border-[#D4AF37] bg-[#FAF9F6] font-medium cursor-pointer"
+                  className="w-full min-h-11 px-3.5 py-2.5 rounded-xl border border-[#E5E7EB] text-base sm:text-sm text-[#0F0F10] focus:outline-none focus:border-[#0F0F10] bg-[#FAF9F6] cursor-pointer"
                 >
                   {products.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.name} • ₦{p.price.toLocaleString('en-NG')}
+                      {p.name} — ₦{p.price.toLocaleString('en-NG')}
                     </option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label className="text-xs font-bold text-[#0F0F10] block mb-1.5">
+                <label className="text-sm font-medium text-[#0F0F10] block mb-1.5">
                   Natural Wear Duration
                 </label>
                 <input
@@ -963,25 +996,25 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                   value={testingDuration}
                   onChange={(e) => setTestingDuration(e.target.value)}
                   placeholder="e.g. 14 Days Natural Wear Test"
-                  className="w-full px-4 py-2.5 rounded-xl border border-[#E5E7EB] text-xs text-[#0F0F10] bg-[#FAF9F6] font-medium"
+                  className="w-full min-h-11 px-3.5 py-2.5 rounded-xl border border-[#E5E7EB] text-base sm:text-sm text-[#0F0F10] bg-[#FAF9F6] focus:outline-none focus:border-[#0F0F10]"
                 />
               </div>
             </div>
 
             {/* Scorecard Metrics */}
             <div className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] space-y-3">
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E] block">
+              <span className="text-xs font-medium text-[#4B5563] block">
                 Formulation Performance Scorecard (1 - 5 Stars)
               </span>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
                 <div>
-                  <span className="font-bold text-[#0F0F10] block mb-1">Absorption Speed</span>
-                  <div className="flex gap-1 text-[#D4AF37]">
+                  <span className="font-medium text-[#0F0F10] block mb-1">Absorption Speed</span>
+                  <div className="flex gap-1 text-[#0F0F10]">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <Star
                         key={star}
-                        size={16}
+                        size={18}
                         fill={star <= absorptionScore ? 'currentColor' : 'none'}
                         onClick={() => setAbsorptionScore(star)}
                         className="cursor-pointer"
@@ -991,12 +1024,12 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                 </div>
 
                 <div>
-                  <span className="font-bold text-[#0F0F10] block mb-1">Skin Feel &amp; Texture</span>
-                  <div className="flex gap-1 text-[#D4AF37]">
+                  <span className="font-medium text-[#0F0F10] block mb-1">Skin Feel &amp; Texture</span>
+                  <div className="flex gap-1 text-[#0F0F10]">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <Star
                         key={star}
-                        size={16}
+                        size={18}
                         fill={star <= textureScore ? 'currentColor' : 'none'}
                         onClick={() => setTextureScore(star)}
                         className="cursor-pointer"
@@ -1006,12 +1039,12 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                 </div>
 
                 <div>
-                  <span className="font-bold text-[#0F0F10] block mb-1">Moisture Longevity</span>
-                  <div className="flex gap-1 text-[#D4AF37]">
+                  <span className="font-medium text-[#0F0F10] block mb-1">Moisture Longevity</span>
+                  <div className="flex gap-1 text-[#0F0F10]">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <Star
                         key={star}
-                        size={16}
+                        size={18}
                         fill={star <= longevityScore ? 'currentColor' : 'none'}
                         onClick={() => setLongevityScore(star)}
                         className="cursor-pointer"
@@ -1024,7 +1057,7 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
 
             {/* Written Natural Verdict */}
             <div>
-              <label className="text-xs font-bold text-[#0F0F10] block mb-1.5">
+              <label className="text-sm font-medium text-[#0F0F10] block mb-1.5">
                 Detailed Natural Verdict &amp; Skin Transformation
               </label>
               <textarea
@@ -1032,7 +1065,7 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                 value={reviewVerdict}
                 onChange={(e) => setReviewVerdict(e.target.value)}
                 placeholder="Give your honest verdict on texture, skin barrier results, and application..."
-                className="w-full px-4 py-3 rounded-xl border border-[#E5E7EB] text-xs text-[#0F0F10] focus:outline-none focus:border-[#D4AF37] bg-[#FAF9F6]"
+                className="w-full px-3.5 py-3 rounded-xl border border-[#E5E7EB] text-base sm:text-sm text-[#0F0F10] focus:outline-none focus:border-[#0F0F10] bg-[#FAF9F6]"
               />
             </div>
           </div>
@@ -1044,10 +1077,10 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
       {/* ==================================================== */}
       {selectedFormat === 'tutorial' && (
         <section className="space-y-6">
-          <div className="p-6 rounded-3xl bg-white border border-[#E5E7EB] shadow-xs space-y-4">
+          <div className="p-4 sm:p-5 rounded-2xl bg-white border border-[#E5E7EB] space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="sm:col-span-2">
-                <label className="text-xs font-bold text-[#0F0F10] block mb-1.5">
+                <label className="text-sm font-medium text-[#0F0F10] block mb-1.5">
                   Tutorial Title
                 </label>
                 <input
@@ -1056,18 +1089,18 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                   value={tutorialTitle}
                   onChange={(e) => setTutorialTitle(e.target.value)}
                   placeholder="e.g. 60-Second Facial Lymphatic Drainage & Oil Press"
-                  className="w-full px-4 py-2.5 rounded-xl border border-[#E5E7EB] text-xs text-[#0F0F10] bg-[#FAF9F6] font-medium"
+                  className="w-full min-h-11 px-3.5 py-2.5 rounded-xl border border-[#E5E7EB] text-base sm:text-sm text-[#0F0F10] bg-[#FAF9F6] focus:outline-none focus:border-[#0F0F10]"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-[#0F0F10] block mb-1.5">
+                <label className="text-sm font-medium text-[#0F0F10] block mb-1.5">
                   Technique Difficulty
                 </label>
                 <select
                   value={tutorialDifficulty}
                   onChange={(e) => setTutorialDifficulty(e.target.value as any)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-[#E5E7EB] text-xs text-[#0F0F10] bg-[#FAF9F6] font-medium cursor-pointer"
+                  className="w-full min-h-11 px-3.5 py-2.5 rounded-xl border border-[#E5E7EB] text-base sm:text-sm text-[#0F0F10] bg-[#FAF9F6] cursor-pointer focus:outline-none focus:border-[#0F0F10]"
                 >
                   <option value="Beginner">Beginner Everyday</option>
                   <option value="Intermediate">Intermediate Sculpt</option>
@@ -1078,16 +1111,16 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
 
             {/* Tutorial Walkthrough Steps */}
             <div className="space-y-3 pt-2">
-              <span className="text-xs font-bold text-[#0F0F10] block">
+              <span className="text-sm font-medium text-[#0F0F10] block">
                 Step-by-Step Hands-On Instructions
               </span>
 
               {tutorialSteps.map((tut, i) => (
                 <div key={tut.id} className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] flex items-start gap-3">
-                  <span className="w-6 h-6 rounded-full bg-[#0F0F10] text-[#D4AF37] font-mono text-xs flex items-center justify-center shrink-0">
+                  <span className="w-6 h-6 rounded-full bg-[#0F0F10] text-white font-mono text-xs flex items-center justify-center shrink-0">
                     {i + 1}
                   </span>
-                  <div className="flex-1 space-y-1">
+                  <div className="flex-1 space-y-1.5">
                     <input
                       type="text"
                       aria-label={`Tutorial step ${i + 1} title`}
@@ -1097,7 +1130,7 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                         copy[i].title = e.target.value;
                         setTutorialSteps(copy);
                       }}
-                      className="font-bold text-xs text-[#0F0F10] w-full bg-transparent border-b border-transparent focus:border-[#D4AF37] focus:outline-none"
+                      className="font-medium text-base sm:text-sm text-[#0F0F10] w-full bg-transparent border-b border-transparent focus:border-[#0F0F10] focus:outline-none"
                     />
                     <input
                       type="text"
@@ -1108,7 +1141,7 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                         copy[i].detail = e.target.value;
                         setTutorialSteps(copy);
                       }}
-                      className="text-xs text-[#6B7280] w-full bg-transparent border-b border-transparent focus:border-[#D4AF37] focus:outline-none"
+                      className="text-base sm:text-sm text-[#4B5563] w-full bg-transparent border-b border-transparent focus:border-[#0F0F10] focus:outline-none"
                     />
                   </div>
                 </div>
@@ -1118,19 +1151,32 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
         </section>
       )}
 
-      {isLiveBackend && <label className="block rounded-2xl border bg-white p-4 text-xs">Hosted media URL (HTTPS)
-        <input aria-label="Hosted media URL" className="mt-2 w-full rounded-xl border p-3" value={videoPreviewUrl} onChange={event => setVideoPreviewUrl(event.target.value)} />
-      </label>}
+      {isLiveBackend && (
+        <label className="block rounded-2xl border border-[#E5E7EB] bg-white p-4 text-sm font-medium text-[#0F0F10]">
+          Hosted media URL (HTTPS)
+          <input
+            aria-label="Hosted media URL"
+            className="mt-2 w-full min-h-11 rounded-xl border border-[#E5E7EB] bg-[#FAF9F6] px-3.5 py-2.5 text-base sm:text-sm font-normal focus:outline-none focus:border-[#0F0F10]"
+            value={videoPreviewUrl}
+            onChange={(event) => setVideoPreviewUrl(event.target.value)}
+          />
+        </label>
+      )}
       {/* Toast Notification Banner */}
       {toastMessage && (
-        <div className="fixed top-6 right-6 z-50 p-4 rounded-2xl bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/30 flex items-center justify-between shadow-2xl animate-in slide-in-from-top duration-300 max-w-md">
-          <div className="flex items-center gap-2.5 text-xs font-mono">
-            <CheckCircle2 size={16} className="shrink-0 text-emerald-400" />
-            <span className="text-white">{toastMessage}</span>
+        <div
+          role="status"
+          className="fixed bottom-5 right-5 z-50 p-3.5 rounded-xl bg-[#0F0F10] text-white flex items-center justify-between gap-3 shadow-xl max-w-md"
+        >
+          <div className="flex items-center gap-2.5 text-xs">
+            <CheckCircle2 size={16} className="shrink-0 text-white" />
+            <span>{toastMessage}</span>
           </div>
           <button
+            type="button"
             onClick={() => setToastMessage(null)}
-            className="text-white/60 hover:text-white cursor-pointer ml-3"
+            aria-label="Dismiss notification"
+            className="min-h-8 min-w-8 flex items-center justify-center text-white/70 hover:text-white cursor-pointer"
           >
             <X size={14} />
           </button>
@@ -1138,17 +1184,85 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
       )}
 
       {/* Saved profile links; sign-in happens on the external platform. */}
-      {socialModal && <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
-        <form ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="social-link-title" onSubmit={event=>{event.preventDefault();void handleSaveSocialChannel();}} className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-[#E5E7EB] space-y-4">
-          <div className="flex items-center justify-between"><h3 id="social-link-title" className="font-bold">{socialModal==='tiktok'?'TikTok':'Instagram'} profile link</h3><button type="button" aria-label="Close profile settings" disabled={isAuthorizing} onClick={()=>setSocialModal(null)}><X size={18}/></button></div>
-          <p className="text-sm text-[#6B7280]">Save your profile address. Sign in and publish directly on the social platform, then submit the published post link in Campaigns for DESLA review.</p>
-          <label className="block text-sm font-semibold">Profile URL<input autoFocus required type="url" value={profileUrl} onChange={event=>setProfileUrl(event.target.value)} placeholder={socialModal==='tiktok'?'https://www.tiktok.com/@yourname':'https://www.instagram.com/yourname/'} className="mt-2 w-full rounded-xl border p-3 text-base font-normal"/></label>
-          <a href={modalAccount.profileUrl || (socialModal==='tiktok'?'https://www.tiktok.com/':'https://www.instagram.com/')} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm underline">Open {socialModal==='tiktok'?'TikTok':'Instagram'}<ExternalLink size={14}/></a>
-          <p className="text-xs text-[#6B7280]">A saved link does not verify account ownership or sync followers, views or posts.</p>
-          {social.error && <p role="alert" className="text-sm text-rose-600">{social.error}</p>}
-          <div className="flex items-center justify-between gap-3">{modalAccount.saved && <button type="button" disabled={isAuthorizing} onClick={async()=>{if(await social.disconnect(socialModal))setSocialModal(null);}} className="text-sm text-rose-600">Remove link</button>}<button type="submit" disabled={isAuthorizing} className="ml-auto rounded-full bg-[#0F0F10] px-5 py-3 text-sm font-semibold text-white disabled:opacity-50">{isAuthorizing?'Saving…':'Save profile link'}</button></div>
-        </form>
-      </div>}
+      {socialModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-[1px]">
+          <form
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="social-link-title"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void handleSaveSocialChannel();
+            }}
+            className="bg-white rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl border border-[#E5E7EB] space-y-4"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <h3 id="social-link-title" className="text-base font-semibold text-[#0F0F10]">
+                {socialModal === 'tiktok' ? 'TikTok' : 'Instagram'} profile link
+              </h3>
+              <button
+                type="button"
+                aria-label="Close profile settings"
+                disabled={isAuthorizing}
+                onClick={() => setSocialModal(null)}
+                className="min-h-10 min-w-10 rounded-lg flex items-center justify-center text-[#6B7280] hover:text-[#0F0F10] hover:bg-[#FAF9F6] cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <p className="text-sm text-[#6B7280] leading-relaxed">
+              Save your profile address. Sign in and publish directly on the social platform, then submit the published post link in Campaigns for DESLA review.
+            </p>
+            <label className="block text-sm font-medium text-[#0F0F10]">
+              Profile URL
+              <input
+                autoFocus
+                required
+                type="url"
+                value={profileUrl}
+                onChange={(event) => setProfileUrl(event.target.value)}
+                placeholder={socialModal === 'tiktok' ? 'https://www.tiktok.com/@yourname' : 'https://www.instagram.com/yourname/'}
+                className="mt-2 w-full min-h-11 rounded-xl border border-[#E5E7EB] bg-[#FAF9F6] px-3.5 py-2.5 text-base sm:text-sm font-normal focus:outline-none focus:border-[#0F0F10]"
+              />
+            </label>
+            <a
+              href={modalAccount.profileUrl || (socialModal === 'tiktok' ? 'https://www.tiktok.com/' : 'https://www.instagram.com/')}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex min-h-10 items-center gap-2 text-sm font-medium text-[#0F0F10] underline underline-offset-4"
+            >
+              <span>Open {socialModal === 'tiktok' ? 'TikTok' : 'Instagram'}</span>
+              <ExternalLink size={14} />
+            </a>
+            <p className="text-xs text-[#6B7280]">
+              A saved link does not verify account ownership or sync followers, views or posts.
+            </p>
+            {social.error && <p role="alert" className="text-sm text-rose-600">{social.error}</p>}
+            <div className="flex items-center justify-between gap-3 pt-1">
+              {modalAccount.saved && (
+                <button
+                  type="button"
+                  disabled={isAuthorizing}
+                  onClick={async () => {
+                    if (await social.disconnect(socialModal)) setSocialModal(null);
+                  }}
+                  className="min-h-11 px-3 text-sm font-medium text-rose-600 hover:underline cursor-pointer"
+                >
+                  Remove link
+                </button>
+              )}
+              <button
+                type="submit"
+                disabled={isAuthorizing}
+                className="ml-auto min-h-11 rounded-xl bg-[#0F0F10] hover:bg-[#27272A] px-5 text-sm font-medium text-white disabled:opacity-50 cursor-pointer transition-colors"
+              >
+                {isAuthorizing ? 'Saving...' : 'Save profile link'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 };
