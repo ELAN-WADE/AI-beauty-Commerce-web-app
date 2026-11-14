@@ -9,13 +9,15 @@ import {
   CheckCircle,
   ArrowRight,
   CaretLeft,
-  Sparkle,
   ShoppingBag,
   Star,
   MapPin,
   UsersThree,
   VideoCamera,
   ArrowBendDownRight,
+  Storefront,
+  BookOpen,
+  Flame,
 } from '@phosphor-icons/react';
 import { useApp } from '../../context/AppContext';
 import { CustomerAccess } from '../../components/auth/CustomerAccess';
@@ -91,6 +93,15 @@ const ScreenCommunityChatContent: React.FC = () => {
   const [submittingComment, setSubmittingComment] = useState(false);
 
   const cityDistributors = useMemo(() => getDistributorsForCity(selectedCity), [getDistributorsForCity, selectedCity]);
+  const flashSaleItems = useMemo(
+    () => products.filter((p) => p.isFlashSale || p.discountPercentage).slice(0, 3),
+    [products],
+  );
+  const trendingItems = useMemo(
+    () => products.filter((p) => p.isBestseller).slice(0, 3),
+    [products],
+  );
+  const formatNaira = (amt: number) => '₦' + amt.toLocaleString('en-NG');
 
   const uploadMedia = async (file?: File) => {
     if (!file || uploading || posting) return;
@@ -235,26 +246,23 @@ const ScreenCommunityChatContent: React.FC = () => {
   });
 
   return (
-    <div className="min-h-screen bg-[#FAF9F6] text-[#0F0F10] pb-28 lg:pb-16 font-body selection:bg-[#D4AF37]/20 selection:text-[#997A2E]">
-      {/* Clean Sticky Navigation Header */}
-      <div className="bg-white border-b border-[#E5E7EB] sticky top-0 z-30">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+    <div className="min-h-screen bg-[#FAF9F6] lg:bg-white text-[#0F0F10] pb-28 font-body selection:bg-[#D4AF37]/20 selection:text-[#997A2E]">
+      {/* Mobile / Tablet Sticky Header — Desktop uses inline 3-column layout */}
+      <div className="lg:hidden bg-white border-b border-[#E5E7EB] sticky top-0 z-30">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5 min-w-0">
               <button
                 type="button"
                 onClick={goBack}
-                className="lg:hidden p-1.5 -ml-1.5 rounded-full text-[#0F0F10] hover:bg-[#FAF9F6] active:scale-95 transition-all cursor-pointer shrink-0"
+                className="p-1.5 -ml-1.5 rounded-full text-[#0F0F10] hover:bg-[#FAF9F6] active:scale-95 transition-all cursor-pointer shrink-0"
                 aria-label="Go back"
               >
                 <CaretLeft size={20} weight="bold" aria-hidden="true" />
               </button>
               <div className="min-w-0">
-                <p className="text-[11px] font-mono uppercase tracking-[0.2em] text-[#997A2E] font-semibold">
+                <h1 className="font-heading font-semibold text-lg sm:text-xl text-[#0F0F10] tracking-tight truncate">
                   Community Hub
-                </p>
-                <h1 className="font-heading font-semibold text-lg sm:text-2xl text-[#0F0F10] tracking-tight truncate">
-                  Desla<span className="text-[#D4AF37]">!™</span> Collective
                 </h1>
               </div>
             </div>
@@ -269,7 +277,7 @@ const ScreenCommunityChatContent: React.FC = () => {
             </button>
           </div>
 
-          {/* Minimal Pill Switcher */}
+          {/* Minimal Pill Switcher (Mobile/Tablet) */}
           <div className="flex items-center gap-2 pt-3.5 overflow-x-auto no-scrollbar">
             {[
               { id: 'feed', label: 'Community Feed', icon: UsersThree },
@@ -299,13 +307,158 @@ const ScreenCommunityChatContent: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Feed Column */}
-          <div className="lg:col-span-8 space-y-5">
-            {/* Compact Composer Trigger Card */}
+          {/* Desktop Left Column: Hubs, Curated Routines & Trending (3 cols) */}
+          <aside className="hidden lg:block lg:col-span-3 space-y-5">
+            <div className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] space-y-3 shadow-xs">
+              <div className="flex items-center gap-2 text-xs font-bold text-[#0F0F10]">
+                <Storefront size={15} weight="fill" className="text-[#D4AF37]" aria-hidden="true" />
+                <span>Nearest Distributor Hub</span>
+              </div>
+              <p className="text-[11px] text-[#6B7280] leading-snug">
+                Verified partners in <strong>{selectedCity}</strong> holding authentic Desla formulations for same-day delivery.
+              </p>
+              <div className="p-2.5 rounded-xl bg-white border border-[#E5E7EB] text-xs">
+                <span className="font-bold text-[#0F0F10] block">
+                  {cityDistributors[0]?.businessName || 'No local hub listed'}
+                </span>
+                <span className="text-[10.5px] text-[#6B7280] mt-0.5 block truncate">
+                  {cityDistributors[0]?.address || ''}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigateTo('distributors')}
+                className="w-full py-2 px-3 rounded-xl bg-[#F3EEE3] hover:bg-[#EAE4D7] text-[#0F0F10] text-[11px] font-bold active:scale-95 transition-all cursor-pointer text-center block"
+              >
+                Browse All {selectedCity} Hubs →
+              </button>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-white border border-[#E5E7EB] shadow-xs space-y-3">
+              <div className="flex items-center gap-2 text-xs font-bold text-[#0F0F10]">
+                <BookOpen size={15} weight="fill" className="text-[#997A2E]" aria-hidden="true" />
+                <span>Curated Routines</span>
+              </div>
+              <ul className="space-y-2 text-xs">
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('transformations')}
+                    className="w-full text-left p-2 rounded-xl bg-[#FAF9F6] hover:bg-[#F3EEE3] cursor-pointer transition-all"
+                  >
+                    <span className="font-bold text-[#0F0F10] block text-[11.5px]">
+                      #NaturalGlowRoutine
+                    </span>
+                    <span className="text-[10px] text-[#6B7280]">
+                      Radiant Body Oil + Whipped Butter
+                    </span>
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('transformations')}
+                    className="w-full text-left p-2 rounded-xl bg-[#FAF9F6] hover:bg-[#F3EEE3] cursor-pointer transition-all"
+                  >
+                    <span className="font-bold text-[#0F0F10] block text-[11.5px]">
+                      #BarrierRepairAM
+                    </span>
+                    <span className="text-[10px] text-[#6B7280]">
+                      Gentle Cleanser + SPF 50+ Sunscreen
+                    </span>
+                  </button>
+                </li>
+              </ul>
+            </div>
+
+            {trendingItems.length > 0 && (
+              <div className="p-4 rounded-2xl bg-white border border-[#E5E7EB] shadow-xs space-y-3">
+                <span className="text-xs font-bold text-[#0F0F10] block">
+                  Trending Formulations
+                </span>
+                <div className="space-y-2.5">
+                  {trendingItems.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => viewProductDetails(item)}
+                      className="w-full text-left flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-[#FAF9F6] cursor-pointer transition-all"
+                    >
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="w-10 h-10 rounded-lg object-cover bg-[#F6F5F2] border border-[#E5E7EB]"
+                      />
+                      <div className="flex-1 min-w-0 text-xs">
+                        <span className="font-bold text-[#0F0F10] block truncate text-[11px]">
+                          {item.name}
+                        </span>
+                        <span className="font-mono text-[#997A2E] font-bold text-[10.5px]">
+                          {formatNaira(item.price)}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </aside>
+
+          {/* Feed Column (Desktop 6 cols, Mobile full width) */}
+          <div className="lg:col-span-6 space-y-5">
+            {/* Desktop Navigation Tabs Bar with Share Routine CTA */}
+            <div className="hidden lg:flex items-center justify-between border-b border-[#E5E7EB] pb-3 gap-2">
+              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('feed')}
+                  className={`px-4 py-2 rounded-full text-xs font-heading font-semibold active:scale-95 transition-all cursor-pointer whitespace-nowrap ${
+                    activeTab === 'feed'
+                      ? 'bg-[#0F0F10] text-white font-bold shadow-xs'
+                      : 'bg-[#F3EEE3] text-[#0F0F10] hover:bg-[#EAE4D7]'
+                  }`}
+                >
+                  Community Feed ({communityPosts.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('transformations')}
+                  className={`px-4 py-2 rounded-full text-xs font-heading font-semibold active:scale-95 transition-all cursor-pointer whitespace-nowrap ${
+                    activeTab === 'transformations'
+                      ? 'bg-[#0F0F10] text-white font-bold shadow-xs'
+                      : 'bg-[#F3EEE3] text-[#0F0F10] hover:bg-[#EAE4D7]'
+                  }`}
+                >
+                  Video Reels &amp; Results
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('chat')}
+                  className={`px-4 py-2 rounded-full text-xs font-heading font-semibold active:scale-95 transition-all cursor-pointer whitespace-nowrap ${
+                    activeTab === 'chat'
+                      ? 'bg-[#0F0F10] text-white font-bold shadow-xs'
+                      : 'bg-[#F3EEE3] text-[#0F0F10] hover:bg-[#EAE4D7]'
+                  }`}
+                >
+                  Live Consultations
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsCreateModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#0F0F10] hover:bg-[#D4AF37] hover:text-[#0F0F10] text-white font-heading font-bold text-xs shadow-xs active:scale-95 transition-all cursor-pointer whitespace-nowrap shrink-0"
+              >
+                <Plus size={14} weight="bold" aria-hidden="true" />
+                <span>Share Routine</span>
+              </button>
+            </div>
+
+            {/* Compact Composer Trigger Card (Mobile/Tablet) */}
             {activeTab !== 'chat' && (
-              <div className="bg-white rounded-2xl border border-[#E5E7EB] p-4 flex items-center gap-3">
+              <div className="lg:hidden bg-white rounded-2xl border border-[#E5E7EB] p-4 flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center text-xs font-semibold shrink-0 overflow-hidden">
                   {authUser?.profile?.avatarUrl ? (
                     <img
@@ -337,7 +490,7 @@ const ScreenCommunityChatContent: React.FC = () => {
 
             {/* Posts Stream */}
             {activeTab !== 'chat' && (
-              <div className="bg-white rounded-2xl border border-[#E5E7EB] divide-y divide-[#E5E7EB]">
+              <div className="bg-white rounded-2xl border border-[#E5E7EB] divide-y divide-[#E5E7EB] lg:bg-transparent lg:rounded-none lg:border-0 lg:divide-y-0 lg:space-y-5">
                 {displayedPosts.length === 0 ? (
                   <div className="p-8 text-center space-y-3">
                     <UsersThree size={28} weight="fill" className="mx-auto text-[#6B7280]/40" aria-hidden="true" />
@@ -376,7 +529,10 @@ const ScreenCommunityChatContent: React.FC = () => {
                     }, {});
 
                     return (
-                      <article key={post.id} className="p-5 sm:p-6 space-y-3.5">
+                      <article
+                        key={post.id}
+                        className="p-5 sm:p-6 lg:p-5 lg:rounded-3xl lg:bg-[#FAF9F6] lg:border lg:border-[#E5E7EB] lg:shadow-xs space-y-3.5"
+                      >
                         {/* Author Header */}
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex items-center gap-3 min-w-0">
@@ -748,14 +904,85 @@ const ScreenCommunityChatContent: React.FC = () => {
             )}
           </div>
 
-          {/* Right Editorial Context Column */}
-          <aside className="lg:col-span-4 space-y-5 lg:sticky lg:top-32">
+          {/* Desktop Right Column: Flash Routine Drops & Creator Affiliate Desk (3 cols) */}
+          <aside className="hidden lg:block lg:col-span-3 space-y-5">
+            {flashSaleItems.length > 0 && (
+              <div className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] shadow-xs space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-[#0F0F10]">
+                    <Flame size={15} weight="fill" className="text-[#D4AF37]" aria-hidden="true" />
+                    <span>Flash Routine Drops</span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full bg-[#F3EEE3] text-[#0F0F10] text-[9.5px] font-mono font-bold">
+                    Active
+                  </span>
+                </div>
+
+                <div className="space-y-3">
+                  {flashSaleItems.map((prod) => (
+                    <div
+                      key={prod.id}
+                      className="p-2.5 rounded-xl bg-white border border-[#E5E7EB] flex items-center gap-3 shadow-xs"
+                    >
+                      <img
+                        src={prod.image}
+                        alt={prod.name}
+                        className="w-12 h-12 rounded-lg object-cover bg-[#F6F5F2] shrink-0"
+                      />
+                      <div className="flex-1 min-w-0 text-xs">
+                        <h4 className="font-bold text-[#0F0F10] truncate text-[11px]">
+                          {prod.name}
+                        </h4>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="font-mono font-bold text-xs text-[#0F0F10]">
+                            {formatNaira(prod.price)}
+                          </span>
+                          {prod.originalPrice && (
+                            <span className="font-mono text-[10px] text-gray-400 line-through">
+                              {formatNaira(prod.originalPrice)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => addToCart(prod, prod.sizes?.[0] || 'Standard', 1)}
+                        className="px-2.5 py-1 rounded-md bg-[#0F0F10] hover:bg-[#D4AF37] hover:text-[#0F0F10] text-white text-[10px] font-bold active:scale-95 transition-all shrink-0 cursor-pointer"
+                      >
+                        + Add
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="p-4 rounded-2xl bg-white border border-[#E5E7EB] shadow-xs space-y-2.5 text-xs">
+              <span className="font-heading font-bold text-xs text-[#0F0F10] block">
+                Creator Affiliate Desk
+              </span>
+              <p className="text-[11px] text-[#6B7280] leading-snug">
+                Apply to the Creator Studio to request a reviewed affiliate account.
+              </p>
+              <button
+                type="button"
+                onClick={() => navigateTo('creators')}
+                className="w-full py-2.5 px-3 rounded-xl bg-[#0F0F10] hover:bg-[#1F1D22] text-white text-[11px] font-bold active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2 shadow-xs"
+              >
+                <span>Join Creator Studio</span>
+                <ArrowRight size={13} weight="bold" aria-hidden="true" />
+              </button>
+            </div>
+          </aside>
+
+          {/* Mobile / Tablet Editorial Context Column */}
+          <aside className="lg:hidden space-y-5">
             {/* Local Hub Dispatch Summary */}
             <div className="bg-white rounded-2xl border border-[#E5E7EB] p-5 space-y-3">
               <div className="flex items-center gap-2 text-[#0F0F10]">
                 <MapPin size={16} weight="fill" className="text-[#997A2E] shrink-0" aria-hidden="true" />
                 <h2 className="font-heading font-semibold text-sm">
-                  {selectedCity} Collective
+                  {selectedCity} Dispensaries
                 </h2>
               </div>
               <p className="text-xs text-[#6B7280] leading-relaxed">
@@ -773,14 +1000,11 @@ const ScreenCommunityChatContent: React.FC = () => {
               </button>
             </div>
 
-            {/* Clean Creator Studio Invite */}
+            {/* Clean Creator Studio Invite (No Sparkle icon) */}
             <div className="bg-[#0F0F10] text-white rounded-2xl p-5 space-y-3">
-              <div className="flex items-center gap-2 text-[#D4AF37]">
-                <Sparkle size={16} weight="fill" aria-hidden="true" />
-                <span className="text-[11px] font-mono uppercase tracking-[0.16em] font-semibold">
-                  Creator Studio
-                </span>
-              </div>
+              <span className="text-[11px] font-mono uppercase tracking-[0.16em] font-semibold text-[#D4AF37] block">
+                Creator Studio
+              </span>
               <h3 className="font-heading font-semibold text-base leading-snug">
                 Educate &amp; Earn on Desla!™
               </h3>
@@ -865,7 +1089,7 @@ const ScreenCommunityChatContent: React.FC = () => {
             <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
               <div>
                 <h3 id="composer-modal-title" className="font-heading font-semibold text-base text-[#0F0F10]">
-                  Share with the Collective
+                  Share a Routine
                 </h3>
                 <p className="text-xs text-[#6B7280]">
                   Post a routine note, progress update, or skincare question.

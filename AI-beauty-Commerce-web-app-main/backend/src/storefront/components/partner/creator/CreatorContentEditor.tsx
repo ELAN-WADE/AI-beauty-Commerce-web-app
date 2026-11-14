@@ -30,6 +30,7 @@ import {
 import { buildCreatorSubmission } from '../../../lib/creator-submission';
 import { writePartnerWorkspace, uploadPartnerMedia } from '../../../lib/owned-api';
 import { useApp } from '../../../context/AppContext';
+import { useIsMobilePartnerViewport } from '../shared/MobileRouteTransition';
 
 export interface CreatorContentEditorProps {
   onPublishSuccess?: () => void;
@@ -44,6 +45,8 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
 }) => {
   const { products, authUser, isLiveBackend } = useApp();
   const shouldReduceMotion = useReducedMotion();
+  const isMobile = useIsMobilePartnerViewport();
+  const animateMobile = isMobile && !shouldReduceMotion;
   const [saving, setSaving] = useState(false);
   const [savedRecord, setSavedRecord] = useState<{id: string; version: number} | null>(null);
   const [selectedFormat, setSelectedFormat] = useState<ContentFormat>('video');
@@ -234,10 +237,10 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
       {/* Studio Composition Header with Shared-Element Hero Card */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 pb-6 border-b border-[#E5E7EB]">
         <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5">
-          {/* Settled Shared-Element Studio Card (capped width on mobile so it integrates into layout) */}
+          {/* Settled Shared-Element Studio Card (Morphs on mobile < md only; desktop remains static) */}
           <motion.div
-            layoutId={!shouldReduceMotion ? 'creator-studio-hero-card' : undefined}
-            transition={{ duration: shouldReduceMotion ? 0 : 0.36, ease: studioEase }}
+            layoutId={animateMobile ? 'creator-studio-hero-card' : undefined}
+            transition={{ duration: animateMobile ? 0.34 : 0, ease: studioEase }}
             className="relative w-full max-w-[240px] sm:w-48 md:w-52 aspect-[16/10] rounded-2xl overflow-hidden bg-[#18181B] shadow-[0_8px_24px_-6px_rgba(0,0,0,0.16)] shrink-0"
           >
             <img
@@ -253,9 +256,9 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
           </motion.div>
 
           <motion.div
-            initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+            initial={animateMobile ? { opacity: 0, y: 8 } : false}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.28, delay: 0.05, ease: studioEase }}
+            transition={{ duration: animateMobile ? 0.28 : 0, delay: animateMobile ? 0.05 : 0, ease: studioEase }}
             className="space-y-1"
           >
             <p className="text-xs font-medium text-[#6B7280]">
@@ -271,9 +274,9 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
         </div>
 
         <motion.div
-          initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+          initial={animateMobile ? { opacity: 0, y: 8 } : false}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.28, delay: 0.08, ease: studioEase }}
+          transition={{ duration: animateMobile ? 0.28 : 0, delay: animateMobile ? 0.08 : 0, ease: studioEase }}
           className="flex flex-wrap items-center gap-2.5"
         >
           {onCancel && (
@@ -307,9 +310,9 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
 
       {/* Format Selector Pills */}
       <motion.section
-        initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
+        initial={animateMobile ? { opacity: 0, y: 10 } : false}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.1, ease: studioEase }}
+        transition={{ duration: animateMobile ? 0.3 : 0, delay: animateMobile ? 0.1 : 0, ease: studioEase }}
         className="space-y-3"
       >
         <label className="text-sm font-medium text-[#0F0F10] block">

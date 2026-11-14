@@ -1,9 +1,41 @@
 import React, { useEffect, useState } from 'react';
 import { MapPin, Clock, Phone } from '../../common/SolidIcons';
 import { apiFetch } from '../../../lib/owned-api';
+import { MobileRouteContent, MobileSharedHeroCard } from '../shared/MobileRouteTransition';
 export const DistributorTerritory: React.FC = () => {
   const [location, setLocation] = useState<any>(null);
   const [error, setError] = useState('');
   useEffect(() => { let cancelled = false; apiFetch<any>('/api/partner?kind=DISTRIBUTOR').then(data => { if (!cancelled) setLocation(data.location); }).catch(error => { if (!cancelled) setError(error.message); }); return () => { cancelled = true; }; }, []);
-  return <div className="space-y-6"><div className="border-b border-[#E5E7EB] pb-2"><h1 className="font-heading text-2xl font-extrabold">City Hub Territory &amp; Zones</h1><p className="text-sm text-[#6B7280]">Your assigned fulfilment location and configured service settings.</p></div>{error && <p role="alert">{error}</p>}{!location && !error && <p role="status">Loading assigned location…</p>}{location && <article className="space-y-4 rounded-3xl border bg-white p-6"><h2 className="font-bold">{location.name}</h2><p className="text-sm">{location.code} · {location.isActive ? 'Active' : 'Awaiting activation by admin'}</p><p className="flex gap-2 text-sm"><MapPin size={16} />{[location.address,location.city,location.state].filter(Boolean).join(', ') || 'Address not configured'}</p><p className="flex gap-2 text-sm"><Phone size={16} />{location.phone || 'Phone not configured'}</p><p className="flex gap-2 text-sm"><Clock size={16} />{location.operatingHours || 'Operating hours not configured'}</p><p className="text-sm">Pickup: {location.pickupEnabled ? 'Enabled' : 'Disabled'} · Delivery: {location.deliveryEnabled ? 'Enabled' : 'Disabled'}</p><p className="text-sm">Delivery estimate: {location.etaText || 'Not configured'}</p><p className="text-sm">Delivery fee: ₦{(location.deliveryFeeKobo / 100).toLocaleString('en-NG')}</p><p className="text-xs text-[#71717A]">No service-zone performance or SLA measurement has been recorded here.</p></article>}</div>;
+  return (
+    <div className="space-y-6">
+      <MobileSharedHeroCard
+        portal="distributor"
+        route="territory"
+        subtitle="Geographic Radius"
+        title="City Hub Territory & Zones"
+        description="Your assigned fulfilment location and configured service settings."
+      />
+      <div className="hidden md:block border-b border-[#E5E7EB] pb-2">
+        <h1 className="font-heading text-2xl font-extrabold">City Hub Territory &amp; Zones</h1>
+        <p className="text-sm text-[#6B7280]">Your assigned fulfilment location and configured service settings.</p>
+      </div>
+      <MobileRouteContent className="space-y-4">
+        {error && <p role="alert">{error}</p>}
+        {!location && !error && <p role="status">Loading assigned location…</p>}
+        {location && (
+          <article className="space-y-4 rounded-2xl md:rounded-3xl border bg-white p-6">
+            <h2 className="font-bold">{location.name}</h2>
+            <p className="text-sm">{location.code} · {location.isActive ? 'Active' : 'Awaiting activation by admin'}</p>
+            <p className="flex gap-2 text-sm"><MapPin size={16} />{[location.address,location.city,location.state].filter(Boolean).join(', ') || 'Address not configured'}</p>
+            <p className="flex gap-2 text-sm"><Phone size={16} />{location.phone || 'Phone not configured'}</p>
+            <p className="flex gap-2 text-sm"><Clock size={16} />{location.operatingHours || 'Operating hours not configured'}</p>
+            <p className="text-sm">Pickup: {location.pickupEnabled ? 'Enabled' : 'Disabled'} · Delivery: {location.deliveryEnabled ? 'Enabled' : 'Disabled'}</p>
+            <p className="text-sm">Delivery estimate: {location.etaText || 'Not configured'}</p>
+            <p className="text-sm">Delivery fee: ₦{(location.deliveryFeeKobo / 100).toLocaleString('en-NG')}</p>
+            <p className="text-xs text-[#71717A]">No service-zone performance or SLA measurement has been recorded here.</p>
+          </article>
+        )}
+      </MobileRouteContent>
+    </div>
+  );
 };

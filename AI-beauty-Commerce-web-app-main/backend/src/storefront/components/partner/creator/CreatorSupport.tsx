@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../../../context/AppContext';
 import { writePartnerWorkspace } from '../../../lib/owned-api';
 import { HelpCircle, MessageSquare, Send, CheckCircle2 } from '../../common/SolidIcons';
+import { MobileRouteContent } from '../shared/MobileRouteTransition';
 
 export const CreatorSupport: React.FC = () => {
   const { isLiveBackend } = useApp();
@@ -28,12 +29,12 @@ export const CreatorSupport: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-200 max-w-2xl mx-auto">
+    <MobileRouteContent className="space-y-6 animate-in fade-in duration-200 max-w-2xl mx-auto">
       <div className="pb-2 border-b border-[#E5E7EB] text-center">
         <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
           Creator Partner Care
         </span>
-        <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-[#0F0F10]">
+        <h1 className="font-heading font-semibold md:font-extrabold text-xl md:text-3xl text-[#0F0F10]">
           Creator Support Concierge
         </h1>
         <p className="text-xs sm:text-sm text-[#6B7280] mt-0.5">
@@ -106,6 +107,6 @@ export const CreatorSupport: React.FC = () => {
           </form>
         )}
       </div>
-    </div>
+    </MobileRouteContent>
   );
 };

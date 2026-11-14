@@ -15,6 +15,7 @@ import {
 import { FilterTabs } from '../shared/FilterTabs';
 import { StatusBadge } from '../shared/StatusBadge';
 import { StatChip } from '../shared/StatChip';
+import { MobileRouteContent, MobileSharedHeroCard } from '../shared/MobileRouteTransition';
 import { useApp } from '../../../context/AppContext';
 
 export interface DistributorInventoryProps {
@@ -151,8 +152,27 @@ export const DistributorInventory: React.FC<DistributorInventoryProps> = ({
         </div>
       )}
 
-      {/* Header */}
-      <div className="pb-2 border-b border-[#E5E7EB] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Mobile Shared-Element Hero Card */}
+      <MobileSharedHeroCard
+        portal="distributor"
+        route="inventory"
+        subtitle={`${selectedCity || 'Lagos'} Hub Depot`}
+        title="Inventory & SKU Stock Pools"
+        description="Monitor available shelf units, reserved order allocations, and physical stock thresholds."
+        rightAction={
+          <button
+            type="button"
+            onClick={() => onRestockItem && onRestockItem(localInventory[0]?.sku || '')}
+            className="min-h-11 px-4 rounded-full bg-[#0F0F10] text-[#D4AF37] text-xs font-semibold flex items-center gap-2 cursor-pointer"
+          >
+            <Truck size={14} />
+            <span>Wholesale Master Cartons</span>
+          </button>
+        }
+      />
+
+      {/* Desktop Header */}
+      <div className="hidden md:flex pb-2 border-b border-[#E5E7EB] flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
             City Hub Warehousing • {selectedCity || 'Lagos'} Hub Depot
@@ -173,6 +193,8 @@ export const DistributorInventory: React.FC<DistributorInventoryProps> = ({
           <span>Wholesale Master Cartons</span>
         </button>
       </div>
+
+      <MobileRouteContent className="space-y-6">
 
       {/* KPI Counters */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
@@ -405,6 +427,7 @@ export const DistributorInventory: React.FC<DistributorInventoryProps> = ({
           </div>
         </div>
       )}
+      </MobileRouteContent>
     </div>
   );
 };

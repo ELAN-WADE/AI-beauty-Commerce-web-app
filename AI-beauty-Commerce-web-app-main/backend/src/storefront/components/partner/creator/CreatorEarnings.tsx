@@ -12,6 +12,7 @@ import {
 } from '../../common/SolidIcons';
 import { StatChip } from '../shared/StatChip';
 import { StatusBadge } from '../shared/StatusBadge';
+import { MobileRouteContent, MobileSharedHeroCard } from '../shared/MobileRouteTransition';
 import { useApp } from '../../../context/AppContext';
 import {
   fetchPartnerDashboard,
@@ -194,8 +195,28 @@ export const CreatorEarnings: React.FC = () => {
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E5E7EB]">
+      {/* Mobile Shared-Element Hero Card */}
+      <MobileSharedHeroCard
+        portal="creator"
+        route="earnings"
+        subtitle="Commission Ledger"
+        title="Creator Earnings & Ledger"
+        description="Commission ledger, cleared balances, and Nigerian NUBAN payouts."
+        rightAction={
+          <button
+            type="button"
+            onClick={() => setIsWithdrawModalOpen(true)}
+            disabled={availableBalance <= 0}
+            className="min-h-11 px-4 rounded-xl bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-medium flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+          >
+            <ArrowUpRight size={14} />
+            <span>Withdraw to Bank (NIP)</span>
+          </button>
+        }
+      />
+
+      {/* Desktop Header */}
+      <div className="hidden md:flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E5E7EB]">
         <div>
           <span className="text-xs font-medium text-[#6B7280]">
             Financial Settlement
@@ -218,6 +239,7 @@ export const CreatorEarnings: React.FC = () => {
         </button>
       </div>
 
+      <MobileRouteContent className="space-y-6">
       {/* 3 Metric Cards with Live Calculations */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatChip
@@ -550,6 +572,7 @@ export const CreatorEarnings: React.FC = () => {
           </div>
         </div>
       )}
+      </MobileRouteContent>
     </div>
   );
 };

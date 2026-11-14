@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Wallet, ArrowDownToLine, Building, CheckCircle2, X } from '../../common/SolidIcons';
 import { StatChip } from '../shared/StatChip';
 import { StatusBadge } from '../shared/StatusBadge';
+import { MobileRouteContent, MobileSharedHeroCard } from '../shared/MobileRouteTransition';
 import { useApp } from '../../../context/AppContext';
 import { fetchPartnerDashboard, partnerWithdraw } from '../../../lib/owned-api';
 
@@ -64,8 +65,30 @@ export const DistributorEarnings: React.FC = () => {
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E5E7EB]">
+      {/* Mobile Shared-Element Hero Card */}
+      <MobileSharedHeroCard
+        portal="distributor"
+        route="earnings"
+        subtitle="Commercial Margin"
+        title="Distributor Earnings"
+        description="Segregated accounting: customer storefront revenue vs your recorded wholesale ledger."
+        rightAction={
+          <button
+            type="button"
+            onClick={() => {
+              setPayoutForm((prev) => ({ ...prev, amount: Math.min(balances.available, 200000) }));
+              setModalOpen(true);
+            }}
+            className="min-h-11 px-5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-[#D4AF37] text-xs font-semibold flex items-center gap-2 cursor-pointer"
+          >
+            <ArrowDownToLine size={14} />
+            <span>Request Settlement (₦{balances.available.toLocaleString('en-NG')})</span>
+          </button>
+        }
+      />
+
+      {/* Desktop Header */}
+      <div className="hidden md:flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E5E7EB]">
         <div>
           <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
             Wholesale Margin &amp; Settlements
@@ -90,6 +113,7 @@ export const DistributorEarnings: React.FC = () => {
         </button>
       </div>
 
+      <MobileRouteContent className="space-y-6">
       {/* Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
         <StatChip
@@ -293,6 +317,7 @@ export const DistributorEarnings: React.FC = () => {
           </div>
         </div>
       )}
+      </MobileRouteContent>
     </div>
   );
 };

@@ -4,13 +4,18 @@ import {
   BarChart2,
   ChevronDown,
   ChevronUp,
+  Grid3X3,
+  LayoutGrid,
+  Share2,
   Truck
 } from '../../common/SolidIcons';
 import {
   EditorialNavigationGrid,
-  EditorialCategoryFilter
+  EditorialCategoryFilter,
+  EditorialLayoutMode
 } from './EditorialNavigationGrid';
 import { ActionDrawer } from '../shared/ActionDrawer';
+import { useIsMobilePartnerViewport } from '../shared/MobileRouteTransition';
 import { useApp } from '../../../context/AppContext';
 
 export interface CreatorOverviewProps {
@@ -19,7 +24,9 @@ export interface CreatorOverviewProps {
   onSwitchWorkspace?: (newKind: 'CREATOR' | 'DISTRIBUTOR') => void;
 }
 
-const STUDIO_TABS: { id: EditorialCategoryFilter; label: string }[] = [
+type MobileStudioTab = 'production' | 'collaboration' | 'ledger';
+
+const STUDIO_TABS: { id: MobileStudioTab; label: string }[] = [
   { id: 'production', label: 'Production' },
   { id: 'collaboration', label: 'Collaboration' },
   { id: 'ledger', label: 'Ledger Vault' }
@@ -31,8 +38,11 @@ export const CreatorOverview: React.FC<CreatorOverviewProps> = ({
   const { creatorLedger, creatorPRRequests, creatorLinks, authUser, creatorAvailableBalanceNgn } = useApp();
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
   const [showExecutiveStrip, setShowExecutiveStrip] = useState(false);
-  const [categoryFilter, setCategoryFilter] = useState<EditorialCategoryFilter>('production');
+  const [categoryFilter, setCategoryFilter] = useState<EditorialCategoryFilter>('all');
+  const [layoutMode, setLayoutMode] = useState<EditorialLayoutMode>('bento');
+  const [mobileTab, setMobileTab] = useState<MobileStudioTab>('production');
   const shouldReduceMotion = useReducedMotion();
+  const isMobile = useIsMobilePartnerViewport();
   const touchStartX = useRef<number | null>(null);
 
   // Compute live balances from creatorLedger
@@ -70,146 +80,335 @@ export const CreatorOverview: React.FC<CreatorOverviewProps> = ({
     const delta = touchStartX.current - endX;
     touchStartX.current = null;
     if (Math.abs(delta) < 48) return;
-    const idx = STUDIO_TABS.findIndex((t) => t.id === categoryFilter);
+    const idx = STUDIO_TABS.findIndex((t) => t.id === mobileTab);
     if (delta > 0 && idx < STUDIO_TABS.length - 1) {
-      setCategoryFilter(STUDIO_TABS[idx + 1].id);
+      setMobileTab(STUDIO_TABS[idx + 1].id);
     } else if (delta < 0 && idx > 0) {
-      setCategoryFilter(STUDIO_TABS[idx - 1].id);
+      setMobileTab(STUDIO_TABS[idx - 1].id);
     }
   };
 
   return (
     <div className="space-y-6">
-      {/* Compact Personalized Greeting & Telemetry Control */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="font-heading font-semibold text-xl sm:text-2xl text-[#0F0F10] tracking-tight">
-            Good morning, {creatorName}
-          </h1>
+      {/* =====================================================================
+          DESKTOP VIEW (>= md): Restored Pre-Redesign Editorial Bento Dashboard
+      ====================================================================== */}
+      {!isMobile ? (
+      <div className="hidden md:block space-y-5">
+        {/* 1. Top Utility Action Header */}
+        <div className="flex items-center justify-between gap-4 pb-1">
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-[#997A2E] font-bold">
+              Creator Office
+            </span>
+            <span className="w-1.5 h-1.5 rounded-full bg-[#D4AF37]" />
+            <button
+              type="button"
+              onClick={() => setShowExecutiveStrip(!showExecutiveStrip)}
+              className="font-mono text-[9.5px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#FAF9F6] text-[#6B7280] hover:text-[#0F0F10] border border-[#E5E7EB] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+              title="Toggle live telemetry and courier overview"
+            >
+              <span>Good morning, {creatorName}</span>
+              {showExecutiveStrip ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setAnalyticsOpen(true)}
+              className="px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full border border-[#E5E7EB] bg-white hover:bg-[#FAF9F6] text-xs font-semibold text-[#0F0F10] transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-[0.97]"
+              title="Inspect real-time telemetry and sales velocity"
+            >
+              <BarChart2 size={13} className="text-[#997A2E]" />
+              <span>Pulse Telemetry</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onNavigate('storefront')}
+              className="px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full border border-[#E5E7EB] bg-white hover:bg-[#FAF9F6] text-xs font-semibold text-[#0F0F10] transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-[0.97]"
+              title="Preview your public shoppable storefront"
+            >
+              <Share2 size={13} className="text-[#6B7280]" />
+              <span>Storefront</span>
+            </button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setShowExecutiveStrip(!showExecutiveStrip)}
-            className="min-h-10 px-3 rounded-lg border border-[#E5E7EB] bg-white hover:bg-[#FAF9F6] text-xs font-medium text-[#4B5563] hover:text-[#0F0F10] flex items-center gap-1.5 transition-colors cursor-pointer touch-manipulation"
-          >
-            <span>Summary</span>
-            {showExecutiveStrip ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-          </button>
+        {/* 2. Optional Expandable Executive Strip */}
+        {showExecutiveStrip && (
+          <div className="space-y-3 p-4 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-[#E5E7EB]">
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#0F0F10]" />
+                <span className="font-mono text-[10px] uppercase tracking-wider text-[#0F0F10] font-bold">
+                  Live Studio Telemetry
+                </span>
+              </div>
+              {activePR && (
+                <span className="text-[11px] text-[#6B7280]">
+                  {activePR.boxTitle}: <strong className="text-[#0F0F10]">{activePR.status}</strong> ({activePR.courier} #{activePR.trackingNumber})
+                </span>
+              )}
+            </div>
 
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-mono">
+              <div>
+                <span className="text-[10px] text-[#6B7280] uppercase block">Available Balance</span>
+                <span className="font-heading font-extrabold text-xl text-[#0F0F10]">
+                  ₦{availableBalance.toLocaleString('en-NG')}
+                </span>
+                <span className="text-[9.5px] font-mono text-[#0F0F10] font-bold block">● CLEARED</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-[#6B7280] uppercase block">Pending Clearance</span>
+                <span className="font-heading font-extrabold text-xl text-[#0F0F10]">
+                  ₦{pendingClearance.toLocaleString('en-NG')}
+                </span>
+                <span className="text-[9.5px] font-mono text-[#6B7280] font-bold block">
+                  {creatorLedger.filter((t) => t.status === 'pending').length} ORDERS
+                </span>
+              </div>
+              <div>
+                <span className="text-[10px] text-[#6B7280] uppercase block">Attributed Orders</span>
+                <span className="font-heading font-extrabold text-xl text-[#0F0F10]">
+                  {attributedOrdersCount.toLocaleString()}
+                </span>
+                <span className="text-[9.5px] font-mono text-[#0F0F10] font-bold block">Recorded activity</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-[#6B7280] uppercase block">Active Links</span>
+                <span className="font-heading font-extrabold text-xl text-[#0F0F10]">
+                  {creatorLinks.length}
+                </span>
+                <span className="text-[9.5px] text-[#6B7280] block">Tracked referral URLs</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 3. Studio Navigation Workspace Header & Filter / Bento Controls */}
+        <section className="space-y-4">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pt-1">
+            <div>
+              <h1 className="font-heading font-bold text-xl sm:text-2xl text-[#0F0F10] tracking-tight">
+                Studio Navigation Workspace
+              </h1>
+              <p className="text-xs text-[#6B7280]">
+                9 Art-Directed Destinations • Tap to enter workspace
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1 p-1 rounded-full bg-[#FAF9F6] border border-[#E5E7EB] text-xs">
+                {[
+                  { id: 'all', label: 'All Destinations' },
+                  { id: 'production', label: 'Production & Media' },
+                  { id: 'collaborations', label: 'Collaborations & PR' },
+                  { id: 'commerce', label: 'Ledger & Vault' }
+                ].map((f) => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => setCategoryFilter(f.id as EditorialCategoryFilter)}
+                    className={`px-3 py-1 rounded-full text-[11px] font-bold transition-all cursor-pointer ${
+                      categoryFilter === f.id
+                        ? 'bg-[#0F0F10] text-white shadow-xs'
+                        : 'text-[#6B7280] hover:text-[#0F0F10]'
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-1 p-1 rounded-full bg-[#FAF9F6] border border-[#E5E7EB] text-xs">
+                <button
+                  type="button"
+                  onClick={() => setLayoutMode('matrix')}
+                  className={`px-2.5 py-1 rounded-full text-[10.5px] font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                    layoutMode === 'matrix'
+                      ? 'bg-[#0F0F10] text-white shadow-xs'
+                      : 'text-[#6B7280] hover:text-[#0F0F10]'
+                  }`}
+                  title="3x3 Uniform Matrix Layout"
+                >
+                  <Grid3X3 size={11} />
+                  <span>Matrix</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setLayoutMode('bento')}
+                  className={`px-2.5 py-1 rounded-full text-[10.5px] font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                    layoutMode === 'bento'
+                      ? 'bg-[#0F0F10] text-white shadow-xs'
+                      : 'text-[#6B7280] hover:text-[#0F0F10]'
+                  }`}
+                  title="Asymmetric Editorial Bento Layout"
+                >
+                  <LayoutGrid size={11} />
+                  <span>Bento</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <EditorialNavigationGrid
+            onNavigate={onNavigate}
+            onOpenAnalytics={() => setAnalyticsOpen(true)}
+            activeFilter={categoryFilter}
+            layoutMode={layoutMode}
+          />
+        </section>
+
+        {/* Bottom-left Creator Settings shortcut pill (Desktop only) */}
+        <div className="fixed left-5 bottom-6 z-40">
           <button
             type="button"
-            onClick={() => setAnalyticsOpen(true)}
-            className="min-h-10 px-3 rounded-lg border border-[#E5E7EB] bg-white hover:bg-[#FAF9F6] text-xs font-medium text-[#0F0F10] flex items-center gap-1.5 transition-colors cursor-pointer touch-manipulation"
+            onClick={() => onNavigate('settings')}
+            className="px-4 py-2 rounded-full bg-[#0F0F10] hover:bg-black text-white text-[11px] font-bold shadow-md cursor-pointer tracking-tight transition-all active:scale-95 border border-white/10"
+            title="Open Creator Settings"
           >
-            <BarChart2 size={14} className="text-[#4B5563]" />
-            <span>Pulse Telemetry</span>
+            Creator Settings
           </button>
         </div>
       </div>
-
-      {/* Expandable Summary Metrics Strip */}
-      {showExecutiveStrip && (
-        <div className="space-y-3 p-4 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB]">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-[#E5E7EB]">
-            <span className="text-xs font-medium text-[#0F0F10]">
-              Live Studio Telemetry
-            </span>
-            {activePR && (
-              <span className="text-xs text-[#6B7280]">
-                {activePR.boxTitle}: <strong className="font-medium text-[#0F0F10]">{activePR.status}</strong> ({activePR.courier} #{activePR.trackingNumber})
-              </span>
-            )}
+      ) : (
+      /* =====================================================================
+          MOBILE VIEW (< md): Retained Native App-Inspired Interface
+      ====================================================================== */
+      <div className="md:hidden space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h1 className="font-heading font-semibold text-xl text-[#0F0F10] tracking-tight">
+              Good morning, {creatorName}
+            </h1>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div>
-              <span className="text-xs text-[#6B7280] block">Available Balance</span>
-              <span className="font-heading font-semibold text-lg text-[#0F0F10] mt-0.5 block">
-                ₦{availableBalance.toLocaleString('en-NG')}
-              </span>
-              <span className="text-xs text-[#4B5563] block">Cleared</span>
-            </div>
-            <div>
-              <span className="text-xs text-[#6B7280] block">Pending Clearance</span>
-              <span className="font-heading font-semibold text-lg text-[#0F0F10] mt-0.5 block">
-                ₦{pendingClearance.toLocaleString('en-NG')}
-              </span>
-              <span className="text-xs text-[#6B7280] block">
-                {creatorLedger.filter((t) => t.status === 'pending').length} orders
-              </span>
-            </div>
-            <div>
-              <span className="text-xs text-[#6B7280] block">Attributed Orders</span>
-              <span className="font-heading font-semibold text-lg text-[#0F0F10] mt-0.5 block">
-                {attributedOrdersCount.toLocaleString()}
-              </span>
-              <span className="text-xs text-[#6B7280] block">Recorded activity</span>
-            </div>
-            <div>
-              <span className="text-xs text-[#6B7280] block">Active Links</span>
-              <span className="font-heading font-semibold text-lg text-[#0F0F10] mt-0.5 block">
-                {creatorLinks.length}
-              </span>
-              <span className="text-xs text-[#6B7280] block">Tracked referral URLs</span>
-            </div>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setShowExecutiveStrip(!showExecutiveStrip)}
+              className="min-h-10 px-3 rounded-lg border border-[#E5E7EB] bg-white hover:bg-[#FAF9F6] text-xs font-medium text-[#4B5563] hover:text-[#0F0F10] flex items-center gap-1.5 transition-colors cursor-pointer touch-manipulation"
+            >
+              <span>Summary</span>
+              {showExecutiveStrip ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setAnalyticsOpen(true)}
+              className="min-h-10 px-3 rounded-lg border border-[#E5E7EB] bg-white hover:bg-[#FAF9F6] text-xs font-medium text-[#0F0F10] flex items-center gap-1.5 transition-colors cursor-pointer touch-manipulation"
+            >
+              <BarChart2 size={14} className="text-[#4B5563]" />
+              <span>Pulse Telemetry</span>
+            </button>
           </div>
         </div>
+
+        {showExecutiveStrip && (
+          <div className="space-y-3 p-4 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB]">
+            <div className="flex flex-col gap-1.5 pb-2 border-b border-[#E5E7EB]">
+              <span className="text-xs font-medium text-[#0F0F10]">
+                Live Studio Telemetry
+              </span>
+              {activePR && (
+                <span className="text-xs text-[#6B7280]">
+                  {activePR.boxTitle}: <strong className="font-medium text-[#0F0F10]">{activePR.status}</strong> ({activePR.courier} #{activePR.trackingNumber})
+                </span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <span className="text-xs text-[#6B7280] block">Available Balance</span>
+                <span className="font-heading font-semibold text-lg text-[#0F0F10] mt-0.5 block">
+                  ₦{availableBalance.toLocaleString('en-NG')}
+                </span>
+                <span className="text-xs text-[#4B5563] block">Cleared</span>
+              </div>
+              <div>
+                <span className="text-xs text-[#6B7280] block">Pending Clearance</span>
+                <span className="font-heading font-semibold text-lg text-[#0F0F10] mt-0.5 block">
+                  ₦{pendingClearance.toLocaleString('en-NG')}
+                </span>
+                <span className="text-xs text-[#6B7280] block">
+                  {creatorLedger.filter((t) => t.status === 'pending').length} orders
+                </span>
+              </div>
+              <div>
+                <span className="text-xs text-[#6B7280] block">Attributed Orders</span>
+                <span className="font-heading font-semibold text-lg text-[#0F0F10] mt-0.5 block">
+                  {attributedOrdersCount.toLocaleString()}
+                </span>
+                <span className="text-xs text-[#6B7280] block">Recorded activity</span>
+              </div>
+              <div>
+                <span className="text-xs text-[#6B7280] block">Active Links</span>
+                <span className="font-heading font-semibold text-lg text-[#0F0F10] mt-0.5 block">
+                  {creatorLinks.length}
+                </span>
+                <span className="text-xs text-[#6B7280] block">Tracked referral URLs</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <section className="space-y-5" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+          <div className="space-y-3">
+            <h2 className="font-heading font-medium text-lg text-[#0F0F10] tracking-tight">
+              Studio Workspace
+            </h2>
+
+            <div
+              role="tablist"
+              aria-label="Studio Workspace sections"
+              className="flex items-center gap-6 border-b border-[#E5E7EB] overflow-x-auto no-scrollbar touch-pan-x"
+            >
+              {STUDIO_TABS.map((tab) => {
+                const isSelected = mobileTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={isSelected}
+                    onClick={() => setMobileTab(tab.id)}
+                    className={`relative pb-3 pt-1 min-h-11 whitespace-nowrap text-sm transition-colors cursor-pointer touch-manipulation ${
+                      isSelected
+                        ? 'text-[#0F0F10] font-medium'
+                        : 'text-[#6B7280] hover:text-[#0F0F10] font-normal'
+                    }`}
+                  >
+                    <span>{tab.label}</span>
+                    {isSelected && (
+                      <motion.span
+                        layoutId="studio-workspace-tab-underline"
+                        transition={
+                          shouldReduceMotion
+                            ? { duration: 0 }
+                            : { duration: 0.24, ease: [0.23, 1, 0.32, 1] }
+                        }
+                        className="absolute bottom-0 inset-x-0 h-[1.5px] bg-[#0F0F10]"
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <EditorialNavigationGrid
+            onNavigate={onNavigate}
+            onOpenAnalytics={() => setAnalyticsOpen(true)}
+            activeFilter={mobileTab}
+            layoutMode="matrix"
+          />
+        </section>
+      </div>
       )}
-
-      {/* Studio Workspace Minimal Underline Tabs */}
-      <section className="space-y-5" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
-        <div className="space-y-3">
-          <h2 className="font-heading font-medium text-lg text-[#0F0F10] tracking-tight">
-            Studio Workspace
-          </h2>
-
-          <div
-            role="tablist"
-            aria-label="Studio Workspace sections"
-            className="flex items-center gap-6 border-b border-[#E5E7EB] overflow-x-auto no-scrollbar touch-pan-x"
-          >
-            {STUDIO_TABS.map((tab) => {
-              const isSelected = categoryFilter === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={isSelected}
-                  onClick={() => setCategoryFilter(tab.id)}
-                  className={`relative pb-3 pt-1 min-h-11 whitespace-nowrap text-sm transition-colors cursor-pointer touch-manipulation ${
-                    isSelected
-                      ? 'text-[#0F0F10] font-medium'
-                      : 'text-[#6B7280] hover:text-[#0F0F10] font-normal'
-                  }`}
-                >
-                  <span>{tab.label}</span>
-                  {isSelected && (
-                    <motion.span
-                      layoutId="studio-workspace-tab-underline"
-                      transition={
-                        shouldReduceMotion
-                          ? { duration: 0 }
-                          : { duration: 0.24, ease: [0.23, 1, 0.32, 1] }
-                      }
-                      className="absolute bottom-0 inset-x-0 h-[1.5px] bg-[#0F0F10]"
-                    />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Destinations Grid */}
-        <EditorialNavigationGrid
-          onNavigate={onNavigate}
-          onOpenAnalytics={() => setAnalyticsOpen(true)}
-          activeFilter={categoryFilter}
-        />
-      </section>
 
       {/* Pulse Telemetry Slide-Out Drawer */}
       <ActionDrawer

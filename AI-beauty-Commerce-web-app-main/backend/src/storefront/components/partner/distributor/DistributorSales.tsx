@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { TrendingUp, BarChart2, ShoppingBag, ArrowUpRight, Download, CheckCircle2, FileSpreadsheet } from '../../common/SolidIcons';
 import { StatChip } from '../shared/StatChip';
+import { MobileRouteContent, MobileSharedHeroCard } from '../shared/MobileRouteTransition';
 import { useApp } from '../../../context/AppContext';
 
 export const DistributorSales: React.FC = () => {
@@ -48,7 +49,34 @@ export const DistributorSales: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E5E7EB]">
+      <MobileSharedHeroCard
+        portal="distributor"
+        route="sales"
+        subtitle={`${selectedCity || 'Lagos'} Hub Velocity`}
+        title="Sales & Dispatch Velocity"
+        description="Real-time order turnover and product movement across your assigned city hub zones."
+        rightAction={
+          <button
+            type="button"
+            onClick={handleExportCsv}
+            className="min-h-11 px-4 rounded-full bg-white border border-[#E5E7EB] hover:bg-[#FAF9F6] text-[#0F0F10] text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+          >
+            {downloadSuccess ? (
+              <>
+                <CheckCircle2 size={13} className="text-emerald-600" />
+                <span className="text-emerald-700">Exported CSV ✓</span>
+              </>
+            ) : (
+              <>
+                <FileSpreadsheet size={13} className="text-[#997A2E]" />
+                <span>Export Velocity CSV</span>
+              </>
+            )}
+          </button>
+        }
+      />
+
+      <div className="hidden md:flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E5E7EB]">
         <div>
           <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
             Regional Demand Analytics • {selectedCity || 'Lagos'} Hub
@@ -78,6 +106,8 @@ export const DistributorSales: React.FC = () => {
           )}
         </button>
       </div>
+
+      <MobileRouteContent className="space-y-6">
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatChip
@@ -145,6 +175,7 @@ export const DistributorSales: React.FC = () => {
           ))}
         </div>
       </div>
+      </MobileRouteContent>
     </div>
   );
 };

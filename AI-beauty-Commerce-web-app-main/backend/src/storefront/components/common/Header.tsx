@@ -55,7 +55,7 @@ export const Header: React.FC<HeaderProps> = ({ title, showBack }) => {
       case 'account':
         return 'Client Dossier';
       case 'community':
-        return 'Desla Collective';
+        return 'Community Hub';
       default:
         return '';
     }

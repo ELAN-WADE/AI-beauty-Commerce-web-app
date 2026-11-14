@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Download, FileText } from '../../common/SolidIcons';
 import { apiFetch } from '../../../lib/owned-api';
+import { MobileRouteContent, MobileSharedHeroCard } from '../shared/MobileRouteTransition';
 function cell(value: unknown) { const text = String(value ?? ''); return `"${(/^[=+@-]/.test(text) ? "'" : '') + text.replace(/"/g, '""')}"`; }
 export const DistributorReports: React.FC = () => {
   const [data, setData] = useState<any>(null);
@@ -16,5 +17,35 @@ export const DistributorReports: React.FC = () => {
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
     const link = document.createElement('a'); link.href = url; link.download = `desla-${report.id}-${new Date().toISOString().slice(0,10)}.csv`; link.click(); window.setTimeout(() => URL.revokeObjectURL(url),1000);
   };
-  return <div className="space-y-6"><div className="border-b pb-2"><h1 className="font-heading text-2xl font-extrabold">Exportable Operational Reports</h1><p className="text-sm text-[#6B7280]">Exports contain the current records returned for your account.</p></div>{error && <p role="alert">{error}</p>}{!data && !error && <p role="status">Loading reports…</p>}<div className="grid gap-4 md:grid-cols-2">{reports.map(report => <article key={report.id} className="space-y-4 rounded-3xl border bg-white p-6"><FileText className="text-[#997A2E]" /><h2 className="font-bold">{report.title}</h2><p className="text-sm">{report.rows.length} records</p><button disabled={!report.rows.length} onClick={() => download(report)} className="inline-flex items-center gap-2 rounded-full bg-black px-4 py-2 text-sm text-white disabled:opacity-40"><Download size={16} />Download CSV</button></article>)}</div></div>;
+  return (
+    <div className="space-y-6">
+      <MobileSharedHeroCard
+        portal="distributor"
+        route="reports"
+        subtitle="Fulfillment Metrics"
+        title="Exportable Operational Reports"
+        description="Exports contain the current records returned for your account."
+      />
+      <div className="hidden md:block border-b pb-2">
+        <h1 className="font-heading text-2xl font-extrabold">Exportable Operational Reports</h1>
+        <p className="text-sm text-[#6B7280]">Exports contain the current records returned for your account.</p>
+      </div>
+      <MobileRouteContent className="space-y-4">
+        {error && <p role="alert">{error}</p>}
+        {!data && !error && <p role="status">Loading reports…</p>}
+        <div className="grid gap-4 md:grid-cols-2">
+          {reports.map(report => (
+            <article key={report.id} className="space-y-4 rounded-2xl md:rounded-3xl border bg-white p-6">
+              <FileText className="text-[#997A2E]" />
+              <h2 className="font-bold">{report.title}</h2>
+              <p className="text-sm">{report.rows.length} records</p>
+              <button disabled={!report.rows.length} onClick={() => download(report)} className="inline-flex items-center gap-2 rounded-full bg-black px-4 py-2 text-sm text-white disabled:opacity-40 cursor-pointer">
+                <Download size={16} />Download CSV
+              </button>
+            </article>
+          ))}
+        </div>
+      </MobileRouteContent>
+    </div>
+  );
 };

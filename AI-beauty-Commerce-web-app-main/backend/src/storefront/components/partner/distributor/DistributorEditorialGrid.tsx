@@ -3,6 +3,10 @@ import {
   EditorialNavigationTile,
   EditorialTileData
 } from '../creator/EditorialNavigationTile';
+import {
+  getPartnerTileLayoutId,
+  useIsMobilePartnerViewport
+} from '../shared/MobileRouteTransition';
 
 export type DistributorCategoryFilter = 'all' | 'fulfillment' | 'wholesale' | 'territory';
 export type DistributorLayoutMode = 'matrix' | 'bento';
@@ -153,10 +157,11 @@ export const defaultDistributorTiles: EditorialTileData[] = [
 
 export const DistributorEditorialGrid: React.FC<DistributorEditorialGridProps> = ({
   onNavigate,
-  onOpenAnalytics,
   activeFilter = 'all',
   layoutMode = 'matrix'
 }) => {
+  const isMobile = useIsMobilePartnerViewport();
+
   const handleTileClick = (route: string) => {
     onNavigate(route);
   };
@@ -178,9 +183,7 @@ export const DistributorEditorialGrid: React.FC<DistributorEditorialGridProps> =
   const getBentoSpan = (tileId: string) => {
     switch (tileId) {
       case 'tile-orders':
-        return 'col-span-1 sm:col-span-2 lg:col-span-2';
       case 'tile-earnings':
-        return 'col-span-1 sm:col-span-2 lg:col-span-2';
       case 'tile-settings':
         return 'col-span-1 sm:col-span-2 lg:col-span-2';
       default:
@@ -200,9 +203,12 @@ export const DistributorEditorialGrid: React.FC<DistributorEditorialGridProps> =
         }`}
       >
         {filteredTiles.map((tile, idx) => {
-          const tileWithBentoSpan = isBento
-            ? { ...tile, desktopSpan: getBentoSpan(tile.id) }
-            : tile;
+          const layoutId = tile.sharedLayoutId || getPartnerTileLayoutId('distributor', tile.route);
+          const tileWithBentoSpan: EditorialTileData = {
+            ...tile,
+            desktopSpan: isBento ? getBentoSpan(tile.id) : tile.desktopSpan,
+            sharedLayoutId: layoutId,
+          };
 
           return (
             <EditorialNavigationTile
@@ -210,6 +216,7 @@ export const DistributorEditorialGrid: React.FC<DistributorEditorialGridProps> =
               tile={tileWithBentoSpan}
               onNavigate={handleTileClick}
               priority={idx < 3}
+              enableSharedMotion={isMobile}
             />
           );
         })}

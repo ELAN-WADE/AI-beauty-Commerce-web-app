@@ -1,6 +1,6 @@
 import { PartnerProgrammeSelector } from '../partner/shell/PartnerProgrammeSelector';
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, Lock, Sparkles, Store, ShieldAlert, LogIn, ChevronRight, UserCheck } from '../common/SolidIcons';
+import { ArrowLeft, Lock, Store, ShieldAlert, LogIn, ChevronRight, UserCheck } from '../common/SolidIcons';
 import { useApp } from '../../context/AppContext';
 import { PartnerApplication } from '../partner/PartnerApplication';
 import { getDesignPreviewPortal } from '../../lib/portal-preview';
@@ -162,19 +162,13 @@ export const RequireRole: React.FC<RequireRoleProps> = ({
     <div className="min-h-screen bg-[#FAF9F6] text-[#0F0F10] font-body flex items-center justify-center p-4 sm:p-8">
       <div className="max-w-md w-full bg-white border border-[#E5E7EB] rounded-3xl p-6 sm:p-8 shadow-[0_12px_40px_rgba(0,0,0,0.06)] text-center">
         {/* Portal Icon */}
-        <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-xs border transition-transform hover:scale-105 duration-200">
+        <div className="w-12 h-12 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] text-[#0F0F10] flex items-center justify-center mx-auto mb-5">
           {isCreator ? (
-            <div className="w-full h-full rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 text-[#997A2E] flex items-center justify-center">
-              <Sparkles className="w-7 h-7 stroke-[1.8]" />
-            </div>
+            <UserCheck size={22} />
           ) : isDistributor ? (
-            <div className="w-full h-full rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 text-emerald-800 flex items-center justify-center">
-              <Store className="w-7 h-7 stroke-[1.8]" />
-            </div>
+            <Store size={22} />
           ) : (
-            <div className="w-full h-full rounded-2xl bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center">
-              <Lock className="w-7 h-7 stroke-[1.8]" />
-            </div>
+            <Lock size={22} />
           )}
         </div>
 

@@ -1,7 +1,6 @@
 import React from 'react';
 import { CaretLeft, ArrowRight, StackSimple } from '@phosphor-icons/react';
 import { useApp } from '../../context/AppContext';
-import { DepthCard } from '../../components/ui/DepthCard';
 
 export const Screen05Categories: React.FC = () => {
   const { categories: liveCategories, products, navigateTo, setSelectedCategory, goBack } = useApp();
@@ -14,30 +13,42 @@ export const Screen05Categories: React.FC = () => {
     lifestyle: '/cat_lifestyle.jpg',
   };
 
-  const categories =
+  const baseCategories =
     liveCategories.length > 0
-      ? liveCategories.map((c) => {
-          const matchingProduct = products.find(
-            (p) => p.category.toLowerCase() === c.slug.toLowerCase()
-          );
-          return {
-            id: c.id,
-            name: c.name,
-            slug: c.slug,
-            subtitle: c.description || 'Explore Formulation Discipline',
-            description: c.description || '',
-            image:
-              c.image ||
-              matchingProduct?.image ||
-              categoryFallbackImages[c.slug.toLowerCase()] ||
-              '/cat_skincare.jpg',
-            productCount: products.filter(
-              (p) => p.category.toLowerCase() === c.slug.toLowerCase()
-            ).length,
+      ? liveCategories
+      : Array.from(new Set(products.map((p) => p.category)))
+          .filter(Boolean)
+          .map((slug) => ({
+            id: slug,
+            name: slug.replace(/[-_]/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
+            slug,
+            description: 'Safe-conscious formulation crafted with natural intention.',
+            image: categoryFallbackImages[slug.toLowerCase()] || '/cat_skincare.jpg',
+            itemCount: 0,
+            featured: true,
             subcategories: [] as string[],
-          };
-        })
-      : [];
+          }));
+
+  const categories = baseCategories.map((c) => {
+    const matchingProduct = products.find(
+      (p) => p.category.toLowerCase() === c.slug.toLowerCase()
+    );
+    const liveCount = products.filter(
+      (p) => p.category.toLowerCase() === c.slug.toLowerCase()
+    ).length;
+    return {
+      id: c.id,
+      name: c.name,
+      slug: c.slug,
+      description: c.description || '',
+      image:
+        c.image ||
+        matchingProduct?.image ||
+        categoryFallbackImages[c.slug.toLowerCase()] ||
+        '/cat_skincare.jpg',
+      itemCount: liveCount > 0 ? liveCount : c.itemCount ?? 0,
+    };
+  });
 
   const handleSelect = (slug: string) => {
     setSelectedCategory(slug);
@@ -45,42 +56,45 @@ export const Screen05Categories: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF9F6] text-[#0F0F10] pb-24 lg:pb-16 font-body">
-      {/* Editorial Page Header */}
-      <div className="bg-white border-b border-[#E5E7EB]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8">
-          <div className="flex items-center gap-3 mb-2">
+    <div className="min-h-screen bg-white text-[#0F0F10] pb-28 font-body selection:bg-[#D4AF37]/20 selection:text-[#997A2E]">
+      {/* Top Header */}
+      <div className="sticky top-0 z-30 w-full bg-white/95 backdrop-blur-md border-b border-[#E5E7EB] px-4 py-3.5">
+        <div className="flex items-center justify-between max-w-7xl mx-auto">
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={goBack}
-              className="lg:hidden p-2 -ml-2 text-[#6B7280] hover:text-[#0F0F10] cursor-pointer"
-              aria-label="Back"
+              className="p-1.5 -ml-1 rounded-full text-[#0F0F10] hover:bg-gray-100 active:scale-95 transition-all cursor-pointer"
+              aria-label="Go back"
             >
               <CaretLeft size={20} weight="bold" aria-hidden="true" />
             </button>
-            <div>
-              <p className="text-[11px] font-mono uppercase tracking-[0.2em] text-[#997A2E] font-semibold">
-                Desla!™ Formulations
-              </p>
-              <h1 className="font-heading font-semibold text-xl sm:text-3xl text-[#0F0F10] tracking-tight">
-                Curated Disciplines &amp; Categories
-              </h1>
-            </div>
+            <h1 className="font-heading font-extrabold tracking-tight text-lg sm:text-xl text-[#0F0F10]">
+              Collections &amp; Pillars
+            </h1>
           </div>
-          <p className="text-[13px] sm:text-sm text-[#6B7280] max-w-2xl leading-relaxed">
-            Explore our complete range of safe-conscious natural skincare, organic sunblocks, botanical body care, and luxury apothecary rituals.
-          </p>
-          <div className="mt-3 flex items-center gap-2 text-xs text-[#6B7280]">
-            <StackSimple size={15} weight="fill" className="text-[#997A2E]" aria-hidden="true" />
+          <span className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-[#997A2E]">
+            <StackSimple size={14} weight="fill" aria-hidden="true" />
             <span>{categories.length} Taxonomy Pillars</span>
-          </div>
+          </span>
         </div>
       </div>
 
-      {/* Category Grid */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
+      <main className="max-w-7xl mx-auto px-4 lg:px-8 pt-6 space-y-6">
+        <div className="max-w-2xl">
+          <span className="text-xs font-mono font-bold text-[#997A2E] uppercase tracking-wider">
+            Curated Formulations
+          </span>
+          <h2 className="font-heading font-extrabold tracking-tight text-2xl sm:text-3xl text-[#0F0F10] mt-1">
+            Intentional care for every personal ritual.
+          </h2>
+          <p className="text-xs sm:text-sm text-[#6B7280] mt-1.5 leading-relaxed">
+            From natural barrier body washes and whipped shea butters to extrait perfume oils and velvet lip glazes.
+          </p>
+        </div>
+
         {categories.length === 0 ? (
-          <div className="rounded-2xl bg-white border border-[#E5E7EB] p-8 text-center space-y-3">
+          <div className="rounded-3xl bg-[#FAF9F6] border border-[#E5E7EB] p-8 text-center space-y-3">
             <p className="text-sm text-[#6B7280]">
               Collections are syncing with our catalog. Browse all formulations in the shop.
             </p>
@@ -97,33 +111,49 @@ export const Screen05Categories: React.FC = () => {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {categories.map((cat) => (
-              <DepthCard
+              <button
                 key={cat.id}
-                image={cat.image}
-                eyebrow={cat.productCount > 0 ? `${cat.productCount} Formulations` : 'Collection'}
-                title={cat.name}
-                description={cat.description || cat.subtitle}
-                maxRotation={8}
-                maxTranslation={12}
-                borderRadius="12px"
-                spotlight={false}
-                disableOnMobile
-                respectReducedMotion
+                type="button"
                 onClick={() => handleSelect(cat.slug)}
-                className="w-full h-[300px] sm:h-[360px]"
-                footer={
-                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#D4AF37]">
-                    <span>Explore {cat.name}</span>
-                    <ArrowRight size={12} weight="bold" aria-hidden="true" />
+                className="group relative text-left rounded-3xl overflow-hidden border border-[#E5E7EB] bg-[#FAF9F6] shadow-xs hover:shadow-md hover:border-[#D4AF37] transition-all cursor-pointer active:scale-[0.98]"
+              >
+                <div className="relative h-48 sm:h-56 overflow-hidden bg-[#F6F5F2]">
+                  <img
+                    src={cat.image}
+                    alt={cat.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+
+                  <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-md text-[10.5px] font-mono font-bold text-[#0F0F10] shadow-sm">
+                    {cat.itemCount} Formulations
+                  </div>
+
+                  <div className="absolute bottom-4 left-4 right-4 text-white">
+                    <h3 className="font-heading font-extrabold tracking-tight text-xl sm:text-2xl text-white drop-shadow-sm">
+                      {cat.name}
+                    </h3>
+                    <p className="text-xs text-white/80 line-clamp-1 mt-0.5">
+                      {cat.description || 'Safe-conscious formulation crafted with natural intention.'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-white flex items-center justify-between">
+                  <span className="text-xs font-bold text-[#0F0F10] group-hover:text-[#997A2E] transition-colors">
+                    Explore {cat.name}
                   </span>
-                }
-              />
+                  <div className="w-8 h-8 rounded-full bg-[#FAF9F6] group-hover:bg-[#0F0F10] group-hover:text-white flex items-center justify-center transition-all text-[#0F0F10] shadow-xs">
+                    <ArrowRight size={14} weight="bold" aria-hidden="true" />
+                  </div>
+                </div>
+              </button>
             ))}
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 };

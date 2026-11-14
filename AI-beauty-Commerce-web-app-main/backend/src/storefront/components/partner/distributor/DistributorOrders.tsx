@@ -17,6 +17,7 @@ import { FilterTabs } from '../shared/FilterTabs';
 import { StatusBadge } from '../shared/StatusBadge';
 import { StatChip } from '../shared/StatChip';
 import { ActionDrawer } from '../shared/ActionDrawer';
+import { MobileRouteContent, MobileSharedHeroCard } from '../shared/MobileRouteTransition';
 import { useApp } from '../../../context/AppContext';
 import { Order } from '../../../types';
 import { nextPartnerOrderAction } from '../../../lib/order-journey';
@@ -138,8 +139,17 @@ export const DistributorOrders: React.FC<DistributorOrdersProps> = ({
         </div>
       )}
 
-      {/* Header */}
-      <div className="pb-2 border-b border-[#E5E7EB]">
+      {/* Mobile Shared-Element Hero Card */}
+      <MobileSharedHeroCard
+        portal="distributor"
+        route="orders"
+        subtitle={`Fulfilment • ${selectedCity || 'Lagos'} Central Hub`}
+        title="Orders & Fulfilment Queue"
+        description="Process local orders, generate shipping waybills, and coordinate courier handoffs."
+      />
+
+      {/* Desktop Header */}
+      <div className="hidden md:block pb-2 border-b border-[#E5E7EB]">
         <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
           Hub Fulfilment Management • {selectedCity || 'Lagos'} Central Hub
         </span>
@@ -151,6 +161,7 @@ export const DistributorOrders: React.FC<DistributorOrdersProps> = ({
         </p>
       </div>
 
+      <MobileRouteContent className="space-y-6">
       {/* Minimalist Summary Cards with Status Stamps */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         <StatChip
@@ -365,6 +376,7 @@ export const DistributorOrders: React.FC<DistributorOrdersProps> = ({
           </div>
         )}
       </ActionDrawer>
+      </MobileRouteContent>
     </div>
   );
 };

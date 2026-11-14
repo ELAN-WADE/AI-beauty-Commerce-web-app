@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../../../context/AppContext';
 import { writePartnerWorkspace } from '../../../lib/owned-api';
 import { PhoneCall, ShieldAlert, Send, CheckCircle2 } from '../../common/SolidIcons';
+import { MobileRouteContent, MobileSharedHeroCard } from '../shared/MobileRouteTransition';
 
 export const DistributorSupport: React.FC = () => {
   const { isLiveBackend } = useApp();
@@ -29,7 +30,15 @@ export const DistributorSupport: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200 max-w-2xl mx-auto">
-      <div className="pb-2 border-b border-[#E5E7EB] text-center">
+      <MobileSharedHeroCard
+        portal="distributor"
+        route="support"
+        subtitle="Direct Logistics Dispatch"
+        title="Logistics & Stock Incident Support"
+        description="Priority escalation channel for warehouse inventory discrepancies, courier disputes, and damaged laboratory cartons."
+      />
+
+      <div className="hidden md:block pb-2 border-b border-[#E5E7EB] text-center">
         <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#6B7280]">
           Direct Logistics Dispatch
         </span>
@@ -40,6 +49,8 @@ export const DistributorSupport: React.FC = () => {
           Priority escalation channel for warehouse inventory discrepancies, courier disputes, and damaged laboratory cartons.
         </p>
       </div>
+
+      <MobileRouteContent className="space-y-6">
 
       {/* Emergency Hotline Banner */}
       <div className="p-4 sm:p-5 rounded-3xl bg-[#FBF5E8] border border-[#D4AF37]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
@@ -121,6 +132,7 @@ export const DistributorSupport: React.FC = () => {
           </form>
         )}
       </div>
+      </MobileRouteContent>
     </div>
   );
 };

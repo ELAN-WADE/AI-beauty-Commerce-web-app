@@ -19,6 +19,7 @@ import { fetchPartnerWorkspace, writePartnerWorkspace } from '../../../lib/owned
 import { FilterTabs } from '../shared/FilterTabs';
 import { StatusBadge } from '../shared/StatusBadge';
 import { EmptyStateCard } from '../shared/EmptyStateCard';
+import { MobileRouteContent, MobileSharedHeroCard } from '../shared/MobileRouteTransition';
 
 export interface CreatorContentLibraryProps {
   onOpenCreate: () => void;
@@ -115,8 +116,27 @@ export const CreatorContentLibrary: React.FC<CreatorContentLibraryProps> = ({
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E5E7EB]">
+      {/* Mobile Shared-Element Hero Card */}
+      <MobileSharedHeroCard
+        portal="creator"
+        route="content"
+        subtitle="Media Library"
+        title="My Content Library"
+        description="Manage your published regimens, video reels, reviews, and drafts."
+        rightAction={
+          <button
+            type="button"
+            onClick={onOpenCreate}
+            className="min-h-11 px-4 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+          >
+            <Plus size={14} className="text-[#D4AF37]" />
+            <span>Author New Routine</span>
+          </button>
+        }
+      />
+
+      {/* Desktop Header */}
+      <div className="hidden md:flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E5E7EB]">
         <div>
           <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
             Content Management
@@ -138,6 +158,7 @@ export const CreatorContentLibrary: React.FC<CreatorContentLibraryProps> = ({
         </button>
       </div>
 
+      <MobileRouteContent className="space-y-6">
       {/* Search and Filter */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
@@ -253,6 +274,7 @@ export const CreatorContentLibrary: React.FC<CreatorContentLibraryProps> = ({
           ))}
         </div>
       )}
+      </MobileRouteContent>
     </div>
   );
 };

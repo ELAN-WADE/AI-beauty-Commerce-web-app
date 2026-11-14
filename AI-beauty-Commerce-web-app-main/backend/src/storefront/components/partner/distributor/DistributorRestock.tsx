@@ -13,6 +13,7 @@ import {
 } from '../../common/SolidIcons';
 import { useApp } from '../../../context/AppContext';
 import { ActionDrawer } from '../shared/ActionDrawer';
+import { MobileRouteContent, MobileSharedHeroCard } from '../shared/MobileRouteTransition';
 import { PartnerKitRequests } from '../PartnerKitRequests';
 import { buyWholesale, fetchWholesale, newIdempotencyKey, quoteWholesale, type WholesaleDashboard, type WholesaleQuote } from '../../../lib/owned-api';
 
@@ -112,8 +113,17 @@ export const DistributorRestock: React.FC = () => {
     <div className="space-y-6 animate-in fade-in duration-200 pb-20 md:pb-8">
       <PartnerKitRequests kind="DISTRIBUTOR" />
       {(loadError || submitError) && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-800">{submitError || loadError}</p>}
-      {/* Header */}
-      <div className="pb-2 border-b border-[#E5E7EB]">
+      {/* Mobile Shared-Element Hero Card */}
+      <MobileSharedHeroCard
+        portal="distributor"
+        route="restock"
+        subtitle="Wholesale Logistics"
+        title="Restock Wholesale Master Cartons"
+        description="Order 24-unit master cartons directly from Desla Central Laboratory with cold-chain priority dispatch."
+      />
+
+      {/* Desktop Header */}
+      <div className="hidden md:block pb-2 border-b border-[#E5E7EB]">
         <div className="flex items-center gap-2">
           <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
             Wholesale Logistics • Direct Laboratory Factory Pricing
@@ -129,6 +139,8 @@ export const DistributorRestock: React.FC = () => {
           Order 24-unit master cartons directly from Desla Central Laboratory with cold-chain priority dispatch.
         </p>
       </div>
+
+      <MobileRouteContent className="space-y-6">
 
       {/* Success Banner if batch was placed */}
       {lastBatchPlaced && (
@@ -321,6 +333,7 @@ export const DistributorRestock: React.FC = () => {
           </div>
         </div>
       </ActionDrawer>
+      </MobileRouteContent>
     </div>
   );
 };

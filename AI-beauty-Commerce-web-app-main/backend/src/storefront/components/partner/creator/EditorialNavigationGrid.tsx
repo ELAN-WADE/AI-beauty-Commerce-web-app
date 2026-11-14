@@ -3,8 +3,18 @@ import {
   EditorialNavigationTile,
   EditorialTileData
 } from './EditorialNavigationTile';
+import {
+  getPartnerTileLayoutId,
+  useIsMobilePartnerViewport
+} from '../shared/MobileRouteTransition';
 
-export type EditorialCategoryFilter = 'production' | 'collaboration' | 'ledger';
+export type EditorialCategoryFilter =
+  | 'all'
+  | 'production'
+  | 'collaborations'
+  | 'collaboration'
+  | 'commerce'
+  | 'ledger';
 export type EditorialLayoutMode = 'matrix' | 'bento';
 
 export interface EditorialNavigationGridProps {
@@ -130,9 +140,12 @@ export const defaultCreatorTiles: EditorialTileData[] = [
 export const EditorialNavigationGrid: React.FC<EditorialNavigationGridProps> = ({
   onNavigate,
   onOpenAnalytics,
-  activeFilter = 'production',
+  activeFilter = 'all',
+  layoutMode = 'matrix',
   customTiles = defaultCreatorTiles
 }) => {
+  const isMobile = useIsMobilePartnerViewport();
+
   const handleTileClick = (route: string) => {
     if (route === 'analytics' && onOpenAnalytics) {
       onOpenAnalytics();
@@ -142,32 +155,62 @@ export const EditorialNavigationGrid: React.FC<EditorialNavigationGridProps> = (
   };
 
   const filteredTiles = customTiles.filter((tile) => {
+    if (activeFilter === 'all') return true;
     if (activeFilter === 'production') {
       return ['tile-create', 'tile-content', 'tile-storefront'].includes(tile.id);
     }
-    if (activeFilter === 'collaboration') {
+    if (activeFilter === 'collaborations' || activeFilter === 'collaboration') {
       return ['tile-campaigns', 'tile-pr-room', 'tile-links'].includes(tile.id);
     }
-    if (activeFilter === 'ledger') {
+    if (activeFilter === 'commerce' || activeFilter === 'ledger') {
       return ['tile-earnings', 'tile-analytics', 'tile-settings'].includes(tile.id);
     }
     return true;
   });
+
+  const getBentoSpan = (tileId: string) => {
+    switch (tileId) {
+      case 'tile-create':
+      case 'tile-earnings':
+      case 'tile-settings':
+        return 'col-span-1 sm:col-span-2 lg:col-span-2';
+      default:
+        return 'col-span-1 sm:col-span-1 lg:col-span-1';
+    }
+  };
+
+  const isBento = layoutMode === 'bento' && activeFilter === 'all';
 
   return (
     <section
       aria-label="Studio Workspace Destinations"
       className="w-full"
     >
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-fr">
-        {filteredTiles.map((tile, idx) => (
-          <EditorialNavigationTile
-            key={tile.id}
-            tile={tile}
-            onNavigate={handleTileClick}
-            priority={idx < 3}
-          />
-        ))}
+      <div
+        className={`grid gap-3.5 sm:gap-4 lg:gap-4.5 auto-rows-fr transition-all duration-300 ${
+          isBento
+            ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
+            : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
+        }`}
+      >
+        {filteredTiles.map((tile, idx) => {
+          const layoutId = tile.sharedLayoutId || getPartnerTileLayoutId('creator', tile.route);
+          const enhancedTile: EditorialTileData = {
+            ...tile,
+            desktopSpan: isBento ? getBentoSpan(tile.id) : tile.desktopSpan,
+            sharedLayoutId: layoutId,
+          };
+
+          return (
+            <EditorialNavigationTile
+              key={tile.id}
+              tile={enhancedTile}
+              onNavigate={handleTileClick}
+              priority={idx < 3}
+              enableSharedMotion={isMobile}
+            />
+          );
+        })}
       </div>
     </section>
   );

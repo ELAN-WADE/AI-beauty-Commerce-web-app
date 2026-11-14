@@ -18,6 +18,7 @@ import {
   Package
 } from '../../common/SolidIcons';
 import { fetchPartnerDashboard, fetchPartnerWorkspace, writePartnerWorkspace } from '../../../lib/owned-api';
+import { MobileRouteContent, MobileSharedHeroCard } from '../shared/MobileRouteTransition';
 import { useApp } from '../../../context/AppContext';
 
 export const CreatorStorefront: React.FC = () => {
@@ -128,8 +129,53 @@ export const CreatorStorefront: React.FC = () => {
         </div>
       )}
 
-      {/* Editorial Header with View Switcher */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E5E7EB]">
+      {/* Mobile Shared-Element Hero Card */}
+      <MobileSharedHeroCard
+        portal="creator"
+        route="storefront"
+        subtitle="Public Boutique"
+        title="Creator Storefront"
+        description="Your personal art-directed editorial showcase and shoppable catalog."
+        rightAction={
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="p-0.5 rounded-full bg-[#FAF9F6] border border-[#E5E7EB] flex text-xs">
+              <button
+                type="button"
+                onClick={() => setViewMode('preview')}
+                className={`px-3 py-1.5 rounded-full font-semibold transition-all cursor-pointer ${
+                  viewMode === 'preview'
+                    ? 'bg-[#0F0F10] text-[#D4AF37]'
+                    : 'text-[#6B7280] hover:text-[#0F0F10]'
+                }`}
+              >
+                Client Preview
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('editor')}
+                className={`px-3 py-1.5 rounded-full font-semibold transition-all cursor-pointer ${
+                  viewMode === 'editor'
+                    ? 'bg-[#0F0F10] text-white'
+                    : 'text-[#6B7280] hover:text-[#0F0F10]'
+                }`}
+              >
+                Storefront Settings
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => void handleShareStorefront()}
+              className="min-h-10 px-4 py-1.5 rounded-full bg-[#0F0F10] text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+            >
+              <Share2 size={13} className="text-[#D4AF37]" />
+              <span>{copiedLink ? 'Link Copied ✓' : 'Share Storefront'}</span>
+            </button>
+          </div>
+        }
+      />
+
+      {/* Editorial Header with View Switcher (Desktop >= md) */}
+      <div className="hidden md:flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E5E7EB]">
         <div>
           <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
             Client-Facing Destination
@@ -177,6 +223,7 @@ export const CreatorStorefront: React.FC = () => {
         </div>
       </div>
 
+      <MobileRouteContent className="space-y-6">
       {/* ==================================================== */}
       {/* 1. STOREFRONT SETTINGS / PRIVATE EDITOR VIEW */}
       {/* ==================================================== */}
@@ -423,6 +470,7 @@ export const CreatorStorefront: React.FC = () => {
           </section>
         </div>
       )}
+      </MobileRouteContent>
     </div>
   );
 };

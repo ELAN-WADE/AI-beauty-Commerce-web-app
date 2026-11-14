@@ -15,6 +15,7 @@ import {
   Download
 } from '../../common/SolidIcons';
 import { StatChip } from '../shared/StatChip';
+import { MobileRouteContent, MobileSharedHeroCard } from '../shared/MobileRouteTransition';
 import { useApp } from '../../../context/AppContext';
 import { CreatorReferralLink } from '../../../types';
 import { fetchPartnerDashboard, isOwnedApiConfigured } from '../../../lib/owned-api';
@@ -129,8 +130,27 @@ export const CreatorReferralLinks: React.FC = () => {
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E5E7EB]">
+      {/* Mobile Shared-Element Hero Card */}
+      <MobileSharedHeroCard
+        portal="creator"
+        route="links"
+        subtitle="Attribution & Tracking"
+        title="Referral Links & Promo Codes"
+        description="Create deep links for specific routines, products, or campaigns and monitor real-time conversion."
+        rightAction={
+          <button
+            type="button"
+            onClick={() => setIsCreateModalOpen(true)}
+            className="min-h-11 px-4 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+          >
+            <Plus size={14} className="text-[#D4AF37]" />
+            <span>Create New Deep Link</span>
+          </button>
+        }
+      />
+
+      {/* Desktop Header */}
+      <div className="hidden md:flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E5E7EB]">
         <div>
           <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
             Attribution &amp; Tracking
@@ -152,6 +172,7 @@ export const CreatorReferralLinks: React.FC = () => {
         </button>
       </div>
 
+      <MobileRouteContent className="space-y-6">
       {/* 4 Metric Cards Hydrated From Live Links */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatChip
@@ -571,6 +592,7 @@ export const CreatorReferralLinks: React.FC = () => {
           </div>
         </div>
       )}
+      </MobileRouteContent>
     </div>
   );
 };

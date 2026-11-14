@@ -16,6 +16,7 @@ import {
 } from '../../common/SolidIcons';
 import { FilterTabs } from '../shared/FilterTabs';
 import { StatusBadge } from '../shared/StatusBadge';
+import { MobileRouteContent, MobileSharedHeroCard } from '../shared/MobileRouteTransition';
 import { useApp } from '../../../context/AppContext';
 import { PRBoxOffering, CreatorPRRequest } from '../../../types';
 import { usePartnerRecords } from '../../../lib/use-partner-records';
@@ -87,8 +88,17 @@ export const CreatorPRRoom: React.FC<CreatorPRRoomProps> = ({
         </div>
       )}
 
-      {/* Header */}
-      <div className="pb-2 border-b border-[#E5E7EB]">
+      {/* Mobile Shared-Element Hero Card */}
+      <MobileSharedHeroCard
+        portal="creator"
+        route="pr-room"
+        subtitle="VIP Allocations"
+        title="Creator PR Room"
+        description="Request complimentary formulation boxes shipped to your door, test in real life, and create honest regimens."
+      />
+
+      {/* Desktop Header */}
+      <div className="hidden md:block pb-2 border-b border-[#E5E7EB]">
         <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
           VIP Sampling &amp; Press Packaging
         </span>
@@ -100,6 +110,7 @@ export const CreatorPRRoom: React.FC<CreatorPRRoomProps> = ({
         </p>
       </div>
 
+      <MobileRouteContent className="space-y-6">
       <FilterTabs
         tabs={[
           { id: 'available', label: 'Available PR Packages', count: prBoxes.length },
@@ -497,6 +508,7 @@ export const CreatorPRRoom: React.FC<CreatorPRRoomProps> = ({
           </div>
         </div>
       )}
+      </MobileRouteContent>
     </div>
   );
 };

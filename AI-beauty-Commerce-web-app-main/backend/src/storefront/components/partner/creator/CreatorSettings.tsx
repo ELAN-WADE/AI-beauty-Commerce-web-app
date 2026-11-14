@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { User, Instagram, Video, Building, Bell, Shield, Check } from '../../common/SolidIcons';
 import { useApp } from '../../../context/AppContext';
 import { fetchPartnerDashboard, partnerBankRegister, writePartnerWorkspace } from '../../../lib/owned-api';
+import { MobileRouteContent, MobileSharedHeroCard } from '../shared/MobileRouteTransition';
 
 export const CreatorSettings: React.FC = () => {
   const { authUser, refreshAuth } = useApp();
@@ -49,7 +50,15 @@ export const CreatorSettings: React.FC = () => {
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
-      <div className="pb-4 border-b border-[#E5E7EB]">
+      <MobileSharedHeroCard
+        portal="creator"
+        route="settings"
+        subtitle="Preferences"
+        title="Studio Settings"
+        description="Manage your creator profile and settlement bank details."
+      />
+
+      <div className="hidden md:block pb-4 border-b border-[#E5E7EB]">
         <span className="text-xs font-medium text-[#6B7280]">
           Profile &amp; Bank Configuration
         </span>
@@ -60,6 +69,8 @@ export const CreatorSettings: React.FC = () => {
           Manage your creator profile and settlement bank details.
         </p>
       </div>
+
+      <MobileRouteContent className="space-y-5">
 
       {error && <p role="alert" className="rounded-xl bg-rose-50 border border-rose-200 p-4 text-sm text-rose-700">{error}</p>}
       {saved && <p role="status" className="rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] p-3.5 text-sm font-medium text-[#0F0F10]">Creator settings saved.</p>}
@@ -165,6 +176,7 @@ export const CreatorSettings: React.FC = () => {
           </button>
         </div>
       </form>
+      </MobileRouteContent>
     </div>
   );
 };

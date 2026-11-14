@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useApp } from '../../context/AppContext';
 import type { ApplicationReceipt } from '../../lib/owned-api';
 import { apiFetch } from '../../lib/owned-api';
-import { Sparkles, Store, CheckCircle2 } from '../common/SolidIcons';
+import { UserCheck, Store, CheckCircle2 } from '../common/SolidIcons';
 
 export const partnerInput = 'w-full min-w-0 rounded-xl border border-[#E5E7EB] bg-white px-3 py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]';
 export const partnerButton = 'inline-flex items-center justify-center min-h-11 rounded-full bg-[#0F0F10] px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#997A2E] cursor-pointer hover:bg-[#27272A] transition-colors';
@@ -105,8 +105,8 @@ export const PartnerApplication: React.FC<{ kind: 'DISTRIBUTOR' | 'CREATOR' }> =
       {/* 1. Fast Track Instant Onboarding via Google OAuth */}
       {!authUser && <section className="rounded-2xl border border-[#E5E7EB] bg-white p-5 sm:p-7 space-y-4 shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 text-[#997A2E] flex items-center justify-center">
-            {isDistributor ? <Store size={20} /> : <Sparkles size={20} />}
+          <div className="w-10 h-10 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] text-[#0F0F10] flex items-center justify-center shrink-0">
+            {isDistributor ? <Store size={19} /> : <UserCheck size={19} />}
           </div>
           <div>
             <h2 className="font-heading text-lg font-bold text-[#0F0F10]">

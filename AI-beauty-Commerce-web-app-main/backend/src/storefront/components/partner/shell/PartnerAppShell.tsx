@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { PartnerProgrammeSelector } from './PartnerProgrammeSelector';
 import { usePartnerRecords } from '../../../lib/use-partner-records';
+import { CreatorSecondaryNav } from '../creator/CreatorSecondaryNav';
+import { DistributorSecondaryNav } from '../distributor/DistributorSecondaryNav';
 import { ActionDrawer } from '../shared/ActionDrawer';
 import { BrandLogo } from '../../common/BrandLogo';
 import { useApp } from '../../../context/AppContext';
@@ -52,7 +54,8 @@ export const PartnerAppShell: React.FC<PartnerAppShellProps> = ({
   activeRoute,
   onRouteChange,
   children,
-  badgeCounts = {}
+  badgeCounts = {},
+  onSwitchWorkspace
 }) => {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -118,9 +121,9 @@ export const PartnerAppShell: React.FC<PartnerAppShellProps> = ({
   };
 
   return (
-    <div className="min-h-[100dvh] bg-[#FFFFFF] text-[#0F0F10] flex flex-col antialiased font-body overflow-x-hidden selection:bg-[#0F0F10]/10 selection:text-[#0F0F10]">
-      {/* Compact Branded Logo + Hamburger Header */}
-      <header className="sticky top-0 z-40 h-14 px-4 sm:px-6 lg:px-8 bg-white/95 backdrop-blur-md border-b border-[#E5E7EB] flex items-center justify-between gap-3 select-none">
+    <div className="min-h-[100dvh] bg-[#FFFFFF] text-[#0F0F10] flex flex-col antialiased font-body overflow-x-hidden selection:bg-[#D4AF37]/20 selection:text-[#997A2E]">
+      {/* Mobile Compact Branded Logo + Hamburger Header (Mobile < md only) */}
+      <header className="md:hidden sticky top-0 z-40 h-14 px-4 sm:px-6 bg-white/95 backdrop-blur-md border-b border-[#E5E7EB] flex items-center justify-between gap-3 select-none">
         <div className="flex items-center gap-2">
           <BrandLogo
             variant="dark"
@@ -164,15 +167,49 @@ export const PartnerAppShell: React.FC<PartnerAppShellProps> = ({
         </div>
       </header>
 
+      {/* Desktop Child-Screen Secondary Navigation + Floating Capsule Rail (Desktop >= md only) */}
+      {!isOverview && (
+        <div className="hidden md:block">
+          {isCreator ? (
+            <CreatorSecondaryNav
+              key="creator-secondary-nav"
+              activeRoute={activeRoute}
+              onRouteChange={onRouteChange}
+              onOpenNotifications={() => setNotificationsOpen(true)}
+              onSwitchWorkspace={onSwitchWorkspace}
+              badgeCounts={badgeCounts}
+            />
+          ) : (
+            <DistributorSecondaryNav
+              key="distributor-secondary-nav"
+              activeRoute={activeRoute}
+              onRouteChange={onRouteChange}
+              onOpenNotifications={() => setNotificationsOpen(true)}
+              onSwitchWorkspace={onSwitchWorkspace}
+              badgeCounts={badgeCounts}
+            />
+          )}
+        </div>
+      )}
+
       {/* Main Content Viewport */}
-      <main className="flex-1 w-full mx-auto px-4 py-5 sm:p-6 lg:px-8 lg:py-8 max-w-6xl">
+      <main
+        className={`flex-1 w-full mx-auto px-4 py-5 sm:p-6 ${
+          isOverview
+            ? 'lg:p-10 max-w-7xl'
+            : 'lg:p-8 lg:pl-24 max-w-7xl pb-12'
+        }`}
+      >
+        <div className="hidden md:block">
+          <PartnerProgrammeSelector kind={kind} />
+        </div>
         {children}
       </main>
 
-      {/* Minimalist Slide-Out Hamburger Navigation Drawer */}
+      {/* Minimalist Slide-Out Hamburger Navigation Drawer (Mobile < md) */}
       <AnimatePresence>
         {drawerOpen && (
-          <div className="fixed inset-0 z-50 flex" id="partner-navigation-drawer" role="dialog" aria-modal="true" aria-label="Workspace navigation">
+          <div className="md:hidden fixed inset-0 z-50 flex" id="partner-navigation-drawer" role="dialog" aria-modal="true" aria-label="Workspace navigation">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}

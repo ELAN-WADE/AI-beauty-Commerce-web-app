@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Store, Building, Phone, MapPin, Check, Shield, CheckCircle2 } from '../../common/SolidIcons';
 import { useApp } from '../../../context/AppContext';
 import { partnerBankRegister } from '../../../lib/owned-api';
+import { MobileRouteContent, MobileSharedHeroCard } from '../shared/MobileRouteTransition';
 
 export const DistributorSettings: React.FC = () => {
   const { distributorHubSettings, updateDistributorHubSettings, selectedCity } = useApp();
@@ -61,7 +62,15 @@ export const DistributorSettings: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200 max-w-3xl mx-auto">
-      <div className="pb-2 border-b border-[#E5E7EB]">
+      <MobileSharedHeroCard
+        portal="distributor"
+        route="settings"
+        subtitle={`Hub Configuration • ${selectedCity || 'Lagos'}`}
+        title="Distributor Hub Settings"
+        description="Manage your city hub physical pickup point, dispatch contacts, operating hours, and settlement accounts."
+      />
+
+      <div className="hidden md:block pb-2 border-b border-[#E5E7EB]">
         <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
           Hub Configuration • {selectedCity || 'Lagos'}
         </span>
@@ -72,6 +81,8 @@ export const DistributorSettings: React.FC = () => {
           Manage your city hub physical pickup point, emergency dispatch contacts, operating hours, and settlement accounts.
         </p>
       </div>
+
+      <MobileRouteContent className="space-y-6">
 
       {error && <p role="alert" className="text-sm text-rose-700">{error}</p>}
       <form onSubmit={handleSave} className="space-y-6">
@@ -198,6 +209,7 @@ export const DistributorSettings: React.FC = () => {
           </button>
         </div>
       </form>
+      </MobileRouteContent>
     </div>
   );
 };

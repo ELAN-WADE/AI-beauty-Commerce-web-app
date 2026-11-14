@@ -15,6 +15,7 @@ import {
 } from '../../common/SolidIcons';
 import { FilterTabs } from '../shared/FilterTabs';
 import { ActionDrawer } from '../shared/ActionDrawer';
+import { MobileRouteContent, MobileSharedHeroCard } from '../shared/MobileRouteTransition';
 import { useApp } from '../../../context/AppContext';
 import { CreatorCampaignBrief, CreatorCampaignSubmission } from '../../../types';
 
@@ -88,8 +89,27 @@ export const CreatorCampaigns: React.FC = () => {
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E5E7EB]">
+      {/* Mobile Shared-Element Hero Card */}
+      <MobileSharedHeroCard
+        portal="creator"
+        route="campaigns"
+        subtitle="Collaborations"
+        title="Creator Campaigns"
+        description="Join verified brand briefs, access boosted commission rates, and earn milestone bonuses."
+        rightAction={
+          <button
+            type="button"
+            onClick={() => setIsSubmitModalOpen(true)}
+            className="min-h-11 px-4 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+          >
+            <Upload size={14} className="text-[#D4AF37]" />
+            <span>Submit Deliverable Link</span>
+          </button>
+        }
+      />
+
+      {/* Desktop Header */}
+      <div className="hidden md:flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E5E7EB]">
         <div>
           <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
             Opportunities &amp; Brand Collaborations
@@ -111,6 +131,7 @@ export const CreatorCampaigns: React.FC = () => {
         </button>
       </div>
 
+      <MobileRouteContent className="space-y-6">
       <FilterTabs
         tabs={[
           { id: 'available', label: 'Available Opportunities', count: campaigns.length },
@@ -483,6 +504,7 @@ export const CreatorCampaigns: React.FC = () => {
           </div>
         </div>
       )}
+      </MobileRouteContent>
     </div>
   );
 };
