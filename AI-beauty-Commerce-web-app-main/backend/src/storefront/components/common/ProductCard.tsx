@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Heart, ShoppingBag, Star, Check } from 'lucide-react';
+import { Heart, ShoppingBag, Star, Check } from '@phosphor-icons/react';
 import { Product } from '../../types';
 import { useProductActions } from '../../context/AppContext';
 import { ProductImage } from './ProductImage';
@@ -94,9 +94,9 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({
           aria-label={`Add ${product.name} to bag`}
         >
           {justAdded ? (
-            <Check size={12} className="stroke-[2.5] text-[#D4AF37]" />
+            <Check size={13} weight="bold" className="text-[#D4AF37]" aria-hidden="true" />
           ) : (
-            <ShoppingBag size={13} strokeWidth={2} />
+            <ShoppingBag size={14} weight="fill" aria-hidden="true" />
           )}
         </button>
       </div>
@@ -127,16 +127,19 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({
           </span>
         )}
 
-        {/* Minimal Wishlist Accent (Discreet, Clean White Circle) */}
+        {/* Minimal Wishlist Accent */}
         <button
+          type="button"
           onClick={handleWishlist}
-          className="absolute top-2.5 right-2.5 z-10 w-8 h-8 rounded-full bg-white/90 hover:bg-white backdrop-blur-xs flex items-center justify-center text-[#6B7280] hover:text-[#0F0F10] active:scale-90 transition-all cursor-pointer shadow-xs border border-[#E5E7EB]/40"
+          className="absolute top-2.5 right-2.5 z-10 w-8 h-8 rounded-full bg-white/95 hover:bg-white backdrop-blur-xs flex items-center justify-center text-[#6B7280] hover:text-[#0F0F10] active:scale-90 transition-all cursor-pointer shadow-xs"
           aria-label={wishlisted ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
+          aria-pressed={wishlisted}
         >
           <Heart
-            size={14}
-            strokeWidth={1.8}
-            className={wishlisted ? 'text-[#D4AF37] fill-[#D4AF37]' : ''}
+            size={15}
+            weight={wishlisted ? 'fill' : 'regular'}
+            className={wishlisted ? 'text-red-600 scale-105 transition-transform duration-200' : 'transition-transform duration-200'}
+            aria-hidden="true"
           />
         </button>
       </div>
@@ -151,7 +154,7 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({
             </span>
             {product.rating > 0 && (
               <div className="flex items-center gap-1 text-[#0F0F10] shrink-0 text-[11px] font-bold">
-                <Star size={11} className="fill-[#D4AF37] text-[#D4AF37]" strokeWidth={0} />
+                <Star size={11} weight="fill" className="text-[#D4AF37]" aria-hidden="true" />
                 <span>{product.rating.toFixed(1)}</span>
               </div>
             )}
@@ -188,9 +191,9 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({
             title={product.sizes && product.sizes.length > 1 ? 'Select size' : 'Add to bag'}
           >
             {justAdded ? (
-              <Check size={13} className="stroke-[2.5] text-[#D4AF37]" />
+              <Check size={13} weight="bold" className="text-[#D4AF37]" aria-hidden="true" />
             ) : (
-              <ShoppingBag size={13} strokeWidth={2} />
+              <ShoppingBag size={14} weight="fill" aria-hidden="true" />
             )}
           </button>
         </div>

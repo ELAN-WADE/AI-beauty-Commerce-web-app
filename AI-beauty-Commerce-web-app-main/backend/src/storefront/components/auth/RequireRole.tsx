@@ -1,6 +1,6 @@
 import { PartnerProgrammeSelector } from '../partner/shell/PartnerProgrammeSelector';
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, Lock, Sparkles, Store, ShieldAlert, LogIn, ChevronRight, UserCheck } from 'lucide-react';
+import { ArrowLeft, Lock, Sparkles, Store, ShieldAlert, LogIn, ChevronRight, UserCheck } from '../common/SolidIcons';
 import { useApp } from '../../context/AppContext';
 import { PartnerApplication } from '../partner/PartnerApplication';
 import { getDesignPreviewPortal } from '../../lib/portal-preview';

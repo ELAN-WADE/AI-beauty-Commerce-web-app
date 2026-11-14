@@ -73,6 +73,27 @@ export const postLikes = pgTable(
   (t) => [primaryKey({ columns: [t.postId, t.userId] })],
 );
 
+/** Threaded post comments — intentionally distinct from verified product reviews. */
+export const postComments = pgTable(
+  'post_comments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    postId: uuid('post_id')
+      .notNull()
+      .references(() => communityPosts.id, { onDelete: 'cascade' }),
+    parentCommentId: uuid('parent_comment_id'),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    authorName: text('author_name').notNull(),
+    authorAvatar: text('author_avatar'),
+    authorRole: text('author_role').notNull().default('Member'),
+    content: text('content').notNull(),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+  },
+  (t) => [index('post_comments_post_idx').on(t.postId, t.createdAt)],
+);
+
 /** Channel chat (routine, fragrance, deals…): authenticated, rate-limited. */
 export const communityMessages = pgTable(
   'community_messages',

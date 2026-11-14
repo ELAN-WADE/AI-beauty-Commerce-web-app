@@ -7,7 +7,7 @@ import {
   Store,
   Users,
   ExternalLink
-} from 'lucide-react';
+} from '../../common/SolidIcons';
 import { useApp } from '../../../context/AppContext';
 
 export interface CreatorOfficeTopbarProps {

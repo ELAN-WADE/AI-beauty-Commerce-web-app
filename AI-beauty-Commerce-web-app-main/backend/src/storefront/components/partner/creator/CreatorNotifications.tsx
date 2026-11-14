@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell } from 'lucide-react';
+import { Bell } from '../../common/SolidIcons';
 import { usePartnerRecords } from '../../../lib/use-partner-records';
 export const CreatorNotifications: React.FC = () => {
   const { records, loading, error, refresh } = usePartnerRecords('CREATOR');

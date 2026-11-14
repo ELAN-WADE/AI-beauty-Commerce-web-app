@@ -9,7 +9,7 @@ import {
   Check,
   Download,
   AlertCircle
-} from 'lucide-react';
+} from '../../common/SolidIcons';
 import { StatChip } from '../shared/StatChip';
 import { StatusBadge } from '../shared/StatusBadge';
 import { useApp } from '../../../context/AppContext';

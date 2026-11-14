@@ -5,17 +5,16 @@ import {
   Minus,
   Plus,
   ShoppingBag,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  Award,
-  CheckCircle2,
-  MessageSquare,
+  CaretDown,
+  CaretLeft,
+  CaretRight,
+  CheckCircle,
+  ChatCircleText,
   X,
   Check,
   ArrowRight,
   Camera
-} from 'lucide-react';
+} from '@phosphor-icons/react';
 import { useApp } from '../../context/AppContext';
 import { ProductCard } from '../../components/common/ProductCard';
 import { ProductImage } from '../../components/common/ProductImage';
@@ -160,6 +159,28 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
 
   const [reviewSyncNote, setReviewSyncNote] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (typeof window === 'undefined' || !selectedProduct) return;
+    let shouldScroll = window.location.hash === '#reviews';
+    try {
+      const target = sessionStorage.getItem('desla_scroll_reviews');
+      if (target && (target === selectedProduct.slug || target === selectedProduct.id)) {
+        shouldScroll = true;
+        sessionStorage.removeItem('desla_scroll_reviews');
+      }
+    } catch {
+      // ignore storage access issues
+    }
+    if (!shouldScroll) return;
+    const timer = setTimeout(() => {
+      const el = document.getElementById('reviews');
+      if (!el) return;
+      const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+    }, 120);
+    return () => clearTimeout(timer);
+  }, [selectedProduct?.id, selectedProduct?.slug]);
+
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reviewTitle.trim() || !reviewComment.trim()) return;
@@ -232,14 +253,14 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
                       className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 shadow-md flex items-center justify-center text-[#0F0F10] hover:bg-[#D4AF37] hover:text-[#0F0F10] active-press transition-all cursor-pointer z-10"
                       aria-label="Previous image"
                     >
-                      <ChevronLeft size={16} />
+                      <CaretLeft size={16} weight="bold" aria-hidden="true" />
                     </button>
                     <button
                       onClick={() => setActiveImageIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0))}
                       className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 shadow-md flex items-center justify-center text-[#0F0F10] hover:bg-[#D4AF37] hover:text-[#0F0F10] active-press transition-all cursor-pointer z-10"
                       aria-label="Next image"
                     >
-                      <ChevronRight size={16} />
+                      <CaretRight size={16} weight="bold" aria-hidden="true" />
                     </button>
                   </>
                 )}
@@ -265,7 +286,7 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
                   </span>
                 )}
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#F3EEE3] border border-[#E5E7EB] text-[#0F0F10] text-[10px] font-semibold">
-                  <CheckCircle2 size={11} className="text-[#997A2E]" />
+                  <CheckCircle size={12} weight="fill" className="text-[#997A2E]" aria-hidden="true" />
                   Free Local Shipping in {selectedCity}
                 </span>
                 {selectedProduct.sku && (
@@ -285,7 +306,7 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
                 <div className="flex items-center gap-1 text-[#D4AF37]">
                   <div className="flex">
                     {[...Array(5)].map((_, i) => (
-                      <Star key={i} size={11} fill="currentColor" strokeWidth={0} />
+                      <Star key={i} size={12} weight="fill" aria-hidden="true" />
                     ))}
                   </div>
                   <span className="font-bold text-[#0F0F10] ml-0.5 text-[11px]">{selectedProduct.rating}</span>
@@ -352,7 +373,7 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
                       </div>
                       {isSelected && (
                         <div className="w-4 h-4 rounded-full bg-[#D4AF37] text-[#0F0F10] flex items-center justify-center shrink-0">
-                          <Check size={10} strokeWidth={3} />
+                          <Check size={10} weight="bold" aria-hidden="true" />
                         </div>
                       )}
                     </div>
@@ -392,12 +413,12 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
                 >
                   {justAdded ? (
                     <>
-                      <Check size={15} strokeWidth={3} className="text-[#D4AF37]" />
+                      <Check size={15} weight="bold" className="text-[#D4AF37]" aria-hidden="true" />
                       <span>Added to Bag!</span>
                     </>
                   ) : (
                     <>
-                      <ShoppingBag size={15} strokeWidth={2.2} className="text-[#D4AF37]" />
+                      <ShoppingBag size={16} weight="fill" className="text-[#D4AF37]" aria-hidden="true" />
                       <span>Add to Bag • {formatNaira(unitPrice * quantity)}</span>
                     </>
                   )}
@@ -421,7 +442,7 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
                   className="w-full flex items-center justify-between font-bold text-[#0F0F10] text-left cursor-pointer active-press"
                 >
                   <span>What It Does &amp; Natural Benefits</span>
-                  <ChevronDown
+                  <CaretDown
                     size={15}
                     className={`transition-transform duration-200 ${
                       openAccordion === 'what-it-does' ? 'rotate-180 text-[#D4AF37]' : ''
@@ -442,7 +463,7 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
                   className="w-full flex items-center justify-between font-bold text-[#0F0F10] text-left cursor-pointer active-press"
                 >
                   <span>INCI Natural Ingredients Transparency</span>
-                  <ChevronDown
+                  <CaretDown
                     size={15}
                     className={`transition-transform duration-200 ${
                       openAccordion === 'ingredients' ? 'rotate-180 text-[#D4AF37]' : ''
@@ -472,7 +493,7 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
           {/* ========================================================================= */}
           <div className="lg:col-span-7 order-3 space-y-6 pt-4 border-t border-[#E5E7EB]">
             {/* Reviews Section */}
-            <section className="space-y-4">
+            <section id="reviews" className="space-y-4 scroll-mt-24">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2">
@@ -521,7 +542,7 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
                       </div>
                       <div className="flex text-[#D4AF37]">
                         {[...Array(rev.rating)].map((_, i) => (
-                          <Star key={i} size={11} fill="currentColor" strokeWidth={0} />
+                          <Star key={i} size={12} weight="fill" aria-hidden="true" />
                         ))}
                       </div>
                     </div>
@@ -540,11 +561,11 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
                               className="w-full h-full object-cover group-hover/photo:scale-105 transition-transform"
                             />
                             <div className="absolute inset-0 bg-black/15 opacity-0 group-hover/photo:opacity-100 transition-opacity flex items-center justify-center">
-                              <Camera size={13} className="text-white" />
+                              <Camera size={14} weight="fill" className="text-white" aria-hidden="true" />
                             </div>
                           </div>
                           <span className="text-[9.5px] font-semibold text-[#6B7280] flex items-center gap-1 mt-0.5">
-                            <Camera size={10} className="text-[#997A2E]" /> Photo proof
+                            <Camera size={11} weight="fill" className="text-[#997A2E]" aria-hidden="true" /> Photo proof
                           </span>
                         </a>
                       </div>
@@ -565,7 +586,7 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
               <section className="pt-6 border-t border-[#E5E7EB] space-y-3.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <MessageSquare size={16} className="text-[#D4AF37]" />
+                    <ChatCircleText size={16} weight="fill" className="text-[#D4AF37]" aria-hidden="true" />
                     <h4 className="font-heading font-bold text-sm text-[#0F0F10]">
                       Community Buzz ({selectedProduct.hashtag})
                     </h4>
@@ -631,7 +652,7 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
                 className="text-xs font-heading font-bold text-[#0F0F10] hover:text-[#997A2E] flex items-center gap-1.5 group cursor-pointer active-press"
               >
                 <span>View Full Catalogue</span>
-                <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
+                <ArrowRight size={13} weight="bold" className="group-hover:translate-x-1 transition-transform" aria-hidden="true" />
               </button>
             </div>
 
@@ -659,7 +680,7 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
                 }}
                 className="p-1 rounded-full hover:bg-gray-100 text-gray-500 cursor-pointer active-press"
               >
-                <X size={18} />
+                <X size={18} weight="bold" aria-hidden="true" />
               </button>
             </div>
 

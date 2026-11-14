@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { X, Check, ShoppingBag, Star, ShieldCheck, Minus, Plus } from 'lucide-react';
+import { X, Check, ShoppingBag, Star, ShieldCheck, Minus, Plus } from '@phosphor-icons/react';
 import { Product } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { ProductImage } from './ProductImage';
@@ -132,7 +132,7 @@ export const ProductQuickModal: React.FC<ProductQuickModalProps> = ({
           className="absolute top-4 right-4 z-30 p-2.5 rounded-full bg-black/5 hover:bg-black/10 text-[#0F0F10] active:scale-95 transition-all cursor-pointer"
           aria-label="Close modal"
         >
-          <X size={18} strokeWidth={2} />
+          <X size={18} weight="bold" aria-hidden="true" />
         </button>
 
         {/* Dual Grid Layout: Product packshot left, details right */}
@@ -160,7 +160,7 @@ export const ProductQuickModal: React.FC<ProductQuickModalProps> = ({
 
             {/* Authenticity Guarantee */}
             <div className="absolute bottom-4 left-4 right-4 z-10 flex items-center gap-1.5 text-[11px] font-medium text-[#0F0F10] w-fit">
-              <ShieldCheck size={14} className="text-[#997A2E]" />
+              <ShieldCheck size={15} weight="fill" className="text-[#997A2E]" aria-hidden="true" />
               <span>{product.brandInfo?.guarantee || "Authentic Formulation"}</span>
             </div>
           </div>
@@ -180,7 +180,7 @@ export const ProductQuickModal: React.FC<ProductQuickModalProps> = ({
                 <div className="flex items-center gap-2 text-xs text-[#737373]">
                   <div className="flex items-center text-[#D4AF37]">
                     {[...Array(Math.min(5, Math.max(1, Math.round(product.rating))))].map((_, i) => (
-                      <Star key={i} size={12} fill="currentColor" strokeWidth={0} />
+                      <Star key={i} size={12} weight="fill" aria-hidden="true" />
                     ))}
                   </div>
                   <span className="font-bold text-[#0F0F10] text-xs">{product.rating.toFixed(1)}</span>
@@ -251,7 +251,7 @@ export const ProductQuickModal: React.FC<ProductQuickModalProps> = ({
                         }`}
                       >
                         <span>{size}</span>
-                        {isSelected && <Check size={12} strokeWidth={2.6} className="text-[#D4AF37]" />}
+                        {isSelected && <Check size={12} weight="bold" className="text-[#D4AF37]" aria-hidden="true" />}
                       </button>
                     );
                   })}
@@ -291,12 +291,12 @@ export const ProductQuickModal: React.FC<ProductQuickModalProps> = ({
                 >
                   {justAdded ? (
                     <>
-                      <Check size={16} strokeWidth={3} className="text-emerald-400" />
+                      <Check size={16} weight="bold" className="text-emerald-400" aria-hidden="true" />
                       <span>Added to Bag!</span>
                     </>
                   ) : (
                     <>
-                      <ShoppingBag size={15} strokeWidth={2.2} className="text-[#D4AF37]" />
+                      <ShoppingBag size={16} weight="fill" className="text-[#D4AF37]" aria-hidden="true" />
                       <span>Add • {formatNaira(unitPrice * quantity)}</span>
                     </>
                   )}

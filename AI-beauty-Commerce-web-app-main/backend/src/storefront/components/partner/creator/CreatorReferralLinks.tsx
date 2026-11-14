@@ -13,7 +13,7 @@ import {
   Share2,
   TrendingUp,
   Download
-} from 'lucide-react';
+} from '../../common/SolidIcons';
 import { StatChip } from '../shared/StatChip';
 import { useApp } from '../../../context/AppContext';
 import { CreatorReferralLink } from '../../../types';
@@ -43,6 +43,24 @@ export const CreatorReferralLinks: React.FC = () => {
     navigator.clipboard?.writeText(url);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const handleNativeShare = async (link: CreatorReferralLink) => {
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+      try {
+        await navigator.share({
+          title: `Delsla!™ — ${link.name}`,
+          text: link.promoCode ? `Shop Delsla!™ with code ${link.promoCode}` : 'Shop my curated Delsla!™ edit',
+          url: link.url
+        });
+        return;
+      } catch (err) {
+        if ((err as Error)?.name === 'AbortError') return;
+      }
+    }
+    handleCopy(link.id, link.url);
+    setCreationToast(`Copied "${link.name}" referral link to clipboard.`);
+    setTimeout(() => setCreationToast(null), 3000);
   };
 
   const [livePromoCode, setLivePromoCode] = useState<string>('');
@@ -135,32 +153,26 @@ export const CreatorReferralLinks: React.FC = () => {
       </div>
 
       {/* 4 Metric Cards Hydrated From Live Links */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatChip
           label="Total Link Clicks"
           value={totalClicks.toLocaleString()}
-          change="+24%"
-          trend="up"
-          subtext="Real-time verified visits"
+          subtext="Verified link visits"
         />
         <StatChip
           label="Attributed Orders"
           value={totalOrders.toLocaleString()}
-          change="+18%"
-          trend="up"
-          subtext="Verified checkouts"
+          subtext="Recorded checkouts"
         />
         <StatChip
           label="Average Conversion"
           value={avgConversion}
-          subtext="Industry avg: 2.5%"
-          badge="HIGH"
+          subtext={totalClicks > 0 ? `${totalOrders} of ${totalClicks} visits` : 'No traffic recorded yet'}
         />
         <StatChip
           label="Total Commission"
           value={`₦${totalEarnedNgn.toLocaleString('en-NG')}`}
-          subtext="12-15% commission ledger"
-          badge="CASH EARNED"
+          subtext="Recorded commission total"
         />
       </div>
 
@@ -177,7 +189,71 @@ export const CreatorReferralLinks: React.FC = () => {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Mobile Card View */}
+        <div className="sm:hidden divide-y divide-[#E5E7EB]">
+          {creatorLinks.length === 0 ? (
+            <div className="py-10 px-4 text-center text-[#6B7280] space-y-2">
+              <Link2 className="w-7 h-7 text-[#997A2E] mx-auto opacity-60" />
+              <p className="font-heading font-bold text-sm text-[#0F0F10]">No Attribution Links Yet</p>
+              <p className="text-xs">Create custom deep links to your curated routines or products to start earning tracked commissions.</p>
+            </div>
+          ) : creatorLinks.map((link) => (
+            <div key={link.id} className="p-4 space-y-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <span className="font-bold text-sm text-[#0F0F10] block truncate">{link.name}</span>
+                  <span className="text-xs text-[#6B7280] font-mono break-all line-clamp-1">{link.url}</span>
+                </div>
+                <span className="shrink-0 px-2 py-0.5 rounded-md bg-[#FAF9F6] border border-[#E5E7EB] font-mono font-bold text-[#0F0F10] text-xs">
+                  {link.promoCode}
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-xs bg-[#FAF9F6] rounded-xl p-2.5">
+                <div>
+                  <span className="text-[11px] text-[#6B7280] block">Clicks</span>
+                  <span className="font-mono font-bold text-[#0F0F10]">{link.clicks.toLocaleString()}</span>
+                </div>
+                <div>
+                  <span className="text-[11px] text-[#6B7280] block">Orders</span>
+                  <span className="font-mono font-bold text-[#0F0F10]">{link.orders.toLocaleString()}</span>
+                </div>
+                <div>
+                  <span className="text-[11px] text-[#6B7280] block">Earned</span>
+                  <span className="font-mono font-bold text-[#0F0F10]">₦{link.earnedNgn.toLocaleString('en-NG')}</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => void handleNativeShare(link)}
+                  className="flex-1 min-h-10 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-[#0F0F10] text-white text-xs font-semibold cursor-pointer"
+                >
+                  <Share2 size={14} className="text-[#D4AF37]" />
+                  <span>Share</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCopy(link.id, link.url)}
+                  className="flex-1 min-h-10 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-[#E5E7EB] bg-white text-xs font-semibold text-[#0F0F10] cursor-pointer"
+                >
+                  {copiedId === link.id ? <Check size={14} /> : <Copy size={14} />}
+                  <span>{copiedId === link.id ? 'Copied' : 'Copy'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveQrLink(link)}
+                  aria-label="Show QR code"
+                  className="min-h-10 min-w-10 inline-flex items-center justify-center rounded-xl border border-[#E5E7EB] bg-white text-[#0F0F10] cursor-pointer"
+                >
+                  <QrCode size={15} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop Table View */}
+        <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="border-b border-[#E5E7EB] text-[10px] font-mono font-bold uppercase text-[#9CA3AF] tracking-wider">
@@ -233,6 +309,15 @@ export const CreatorReferralLinks: React.FC = () => {
                   <td className="py-4 px-6 text-right">
                     <div className="inline-flex items-center gap-1.5">
                       <button
+                        type="button"
+                        onClick={() => void handleNativeShare(link)}
+                        title="Share attribution link"
+                        className="p-1.5 rounded-lg border border-[#E5E7EB] bg-white hover:bg-[#FAF9F6] text-[#0F0F10] transition-colors cursor-pointer"
+                      >
+                        <Share2 size={13} />
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => setActiveQrLink(link)}
                         title="Display and download QR code"
                         className="p-1.5 rounded-lg border border-[#E5E7EB] bg-white hover:bg-[#FAF9F6] text-[#0F0F10] transition-colors cursor-pointer"
@@ -240,6 +325,7 @@ export const CreatorReferralLinks: React.FC = () => {
                         <QrCode size={13} />
                       </button>
                       <button
+                        type="button"
                         onClick={() => handleCopy(link.id, link.url)}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E5E7EB] bg-white hover:bg-[#FAF9F6] text-xs font-semibold text-[#0F0F10] transition-colors cursor-pointer"
                       >

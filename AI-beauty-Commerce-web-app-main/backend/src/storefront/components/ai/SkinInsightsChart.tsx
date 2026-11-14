@@ -1,5 +1,5 @@
 import React from 'react';
-import { Droplet, Flame, Layers, Activity, Sun, CheckCircle, AlertCircle } from 'lucide-react';
+import { Droplet, Flame, Layers, Activity, Sun, CheckCircle, AlertCircle } from '../common/SolidIcons';
 import { SkinMetric } from '../../types';
 
 interface SkinInsightsChartProps {

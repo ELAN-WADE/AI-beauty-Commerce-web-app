@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Smartphone, Monitor, Layers, ChevronDown, Check } from 'lucide-react';
+import { Smartphone, Monitor, Layers, ChevronDown, Check } from './SolidIcons';
 import { useViewport } from '../../context/ViewportContext';
 import { useApp } from '../../context/AppContext';
 import { ScreenId } from '../../types';

@@ -12,7 +12,7 @@ import {
   Layers,
   Check,
   Activity
-} from 'lucide-react';
+} from '../../components/common/SolidIcons';
 import { useApp } from '../../context/AppContext';
 import { BeautyFace3D } from '../../components/ai/BeautyFace3D';
 import { SkinInsightsChart } from '../../components/ai/SkinInsightsChart';

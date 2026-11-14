@@ -1,6 +1,6 @@
 import { NavigationIcon } from './NavigationIcon';
 import React, { useState, useEffect } from 'react';
-import { Headset } from 'lucide-react';
+import { Headset } from '@phosphor-icons/react';
 import { useApp } from '../../context/AppContext';
 import { useViewport } from '../../context/ViewportContext';
 
@@ -68,7 +68,7 @@ export const AIFloatingButton: React.FC = () => {
 
           {/* Headset Overlay Icon */}
           <div className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center shadow-xs pointer-events-none">
-            <Headset size={8} strokeWidth={2.5} />
+            <Headset size={9} weight="fill" aria-hidden="true" />
           </div>
         </div>
 

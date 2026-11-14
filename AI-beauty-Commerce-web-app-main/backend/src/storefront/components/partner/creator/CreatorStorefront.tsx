@@ -16,7 +16,7 @@ import {
   Save,
   X,
   Package
-} from 'lucide-react';
+} from '../../common/SolidIcons';
 import { fetchPartnerDashboard, fetchPartnerWorkspace, writePartnerWorkspace } from '../../../lib/owned-api';
 import { useApp } from '../../../context/AppContext';
 
@@ -61,7 +61,19 @@ export const CreatorStorefront: React.FC = () => {
   };
 
   const storefrontLink = typeof window === 'undefined' ? '' : `${window.location.origin}/?screen=creator-storefront&ref=${encodeURIComponent(promoCode)}`;
-  const handleCopyLink = () => {
+  const handleShareStorefront = async () => {
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function' && storefrontLink) {
+      try {
+        await navigator.share({
+          title: creatorName ? `${creatorName} — Delsla!™ Storefront` : 'Delsla!™ Creator Storefront',
+          text: promoCode ? `Use my Delsla!™ code ${promoCode}` : creatorHeadline || 'Explore my Delsla!™ curation',
+          url: storefrontLink
+        });
+        return;
+      } catch (err) {
+        if ((err as Error)?.name === 'AbortError') return;
+      }
+    }
     navigator.clipboard?.writeText(storefrontLink);
     setCopiedLink(true); showToast('Creator storefront link copied.');
     setTimeout(() => setCopiedLink(false), 2000);
@@ -156,7 +168,7 @@ export const CreatorStorefront: React.FC = () => {
           </div>
 
           <button
-            onClick={handleCopyLink}
+            onClick={() => void handleShareStorefront()}
             className="px-4 py-2 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-[0.97] transition-all"
           >
             <Share2 size={13} className="text-[#D4AF37]" />
@@ -235,8 +247,8 @@ export const CreatorStorefront: React.FC = () => {
             </div>
 
             <div className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] text-xs space-y-1">
-              <span className="text-[10px] font-mono text-[#9CA3AF] uppercase block font-bold">Live Conversion Pulse</span>
-              <p className="font-extrabold text-base text-[#0F0F10]">{isLiveBackend ? 'See earnings ledger' : '148 Attributed Orders'}</p>
+              <span className="text-[10px] font-mono text-[#9CA3AF] uppercase block font-bold">Storefront Attribution</span>
+              <p className="font-extrabold text-base text-[#0F0F10]">See earnings ledger</p>
               <p className="text-[11px] font-mono text-[#0F0F10] font-bold">{'Collection status: ' + (record?.status || 'Not submitted')}</p>
             </div>
           </div>
@@ -332,15 +344,17 @@ export const CreatorStorefront: React.FC = () => {
                   </div>
 
                   {/* Promo Badge Button */}
-                  <button
-                    onClick={handleCopyCode}
-                    className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#FAF9F6] border border-[#D4AF37]/50 text-xs font-mono font-bold text-[#0F0F10] hover:bg-[#FBF5E8] transition-colors cursor-pointer self-center sm:self-auto shadow-2xs"
-                  >
-                    <span>Use Code: <strong>{promoCode}</strong></span>
-                    <span className="text-[10px] text-[#997A2E] bg-white px-2 py-0.5 rounded-full border border-[#D4AF37]/30">
-                      {copiedCode ? 'Copied ✓' : '10% OFF'}
-                    </span>
-                  </button>
+                  {promoCode && (
+                    <button
+                      onClick={handleCopyCode}
+                      className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#FAF9F6] border border-[#D4AF37]/50 text-xs font-mono font-bold text-[#0F0F10] hover:bg-[#FBF5E8] transition-colors cursor-pointer self-center sm:self-auto shadow-2xs"
+                    >
+                      <span>Use Code: <strong>{promoCode}</strong></span>
+                      <span className="text-[10px] text-[#997A2E] bg-white px-2 py-0.5 rounded-full border border-[#D4AF37]/30">
+                        {copiedCode ? 'Copied ✓' : discount > 0 ? `${discount}% OFF` : 'Active Code'}
+                      </span>
+                    </button>
+                  )}
                 </div>
 
                 <p className="text-xs sm:text-sm font-semibold text-[#0F0F10]">
@@ -380,9 +394,11 @@ export const CreatorStorefront: React.FC = () => {
                           alt={p.name}
                           className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
-                        <span className="absolute top-2 right-2 text-[9px] font-mono font-bold bg-[#0F0F10]/80 text-[#D4AF37] px-1.5 py-0.5 rounded-full backdrop-blur-xs">
-                          -10%
-                        </span>
+                        {discount > 0 && (
+                          <span className="absolute top-2 right-2 text-[9px] font-mono font-bold bg-[#0F0F10]/85 text-[#D4AF37] px-1.5 py-0.5 rounded-full">
+                            -{discount}%
+                          </span>
+                        )}
                       </div>
                       <h4 className="text-xs font-bold text-[#0F0F10] line-clamp-1">{p.name}</h4>
                       <p className="text-xs font-mono font-extrabold text-[#0F0F10]">

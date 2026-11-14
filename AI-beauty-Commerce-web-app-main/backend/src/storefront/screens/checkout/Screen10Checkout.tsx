@@ -1,17 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import {
   Check,
-  User,
-  MapPin,
-  Truck,
   ShieldCheck,
   ArrowRight,
-  Store,
-  Clock,
-  CreditCard,
-  ChevronLeft,
-  ShoppingBag
-} from 'lucide-react';
+  ShoppingBag,
+} from '@phosphor-icons/react';
 import { creatorDiscountNaira } from '../../lib/order-journey';
 import { useApp } from '../../context/AppContext';
 import { CustomerAccess } from '../../components/auth/CustomerAccess';
@@ -148,9 +141,7 @@ const Screen10CheckoutContent: React.FC = () => {
     return (
       <div className="min-h-screen bg-white text-[#0F0F10] pb-28 font-body">
         <div className="max-w-md mx-auto px-4 py-20 text-center space-y-4">
-          <div className="w-16 h-16 rounded-full bg-[#FAF9F6] border border-[#E5E7EB] flex items-center justify-center mx-auto text-[#D4AF37]">
-            <ShoppingBag size={28} />
-          </div>
+          <ShoppingBag size={36} weight="fill" className="mx-auto text-[#0F0F10]/25" aria-hidden="true" />
           <h2 className="font-heading font-semibold text-xl text-[#0F0F10]">
             No Items in Checkout
           </h2>
@@ -195,7 +186,7 @@ const Screen10CheckoutContent: React.FC = () => {
                 {/* Step 1: Customer */}
                 <div className="relative z-10 flex flex-col items-center">
                   <div className="w-7 h-7 rounded-full bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center text-xs font-bold shadow-xs">
-                    <Check size={14} strokeWidth={2.6} />
+                    <Check size={14} weight="bold" aria-hidden="true" />
                   </div>
                   <span className="text-[10px] font-semibold text-[#6B7280] mt-1">Customer</span>
                 </div>
@@ -382,7 +373,7 @@ const Screen10CheckoutContent: React.FC = () => {
                 className="w-full py-4 rounded-full bg-[#0F0F10] hover:bg-[#1F1D22] text-white font-heading font-extrabold text-sm shadow-xl flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer mt-4 disabled:opacity-50"
               >
                 <span>Continue to payment</span>
-                <ArrowRight size={16} />
+                <ArrowRight size={16} weight="bold" className="text-[#D4AF37]" aria-hidden="true" />
               </button>
             </form>
           </div>
@@ -445,7 +436,7 @@ const Screen10CheckoutContent: React.FC = () => {
             {routineAddons.length > 0 && (
               <div className="p-4 rounded-2xl bg-white border border-[#E5E7EB] shadow-xs space-y-3">
                 <div className="flex items-center gap-1.5">
-                  <ShieldCheck size={14} className="text-[#D4AF37]" />
+                  <ShieldCheck size={15} weight="fill" className="text-[#D4AF37]" aria-hidden="true" />
                   <span className="font-heading font-bold text-xs text-[#0F0F10]">
                     Complete Your Routine
                   </span>
@@ -483,12 +474,10 @@ const Screen10CheckoutContent: React.FC = () => {
             )}
 
             {/* Stripe & Flutterwave SSL & Security Trust Badges */}
-            <div className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] shadow-xs flex items-center gap-3 text-xs text-[#6B7280]">
-              <div className="w-10 h-10 rounded-xl bg-white border border-[#E5E7EB] flex items-center justify-center text-[#997A2E] shrink-0 shadow-xs">
-                <ShieldCheck size={20} />
-              </div>
+            <div className="py-2 flex items-center gap-3 text-xs text-[#6B7280]">
+              <ShieldCheck size={20} weight="fill" className="text-[#997A2E] shrink-0" aria-hidden="true" />
               <div className="text-[11px] leading-snug">
-                <span className="font-bold text-[#0F0F10] block">256-Bit SSL Encrypted Checkout</span>
+                <span className="font-semibold text-[#0F0F10] block">256-Bit SSL Encrypted Checkout</span>
                 <span>Protected by Stripe &amp; Flutterwave Payment Infrastructure. Payment status is verified by the server.</span>
               </div>
             </div>

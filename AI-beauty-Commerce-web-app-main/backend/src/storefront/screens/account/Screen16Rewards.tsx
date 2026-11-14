@@ -9,7 +9,7 @@ import {
   TrendingUp,
   ShieldCheck,
   Copy
-} from 'lucide-react';
+} from '../../components/common/SolidIcons';
 import { useApp } from '../../context/AppContext';
 
 import { fetchLoyaltyView, redeemLoyaltyVoucher, type LoyaltyView } from '../../lib/owned-api';

@@ -14,7 +14,7 @@ import {
   Plus,
   ShieldCheck,
   CreditCard
-} from 'lucide-react';
+} from '../common/SolidIcons';
 
 export interface Overview {
   locations: {

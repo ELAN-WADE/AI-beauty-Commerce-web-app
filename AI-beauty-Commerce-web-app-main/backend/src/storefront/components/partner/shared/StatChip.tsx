@@ -1,5 +1,5 @@
 import React from 'react';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { TrendingUp, TrendingDown } from '../../common/SolidIcons';
 
 export interface StatChipProps {
   label: string;

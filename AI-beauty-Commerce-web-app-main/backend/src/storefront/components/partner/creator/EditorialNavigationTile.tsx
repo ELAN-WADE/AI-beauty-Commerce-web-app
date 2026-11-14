@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight } from '../../common/SolidIcons';
 
 export interface EditorialTileData {
   id: string;

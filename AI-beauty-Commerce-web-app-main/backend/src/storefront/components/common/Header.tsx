@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, ShoppingBag, Search, User, Users } from 'lucide-react';
+import { CaretLeft, ShoppingBag, MagnifyingGlass, User, UsersThree } from '@phosphor-icons/react';
 import { useApp } from '../../context/AppContext';
 import { BrandLogo } from './BrandLogo';
 
@@ -73,7 +73,7 @@ export const Header: React.FC<HeaderProps> = ({ title, showBack }) => {
               className="p-1.5 -ml-1 rounded-full text-[#0F0F10] hover:bg-[#F3F4F6] active-press transition-colors cursor-pointer"
               aria-label="Go back"
             >
-              <ChevronLeft size={22} strokeWidth={2.2} />
+              <CaretLeft size={21} weight="bold" aria-hidden="true" />
             </button>}
             <h1 className="font-heading font-extrabold text-base text-[#0F0F10] tracking-tight truncate max-w-[200px]">
               {displayTitle}
@@ -97,7 +97,7 @@ export const Header: React.FC<HeaderProps> = ({ title, showBack }) => {
               aria-label="Search skincare"
               title="Search skincare"
             >
-              <Search size={18} strokeWidth={2} />
+              <MagnifyingGlass size={18} weight="bold" aria-hidden="true" />
             </button>
           )}
 
@@ -109,9 +109,10 @@ export const Header: React.FC<HeaderProps> = ({ title, showBack }) => {
             title="View shopping bag"
           >
             <ShoppingBag
-              size={18}
-              strokeWidth={2}
+              size={19}
+              weight="fill"
               className={`text-[#0F0F10] ${cartCount > 0 && !isCartBannerDismissed ? 'animate-cart-shake' : ''}`}
+              aria-hidden="true"
             />
             {cartCount > 0 && (
               <span className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-1 bg-[#D4AF37] text-[#0F0F10] text-[9.5px] font-extrabold rounded-full flex items-center justify-center shadow-xs">
@@ -151,7 +152,7 @@ export const Header: React.FC<HeaderProps> = ({ title, showBack }) => {
             aria-label="Community Collective"
             title="Desla Collective Community"
           >
-            <Users size={18} strokeWidth={2} />
+            <UsersThree size={19} weight="fill" aria-hidden="true" />
           </button>
         </div>
       </div>

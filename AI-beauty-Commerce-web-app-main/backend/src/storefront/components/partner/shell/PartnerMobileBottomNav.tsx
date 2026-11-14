@@ -9,7 +9,7 @@ import {
   Layers,
   Truck,
   MoreHorizontal
-} from 'lucide-react';
+} from '../../common/SolidIcons';
 
 export interface PartnerMobileBottomNavProps {
   kind: 'CREATOR' | 'DISTRIBUTOR';

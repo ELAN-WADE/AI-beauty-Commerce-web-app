@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, X, ShoppingBag, ArrowRight, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, X, ShoppingBag, ArrowRight, ShieldCheck } from '../common/SolidIcons';
 import { useApp } from '../../context/AppContext';
 import { useViewport } from '../../context/ViewportContext';
 
@@ -45,20 +45,18 @@ export const AddToCartSheet: React.FC = () => {
         {/* Header Bar */}
         <div className="flex items-center justify-between px-6 py-3.5 border-b border-[#E5E7EB] bg-[#FAF9F6]">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center shadow-xs">
-              <Check size={13} strokeWidth={3} />
-            </div>
-            <span className="font-heading font-extrabold text-xs sm:text-sm text-[#0F0F10]">
+            <CheckCircle2 size={20} className="text-[#0F0F10]" />
+            <span className="font-heading font-extrabold text-sm text-[#0F0F10]">
               Added to Shopping Bag
             </span>
           </div>
 
           <button
             onClick={closeAddToCartSheet}
-            className="p-1 rounded-full text-gray-400 hover:text-black hover:bg-white active:scale-95 transition-all cursor-pointer"
+            className="min-h-10 min-w-10 rounded-full text-gray-400 hover:text-black hover:bg-white active:scale-95 transition-all cursor-pointer flex items-center justify-center"
             aria-label="Close modal"
           >
-            <X size={17} />
+            <X size={18} />
           </button>
         </div>
 

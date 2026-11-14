@@ -12,7 +12,7 @@ import {
   User,
   ShoppingBag,
   ArrowRight
-} from 'lucide-react';
+} from '../../components/common/SolidIcons';
 import { useApp } from '../../context/AppContext';
 import { apiFetch, resendVerificationEmail } from '../../lib/owned-api';
 import { MfaSignIn } from '../../components/auth/MfaSignIn';

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { MapPin, Clock, Phone } from 'lucide-react';
+import { MapPin, Clock, Phone } from '../../common/SolidIcons';
 import { apiFetch } from '../../../lib/owned-api';
 export const DistributorTerritory: React.FC = () => {
   const [location, setLocation] = useState<any>(null);

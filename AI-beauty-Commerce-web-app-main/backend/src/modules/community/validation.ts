@@ -39,9 +39,22 @@ export const chatMessageSchema = z
   })
   .strict();
 
+export const postCommentQuerySchema = z
+  .object({
+    limit: z.coerce.number().int().min(1).default(50).transform((v) => Math.min(v, 100)),
+  })
+  .strict();
+
+export const createPostCommentSchema = z
+  .object({
+    content: z.string().trim().min(1, 'Comment cannot be empty.').max(1000),
+    parentCommentId: uuid.optional(),
+  })
+  .strict();
+
 export const COMMUNITY_IMAGE_MIMES = ['image/jpeg', 'image/png', 'image/webp'] as const;
 export const COMMUNITY_VIDEO_MIMES = ['video/mp4', 'video/webm'] as const;
-/** Images ≤ 8 MB, video ≤ 64 MB (matches community_media CHECK + S3 UX). */
+/** Images <= 8 MB, video <= 64 MB (matches community_media CHECK + S3 UX). */
 export const COMMUNITY_MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 export const COMMUNITY_MAX_VIDEO_BYTES = 64 * 1024 * 1024;
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, ExternalLink } from 'lucide-react';
+import { FileText, ExternalLink } from '../../common/SolidIcons';
 import { usePartnerRecords } from '../../../lib/use-partner-records';
 export const CreatorResources: React.FC = () => {
   const { records, error, loading, refresh } = usePartnerRecords('CREATOR');

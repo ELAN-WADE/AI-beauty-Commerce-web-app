@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import * as Accordion from '@radix-ui/react-accordion';
-import { ChevronDown, Check } from 'lucide-react';
+import { CaretDown, Check } from '@phosphor-icons/react';
 import { apiFetch } from '../../lib/owned-api';
 
 export const ClinicalFaqNewsletterSection: React.FC = () => {
@@ -77,9 +77,11 @@ export const ClinicalFaqNewsletterSection: React.FC = () => {
                   <Accordion.Header className="flex">
                     <Accordion.Trigger className="flex flex-1 items-center justify-between py-3.5 text-left text-xs sm:text-[13px] font-heading font-semibold text-[#0F0F10] hover:text-[#997A2E] transition-colors cursor-pointer group focus-visible:outline-none">
                       <span>{faq.question}</span>
-                      <ChevronDown
-                        size={13}
+                      <CaretDown
+                        size={14}
+                        weight="bold"
                         className="text-[#8E8E93] transition-transform duration-200 group-data-[state=open]:rotate-180 group-data-[state=open]:text-[#0F0F10] shrink-0 ml-3"
+                        aria-hidden="true"
                       />
                     </Accordion.Trigger>
                   </Accordion.Header>
@@ -131,7 +133,7 @@ export const ClinicalFaqNewsletterSection: React.FC = () => {
                 >
                   {isSubscribed ? (
                     <>
-                      <Check size={13} className="stroke-[2.5] text-[#D4AF37]" />
+                      <Check size={13} weight="bold" className="text-[#D4AF37]" aria-hidden="true" />
                       <span>Check your inbox to confirm</span>
                     </>
                   ) : (

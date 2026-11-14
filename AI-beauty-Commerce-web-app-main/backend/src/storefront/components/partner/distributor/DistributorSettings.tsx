@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Store, Building, Phone, MapPin, Check, Shield, CheckCircle2 } from 'lucide-react';
+import { Store, Building, Phone, MapPin, Check, Shield, CheckCircle2 } from '../../common/SolidIcons';
 import { useApp } from '../../../context/AppContext';
 import { partnerBankRegister } from '../../../lib/owned-api';
 

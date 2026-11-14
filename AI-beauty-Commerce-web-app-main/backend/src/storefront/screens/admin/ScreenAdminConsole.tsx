@@ -52,7 +52,7 @@ import {
   Gift,
   Video,
   Send
-} from 'lucide-react';
+} from '../../components/common/SolidIcons';
 import { useApp } from '../../context/AppContext';
 import {
   AdminOrder,
@@ -718,13 +718,13 @@ export const ScreenAdminConsole: React.FC = () => {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
                   title={tab.label}
-                  className={`w-11 h-11 rounded-2xl flex items-center justify-center relative transition-all duration-200 cursor-pointer ${
+                  className={`w-11 h-11 rounded-xl flex items-center justify-center relative transition-colors duration-200 cursor-pointer ${
                     isActive
-                      ? 'bg-[#0F0F10] text-[#D4AF37] shadow-sm'
+                      ? 'bg-[#0F0F10] text-[#D4AF37]'
                       : 'text-[#71717A] hover:bg-[#FAF9F6] hover:text-[#0F0F10]'
                   }`}
                 >
-                  <Icon className="w-5 h-5 stroke-[1.8]" />
+                  <Icon className="w-5 h-5" />
                   {tab.badge && tab.badge > 0 ? (
                     <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-[#0F0F10] text-[#D4AF37] border border-[#EAE8E3] text-[9px] font-mono font-bold flex items-center justify-center">
                       {tab.badge}
@@ -876,28 +876,26 @@ export const ScreenAdminConsole: React.FC = () => {
         </section>}
         {activeTab === 'overview' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in fade-in duration-200">
-            {/* Left 4 Cols: Obsidian Vault Card & Liquidity */}
+            {/* Left 4 Cols: Obsidian Reserve Summary Card */}
             <div className="lg:col-span-4 flex flex-col gap-6">
-              <div className="relative rounded-3xl p-6 bg-[#0F0F10] text-white shadow-xl overflow-hidden border border-[#D4AF37]/30">
-                <div className="absolute top-0 right-0 w-48 h-48 bg-[#D4AF37]/5 rounded-full blur-3xl pointer-events-none" />
-
-                <div className="relative z-10 flex flex-col justify-between h-48">
+              <div className="relative rounded-2xl p-6 bg-[#0F0F10] text-white overflow-hidden border border-[#27272A]">
+                <div className="relative z-10 flex flex-col justify-between h-44">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-heading font-black tracking-wider text-[#D4AF37]">
-                        DESLA!™ SALES
+                      <span className="text-sm font-heading font-bold tracking-wider text-[#D4AF37]">
+                        DELSLA!™ SALES
                       </span>
-                      <span className="text-[9.5px] font-mono bg-white/10 px-2 py-0.5 rounded-full border border-white/10 text-white/90">
+                      <span className="text-[10px] font-mono bg-white/10 px-2 py-0.5 rounded-full text-white/85">
                         ORDER RECORDS
                       </span>
                     </div>
-                    <span className="font-heading font-bold tracking-widest text-sm text-[#D4AF37]">
+                    <span className="font-heading font-semibold tracking-widest text-xs text-[#D4AF37]">
                       RESERVE
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-6 rounded bg-gradient-to-r from-[#D4AF37] to-[#E6CA65] border border-amber-300 shadow-xs" />
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-5 rounded bg-[#D4AF37]" />
                     <span className="text-[11px] font-mono text-[#D4AF37]/90 tracking-wider">
                       RECENT PAID ORDER VOLUME
                     </span>

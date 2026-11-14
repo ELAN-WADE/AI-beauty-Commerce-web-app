@@ -11,7 +11,7 @@ import {
   ChevronUp,
   ShieldCheck,
   CheckCircle2
-} from 'lucide-react';
+} from '../../common/SolidIcons';
 import {
   EditorialNavigationGrid,
   EditorialCategoryFilter,
@@ -109,7 +109,7 @@ export const CreatorOverview: React.FC<CreatorOverviewProps> = ({
             <div className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-[#0F0F10]" />
               <span className="font-mono text-[10px] uppercase tracking-wider text-[#0F0F10] font-bold">
-                Live Studio Telemetry • October 2026
+                Live Studio Telemetry
               </span>
             </div>
             {activePR && (
@@ -146,9 +146,11 @@ export const CreatorOverview: React.FC<CreatorOverviewProps> = ({
               <span className="text-[9.5px] font-mono text-[#0F0F10] font-bold block">Recorded activity</span>
             </div>
             <div>
-              <span className="text-[10px] text-[#6B7280] uppercase block">Tier Progression</span>
-              <span className="font-heading font-extrabold text-xl text-[#0F0F10]">Not measured</span>
-              <span className="text-[9.5px] text-[#6B7280] block">To Icon Tier</span>
+              <span className="text-[10px] text-[#6B7280] uppercase block">Active Links</span>
+              <span className="font-heading font-extrabold text-xl text-[#0F0F10]">
+                {creatorLinks.length}
+              </span>
+              <span className="text-[9.5px] text-[#6B7280] block">Tracked referral URLs</span>
             </div>
           </div>
         </div>

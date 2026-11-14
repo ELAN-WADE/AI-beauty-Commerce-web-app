@@ -12,7 +12,7 @@ import {
   ArrowRight,
   ShieldCheck,
   CheckCircle2
-} from 'lucide-react';
+} from '../../common/SolidIcons';
 import {
   DistributorEditorialGrid,
   DistributorCategoryFilter,
@@ -106,7 +106,7 @@ export const DistributorOverview: React.FC<DistributorOverviewProps> = ({
             <div className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-[#0F0F10]" />
               <span className="font-mono text-[10px] uppercase tracking-wider text-[#0F0F10] font-bold">
-                Live Hub Telemetry • October 2026
+                Live Hub Telemetry
               </span>
             </div>
             {inTransitLab && (

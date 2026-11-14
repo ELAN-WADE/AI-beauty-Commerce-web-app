@@ -20,7 +20,7 @@ import {
   MapPin,
   BarChart2,
   ChevronLeft
-} from 'lucide-react';
+} from '../../common/SolidIcons';
 
 export type CreatorRouteId =
   | 'overview'

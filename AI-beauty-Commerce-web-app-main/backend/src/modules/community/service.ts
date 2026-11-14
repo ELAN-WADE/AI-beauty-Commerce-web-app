@@ -1,5 +1,5 @@
 import { getTableColumns } from 'drizzle-orm';
-import { and, desc, eq, inArray, lt, or } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, lt, or } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import type { AppDb, Db } from '../../db/client';
 import { Errors } from '../../lib/errors';
@@ -7,7 +7,7 @@ import { decodeCursor, encodeCursor } from '../../lib/cursor';
 import { orders } from '../orders/schema';
 import { products } from '../catalog/schema';
 import { creators } from '../creators/schema';
-import { communityMedia, communityMessages, communityPosts, postLikes } from './schema';
+import { communityMedia, communityMessages, communityPosts, postComments, postLikes } from './schema';
 import { checkMagicBytes, communityBucket, communityMediaUrl, communityObjectKey, headBytes, headScan, presignedPutUrl } from '../../lib/storage';
 import type { createPostSchema } from './validation';
 import type { z } from 'zod';
@@ -192,4 +192,95 @@ export async function postMessage(db: AppDb, userId: string, sender: { name: str
     .values({ userId, senderName: sender.name, senderAvatar: sender.avatar ?? '', channel: input.channel, message: input.message })
     .returning();
   return msg;
+}
+
+export async function listPostComments(db: Db, postId: string, limit = 50) {
+  const [post] = await db
+    .select({ id: communityPosts.id, visible: communityPosts.visible })
+    .from(communityPosts)
+    .where(eq(communityPosts.id, postId))
+    .limit(1);
+  if (!post || !post.visible) throw Errors.notFound('Post not found.');
+
+  return db
+    .select({
+      id: postComments.id,
+      postId: postComments.postId,
+      parentCommentId: postComments.parentCommentId,
+      authorName: postComments.authorName,
+      authorAvatar: postComments.authorAvatar,
+      authorRole: postComments.authorRole,
+      content: postComments.content,
+      createdAt: postComments.createdAt,
+    })
+    .from(postComments)
+    .where(eq(postComments.postId, postId))
+    .orderBy(asc(postComments.createdAt))
+    .limit(limit);
+}
+
+export async function createPostComment(
+  db: AppDb,
+  userId: string,
+  postId: string,
+  author: { name: string; avatar?: string },
+  input: { content: string; parentCommentId?: string },
+) {
+  return db.transaction(async (tx) => {
+    const [post] = await tx
+      .select()
+      .from(communityPosts)
+      .where(eq(communityPosts.id, postId))
+      .for('update')
+      .limit(1);
+    if (!post || !post.visible) throw Errors.notFound('Post not found.');
+
+    if (input.parentCommentId) {
+      const [parent] = await tx
+        .select({ id: postComments.id, postId: postComments.postId })
+        .from(postComments)
+        .where(eq(postComments.id, input.parentCommentId))
+        .limit(1);
+      if (!parent || parent.postId !== postId) {
+        throw Errors.badRequest('Parent comment does not belong to this post.');
+      }
+    }
+
+    const [creator] = await tx
+      .select({ id: creators.id })
+      .from(creators)
+      .where(eq(creators.userId, userId))
+      .limit(1);
+    const authorRole = creator ? 'Creator / MUA' : 'Member';
+
+    const [comment] = await tx
+      .insert(postComments)
+      .values({
+        postId,
+        parentCommentId: input.parentCommentId ?? null,
+        userId,
+        authorName: author.name,
+        authorAvatar: author.avatar ?? null,
+        authorRole,
+        content: input.content,
+      })
+      .returning({
+        id: postComments.id,
+        postId: postComments.postId,
+        parentCommentId: postComments.parentCommentId,
+        authorName: postComments.authorName,
+        authorAvatar: postComments.authorAvatar,
+        authorRole: postComments.authorRole,
+        content: postComments.content,
+        createdAt: postComments.createdAt,
+      });
+
+    const nextCount = post.commentsCount + 1;
+    await tx
+      .update(communityPosts)
+      .set({ commentsCount: nextCount })
+      .where(eq(communityPosts.id, postId));
+
+    return { comment, commentsCount: nextCount };
+  });
 }

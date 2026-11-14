@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowRight, ShieldCheck } from 'lucide-react';
+import { ArrowRight, ShieldCheck } from '../../components/common/SolidIcons';
 import { useApp } from '../../context/AppContext';
 import { BrandLogo } from '../../components/common/BrandLogo';
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Check, SlidersHorizontal, RotateCcw } from 'lucide-react';
+import { X, Check, SlidersHorizontal, RotateCcw } from '../common/SolidIcons';
 import { useApp } from '../../context/AppContext';
 import { useViewport } from '../../context/ViewportContext';
 
@@ -87,7 +87,7 @@ export const FilterSortSheet: React.FC = () => {
             </button>
             <button
               onClick={() => setIsFilterSheetOpen(false)}
-              className="p-1 rounded-full text-gray-400 hover:text-black cursor-pointer"
+              className="min-h-10 min-w-10 rounded-full text-gray-400 hover:text-black cursor-pointer flex items-center justify-center"
               aria-label="Close"
             >
               <X size={18} />

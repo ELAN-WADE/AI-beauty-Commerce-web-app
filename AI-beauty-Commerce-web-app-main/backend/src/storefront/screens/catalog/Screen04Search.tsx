@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useDeferredValue } from 'react';
-import { Search as SearchIcon, X, Clock, TrendingUp, ChevronLeft, Layers } from 'lucide-react';
+import { Search as SearchIcon, X, Clock, TrendingUp, ChevronLeft, Layers } from '../../components/common/SolidIcons';
 import { useApp } from '../../context/AppContext';
 import { ProductCard } from '../../components/common/ProductCard';
 
@@ -53,7 +53,7 @@ export const Screen04Search: React.FC = () => {
         <div className="flex items-center gap-3 max-w-7xl mx-auto">
           <button
             onClick={goBack}
-            className="p-2 -ml-2 rounded-full text-[#0F0F10] hover:bg-gray-100 active:scale-95 transition-all shrink-0 cursor-pointer"
+            className="min-h-11 min-w-11 -ml-2 rounded-full text-[#0F0F10] hover:bg-gray-100 active:scale-95 transition-all shrink-0 cursor-pointer flex items-center justify-center"
             aria-label="Go back"
           >
             <ChevronLeft size={22} strokeWidth={2.2} />
@@ -67,12 +67,12 @@ export const Screen04Search: React.FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               autoFocus
-              className="w-full bg-transparent px-3 py-3 text-xs sm:text-sm text-[#0F0F10] placeholder-[#9CA3AF] focus:outline-none font-medium"
+              className="w-full bg-transparent px-3 py-3 text-base sm:text-sm text-[#0F0F10] placeholder-[#9CA3AF] focus:outline-none font-medium"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="p-1.5 mr-3 text-gray-400 hover:text-black rounded-full cursor-pointer"
+                className="min-h-10 min-w-10 mr-1.5 text-gray-400 hover:text-black rounded-full cursor-pointer flex items-center justify-center"
                 aria-label="Clear input"
               >
                 <X size={16} />

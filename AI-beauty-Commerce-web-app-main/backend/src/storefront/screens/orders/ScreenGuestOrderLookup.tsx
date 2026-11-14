@@ -11,7 +11,7 @@ import {
   MessageCircle,
   ExternalLink,
   AlertCircle
-} from 'lucide-react';
+} from '../../components/common/SolidIcons';
 import { useApp } from '../../context/AppContext';
 import { fetchServerOrder, guestOrderToken, mapServerOrder } from '../../lib/owned-api';
 import { Order } from '../../types';

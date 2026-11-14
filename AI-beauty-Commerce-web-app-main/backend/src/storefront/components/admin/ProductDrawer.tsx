@@ -15,7 +15,7 @@ import {
   MapPin,
   Upload,
   Loader2
-} from 'lucide-react';
+} from '../common/SolidIcons';
 import { uploadProductMediaApi } from '../../lib/owned-api';
 import { useApp } from '../../context/AppContext';
 import { Product } from '../../types';

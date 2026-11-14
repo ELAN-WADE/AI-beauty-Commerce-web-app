@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Headphones, MessageCircle, ShieldCheck, X, ExternalLink } from 'lucide-react';
+import { Headset, ChatCircleDots, ShieldCheck, X, ArrowUpRight } from '@phosphor-icons/react';
 import { useApp } from '../../context/AppContext';
 import { useViewport } from '../../context/ViewportContext';
 
@@ -37,11 +37,7 @@ export const CustomerCareFloatingBar: React.FC = () => {
           aria-label="Open VIP Customer Care Concierge"
           title="VIP Customer Care • Dedicated Support"
         >
-          {/* Animated Glowing Status Dot + Headset */}
-          <div className="relative flex items-center justify-center w-6 h-6 rounded-full bg-[#1A1A1E] text-[#D4AF37] border border-[#D4AF37]/30">
-            <Headphones size={13} strokeWidth={2.2} />
-            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 ring-1 ring-black animate-pulse" />
-          </div>
+          <Headset size={16} weight="fill" className="text-[#D4AF37] shrink-0" aria-hidden="true" />
 
           <div className="flex flex-col text-left">
             <span className="text-[11px] font-heading font-bold text-white tracking-wide flex items-center gap-1">
@@ -73,9 +69,7 @@ export const CustomerCareFloatingBar: React.FC = () => {
             {/* Header */}
             <div className="flex items-center justify-between pb-4 border-b border-[#E5E7EB]">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-full bg-[#FAF9F6] border border-[#D4AF37]/50 flex items-center justify-center text-[#D4AF37]">
-                  <Headphones size={18} strokeWidth={2} />
-                </div>
+                <Headset size={20} weight="fill" className="text-[#D4AF37] shrink-0" aria-hidden="true" />
                 <div>
                   <h3 id="customer-care-title" className="font-heading font-extrabold text-sm text-[#0F0F10] tracking-tight">
                     Desla!™ VIP Customer Care
@@ -91,14 +85,14 @@ export const CustomerCareFloatingBar: React.FC = () => {
                 className="p-1.5 rounded-full text-[#6B7280] hover:text-[#0F0F10] hover:bg-[#F3F4F6] transition-colors cursor-pointer"
                 aria-label="Close Customer Care dialog"
               >
-                <X size={18} />
+                <X size={18} weight="bold" aria-hidden="true" />
               </button>
             </div>
 
             {/* Content & Direct Channels */}
             <div className="py-5 space-y-3.5">
               <div className="bg-[#FAF9F6] rounded-xl p-3.5 border border-[#E5E7EB] flex items-start gap-3">
-                <ShieldCheck size={18} className="text-[#D4AF37] shrink-0 mt-0.5" />
+                <ShieldCheck size={18} weight="fill" className="text-[#D4AF37] shrink-0 mt-0.5" aria-hidden="true" />
                 <div className="text-xs text-[#374151] leading-relaxed">
                   <p className="font-semibold text-[#0F0F10]">NAFDAC Verified Natural Guarantee</p>
                   <p className="text-[11px] text-[#6B7280] mt-0.5">
@@ -115,9 +109,7 @@ export const CustomerCareFloatingBar: React.FC = () => {
                 className="flex items-center justify-between p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/60 hover:bg-emerald-50 transition-colors group cursor-pointer"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
-                    <MessageCircle size={16} />
-                  </div>
+                  <ChatCircleDots size={20} weight="fill" className="text-emerald-600 shrink-0" aria-hidden="true" />
                   <div>
                     <span className="font-heading font-bold text-xs text-[#0F0F10] block">
                       Direct WhatsApp Specialist
@@ -127,7 +119,7 @@ export const CustomerCareFloatingBar: React.FC = () => {
                     </span>
                   </div>
                 </div>
-                <ExternalLink size={14} className="text-emerald-700 group-hover:translate-x-0.5 transition-transform" />
+                <ArrowUpRight size={14} weight="bold" className="text-emerald-700 group-hover:translate-x-0.5 transition-transform" aria-hidden="true" />
               </a>
 
               {/* Channel 2: Telephone Direct */}
@@ -136,9 +128,7 @@ export const CustomerCareFloatingBar: React.FC = () => {
                 className="flex items-center justify-between p-3.5 rounded-xl border border-[#E5E7EB] bg-[#FAF9F6] hover:bg-[#F3F4F6] transition-colors group cursor-pointer"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center shrink-0">
-                    <Headphones size={16} />
-                  </div>
+                  <Headset size={20} weight="fill" className="text-[#0F0F10] shrink-0" aria-hidden="true" />
                   <div>
                     <span className="font-heading font-bold text-xs text-[#0F0F10] block">
                       Priority Telephone Line
@@ -148,14 +138,14 @@ export const CustomerCareFloatingBar: React.FC = () => {
                     </span>
                   </div>
                 </div>
-                <ExternalLink size={14} className="text-[#6B7280] group-hover:translate-x-0.5 transition-transform" />
+                <ArrowUpRight size={14} weight="bold" className="text-[#6B7280] group-hover:translate-x-0.5 transition-transform" aria-hidden="true" />
               </a>
             </div>
 
             {/* Footer */}
             <div className="pt-2 flex items-center justify-between text-[11px] text-[#9CA3AF]">
               <span className="flex items-center gap-1">
-                <ShieldCheck size={12} className="text-[#D4AF37]" />
+                <ShieldCheck size={13} weight="fill" className="text-[#D4AF37]" aria-hidden="true" />
                 <span>Health Before Beauty</span>
               </span>
               <button

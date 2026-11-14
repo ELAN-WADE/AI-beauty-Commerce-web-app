@@ -41,7 +41,7 @@ export function AdminContentComposer() {
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Publication failed. Your draft is preserved.'); }
     finally { setBusy(false); }
   }
-  return <section className="p-6 rounded-3xl bg-white border border-[#EAE8E3] space-y-4">
+  return <section className="p-6 rounded-2xl bg-white border border-[#E5E7EB] space-y-4">
     <h3 className="font-heading font-bold">Publish community content</h3>
     <label className="block text-xs">Post text<textarea aria-label="Post text" disabled={busy} value={content} maxLength={2000} rows={5} onChange={e => setContent(e.target.value)} className="block mt-2 w-full rounded-xl border border-[#EAE8E3] bg-[#FAF9F6] p-4" /></label>
     <label className="block text-xs">Image or video<input aria-label="Post media" disabled={busy || uploading} type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm" onChange={e => { void upload(e.target.files?.[0]); e.target.value = ''; }} className="mt-2 block" /></label>

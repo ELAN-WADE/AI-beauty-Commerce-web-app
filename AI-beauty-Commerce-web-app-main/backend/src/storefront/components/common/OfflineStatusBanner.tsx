@@ -1,59 +1,97 @@
-import React, { useState, useEffect } from 'react';
-import { WifiOff, Wifi } from 'lucide-react';
+'use client';
+
+import React, { useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { WifiHigh, WifiSlash } from '@phosphor-icons/react';
+
+type ConnectivityState = 'online' | 'offline' | 'reconnected';
 
 export const OfflineStatusBanner: React.FC = () => {
-  const [isOnline, setIsOnline] = useState<boolean>(
-    typeof navigator !== 'undefined' ? navigator.onLine : true
-  );
-  const [showReconnected, setShowReconnected] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
+  const [status, setStatus] = useState<ConnectivityState>('online');
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wasOfflineRef = useRef(false);
 
   useEffect(() => {
-    const handleOnline = () => {
-      setIsOnline(true);
-      setShowReconnected(true);
-      const timer = setTimeout(() => setShowReconnected(false), 3200);
-      return () => clearTimeout(timer);
+    if (typeof window === 'undefined') return;
+
+    if (!navigator.onLine) {
+      wasOfflineRef.current = true;
+      setStatus('offline');
+    }
+
+    const clearReconnectTimer = () => {
+      if (reconnectTimerRef.current !== null) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
     };
 
     const handleOffline = () => {
-      setIsOnline(false);
-      setShowReconnected(false);
+      clearReconnectTimer();
+      wasOfflineRef.current = true;
+      setStatus((prev) => (prev === 'offline' ? prev : 'offline'));
     };
 
-    window.addEventListener('online', handleOnline);
+    const handleOnline = () => {
+      if (!wasOfflineRef.current) return;
+      wasOfflineRef.current = false;
+      clearReconnectTimer();
+      setStatus('reconnected');
+      reconnectTimerRef.current = setTimeout(() => {
+        setStatus((prev) => (prev === 'reconnected' ? 'online' : prev));
+        reconnectTimerRef.current = null;
+      }, 3200);
+    };
+
     window.addEventListener('offline', handleOffline);
+    window.addEventListener('online', handleOnline);
 
     return () => {
-      window.removeEventListener('online', handleOnline);
+      clearReconnectTimer();
       window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('online', handleOnline);
     };
   }, []);
 
-  if (isOnline && !showReconnected) return null;
+  const visible = status === 'offline' || status === 'reconnected';
+  const isOffline = status === 'offline';
 
   return (
-    <div
-      role="status"
-      aria-live="polite"
-      className={`w-full py-1.5 px-4 text-xs font-medium flex items-center justify-center gap-2 transition-all duration-300 z-50 select-none shadow-xs ${
-        isOnline
-          ? 'bg-[#0F4A38] text-white border-b border-emerald-400/30'
-          : 'bg-[#0F0F10] text-[#D4AF37] border-b border-[#D4AF37]/40'
-      }`}
-    >
-      {isOnline ? (
-        <>
-          <Wifi size={13} className="text-emerald-300 shrink-0" />
-          <span>Connection restored • Live inventory and telemetry synchronized</span>
-        </>
-      ) : (
-        <>
-          <WifiOff size={13} className="text-[#D4AF37] shrink-0" />
-          <span>
-            Offline Mode • Viewing cached formulations and orders. Changes will sync when reconnected.
-          </span>
-        </>
+    <AnimatePresence mode="wait">
+      {visible && (
+        <motion.div
+          key={status}
+          role="status"
+          aria-live={isOffline ? 'assertive' : 'polite'}
+          initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 12, scale: 0.98 }}
+          animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
+          exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.98 }}
+          transition={{ duration: prefersReducedMotion ? 0.12 : 0.22, ease: [0.23, 1, 0.32, 1] }}
+          className="fixed left-1/2 -translate-x-1/2 lg:left-auto lg:right-6 lg:translate-x-0 z-[75] bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] lg:bottom-6 pointer-events-auto"
+        >
+          <div className="flex items-center gap-2.5 rounded-full bg-[#0F0F10] text-white px-4 py-2.5 shadow-[0_12px_32px_rgba(0,0,0,0.28)] max-w-[calc(100vw-2rem)]">
+            {isOffline ? (
+              <WifiSlash size={15} weight="fill" className="text-[#D4AF37] shrink-0" aria-hidden="true" />
+            ) : (
+              <WifiHigh size={15} weight="fill" className="text-emerald-400 shrink-0" aria-hidden="true" />
+            )}
+            <span className="text-xs font-medium tracking-[0.01em] whitespace-nowrap truncate">
+              {isOffline
+                ? 'Offline — browsing cached catalog'
+                : 'Back online — synced'}
+            </span>
+            <button
+              type="button"
+              onClick={() => setStatus('online')}
+              aria-label="Dismiss connectivity status"
+              className="ml-1 text-[11px] font-medium text-white/60 hover:text-white transition-colors shrink-0 cursor-pointer"
+            >
+              Dismiss
+            </button>
+          </div>
+        </motion.div>
       )}
-    </div>
+    </AnimatePresence>
   );
 };

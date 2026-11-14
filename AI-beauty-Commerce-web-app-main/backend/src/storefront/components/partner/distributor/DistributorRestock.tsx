@@ -10,7 +10,7 @@ import {
   ShieldCheck,
   X,
   PackageCheck
-} from 'lucide-react';
+} from '../../common/SolidIcons';
 import { useApp } from '../../../context/AppContext';
 import { ActionDrawer } from '../shared/ActionDrawer';
 import { PartnerKitRequests } from '../PartnerKitRequests';

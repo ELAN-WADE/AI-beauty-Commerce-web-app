@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Wallet, ArrowDownToLine, Building, CheckCircle2, X } from 'lucide-react';
+import { Wallet, ArrowDownToLine, Building, CheckCircle2, X } from '../../common/SolidIcons';
 import { StatChip } from '../shared/StatChip';
 import { StatusBadge } from '../shared/StatusBadge';
 import { useApp } from '../../../context/AppContext';

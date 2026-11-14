@@ -1243,6 +1243,24 @@ export async function likeCommunityPostApi(postId: string): Promise<{ likesCount
   return apiFetch(`/api/community/posts/${encodeURIComponent(postId)}/like`, { method: 'POST' });
 }
 
+export async function fetchPostCommentsApi(postId: string): Promise<import('../types').CommunityComment[]> {
+  if (!BASE) return [];
+  const body = await apiFetch<{ comments: import('../types').CommunityComment[] }>(
+    `/api/community/posts/${encodeURIComponent(postId)}/comments?limit=100`,
+  );
+  return body.comments ?? [];
+}
+
+export async function createPostCommentApi(
+  postId: string,
+  input: { content: string; parentCommentId?: string },
+): Promise<{ comment: import('../types').CommunityComment; commentsCount: number }> {
+  return apiFetch(`/api/community/posts/${encodeURIComponent(postId)}/comments`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
 interface OwnedChatMessage {
   id: string;
   senderName: string;

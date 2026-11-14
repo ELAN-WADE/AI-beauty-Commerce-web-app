@@ -13,7 +13,7 @@ import {
   ShieldCheck,
   ChevronRight,
   ExternalLink
-} from 'lucide-react';
+} from '../../common/SolidIcons';
 import { FilterTabs } from '../shared/FilterTabs';
 import { StatusBadge } from '../shared/StatusBadge';
 import { useApp } from '../../../context/AppContext';

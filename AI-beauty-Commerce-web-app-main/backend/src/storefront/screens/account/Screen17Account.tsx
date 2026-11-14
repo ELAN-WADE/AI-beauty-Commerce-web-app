@@ -24,7 +24,7 @@ import {
   Trash2,
   X,
   Check
-} from 'lucide-react';
+} from '../../components/common/SolidIcons';
 import { useCustomerOrders } from '../../lib/use-customer-orders';
 import { useApp } from '../../context/AppContext';
 import { ProductCard } from '../../components/common/ProductCard';

@@ -12,7 +12,7 @@ import {
   PhoneCall,
   Settings,
   Bell
-} from 'lucide-react';
+} from '../../common/SolidIcons';
 
 export interface DistributorSecondaryNavProps {
   activeRoute: string;

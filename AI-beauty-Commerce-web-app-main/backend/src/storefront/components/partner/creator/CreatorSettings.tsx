@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { User, Instagram, Video, Building, Bell, Shield, Check } from 'lucide-react';
+import { User, Instagram, Video, Building, Bell, Shield, Check } from '../../common/SolidIcons';
 import { useApp } from '../../../context/AppContext';
 import { fetchPartnerDashboard, partnerBankRegister, writePartnerWorkspace } from '../../../lib/owned-api';
 

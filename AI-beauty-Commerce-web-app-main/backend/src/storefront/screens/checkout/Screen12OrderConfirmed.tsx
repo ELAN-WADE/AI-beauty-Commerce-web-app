@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CheckCircle2, Package, MapPin, ShoppingBag } from 'lucide-react';
+import { CheckCircle2, Package, MapPin, ShoppingBag } from '../../components/common/SolidIcons';
 import confetti from 'canvas-confetti';
 import { useApp } from '../../context/AppContext';
 import { fetchServerOrder, lastPaymentReference, mapServerOrder, paymentStatus, paymentTokenFor } from '../../lib/owned-api';

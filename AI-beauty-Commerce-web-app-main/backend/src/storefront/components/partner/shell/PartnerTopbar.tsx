@@ -9,7 +9,7 @@ import {
   ExternalLink,
   Store,
   Users
-} from 'lucide-react';
+} from '../../common/SolidIcons';
 import { useApp } from '../../../context/AppContext';
 
 export interface PartnerTopbarProps {
@@ -25,8 +25,15 @@ export const PartnerTopbar: React.FC<PartnerTopbarProps> = ({
   onOpenNotifications,
   onSwitchWorkspace
 }) => {
-  const { navigateTo, loginAsDemoRole } = useApp();
+  const { navigateTo, loginAsDemoRole, authUser } = useApp();
   const isCreator = kind === 'CREATOR';
+  const rawName = authUser?.profile?.displayName || authUser?.email?.split('@')[0] || (isCreator ? 'CR' : 'DB');
+  const initials = rawName
+    .split(/[\s._-]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() || '')
+    .join('') || (isCreator ? 'CR' : 'DB');
 
   return (
     <header className="h-16 px-6 bg-white border-b border-[#E5E7EB] flex items-center justify-between gap-4 select-none shrink-0">
@@ -106,15 +113,14 @@ export const PartnerTopbar: React.FC<PartnerTopbarProps> = ({
         <button
           onClick={onOpenNotifications}
           aria-label="View notifications"
-          className="relative w-9 h-9 rounded-full border border-[#E5E7EB] hover:bg-[#FAF9F6] text-[#4B5563] flex items-center justify-center transition-colors cursor-pointer"
+          className="relative w-9 h-9 rounded-full hover:bg-[#FAF9F6] text-[#0F0F10] flex items-center justify-center transition-colors cursor-pointer"
         >
           <Bell size={16} />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white" />
         </button>
 
         {/* User Avatar */}
-        <div className="w-8 h-8 rounded-full bg-[#FAF9F6] border border-[#E5E7EB] flex items-center justify-center text-xs font-mono font-bold text-[#0F0F10]">
-          {isCreator ? 'AN' : 'AO'}
+        <div className="w-8 h-8 rounded-full bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center text-xs font-mono font-bold">
+          {initials}
         </div>
       </div>
     </header>

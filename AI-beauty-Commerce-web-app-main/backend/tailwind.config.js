@@ -2,6 +2,9 @@
 // VERBATIM theme copy of root tailwind.config.js (zero UI drift).
 // Only `content` globs were retargeted to backend/src (incl. storefront/).
 export default {
+  future: {
+    hoverOnlyWhenSupported: true,
+  },
   content: [
     "./src/app/**/*.{js,ts,jsx,tsx}",
     "./src/components/**/*.{js,ts,jsx,tsx}",

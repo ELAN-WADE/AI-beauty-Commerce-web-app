@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Download, FileText } from 'lucide-react';
+import { Download, FileText } from '../../common/SolidIcons';
 import { apiFetch } from '../../../lib/owned-api';
 function cell(value: unknown) { const text = String(value ?? ''); return `"${(/^[=+@-]/.test(text) ? "'" : '') + text.replace(/"/g, '""')}"`; }
 export const DistributorReports: React.FC = () => {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, ShieldCheck } from 'lucide-react';
+import { ArrowRight, ShieldCheck } from '@phosphor-icons/react';
 import { FaceScanIcon } from '../common/FaceScanIcon';
 import { ProductImage } from '../common/ProductImage';
 
@@ -40,7 +40,7 @@ export const BiometricSkinAtelier: React.FC<BiometricSkinAtelierProps> = ({
 
               {/* Privacy Safeguard (Restrained single line) */}
               <div className="flex items-center gap-2 text-[11px] text-gray-400">
-                <ShieldCheck size={14} className="text-[#D4AF37] shrink-0" />
+                <ShieldCheck size={15} weight="fill" className="text-[#D4AF37] shrink-0" aria-hidden="true" />
                 <span className="font-normal">
                   100% On-Device Privacy • No camera photos are stored or transmitted.
                 </span>
@@ -54,7 +54,7 @@ export const BiometricSkinAtelier: React.FC<BiometricSkinAtelierProps> = ({
                 >
                   <FaceScanIcon size={14} className="text-[#0F0F10]" />
                   <span>Begin Complimentary Skin Scan</span>
-                  <ArrowRight size={13} />
+                  <ArrowRight size={13} weight="bold" aria-hidden="true" />
                 </button>
               </div>
             </div>

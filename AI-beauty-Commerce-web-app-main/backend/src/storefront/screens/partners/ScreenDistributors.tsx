@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ChevronLeft, MapPin, Store, MessageCircle } from 'lucide-react';
+import { ChevronLeft, MapPin, Store, MessageCircle } from '../../components/common/SolidIcons';
 import { useApp } from '../../context/AppContext';
 import { fetchDistributors, isOwnedApiConfigured } from '../../lib/owned-api';
 import { partnerButton, partnerInput } from '../../components/partner/PartnerApplication';

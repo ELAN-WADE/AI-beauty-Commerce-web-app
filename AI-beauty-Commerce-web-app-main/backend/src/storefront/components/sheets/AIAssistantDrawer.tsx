@@ -1,6 +1,6 @@
 import { useAssistantAvailability } from '../../lib/use-assistant-thread';
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Send, Plus, ArrowRight, ShieldCheck, CheckCircle2, Maximize2 } from 'lucide-react';
+import { X, Send, Plus, ArrowRight, ShieldCheck, CheckCircle2, Maximize2 } from '../common/SolidIcons';
 import { useApp } from '../../context/AppContext';
 
 export const AIAssistantDrawer: React.FC = () => {

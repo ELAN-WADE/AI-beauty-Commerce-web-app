@@ -24,7 +24,7 @@ import {
   X,
   Store,
   ShoppingBag
-} from 'lucide-react';
+} from '../../components/common/SolidIcons';
 import { useApp } from '../../context/AppContext';
 import { useViewport } from '../../context/ViewportContext';
 import { isOwnedApiConfigured, type ChatMsg } from '../../lib/owned-api';

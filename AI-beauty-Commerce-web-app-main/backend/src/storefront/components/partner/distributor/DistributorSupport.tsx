@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../../context/AppContext';
 import { writePartnerWorkspace } from '../../../lib/owned-api';
-import { PhoneCall, ShieldAlert, Send, CheckCircle2 } from 'lucide-react';
+import { PhoneCall, ShieldAlert, Send, CheckCircle2 } from '../../common/SolidIcons';
 
 export const DistributorSupport: React.FC = () => {
   const { isLiveBackend } = useApp();

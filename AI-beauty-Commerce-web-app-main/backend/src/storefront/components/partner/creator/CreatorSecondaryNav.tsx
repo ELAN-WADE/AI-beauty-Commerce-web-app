@@ -12,7 +12,7 @@ import {
   Link2,
   Settings,
   Bell
-} from 'lucide-react';
+} from '../../common/SolidIcons';
 
 export interface CreatorSecondaryNavProps {
   activeRoute: string;

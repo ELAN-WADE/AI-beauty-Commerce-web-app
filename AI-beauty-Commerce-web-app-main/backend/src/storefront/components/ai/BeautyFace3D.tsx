@@ -1,7 +1,7 @@
 import React, { useRef, useState, useMemo, useEffect } from 'react';
 import * as THREE from 'three';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldCheck, Activity } from 'lucide-react';
+import { ShieldCheck, Activity } from '../common/SolidIcons';
 
 export type ScanStage = 'idle' | 'preparing' | 'scanning' | 'analyzing' | 'results';
 

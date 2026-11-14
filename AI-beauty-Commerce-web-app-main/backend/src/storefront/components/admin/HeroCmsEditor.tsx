@@ -26,7 +26,7 @@ export function HeroCmsEditor() {
     finally { setBusy(false); }
   }
   return <div className="space-y-6">
-    <div className="p-6 rounded-3xl bg-white border border-[#EAE8E3] space-y-4">
+    <div className="p-6 rounded-2xl bg-white border border-[#E5E7EB] space-y-4">
       <h3 className="font-heading font-bold">Hero presentation</h3>
       <div className="flex gap-2" role="group" aria-label="Hero mode">
         {(['flex', 'slideshow'] as const).map(mode => <button type="button" key={mode} aria-pressed={settings.mode === mode} onClick={() => updateHeroSettings({ ...settings, mode })} className={'rounded-full px-5 py-2 text-xs border ' + (settings.mode === mode ? 'bg-[#0F0F10] text-[#D4AF37]' : 'border-[#EAE8E3]')}>{mode === 'flex' ? 'Flex carousel' : 'Full-width slideshow'}</button>)}
@@ -40,7 +40,7 @@ export function HeroCmsEditor() {
         <label className="text-xs">Seconds per slide<input className={input} type="number" min={3} max={15} value={settings.intervalSeconds} onChange={e => updateHeroSettings({ ...settings, intervalSeconds: Number(e.target.value) })} /></label>
       </div>
       <label className="inline-block rounded-full bg-[#0F0F10] text-[#D4AF37] px-5 py-3 text-xs cursor-pointer">
-        {busy ? 'Uploading imagesâ€¦' : 'Upload hero images'}
+        {busy ? 'Uploading images…' : 'Upload hero images'}
         <input aria-label="Upload hero images" className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={busy} onChange={e => { void upload(Array.from(e.target.files || [])); e.target.value = ''; }} />
       </label>
       {notice && <p role="status" className="text-xs">{notice}</p>}

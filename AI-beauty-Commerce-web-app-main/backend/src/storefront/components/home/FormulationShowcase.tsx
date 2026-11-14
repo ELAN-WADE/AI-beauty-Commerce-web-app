@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight } from '@phosphor-icons/react';
 import { Product } from '../../types';
 import { ProductCard } from '../common/ProductCard';
 
@@ -59,7 +59,7 @@ export const FormulationShowcase: React.FC<FormulationShowcaseProps> = ({
             className="inline-flex items-center gap-1.5 text-xs font-heading font-semibold text-[#0F0F10] hover:text-[#997A2E] transition-colors cursor-pointer group py-1.5 hover-underline-minimal"
           >
             <span>Explore Entire Formulation Catalogue</span>
-            <ArrowRight size={12} className="text-[#0F0F10] group-hover:translate-x-0.5 transition-transform" />
+            <ArrowRight size={13} weight="bold" className="text-[#0F0F10] group-hover:translate-x-0.5 transition-transform" aria-hidden="true" />
           </button>
         </div>
       </div>

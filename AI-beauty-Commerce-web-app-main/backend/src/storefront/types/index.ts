@@ -287,6 +287,17 @@ export interface CommunityPost {
   likedByMe?: boolean;
 }
 
+export interface CommunityComment {
+  id: string;
+  postId: string;
+  parentCommentId: string | null;
+  authorName: string;
+  authorAvatar?: string | null;
+  authorRole: string;
+  content: string;
+  createdAt: string;
+}
+
 export interface ProductReview {
   id: string;
   productId: string;

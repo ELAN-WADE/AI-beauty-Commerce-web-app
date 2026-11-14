@@ -133,7 +133,7 @@ interface AppContextType {
   products: Product[];
   selectedProduct: Product | null;
   setSelectedProduct: (product: Product | null) => void;
-  viewProductDetails: (product: Product) => void;
+  viewProductDetails: (product: Product, options?: { section?: 'reviews' }) => void;
 
   // Filter & Search
   searchQuery: string;
@@ -236,6 +236,7 @@ interface AppContextType {
   // NEW: Social Community Feed Posts
   communityPosts: CommunityPost[];
   likeCommunityPost: (postId: string) => void;
+  syncPostCommentsCount: (postId: string, commentsCount: number) => void;
   createCommunityPost: (post: Omit<CommunityPost, 'id' | 'timestamp' | 'likesCount' | 'commentsCount'>) => Promise<void>;
   getPostsForProduct: (productId: string, hashtag?: string) => CommunityPost[];
 
@@ -1318,8 +1319,15 @@ export const AppProvider: React.FC<{ children: ReactNode; initialCatalogue?: Pro
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  const viewProductDetails = (product: Product) => {
+  const viewProductDetails = (product: Product, options?: { section?: 'reviews' }) => {
     setSelectedProduct(product);
+    if (options?.section === 'reviews' && typeof window !== 'undefined') {
+      try {
+        sessionStorage.setItem('desla_scroll_reviews', product.slug || product.id);
+      } catch {
+        // ignore storage errors
+      }
+    }
     navigateTo('product-details', { product });
   };
 
@@ -1599,6 +1607,12 @@ export const AppProvider: React.FC<{ children: ReactNode; initialCatalogue?: Pro
       mediaId: post.mediaId
     });
     setCommunityPostsList((prev) => [serverPost, ...prev]);
+  };
+
+  const syncPostCommentsCount = (postId: string, commentsCount: number) => {
+    setCommunityPostsList((prev) =>
+      prev.map((post) => (post.id === postId ? { ...post, commentsCount } : post))
+    );
   };
 
   const getPostsForProduct = (productId: string, hashtag?: string) => {
@@ -2211,6 +2225,7 @@ export const AppProvider: React.FC<{ children: ReactNode; initialCatalogue?: Pro
         registerCreator,
         communityPosts: communityPostsList,
         likeCommunityPost,
+        syncPostCommentsCount,
         createCommunityPost,
         getPostsForProduct,
         reviews: reviewsList,

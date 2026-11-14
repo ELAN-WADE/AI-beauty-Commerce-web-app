@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, X, Check, Truck, ShieldCheck, Clock } from 'lucide-react';
+import { MapPin, X, Check, Truck, ShieldCheck, Clock } from '@phosphor-icons/react';
 import { useApp } from '../../context/AppContext';
 import { supportedCities } from '../../data/distributors';
 
@@ -30,9 +30,7 @@ export const LocationSelector: React.FC = () => {
         {/* Modal Header */}
         <div className="flex items-center justify-between pb-4 border-b border-[#D4AF37]/15">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-[#D4AF37]/15 flex items-center justify-center text-[#D4AF37]">
-              <MapPin size={20} strokeWidth={2.2} />
-            </div>
+            <MapPin size={20} weight="fill" className="text-[#D4AF37] shrink-0" aria-hidden="true" />
             <div>
               <h3 className="font-heading font-extrabold tracking-tight text-lg text-[#FBF9F5]">
                 Select Your Delivery City
@@ -47,7 +45,7 @@ export const LocationSelector: React.FC = () => {
             className="p-2 rounded-full text-[#A19B96] hover:text-[#FBF9F5] hover:bg-white/5 active-press transition-colors"
             aria-label="Close"
           >
-            <X size={18} />
+            <X size={18} weight="bold" aria-hidden="true" />
           </button>
         </div>
 
@@ -73,7 +71,7 @@ export const LocationSelector: React.FC = () => {
                         : 'border-white/30'
                     }`}
                   >
-                    {isSelected && <Check size={10} className="text-black stroke-[3]" />}
+                    {isSelected && <Check size={10} weight="bold" className="text-black" aria-hidden="true" />}
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
@@ -91,12 +89,12 @@ export const LocationSelector: React.FC = () => {
                     </div>
                     <div className="flex items-center gap-3 text-[11px] text-[#A19B96] mt-0.5">
                       <span className="flex items-center gap-1 text-emerald-400">
-                        <ShieldCheck size={12} />
+                        <ShieldCheck size={13} weight="fill" aria-hidden="true" />
                         {item.distributorCount} Verified {item.distributorCount === 1 ? 'Partner' : 'Partners'}
                       </span>
                       <span>•</span>
                       <span className="flex items-center gap-1">
-                        <Clock size={12} />
+                        <Clock size={13} weight="fill" aria-hidden="true" />
                         {item.estimatedDeliveryHours}
                       </span>
                     </div>
@@ -118,7 +116,7 @@ export const LocationSelector: React.FC = () => {
 
         {/* Benefits Callout */}
         <div className="p-3 rounded-xl bg-[#09090B] border border-[#D4AF37]/20 flex items-center gap-3 text-xs text-[#A19B96]">
-          <Truck size={18} className="text-[#D4AF37] shrink-0" />
+          <Truck size={18} weight="fill" className="text-[#D4AF37] shrink-0" aria-hidden="true" />
           <span>
             Orders placed within your city are dispatched locally for fast arrival, saving up to ₦4,500 compared to Lagos-to-state courier fees.
           </span>

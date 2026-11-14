@@ -15,7 +15,7 @@ import {
   QrCode,
   AlertTriangle,
   CheckCircle2,
-} from 'lucide-react';
+} from '../../components/common/SolidIcons';
 import { creatorDiscountNaira } from '../../lib/order-journey';
 import { useApp } from '../../context/AppContext';
 import { CustomerAccess } from '../../components/auth/CustomerAccess';

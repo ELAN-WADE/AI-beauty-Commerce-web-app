@@ -12,7 +12,7 @@ import {
   ShieldCheck,
   Navigation,
   ArrowRight
-} from 'lucide-react';
+} from '../../components/common/SolidIcons';
 import { useApp } from '../../context/AppContext';
 import { fetchServerOrder, guestOrderToken, mapServerOrder, requestPickupCode, serverOrderUuid, submitTransferClaim } from '../../lib/owned-api';
 import { useCustomerOrders } from '../../lib/use-customer-orders';
@@ -75,10 +75,10 @@ const TransferClaimCard: React.FC<{ order: Order; email: string }> = ({ order, e
         </p>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-        <input value={senderName} onChange={(e) => setSenderName(e.target.value)} placeholder="Sender account name" className="px-3.5 py-2.5 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] text-xs outline-none focus:border-[#D4AF37]/60" />
-        <input value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="Bank (e.g. GTBank)" className="px-3.5 py-2.5 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] text-xs outline-none focus:border-[#D4AF37]/60" />
-        <input value={narration} onChange={(e) => setNarration(e.target.value)} placeholder="Transfer reference / narration" className="px-3.5 py-2.5 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] text-xs outline-none focus:border-[#D4AF37]/60" />
-        <input value={transferDate} onChange={(e) => setTransferDate(e.target.value)} placeholder="Date (e.g. 28 Sep 2026)" className="px-3.5 py-2.5 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] text-xs outline-none focus:border-[#D4AF37]/60" />
+        <input value={senderName} onChange={(e) => setSenderName(e.target.value)} placeholder="Sender account name" className="px-3.5 py-2.5 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] text-base sm:text-xs outline-none focus:border-[#D4AF37]/60" />
+        <input value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="Bank (e.g. GTBank)" className="px-3.5 py-2.5 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] text-base sm:text-xs outline-none focus:border-[#D4AF37]/60" />
+        <input value={narration} onChange={(e) => setNarration(e.target.value)} placeholder="Transfer reference / narration" className="px-3.5 py-2.5 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] text-base sm:text-xs outline-none focus:border-[#D4AF37]/60" />
+        <input value={transferDate} onChange={(e) => setTransferDate(e.target.value)} placeholder="Date (e.g. 28 Sep 2026)" className="px-3.5 py-2.5 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] text-base sm:text-xs outline-none focus:border-[#D4AF37]/60" />
       </div>
       {message && <p className="text-[11px] text-[#6B7280]">{message}</p>}
       <button type="submit" disabled={busy} className="px-5 py-2.5 rounded-full bg-[#0F0F10] text-[#D4AF37] text-xs font-bold active:scale-95 transition-all cursor-pointer disabled:opacity-60">

@@ -20,7 +20,7 @@ import {
   ChevronRight,
   X,
   ExternalLink
-} from 'lucide-react';
+} from '../common/SolidIcons';
 import { apiFetch } from '../../lib/owned-api';
 import { useApp } from '../../context/AppContext';
 import { AdminInventoryItem, LabRestockShipment, StockMovementLog } from '../../types';

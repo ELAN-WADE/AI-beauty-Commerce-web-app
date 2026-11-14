@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { ArrowRight, Check } from 'lucide-react';
+import { ArrowRight, Check } from '@phosphor-icons/react';
 import { ProductImage } from '../common/ProductImage';
 
 interface DailyRitualShowcaseProps {
@@ -121,13 +121,13 @@ export const DailyRitualShowcase: React.FC<DailyRitualShowcaseProps> = ({
               >
                 {justAdded ? (
                   <>
-                    <Check size={13} className="stroke-[2.5] text-[#D4AF37]" />
+                    <Check size={13} weight="bold" className="text-[#D4AF37]" aria-hidden="true" />
                     <span>Added Complete Routine</span>
                   </>
                 ) : (
                   <>
                     <span>Add Complete Routine • ₦54,000</span>
-                    <ArrowRight size={12} className="text-[#D4AF37]" />
+                    <ArrowRight size={12} weight="bold" className="text-[#D4AF37]" aria-hidden="true" />
                   </>
                 )}
               </button>

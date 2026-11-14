@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { TrendingUp, BarChart2, ShoppingBag, ArrowUpRight, Download, CheckCircle2, FileSpreadsheet } from 'lucide-react';
+import { TrendingUp, BarChart2, ShoppingBag, ArrowUpRight, Download, CheckCircle2, FileSpreadsheet } from '../../common/SolidIcons';
 import { StatChip } from '../shared/StatChip';
 import { useApp } from '../../../context/AppContext';
 
@@ -81,24 +81,19 @@ export const DistributorSales: React.FC = () => {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatChip
-          label={timeFilter === 'week' ? 'Gross Sales This Week' : timeFilter === 'month' ? 'Gross Sales This Month' : 'Quarterly Sales Volume'}
-          value={`₦${displayGross.toLocaleString('en-NG')}`}
-          change="+18.4%"
-          trend="up"
-          subtext={`Across ${displayDispatches} fulfilled dispatches`}
+          label="Recorded Gross Orders"
+          value={`₦${totalGross.toLocaleString('en-NG')}`}
+          subtext={`Across ${dispatchCount} recorded dispatches`}
         />
         <StatChip
           label="Average Order Value"
           value={`₦${avgOrderValue.toLocaleString('en-NG')}`}
           subtext="Per verified customer delivery"
-          badge="HEALTHY AOV"
         />
         <StatChip
-          label="Top Moving Category"
-          value="Treatment Oils"
-          subtext="42% of hub dispatches"
-          badge="High Velocity"
-          badgeVariant="gold"
+          label="Fulfilled Count"
+          value={`${orders.filter((o) => o.status === 'Delivered').length}`}
+          subtext="Completed hub deliveries"
         />
       </div>
 

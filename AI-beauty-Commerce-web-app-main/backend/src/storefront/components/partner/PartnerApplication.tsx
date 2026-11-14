@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useApp } from '../../context/AppContext';
 import type { ApplicationReceipt } from '../../lib/owned-api';
 import { apiFetch } from '../../lib/owned-api';
-import { Sparkles, Store, CheckCircle2 } from 'lucide-react';
+import { Sparkles, Store, CheckCircle2 } from '../common/SolidIcons';
 
 export const partnerInput = 'w-full min-w-0 rounded-xl border border-[#E5E7EB] bg-white px-3 py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]';
 export const partnerButton = 'inline-flex items-center justify-center min-h-11 rounded-full bg-[#0F0F10] px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#997A2E] cursor-pointer hover:bg-[#27272A] transition-colors';

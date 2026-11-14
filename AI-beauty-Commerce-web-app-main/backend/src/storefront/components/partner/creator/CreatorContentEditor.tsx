@@ -25,7 +25,7 @@ import {
   Image as ImageIcon,
   X,
   AlertCircle
-} from 'lucide-react';
+} from '../../common/SolidIcons';
 import { buildCreatorSubmission } from '../../../lib/creator-submission';
 import { writePartnerWorkspace, uploadPartnerMedia } from '../../../lib/owned-api';
 import { useApp } from '../../../context/AppContext';

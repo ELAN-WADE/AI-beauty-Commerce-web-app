@@ -12,7 +12,7 @@ import {
   Video,
   FileCheck,
   Send
-} from 'lucide-react';
+} from '../../common/SolidIcons';
 import { FilterTabs } from '../shared/FilterTabs';
 import { ActionDrawer } from '../shared/ActionDrawer';
 import { useApp } from '../../../context/AppContext';

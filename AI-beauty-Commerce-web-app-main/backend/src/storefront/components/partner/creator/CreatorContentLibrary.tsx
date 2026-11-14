@@ -13,7 +13,7 @@ import {
   CheckCircle2,
   Check,
   X
-} from 'lucide-react';
+} from '../../common/SolidIcons';
 import { useApp } from '../../../context/AppContext';
 import { fetchPartnerWorkspace, writePartnerWorkspace } from '../../../lib/owned-api';
 import { FilterTabs } from '../shared/FilterTabs';

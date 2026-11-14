@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Activity } from 'lucide-react';
+import { Activity } from './SolidIcons';
 import { BrandLogo } from './BrandLogo';
 
 export const InitialBrandLoader: React.FC = () => {

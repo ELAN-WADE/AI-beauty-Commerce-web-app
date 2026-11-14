@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Star, ShieldCheck, X, Quote, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Star, ShieldCheck, X, Quote, ArrowLeft, ArrowRight } from '../common/SolidIcons';
 
 export interface CardSpreadItem {
   id: string;

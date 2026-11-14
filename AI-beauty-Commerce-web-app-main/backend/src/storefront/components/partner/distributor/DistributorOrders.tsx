@@ -12,7 +12,7 @@ import {
   ArrowRight,
   ShieldCheck,
   Check
-} from 'lucide-react';
+} from '../../common/SolidIcons';
 import { FilterTabs } from '../shared/FilterTabs';
 import { StatusBadge } from '../shared/StatusBadge';
 import { StatChip } from '../shared/StatChip';
