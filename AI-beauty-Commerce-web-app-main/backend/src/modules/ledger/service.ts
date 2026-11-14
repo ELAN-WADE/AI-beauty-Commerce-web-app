@@ -5,6 +5,7 @@ import { and, asc, desc, eq, isNull, sql } from 'drizzle-orm';
 import type { AppDb, Db } from '../../db/client';
 import { Errors } from '../../lib/errors';
 import { orders } from '../orders/schema';
+import { payments, refunds } from '../payments/schema';
 import { creators } from '../creators/schema';
 import { distributors } from '../distributors/schema';
 import { commissionAwards, ledgerEntries, ledgerJournals, partnerBankAccounts, walletAccounts, withdrawalRequests } from './schema';
@@ -104,6 +105,13 @@ export async function awardOrderCommissions(db: AppDb, orderId: string) {
         { walletId: null, bucket: 'PLATFORM', amountKobo: -amount },
       ]);
     }
+    // A delayed outbox job can run after a partial refund. Reconcile within
+    // the same order lock so that settlement cannot recreate refunded earnings.
+    const [refunded] = await tx.select({ amount: sql<string>`coalesce(sum(${refunds.amountKobo}), 0)::text` })
+      .from(refunds).innerJoin(payments, eq(payments.id, refunds.paymentId))
+      .where(and(eq(payments.orderId, orderId), eq(refunds.status, 'success')));
+    const refundedKobo = safeMoney(Number(refunded.amount));
+    if (refundedKobo > 0) await reverseCommissions(tx, orderId, refundedKobo);
   });
 }
 

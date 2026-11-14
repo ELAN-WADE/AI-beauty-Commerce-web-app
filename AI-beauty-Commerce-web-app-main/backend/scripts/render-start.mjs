@@ -16,6 +16,7 @@ const child = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start
   stdio: 'inherit', windowsHide: true,
   env: {
     ...process.env,
+    DESLA_EMBEDDED_COMMISSIONS: '1',
     // Bound simultaneous native image jobs; a first visit otherwise starts
     // several encoders alongside the web server on the same 512 MB instance.
     UV_THREADPOOL_SIZE: process.env.UV_THREADPOOL_SIZE || '1',

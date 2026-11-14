@@ -11,6 +11,7 @@ const child = spawn(nextCmd, ['next', 'start', '-p', port], {
   shell: isWin,
   env: {
     ...process.env,
+    DESLA_EMBEDDED_COMMISSIONS: '1',
     PORT: port,
   },
 });

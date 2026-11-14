@@ -11,3 +11,32 @@ it('snapshots admin rate at real checkout, excludes delivery, prevents unpaid an
 it('does not attribute self-purchases and requires reacceptance when admin changes commission terms',async()=>{const self=await place(owner);expect(await db.select().from(s.orderPartnerAttributions).where(eq(s.orderPartnerAttributions.orderId,self.order.id))).toHaveLength(0);const member=(await programmeMembership(pg(),owner,'INFLUENCER'))!;await reviewProgramme(pg(),actor,{action:'commission',id:member.id,version:member.version,commissionBps:1000,note:'New agreed campaign schedule.',agreement:'Future eligible sales earn ten percent of net merchandise, subject to the same return and settlement terms.'});await expect(validateReferral(pg(),referral.code)).rejects.toMatchObject({status:404});const updated=(await programmeMembership(pg(),owner,'INFLUENCER'))!;await writeProgramme(pg(),owner,{action:'accept',programme:'INFLUENCER',version:updated.version});expect((await validateReferral(pg(),referral.code)).commissionBps).toBe(1000);});
 
 it('releases delivered commissions after the hold and reverses cleared earnings on refund',async()=>{const placed=await place(buyer);await db.update(s.orders).set({status:'DELIVERED',paymentStatus:'PAID',deliveredAt:new Date(Date.now()-20*86400000)}).where(eq(s.orders.id,placed.order.id));await awardOrderCommissions(pg(),placed.order.id);const wallet=await referralWallet(pg(),referral.id,owner);expect((await balances(pg(),wallet.id)).availableKobo).toBe(0);await releaseCommissions(pg());await releaseCommissions(pg());expect((await balances(pg(),wallet.id)).availableKobo).toBe(4000);const[order]=await db.select().from(s.orders).where(eq(s.orders.id,placed.order.id));await db.transaction(tx=>reverseCommissions(tx as never,order.id,order.totalKobo));expect((await balances(pg(),wallet.id)).availableKobo).toBe(0);});
+
+it('settles queued paid orders once and accounts for a refund that predates the job',async()=>{
+ const {dispatchCommissions}=await import('@/modules/notifications/commission-dispatcher');
+ const {enqueueNotification}=await import('@/modules/notifications/service');
+ const placed=await place(buyer); const orderId=placed.order.id;
+ const [order]=await db.update(s.orders).set({status:'PAID',paymentStatus:'PAID'}).where(eq(s.orders.id,orderId)).returning();
+ const [payment]=await db.insert(s.payments).values({orderId,provider:'transfer',reference:crypto.randomUUID(),amountKobo:order.totalKobo}).returning();
+ await db.insert(s.refunds).values({paymentId:payment.id,amountKobo:Math.floor(order.totalKobo/2),reason:'Partial return before settlement',status:'success'});
+ const job=await enqueueNotification(pg(),{channel:'push',template:'commission.award',payload:{orderId}});
+ expect(await dispatchCommissions(pg())).toEqual({settled:1,failed:0});
+ expect(await dispatchCommissions(pg())).toEqual({settled:0,failed:0});
+ const [award]=await db.select().from(s.commissionAwards).where(eq(s.commissionAwards.orderId,orderId));
+ expect(award.amountKobo).toBe(4000); expect(award.reversedKobo).toBe(2000);
+ expect((await db.select().from(s.notificationOutbox).where(eq(s.notificationOutbox.id,job.id)))[0].status).toBe('sent');
+});
+it('retries unpaid jobs, closes full refunds and leaves email jobs untouched',async()=>{
+ const {dispatchCommissions}=await import('@/modules/notifications/commission-dispatcher');
+ const {enqueueNotification}=await import('@/modules/notifications/service');
+ const placed=await place(buyer); const orderId=placed.order.id;
+ const job=await enqueueNotification(pg(),{channel:'push',template:'commission.award',payload:{orderId}});
+ const mail=await enqueueNotification(pg(),{channel:'email',template:'auth.verify',payload:{}});
+ expect(await dispatchCommissions(pg())).toEqual({settled:0,failed:1});
+ let [row]=await db.select().from(s.notificationOutbox).where(eq(s.notificationOutbox.id,job.id)); expect(row.status).toBe('pending');expect(row.attempts).toBe(1);
+ await db.update(s.orders).set({paymentStatus:'REFUNDED'}).where(eq(s.orders.id,orderId));
+ await db.update(s.notificationOutbox).set({nextAttemptAt:new Date(0)}).where(eq(s.notificationOutbox.id,job.id));
+ expect(await dispatchCommissions(pg())).toEqual({settled:1,failed:0});
+ expect(await db.select().from(s.commissionAwards).where(eq(s.commissionAwards.orderId,orderId))).toHaveLength(0);
+ expect((await db.select().from(s.notificationOutbox).where(eq(s.notificationOutbox.id,mail.id)))[0].attempts).toBe(0);
+});

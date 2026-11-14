@@ -4,6 +4,10 @@ export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     const { configureImageRuntime } = await import('./lib/image-runtime');
     configureImageRuntime();
+    if (process.env.DESLA_EMBEDDED_COMMISSIONS === '1') {
+      const { startEmbeddedCommissions } = await import('./worker/embedded-commissions');
+      startEmbeddedCommissions();
+    }
     if (process.env.DESLA_EMBEDDED_AUTH_EMAIL === '1') {
       const { startEmbeddedAccountEmail } = await import('./worker/embedded-account-email');
       startEmbeddedAccountEmail();
