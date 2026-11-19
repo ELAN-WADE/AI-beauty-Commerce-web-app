@@ -18,6 +18,7 @@ import {
 import { ActionDrawer } from '../shared/ActionDrawer';
 import { useIsMobilePartnerViewport } from '../shared/MobileRouteTransition';
 import { useApp } from '../../../context/AppContext';
+import { AnimatedMetricValue } from '../../motion/DeslaMotion';
 
 export interface DistributorOverviewProps {
   onNavigate: (routeId: string) => void;
@@ -92,14 +93,14 @@ export const DistributorOverview: React.FC<DistributorOverviewProps> = ({
         {/* 1. Top Utility Action Header */}
         <div className="flex items-center justify-between gap-4 pb-1">
           <div className="flex items-center gap-2">
-            <span className="font-mono text-[10px] uppercase tracking-widest text-[#997A2E] font-bold">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-[#997A2E] font-medium">
               Distributor Hub
             </span>
             <span className="w-1.5 h-1.5 rounded-full bg-[#D4AF37]" />
             <button
               type="button"
               onClick={() => setShowExecutiveStrip(!showExecutiveStrip)}
-              className="font-mono text-[9.5px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#FAF9F6] text-[#6B7280] hover:text-[#0F0F10] border border-[#E5E7EB] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+              className="font-mono text-[9.5px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#FAF9F6] text-[#6B7280] hover:text-[#0F0F10] border border-[#E5E7EB] font-medium flex items-center gap-1 transition-colors cursor-pointer"
               title="Toggle live telemetry and courier overview"
             >
               <span>{hubDisplayName}</span>
@@ -111,7 +112,7 @@ export const DistributorOverview: React.FC<DistributorOverviewProps> = ({
             <button
               type="button"
               onClick={() => setTelemetryOpen(true)}
-              className="px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full border border-[#E5E7EB] bg-white hover:bg-[#FAF9F6] text-xs font-semibold text-[#0F0F10] transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-[0.97]"
+              className="px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full border border-[#E5E7EB] bg-white hover:bg-[#FAF9F6] text-xs font-medium text-[#0F0F10] transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-[0.97]"
               title="Inspect real-time facility telemetry and dispatch velocity"
             >
               <BarChart2 size={13} className="text-[#997A2E]" />
@@ -121,7 +122,7 @@ export const DistributorOverview: React.FC<DistributorOverviewProps> = ({
             <button
               type="button"
               onClick={() => navigateTo('catalogue')}
-              className="px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full border border-[#E5E7EB] bg-white hover:bg-[#FAF9F6] text-xs font-semibold text-[#0F0F10] transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-[0.97]"
+              className="px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full border border-[#E5E7EB] bg-white hover:bg-[#FAF9F6] text-xs font-medium text-[#0F0F10] transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-[0.97]"
               title="Preview public shoppable storefront"
             >
               <Share2 size={13} className="text-[#6B7280]" />
@@ -136,13 +137,13 @@ export const DistributorOverview: React.FC<DistributorOverviewProps> = ({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-[#E5E7EB]">
               <div className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#0F0F10]" />
-                <span className="font-mono text-[10px] uppercase tracking-wider text-[#0F0F10] font-bold">
+                <span className="font-mono text-[10px] uppercase tracking-wider text-[#0F0F10] font-semibold">
                   Live Hub Telemetry
                 </span>
               </div>
               {inTransitLab && (
                 <span className="text-[11px] text-[#6B7280]">
-                  Lab Restock #{inTransitLab.batchNumber}: <strong className="text-[#0F0F10]">{inTransitLab.status}</strong> ({inTransitLab.courier})
+                  Lab Restock #{inTransitLab.batchNumber}: <strong className="font-semibold text-[#0F0F10]">{inTransitLab.status}</strong> ({inTransitLab.courier})
                 </span>
               )}
             </div>
@@ -150,21 +151,25 @@ export const DistributorOverview: React.FC<DistributorOverviewProps> = ({
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-mono">
               <div>
                 <span className="text-[10px] text-[#6B7280] uppercase block">Pending Dispatch</span>
-                <span className="font-heading font-extrabold text-xl text-[#0F0F10]">
-                  {pendingOrders.length} Orders
-                </span>
-                <span className="text-[9.5px] font-mono text-[#0F0F10] font-bold block">● NEEDS PACKING</span>
+                <AnimatedMetricValue
+                  value={pendingOrders.length}
+                  format={(n) => `${Math.round(n)} Orders`}
+                  className="font-heading font-semibold text-xl text-[#0F0F10] block"
+                />
+                <span className="text-[9.5px] font-mono text-[#0F0F10] font-medium block">● NEEDS PACKING</span>
               </div>
               <div>
                 <span className="text-[10px] text-[#6B7280] uppercase block">Cleared Margin</span>
-                <span className="font-heading font-extrabold text-xl text-[#0F0F10]">
-                  ₦{totalMargin.toLocaleString('en-NG')}
-                </span>
-                <span className="text-[9.5px] font-mono text-[#0F0F10] font-bold block">● RECORDED BALANCE</span>
+                <AnimatedMetricValue
+                  value={totalMargin}
+                  format={(n) => `₦${Math.round(n).toLocaleString('en-NG')}`}
+                  className="font-heading font-semibold text-xl text-[#0F0F10] block"
+                />
+                <span className="text-[9.5px] font-mono text-[#0F0F10] font-medium block">● RECORDED BALANCE</span>
               </div>
               <div>
                 <span className="text-[10px] text-[#6B7280] uppercase block">Stock Health</span>
-                <span className="font-heading font-extrabold text-xl text-[#0F0F10]">
+                <span className="font-heading font-semibold text-xl text-[#0F0F10]">
                   {lowStockItems.length > 0 ? `${lowStockItems.length} LOW` : 'OPTIMAL'}
                 </span>
                 <span className="text-[9.5px] font-mono text-[#6B7280] block">
@@ -173,7 +178,7 @@ export const DistributorOverview: React.FC<DistributorOverviewProps> = ({
               </div>
               <div>
                 <span className="text-[10px] text-[#6B7280] uppercase block">Fulfilment SLA</span>
-                <span className="font-heading font-extrabold text-xl text-[#0F0F10]">Not measured</span>
+                <span className="font-heading font-semibold text-xl text-[#0F0F10]">Not measured</span>
                 <span className="text-[9.5px] text-[#6B7280] block">SAME-DAY DISPATCH</span>
               </div>
             </div>
@@ -184,7 +189,7 @@ export const DistributorOverview: React.FC<DistributorOverviewProps> = ({
         <section className="space-y-4">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pt-1">
             <div>
-              <h1 className="font-heading font-bold text-xl sm:text-2xl text-[#0F0F10] tracking-tight">
+              <h1 className="font-heading font-semibold text-xl sm:text-2xl text-[#0F0F10] tracking-tight">
                 Distributor Operations Console
               </h1>
               <p className="text-xs text-[#6B7280]">
@@ -204,7 +209,7 @@ export const DistributorOverview: React.FC<DistributorOverviewProps> = ({
                     key={f.id}
                     type="button"
                     onClick={() => setCategoryFilter(f.id as DistributorCategoryFilter)}
-                    className={`px-3 py-1 rounded-full text-[11px] font-bold transition-all cursor-pointer ${
+                    className={`px-3 py-1 rounded-full text-[11px] font-medium transition-all cursor-pointer ${
                       categoryFilter === f.id
                         ? 'bg-[#0F0F10] text-white shadow-xs'
                         : 'text-[#6B7280] hover:text-[#0F0F10]'
@@ -219,7 +224,7 @@ export const DistributorOverview: React.FC<DistributorOverviewProps> = ({
                 <button
                   type="button"
                   onClick={() => setLayoutMode('matrix')}
-                  className={`px-2.5 py-1 rounded-full text-[10.5px] font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                  className={`px-2.5 py-1 rounded-full text-[10.5px] font-medium transition-all cursor-pointer flex items-center gap-1 ${
                     layoutMode === 'matrix'
                       ? 'bg-[#0F0F10] text-white shadow-xs'
                       : 'text-[#6B7280] hover:text-[#0F0F10]'
@@ -232,7 +237,7 @@ export const DistributorOverview: React.FC<DistributorOverviewProps> = ({
                 <button
                   type="button"
                   onClick={() => setLayoutMode('bento')}
-                  className={`px-2.5 py-1 rounded-full text-[10.5px] font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                  className={`px-2.5 py-1 rounded-full text-[10.5px] font-medium transition-all cursor-pointer flex items-center gap-1 ${
                     layoutMode === 'bento'
                       ? 'bg-[#0F0F10] text-white shadow-xs'
                       : 'text-[#6B7280] hover:text-[#0F0F10]'
@@ -258,7 +263,7 @@ export const DistributorOverview: React.FC<DistributorOverviewProps> = ({
           <button
             type="button"
             onClick={() => onNavigate('settings')}
-            className="px-4 py-2 rounded-full bg-[#0F0F10] hover:bg-black text-white text-[11px] font-bold shadow-md cursor-pointer tracking-tight transition-all active:scale-95 border border-white/10"
+            className="px-4 py-2 rounded-full bg-[#0F0F10] hover:bg-black text-white text-[11px] font-medium shadow-md cursor-pointer tracking-tight transition-all active:scale-95 border border-white/10"
             title="Open Hub Settings"
           >
             Hub Settings
@@ -411,14 +416,17 @@ export const DistributorOverview: React.FC<DistributorOverviewProps> = ({
             <div className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB]">
               <span className="text-xs text-[#6B7280] block">Cleared Wholesale Margin</span>
               <p className="font-heading font-semibold text-xl sm:text-2xl text-[#0F0F10] mt-1 font-digit">
-                ₦{totalMargin.toLocaleString('en-NG')}
+                <AnimatedMetricValue
+                  value={totalMargin}
+                  format={(n) => `₦${Math.round(n).toLocaleString('en-NG')}`}
+                />
               </p>
               <span className="text-xs text-[#4B5563] block mt-1">Cleared for payout</span>
             </div>
             <div className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB]">
               <span className="text-xs text-[#6B7280] block">Orders In Queue</span>
               <p className="font-heading font-semibold text-xl sm:text-2xl text-[#0F0F10] mt-1 font-digit">
-                {pendingOrders.length}
+                <AnimatedMetricValue value={pendingOrders.length} />
               </p>
               <span className="text-xs text-[#6B7280] block mt-1">Awaiting fulfillment</span>
             </div>
@@ -426,22 +434,22 @@ export const DistributorOverview: React.FC<DistributorOverviewProps> = ({
 
           <div className="p-4 rounded-2xl border border-[#E5E7EB] bg-white space-y-3">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-medium text-[#0F0F10]">Lagos Dispatch Turnaround</span>
-              <span className="text-xs font-mono text-[#4B5563]">On-time SLA pending</span>
+              <span className="text-xs font-medium text-[#0F0F10]">Hub Operations Snapshot</span>
+              <span className="text-xs font-mono text-[#4B5563]">Live recorded totals</span>
             </div>
 
             <div className="grid grid-cols-3 gap-2 pt-2 text-center border-t border-[#E5E7EB]">
               <div className="p-2.5 rounded-xl bg-[#FAF9F6]">
-                <span className="text-xs text-[#6B7280] block">Average Handoff</span>
-                <span className="text-sm font-semibold text-[#0F0F10]">1.8 hrs</span>
+                <span className="text-xs text-[#6B7280] block">Tracked SKUs</span>
+                <AnimatedMetricValue value={inventoryItems.length} className="text-sm font-semibold text-[#0F0F10]" />
               </div>
               <div className="p-2.5 rounded-xl bg-[#FAF9F6]">
-                <span className="text-xs text-[#6B7280] block">Courier Fleet</span>
-                <span className="text-sm font-semibold text-[#0F0F10]">12 Couriers</span>
+                <span className="text-xs text-[#6B7280] block">Low-Stock Alerts</span>
+                <AnimatedMetricValue value={lowStockItems.length} className="text-sm font-semibold text-[#0F0F10]" />
               </div>
               <div className="p-2.5 rounded-xl bg-[#FAF9F6]">
-                <span className="text-xs text-[#6B7280] block">Same-Day Rate</span>
-                <span className="text-sm font-semibold text-[#0F0F10]">96.8%</span>
+                <span className="text-xs text-[#6B7280] block">Lab Shipments</span>
+                <AnimatedMetricValue value={labShipments.length} className="text-sm font-semibold text-[#0F0F10]" />
               </div>
             </div>
           </div>

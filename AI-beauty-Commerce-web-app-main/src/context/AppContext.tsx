@@ -1533,7 +1533,7 @@ export const AppProvider: React.FC<{ children: ReactNode; initialScreen?: Screen
         setCreatorDiscountPercent(live.discountPercent);
         return {
           success: true,
-          message: `Applied ${live.name}'s Creator Code: ${live.discountPercent}% Off Total Order!`
+          message: live.discountPercent > 0 ? `Applied ${live.name}'s code: ${live.discountPercent}% off eligible products.` : 'Partner code applied to your bag.'
         };
       } catch (e) {
         return { success: false, message: e instanceof Error ? e.message : 'Could not validate this creator code.' };

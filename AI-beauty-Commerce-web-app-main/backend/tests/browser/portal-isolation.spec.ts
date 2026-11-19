@@ -38,7 +38,7 @@ for (const [name, origin] of [['root', appOrigin], ['backend', apiOrigin]]) {
   for (const [portal, entry, heading] of [
     ['Creator', 'Join Creator Studio', 'Studio Navigation Workspace'],
     ['Distributor', 'Join Distributor Hub', 'Distributor Operations Console'],
-    ['Admin', 'Admin Portal', 'Delsla!™ Central Operations'],
+    ['Admin', 'Admin Portal', 'Desla!™ Central Operations'],
   ]) test(`${name}: ${portal} preview entry opens only its original portal`, async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 1000 });
     const errors: string[] = [];
@@ -81,7 +81,7 @@ for (const [name, origin] of [['root', appOrigin], ['backend', apiOrigin]]) {
   for (const [path, heading, signIn] of [
     ['/creators', 'Studio Navigation Workspace', 'Sign In with Email & Password'],
     ['/distributor', 'Distributor Operations Console', 'Sign In with Email & Password'],
-    ['/admin', 'Delsla!™ Central Operations', 'Executive Staff Sign In'],
+    ['/admin', 'Desla!™ Central Operations', 'Executive Staff Sign In'],
   ]) {
     test(`${name}: ${path} sign-in returns to the chosen portal even for a multi-role account`, async ({ page }) => {
       test.setTimeout(300000);

@@ -21,7 +21,7 @@ export const SkinInsightsChart: React.FC<SkinInsightsChartProps> = ({
     const s = String(status || '').toLowerCase();
     if (s.includes('optimal')) {
       return (
-        <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold flex items-center gap-1">
+        <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-semibold flex items-center gap-1">
           <CheckCircle size={10} />
           Optimal
         </span>
@@ -29,13 +29,13 @@ export const SkinInsightsChart: React.FC<SkinInsightsChartProps> = ({
     }
     if (s.includes('moderate')) {
       return (
-        <span className="px-2 py-0.5 rounded-full bg-[#FBF5E8] text-[#997A2E] border border-[#D4AF37]/40 text-[10px] font-bold">
+        <span className="px-2 py-0.5 rounded-full bg-[#FBF5E8] text-[#997A2E] border border-[#D4AF37]/40 text-[10px] font-semibold">
           Moderate
         </span>
       );
     }
     return (
-      <span className="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-bold flex items-center gap-1">
+      <span className="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-semibold flex items-center gap-1">
         <AlertCircle size={10} />
         Needs Focus
       </span>
@@ -87,10 +87,10 @@ export const SkinInsightsChart: React.FC<SkinInsightsChartProps> = ({
       {/* Overall Score Badge */}
       <div className="flex items-center justify-between p-5 rounded-2xl bg-[#FBF5E8] border border-[#D4AF37]/35 shadow-xs">
         <div>
-          <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-[#997A2E] block">
+          <span className="text-[10px] uppercase font-mono font-medium tracking-wider text-[#997A2E] block">
             Overall Health Index
           </span>
-          <h3 className="font-heading font-extrabold text-3xl text-[#0F0F10] mt-0.5">
+          <h3 className="font-heading font-semibold text-3xl text-[#0F0F10] mt-0.5">
             {noMeasurement ? '—' : overallScore}<span className="text-sm font-semibold text-[#6B7280]">{noMeasurement ? '' : '/100'}</span>
           </h3>
           <p className="text-xs text-[#6B7280] mt-1">
@@ -116,7 +116,7 @@ export const SkinInsightsChart: React.FC<SkinInsightsChartProps> = ({
               d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
             />
           </svg>
-          <span className="absolute font-heading font-extrabold text-xs text-[#0F0F10]">
+          <span className="absolute font-heading font-semibold text-xs text-[#0F0F10]">
             {noMeasurement ? '—' : overallScore + '%'}
           </span>
         </div>
@@ -134,12 +134,12 @@ export const SkinInsightsChart: React.FC<SkinInsightsChartProps> = ({
                 <div className="p-1.5 rounded-lg bg-[#FAF9F6] border border-[#E5E7EB]">
                   {getMetricIcon(key)}
                 </div>
-                <span className="font-heading font-bold text-xs text-[#0F0F10]">
+                <span className="font-heading font-medium text-xs text-[#0F0F10]">
                   {data.name}
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="font-mono text-xs font-extrabold text-[#0F0F10]">
+                <span className="font-mono text-xs font-semibold text-[#0F0F10]">
                   {noMeasurement ? '—' : (data.value ?? data.score ?? 0) + '%'}
                 </span>
                 {noMeasurement ? <span className="text-[10px] text-[#6B7280]">Not measured</span> : getStatusBadge(data.status)}

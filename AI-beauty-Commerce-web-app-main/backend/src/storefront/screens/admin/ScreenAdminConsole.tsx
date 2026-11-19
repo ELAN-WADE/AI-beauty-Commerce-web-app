@@ -538,7 +538,7 @@ export const ScreenAdminConsole: React.FC = () => {
       const encodedUri = encodeURI(csvContent);
       const link = document.createElement('a');
       link.setAttribute('href', encodedUri);
-      link.setAttribute('download', `delsla_operations_ledger_${Date.now()}.csv`);
+      link.setAttribute('download', `desla_operations_ledger_${Date.now()}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -826,7 +826,7 @@ export const ScreenAdminConsole: React.FC = () => {
           <button
             onClick={() => navigateTo('home')}
             title="Return to Storefront"
-            className="w-11 h-11 rounded-2xl bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center font-heading font-black text-lg border border-[#D4AF37]/30 hover:scale-105 active:scale-95 transition-transform cursor-pointer"
+            className="w-11 h-11 rounded-2xl bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center font-heading font-semibold text-lg border border-[#D4AF37]/30 hover:scale-105 active:scale-95 transition-transform cursor-pointer"
           >
             D!
           </button>
@@ -849,7 +849,7 @@ export const ScreenAdminConsole: React.FC = () => {
                 >
                   <Icon className="w-5 h-5" />
                   {tab.badge && tab.badge > 0 ? (
-                    <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-[#0F0F10] text-[#D4AF37] border border-[#EAE8E3] text-[9px] font-mono font-bold flex items-center justify-center">
+                    <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-[#0F0F10] text-[#D4AF37] border border-[#EAE8E3] text-[9px] font-mono font-semibold flex items-center justify-center">
                       {tab.badge}
                     </span>
                   ) : null}
@@ -889,7 +889,7 @@ export const ScreenAdminConsole: React.FC = () => {
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs lg:text-[10px] font-medium lg:font-mono lg:tracking-widest text-[#6B7280] lg:text-[#997A2E] lg:uppercase lg:font-bold">
+              <span className="text-xs lg:text-[10px] font-medium lg:font-mono lg:tracking-widest text-[#6B7280] lg:text-[#997A2E] lg:uppercase lg:font-medium">
                 Administrative Control Console
               </span>
               <span className="text-xs lg:text-[9.5px] font-mono px-2 py-0.5 rounded-md lg:rounded-full bg-white border border-[#EAE8E3] text-[#0F0F10]">
@@ -897,9 +897,9 @@ export const ScreenAdminConsole: React.FC = () => {
                 <span className="hidden lg:inline">{isLiveBackend ? 'Live Backend Connected' : 'Staff Sandbox Workspace'}</span>
               </span>
             </div>
-            <h1 className="text-xl sm:text-2xl font-heading font-semibold lg:font-extrabold tracking-tight text-[#0F0F10]">
-              <span className="lg:hidden">Delsla Operations</span>
-              <span className="hidden lg:inline">Delsla!™ Central Operations</span>
+            <h1 className="text-xl sm:text-2xl font-heading font-semibold lg:font-bold tracking-tight text-[#0F0F10]">
+              <span className="lg:hidden">Desla Operations</span>
+              <span className="hidden lg:inline">Desla!™ Central Operations</span>
             </h1>
           </div>
 
@@ -907,7 +907,7 @@ export const ScreenAdminConsole: React.FC = () => {
             {/* Direct Inventory Console Button */}
             <button
               onClick={() => setActiveTab('inventory')}
-              className={`min-h-10 lg:min-h-0 px-3.5 lg:px-4 lg:py-2 rounded-xl lg:rounded-full border text-xs font-medium lg:font-bold lg:shadow-xs flex items-center gap-1.5 lg:active:scale-95 transition-colors lg:transition-all cursor-pointer ${
+              className={`min-h-10 lg:min-h-0 px-3.5 lg:px-4 lg:py-2 rounded-xl lg:rounded-full border text-xs font-medium lg:shadow-xs flex items-center gap-1.5 lg:active:scale-95 transition-colors lg:transition-all cursor-pointer ${
                 activeTab === 'inventory'
                   ? 'bg-[#0F0F10] text-white lg:text-[#D4AF37] border-[#0F0F10]'
                   : 'bg-white text-[#0F0F10] border-[#EAE8E3] lg:border-[#D4AF37]/50 hover:bg-[#FAF9F6]'
@@ -933,7 +933,7 @@ export const ScreenAdminConsole: React.FC = () => {
             {/* Quick Add Formulation */}
             <button
               onClick={handleOpenCreateProduct}
-              className="min-h-10 lg:min-h-0 px-4 lg:py-2 rounded-xl lg:rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white lg:text-[#D4AF37] lg:border lg:border-[#D4AF37]/30 text-xs font-medium lg:font-bold lg:shadow-xs flex items-center gap-1.5 lg:active:scale-95 transition-colors lg:transition-all cursor-pointer"
+              className="min-h-10 lg:min-h-0 px-4 lg:py-2 rounded-xl lg:rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white lg:text-[#D4AF37] lg:border lg:border-[#D4AF37]/30 text-xs font-medium lg:shadow-xs flex items-center gap-1.5 lg:active:scale-95 transition-colors lg:transition-all cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5 lg:text-[#D4AF37]" />
               <span>New Formulation</span>
@@ -967,7 +967,7 @@ export const ScreenAdminConsole: React.FC = () => {
         {/* ======================================================== */}
         {activeTab === 'applications' && <PartnerApplicationsPanel onReviewed={() => setRefreshTick(value => value + 1)} />}
         {activeTab === 'overview' && can('partners:review') && <section aria-label="Pending partner applications" className="mb-5 flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-[#EAE8E3] bg-white p-5">
-          <div><h2 className="font-heading text-lg font-bold">Partner Applications</h2><p className="text-sm text-[#71717A]">{pendingApplications.creators} creator requests · {pendingApplications.distributors} distributor requests - {pendingApplications.influencers} influencer/ambassador requests awaiting review</p>{applicationsError && <p role="alert" className="text-sm text-rose-700">{applicationsError}</p>}</div>
+          <div><h2 className="font-heading text-lg font-semibold">Partner Applications</h2><p className="text-sm text-[#71717A]">{pendingApplications.creators} creator requests · {pendingApplications.distributors} distributor requests - {pendingApplications.influencers} influencer/ambassador requests awaiting review</p>{applicationsError && <p role="alert" className="text-sm text-rose-700">{applicationsError}</p>}</div>
           <button type="button" onClick={() => setActiveTab('applications')} className="rounded-full bg-[#0F0F10] px-5 py-3 text-sm text-white">Review partner applications</button>
         </section>}
         {activeTab === 'overview' && (
@@ -980,14 +980,14 @@ export const ScreenAdminConsole: React.FC = () => {
                 <div className="relative z-10 flex flex-col justify-between h-44 lg:h-48">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-heading font-bold lg:font-black tracking-wider text-[#D4AF37]">
-                        DELSLA!™ SALES
+                      <span className="text-sm font-heading font-semibold tracking-wider text-[#D4AF37]">
+                        DESLA!™ SALES
                       </span>
                       <span className="text-[10px] lg:text-[9.5px] font-mono bg-white/10 px-2 py-0.5 rounded-full lg:border lg:border-white/10 text-white/85 lg:text-white/90">
                         ORDER RECORDS
                       </span>
                     </div>
-                    <span className="font-heading font-semibold lg:font-bold tracking-widest text-xs lg:text-sm text-[#D4AF37]">
+                    <span className="font-heading font-semibold lg:font-medium tracking-widest text-xs lg:text-sm text-[#D4AF37]">
                       RESERVE
                     </span>
                   </div>
@@ -1004,7 +1004,7 @@ export const ScreenAdminConsole: React.FC = () => {
                       <span className="block text-[10px] uppercase font-mono text-white/60">
                         Recent paid order volume
                       </span>
-                      <span className="text-2xl font-mono font-bold tracking-tight text-white">
+                      <span className="text-2xl font-mono font-semibold tracking-tight text-white">
                         {isLiveBackend ? `₦${orders.filter(o => o.paymentStatus === 'PAID').reduce((sum, o) => sum + o.totalNgn, 0).toLocaleString()}` : '₦0'}
                       </span>
                     </div>
@@ -1018,7 +1018,7 @@ export const ScreenAdminConsole: React.FC = () => {
               {/* Inflow Channels */}
               <div className="p-6 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-heading font-bold text-[#0F0F10]">
+                  <h3 className="text-sm font-heading font-semibold text-[#0F0F10]">
                     Inflow Channels
                   </h3>
                   <span className="text-[10px] font-mono text-[#71717A]">Loaded operational records</span>
@@ -1042,7 +1042,7 @@ export const ScreenAdminConsole: React.FC = () => {
                           <CreditCard className="w-4 h-4 text-[#0F0F10]" />
                           <span className="font-medium text-[#0F0F10]">Hosted Gateway (Cards / Online)</span>
                         </div>
-                        <span className="font-mono font-bold text-[#0F0F10]">₦{cardInflow.toLocaleString()}</span>
+                        <span className="font-mono font-semibold text-[#0F0F10]">₦{cardInflow.toLocaleString()}</span>
                       </div>
 
                       <div className="flex items-center justify-between p-3 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3]">
@@ -1050,7 +1050,7 @@ export const ScreenAdminConsole: React.FC = () => {
                           <Building2 className="w-4 h-4 text-[#0F0F10]" />
                           <span className="font-medium text-[#0F0F10]">NIP Bank Transfers</span>
                         </div>
-                        <span className="font-mono font-bold text-[#0F0F10]">₦{transferInflow.toLocaleString()}</span>
+                        <span className="font-mono font-semibold text-[#0F0F10]">₦{transferInflow.toLocaleString()}</span>
                       </div>
 
                       <div className="flex items-center justify-between p-3 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3]">
@@ -1058,7 +1058,7 @@ export const ScreenAdminConsole: React.FC = () => {
                           <Coins className="w-4 h-4 text-[#D4AF37]" />
                           <span className="font-medium text-[#0F0F10]">Web3 Escrow (Crypto)</span>
                         </div>
-                        <span className="font-mono font-bold text-[#0F0F10]">₦{cryptoInflow.toLocaleString()}</span>
+                        <span className="font-mono font-semibold text-[#0F0F10]">₦{cryptoInflow.toLocaleString()}</span>
                       </div>
                     </div>
                   );
@@ -1072,7 +1072,7 @@ export const ScreenAdminConsole: React.FC = () => {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="p-4 rounded-2xl lg:rounded-3xl bg-white border border-[#EAE8E3] lg:shadow-xs">
                   <span className="text-xs lg:text-[10px] lg:font-mono lg:uppercase text-[#71717A] block">Paid sales in loaded orders</span>
-                  <span className="text-xl font-heading font-semibold lg:font-extrabold text-[#0F0F10] mt-1 block">
+                  <span className="text-xl font-heading font-semibold text-[#0F0F10] mt-1 block">
                     {isLiveBackend ? `₦${orders.filter(o => o.paymentStatus === 'PAID').reduce((sum, o) => sum + o.totalNgn, 0).toLocaleString()}` : '₦0'}
                   </span>
                   <span className="text-xs lg:text-[10px] lg:font-mono text-[#6B7280] lg:text-[#0F0F10] flex items-center gap-1 mt-0.5">
@@ -1082,7 +1082,7 @@ export const ScreenAdminConsole: React.FC = () => {
 
                 <div className="p-4 rounded-2xl lg:rounded-3xl bg-white border border-[#EAE8E3] lg:shadow-xs">
                   <span className="text-xs lg:text-[10px] lg:font-mono lg:uppercase text-[#71717A] block">Active Orders</span>
-                  <span className="text-xl font-heading font-semibold lg:font-extrabold text-[#0F0F10] mt-1 block">
+                  <span className="text-xl font-heading font-semibold text-[#0F0F10] mt-1 block">
                     {orders.length}
                   </span>
                   <span className="text-xs lg:text-[10px] lg:font-mono text-[#71717A]">
@@ -1092,7 +1092,7 @@ export const ScreenAdminConsole: React.FC = () => {
 
                 <div className="p-4 rounded-2xl lg:rounded-3xl bg-white border border-[#EAE8E3] lg:shadow-xs">
                   <span className="text-xs lg:text-[10px] lg:font-mono lg:uppercase text-[#71717A] block">Active Creators</span>
-                  <span className="text-xl font-heading font-semibold lg:font-extrabold text-[#0F0F10] mt-1 block">
+                  <span className="text-xl font-heading font-semibold text-[#0F0F10] mt-1 block">
                     {creatorsList.length}
                   </span>
                   <span className="text-xs lg:text-[10px] lg:font-mono text-[#71717A]">
@@ -1102,7 +1102,7 @@ export const ScreenAdminConsole: React.FC = () => {
 
                 <div className="p-4 rounded-2xl lg:rounded-3xl bg-white border border-[#EAE8E3] lg:shadow-xs">
                   <span className="text-xs lg:text-[10px] lg:font-mono lg:uppercase text-[#71717A] block">NIP Claims</span>
-                  <span className="text-xl font-heading font-semibold lg:font-extrabold text-[#0F0F10] mt-1 block">
+                  <span className="text-xl font-heading font-semibold text-[#0F0F10] mt-1 block">
                     {pendingClaimsCount}
                   </span>
                   <span className="text-xs lg:text-[10px] lg:font-mono text-[#6B7280] lg:text-[#0F0F10]">
@@ -1115,7 +1115,7 @@ export const ScreenAdminConsole: React.FC = () => {
               <div className="p-6 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h3 className="text-base font-heading font-bold text-[#0F0F10]">
+                    <h3 className="text-base font-heading font-semibold text-[#0F0F10]">
                       Transaction Velocity
                     </h3>
                     <p className="text-xs text-[#71717A]">
@@ -1127,7 +1127,7 @@ export const ScreenAdminConsole: React.FC = () => {
                     <button
                       onClick={() => setChartRange('monthly')}
                       className={`px-3 py-1 rounded-full transition-all cursor-pointer ${
-                        chartRange === 'monthly' ? 'bg-[#0F0F10] text-[#D4AF37] font-bold' : 'text-[#71717A]'
+                        chartRange === 'monthly' ? 'bg-[#0F0F10] text-[#D4AF37] font-semibold' : 'text-[#71717A]'
                       }`}
                     >
                       Monthly
@@ -1135,7 +1135,7 @@ export const ScreenAdminConsole: React.FC = () => {
                     <button
                       onClick={() => setChartRange('annually')}
                       className={`px-3 py-1 rounded-full transition-all cursor-pointer ${
-                        chartRange === 'annually' ? 'bg-[#0F0F10] text-[#D4AF37] font-bold' : 'text-[#71717A]'
+                        chartRange === 'annually' ? 'bg-[#0F0F10] text-[#D4AF37] font-semibold' : 'text-[#71717A]'
                       }`}
                     >
                       Annually
@@ -1164,14 +1164,14 @@ export const ScreenAdminConsole: React.FC = () => {
                         ].map((w) => (
                           <div key={w.label} className="p-3 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3]">
                             <span className="text-[10px] font-mono text-[#71717A] block">{w.label}</span>
-                            <span className="text-sm font-bold font-mono text-[#0F0F10] block mt-0.5">{w.count} orders</span>
+                            <span className="text-sm font-semibold font-mono text-[#0F0F10] block mt-0.5">{w.count} orders</span>
                             <span className="text-[10px] font-mono text-[#D4AF37] block">₦{w.vol.toLocaleString()}</span>
                           </div>
                         ))}
                       </div>
                       <div className="flex items-center justify-between text-[11px] font-mono text-[#71717A] pt-2 border-t border-[#EAE8E3]">
                         <span>Multi-channel fulfillment</span>
-                        <span className="font-bold text-[#0F0F10]">Active velocity tracked across {orders.length} orders</span>
+                        <span className="font-semibold text-[#0F0F10]">Active velocity tracked across {orders.length} orders</span>
                       </div>
                     </div>
                   );
@@ -1181,12 +1181,12 @@ export const ScreenAdminConsole: React.FC = () => {
               {/* Recent Orders Overview */}
               <div className="p-6 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-base font-heading font-bold text-[#0F0F10]">
+                  <h3 className="text-base font-heading font-semibold text-[#0F0F10]">
                     Recent Order Dispatches
                   </h3>
                   <button
                     onClick={() => setActiveTab('orders')}
-                    className="text-xs font-mono font-bold text-[#0F0F10] hover:text-[#997A2E] flex items-center gap-1 cursor-pointer"
+                    className="text-xs font-mono font-medium text-[#0F0F10] hover:text-[#997A2E] flex items-center gap-1 cursor-pointer"
                   >
                     View All Orders <ChevronRight className="w-3.5 h-3.5" />
                   </button>
@@ -1196,12 +1196,12 @@ export const ScreenAdminConsole: React.FC = () => {
                   {orders.slice(0, 3).map((ord) => (
                     <div key={ord.id} className="py-3 flex items-center justify-between text-xs">
                       <div>
-                        <span className="font-mono font-bold text-[#0F0F10]">#{ord.orderNumber}</span>
+                        <span className="font-mono font-semibold text-[#0F0F10]">#{ord.orderNumber}</span>
                         <span className="text-[#71717A] ml-2">{ord.customerName}</span>
                         <span className="block text-[10px] text-[#71717A] font-mono">{ord.customerCity}</span>
                       </div>
                       <div className="text-right">
-                        <span className="font-mono font-bold text-[#0F0F10] block">₦{(ord.totalNgn || 0).toLocaleString()}</span>
+                        <span className="font-mono font-semibold text-[#0F0F10] block">₦{(ord.totalNgn || 0).toLocaleString()}</span>
                         <span className="text-[9.5px] font-mono uppercase px-2 py-0.5 rounded-full bg-[#FAF9F6] border border-[#EAE8E3] text-[#0F0F10]">
                           {ord.status}
                         </span>
@@ -1216,21 +1216,21 @@ export const ScreenAdminConsole: React.FC = () => {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
                     <div className="flex flex-wrap items-center gap-2 mb-1">
-                      <span className="text-xs lg:text-[10px] font-medium lg:font-mono lg:uppercase lg:tracking-wider text-[#6B7280] lg:text-[#997A2E] lg:font-bold">
+                      <span className="text-xs lg:text-[10px] font-medium lg:font-mono lg:uppercase lg:tracking-wider text-[#6B7280] lg:text-[#997A2E] lg:font-medium">
                         Stock Telemetry
                       </span>
                       <span className="text-xs lg:text-[9.5px] font-mono px-2 py-0.5 rounded-md lg:rounded-full bg-[#FAF9F6] lg:bg-emerald-50 text-[#0F0F10] lg:text-emerald-700 border border-[#EAE8E3] lg:border-emerald-200">
                         <span className="hidden lg:inline">● </span>5 Regional Hubs Operational
                       </span>
                     </div>
-                    <h3 className="text-base font-heading font-semibold lg:font-bold text-[#0F0F10]">
+                    <h3 className="text-base font-heading font-semibold text-[#0F0F10]">
                       Multi-Hub Inventory Distribution &amp; Health
                     </h3>
                   </div>
 
                   <button
                     onClick={() => setActiveTab('inventory')}
-                    className="min-h-10 lg:min-h-0 px-4 lg:py-2 rounded-xl lg:rounded-full bg-[#0F0F10] text-white lg:text-[#D4AF37] hover:bg-[#27272A] text-xs font-medium lg:font-bold lg:font-mono flex items-center gap-1.5 self-start sm:self-auto cursor-pointer lg:shadow-xs lg:active:scale-95 transition-colors lg:transition-all"
+                    className="min-h-10 lg:min-h-0 px-4 lg:py-2 rounded-xl lg:rounded-full bg-[#0F0F10] text-white lg:text-[#D4AF37] hover:bg-[#27272A] text-xs font-medium lg:font-mono flex items-center gap-1.5 self-start sm:self-auto cursor-pointer lg:shadow-xs lg:active:scale-95 transition-colors lg:transition-all"
                   >
                     <Boxes className="w-3.5 h-3.5 lg:text-[#D4AF37]" />
                     <span className="lg:hidden">Open 5-Hub Matrix</span>
@@ -1249,7 +1249,7 @@ export const ScreenAdminConsole: React.FC = () => {
                   ].map((h) => (
                     <div key={h.hub} className="p-3 rounded-xl lg:rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] text-center">
                       <span className="text-xs lg:text-[10px] lg:font-mono text-[#71717A] block truncate">{h.hub}</span>
-                      <span className="text-lg font-heading font-semibold lg:font-extrabold text-[#0F0F10] block mt-0.5">
+                      <span className="text-lg font-heading font-semibold text-[#0F0F10] block mt-0.5">
                         {h.units}
                       </span>
                       <span className={`text-[11px] lg:text-[9px] font-mono px-2 lg:px-1.5 py-0.5 lg:py-0.2 rounded-md lg:rounded-full inline-block mt-1 ${
@@ -1267,13 +1267,13 @@ export const ScreenAdminConsole: React.FC = () => {
                   {inventoryItems.map((item) => (
                     <div key={item.id} className="py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
                       <div>
-                        <span className="font-medium lg:font-bold text-[#0F0F10] block">{item.productName}</span>
+                        <span className="font-medium lg:font-semibold text-[#0F0F10] block">{item.productName}</span>
                         <span className="font-mono text-[11px] lg:text-[10px] text-[#71717A]">
                           SKU: {item.sku} / Central: {item.centralStock} / Lagos: {item.lagosHub} / Abuja: {item.abujaHub} / PH: {item.phHub} / Kano: {item.kanoHub}
                         </span>
                       </div>
                       <div className="text-right">
-                        <span className="font-mono font-medium lg:font-bold text-[#0F0F10] block">
+                        <span className="font-mono font-medium lg:font-semibold text-[#0F0F10] block">
                           {item.centralStock + item.lagosHub + item.abujaHub + item.phHub + item.kanoHub} Units Total
                         </span>
                         {item.isLowStock ? (
@@ -1303,7 +1303,7 @@ export const ScreenAdminConsole: React.FC = () => {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="p-4 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs">
                 <span className="text-[10px] font-mono text-[#71717A] block uppercase">Total Formulations</span>
-                <span className="text-xl font-heading font-extrabold text-[#0F0F10] mt-1 block">
+                <span className="text-xl font-heading font-semibold text-[#0F0F10] mt-1 block">
                   {productsList.length}
                 </span>
                 <span className="text-[10px] font-mono text-[#0F0F10]">Natural Formulations</span>
@@ -1311,7 +1311,7 @@ export const ScreenAdminConsole: React.FC = () => {
 
               <div className="p-4 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs">
                 <span className="text-[10px] font-mono text-[#71717A] block uppercase">Published Live</span>
-                <span className="text-xl font-heading font-extrabold text-[#0F0F10] mt-1 block">
+                <span className="text-xl font-heading font-semibold text-[#0F0F10] mt-1 block">
                   {productsList.filter((p) => isLiveBackend ? p.isActive : p.inStock).length}
                 </span>
                 <span className="text-[10px] font-mono text-[#71717A]">Active on Storefront</span>
@@ -1319,7 +1319,7 @@ export const ScreenAdminConsole: React.FC = () => {
 
               <div className="p-4 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs">
                 <span className="text-[10px] font-mono text-[#71717A] block uppercase">Featured Bestsellers</span>
-                <span className="text-xl font-heading font-extrabold text-[#0F0F10] mt-1 block">
+                <span className="text-xl font-heading font-semibold text-[#0F0F10] mt-1 block">
                   {productsList.filter((p) => p.isBestseller).length}
                 </span>
                 <span className="text-[10px] font-mono text-[#D4AF37]">Hero Featured</span>
@@ -1327,7 +1327,7 @@ export const ScreenAdminConsole: React.FC = () => {
 
               <div className="p-4 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs">
                 <span className="text-[10px] font-mono text-[#71717A] block uppercase">Active Categories</span>
-                <span className="text-xl font-heading font-extrabold text-[#0F0F10] mt-1 block">
+                <span className="text-xl font-heading font-semibold text-[#0F0F10] mt-1 block">
                   {appCategories.length}
                 </span>
                 <button
@@ -1371,7 +1371,7 @@ export const ScreenAdminConsole: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handleOpenCreateProduct}
-                    className="px-5 py-2.5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-[#D4AF37] border border-[#D4AF37]/30 text-xs font-bold shadow-xs flex items-center gap-2 active:scale-95 transition-all cursor-pointer"
+                    className="px-5 py-2.5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-[#D4AF37] border border-[#D4AF37]/30 text-xs font-medium shadow-xs flex items-center gap-2 active:scale-95 transition-all cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5 text-[#D4AF37]" />
                     <span>+ New Formulation</span>
@@ -1408,7 +1408,7 @@ export const ScreenAdminConsole: React.FC = () => {
                               }}
                             />
                             <div>
-                              <strong className="text-xs font-heading font-bold text-[#0F0F10] block">
+                              <strong className="text-xs font-heading font-medium text-[#0F0F10] block">
                                 {p.name}
                               </strong>
                               <span className="text-[10px] text-[#71717A] line-clamp-1">
@@ -1418,10 +1418,10 @@ export const ScreenAdminConsole: React.FC = () => {
                           </div>
                         </td>
                         <td className="py-3.5 px-4 font-mono">
-                          <span className="text-[#0F0F10] font-bold block">{p.sku || 'DES-SKU'}</span>
+                          <span className="text-[#0F0F10] font-semibold block">{p.sku || 'DES-SKU'}</span>
                           <span className="text-[10px] text-[#71717A] uppercase">{p.category}</span>
                         </td>
-                        <td className="py-3.5 px-4 text-right font-mono font-bold text-[#0F0F10]">
+                        <td className="py-3.5 px-4 text-right font-mono font-semibold text-[#0F0F10]">
                           ₦{p.price.toLocaleString()}
                           {p.originalPrice && (
                             <span className="block text-[10px] line-through text-[#71717A]">
@@ -1430,7 +1430,7 @@ export const ScreenAdminConsole: React.FC = () => {
                           )}
                         </td>
                         <td className="py-3.5 px-4 text-center font-mono">
-                          <span className="font-bold text-[#0F0F10]">
+                          <span className="font-semibold text-[#0F0F10]">
                             {p.stockCount ?? (p.inStock ? 50 : 0)}
                           </span>
                         </td>
@@ -1438,7 +1438,7 @@ export const ScreenAdminConsole: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => handleToggleProductStock(p.id)}
-                            className={`px-3 py-1 rounded-full text-[10px] font-mono uppercase font-bold border transition cursor-pointer ${
+                            className={`px-3 py-1 rounded-full text-[10px] font-mono uppercase font-semibold border transition cursor-pointer ${
                               p.inStock
                                 ? 'bg-[#0F0F10] text-[#D4AF37] border-[#0F0F10]'
                                 : 'bg-white text-[#71717A] border-[#EAE8E3]'
@@ -1482,10 +1482,10 @@ export const ScreenAdminConsole: React.FC = () => {
             {/* Header & Sub-Navigation */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs">
               <div>
-                <span className="text-[10px] font-mono uppercase tracking-widest text-[#997A2E] font-bold">
+                <span className="text-[10px] font-mono uppercase tracking-widest text-[#997A2E] font-medium">
                   Storefront Content Management System
                 </span>
-                <h2 className="text-lg font-heading font-extrabold text-[#0F0F10]">
+                <h2 className="text-lg font-heading font-semibold text-[#0F0F10]">
                   Editorial &amp; Marketing Customizer
                 </h2>
                 <p className="text-xs text-[#71717A]">
@@ -1506,7 +1506,7 @@ export const ScreenAdminConsole: React.FC = () => {
                     onClick={() => setCmsSubTab(st.id as any)}
                     className={`px-3 py-1.5 rounded-full transition-all cursor-pointer ${
                       cmsSubTab === st.id
-                        ? 'bg-[#0F0F10] text-[#D4AF37] font-bold'
+                        ? 'bg-[#0F0F10] text-[#D4AF37] font-semibold'
                         : 'text-[#71717A] hover:text-[#0F0F10]'
                     }`}
                   >
@@ -1542,16 +1542,16 @@ export const ScreenAdminConsole: React.FC = () => {
                       </div>
 
                       <div className="space-y-2">
-                        <span className="text-[10px] font-mono uppercase bg-[#0F0F10] text-[#D4AF37] px-2 py-0.5 rounded-full font-bold">
+                        <span className="text-[10px] font-mono uppercase bg-[#0F0F10] text-[#D4AF37] px-2 py-0.5 rounded-full font-semibold">
                           Step {step.number} • {step.title}
                         </span>
-                        <h4 className="text-sm font-heading font-extrabold text-[#0F0F10]">
+                        <h4 className="text-sm font-heading font-semibold text-[#0F0F10]">
                           {step.productName}
                         </h4>
                         <p className="text-[11px] text-[#71717A]">
                           {step.description}
                         </p>
-                        <span className="block text-[10px] font-mono text-[#997A2E] font-bold">
+                        <span className="block text-[10px] font-mono text-[#997A2E] font-semibold">
                           {step.keyBenefit}
                         </span>
                       </div>
@@ -1561,7 +1561,7 @@ export const ScreenAdminConsole: React.FC = () => {
 
                 {/* Edit Step Form */}
                 <div className="p-6 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs space-y-4">
-                  <h3 className="text-base font-heading font-bold text-[#0F0F10]">
+                  <h3 className="text-base font-heading font-semibold text-[#0F0F10]">
                     Customize 3-Chapter Everyday Regimen Steps
                   </h3>
                   <p className="text-xs text-[#71717A]">
@@ -1572,7 +1572,7 @@ export const ScreenAdminConsole: React.FC = () => {
                     {routineSteps.map((step, idx) => (
                       <div key={step.id} className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
                         <div>
-                          <label className="block text-[10px] font-mono uppercase text-[#71717A] font-bold mb-1">
+                          <label className="block text-[10px] font-mono uppercase text-[#71717A] font-medium mb-1">
                             Chapter {step.number} Title &amp; Formulation
                           </label>
                           <input
@@ -1593,12 +1593,12 @@ export const ScreenAdminConsole: React.FC = () => {
                               updated[idx].productName = e.target.value;
                               updateRoutineSteps(updated);
                             }}
-                            className="w-full px-3 py-1.5 rounded-lg border border-[#EAE8E3] bg-white text-xs font-bold"
+                            className="w-full px-3 py-1.5 rounded-lg border border-[#EAE8E3] bg-white text-xs font-medium"
                           />
                         </div>
 
                         <div>
-                          <label className="block text-[10px] font-mono uppercase text-[#71717A] font-bold mb-1">
+                          <label className="block text-[10px] font-mono uppercase text-[#71717A] font-medium mb-1">
                             Chapter Description
                           </label>
                           <textarea
@@ -1614,7 +1614,7 @@ export const ScreenAdminConsole: React.FC = () => {
                         </div>
 
                         <div>
-                          <label className="block text-[10px] font-mono uppercase text-[#71717A] font-bold mb-1">
+                          <label className="block text-[10px] font-mono uppercase text-[#71717A] font-medium mb-1">
                             Natural Key Benefit &amp; Image
                           </label>
                           <input
@@ -1648,7 +1648,7 @@ export const ScreenAdminConsole: React.FC = () => {
             {/* Sub-Tab 3: Brand Story Narrative */}
             {cmsSubTab === 'story' && (
               <div className="p-6 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs space-y-4">
-                <h3 className="text-base font-heading font-bold text-[#0F0F10]">
+                <h3 className="text-base font-heading font-semibold text-[#0F0F10]">
                   Brand Story &amp; Heritage Narrative Configuration
                 </h3>
                 <p className="text-xs text-[#71717A]">
@@ -1657,7 +1657,7 @@ export const ScreenAdminConsole: React.FC = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                   <div>
-                    <label className="block font-mono text-[10px] uppercase text-[#71717A] mb-1 font-bold">
+                    <label className="block font-mono text-[10px] uppercase text-[#71717A] mb-1 font-medium">
                       Tagline / Eyebrow
                     </label>
                     <input
@@ -1669,19 +1669,19 @@ export const ScreenAdminConsole: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block font-mono text-[10px] uppercase text-[#71717A] mb-1 font-bold">
+                    <label className="block font-mono text-[10px] uppercase text-[#71717A] mb-1 font-medium">
                       Main Editorial Heading
                     </label>
                     <input
                       type="text"
                       value={brandStory.heading}
                       onChange={(e) => updateBrandStory({ ...brandStory, heading: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-xl border border-[#EAE8E3] bg-[#FAF9F6] outline-none font-bold"
+                      className="w-full px-4 py-2.5 rounded-xl border border-[#EAE8E3] bg-[#FAF9F6] outline-none font-semibold"
                     />
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="block font-mono text-[10px] uppercase text-[#71717A] mb-1 font-bold">
+                    <label className="block font-mono text-[10px] uppercase text-[#71717A] mb-1 font-medium">
                       Primary Scientific Narrative (Paragraph 1)
                     </label>
                     <textarea
@@ -1693,7 +1693,7 @@ export const ScreenAdminConsole: React.FC = () => {
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="block font-mono text-[10px] uppercase text-[#71717A] mb-1 font-bold">
+                    <label className="block font-mono text-[10px] uppercase text-[#71717A] mb-1 font-medium">
                       Sourcing &amp; Cold-Chain Narrative (Paragraph 2)
                     </label>
                     <textarea
@@ -1705,7 +1705,7 @@ export const ScreenAdminConsole: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block font-mono text-[10px] uppercase text-[#71717A] mb-1 font-bold">
+                    <label className="block font-mono text-[10px] uppercase text-[#71717A] mb-1 font-medium">
                       Badge 1 (e.g. NAFDAC Certified)
                     </label>
                     <input
@@ -1717,7 +1717,7 @@ export const ScreenAdminConsole: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block font-mono text-[10px] uppercase text-[#71717A] mb-1 font-bold">
+                    <label className="block font-mono text-[10px] uppercase text-[#71717A] mb-1 font-medium">
                       Badge 2 (e.g. African Botanicals)
                     </label>
                     <input
@@ -1735,7 +1735,7 @@ export const ScreenAdminConsole: React.FC = () => {
                       void publishStorefront().then(() => setActionNotice('Brand story published.')).catch(error => setActionNotice(error.message));
                       setTimeout(() => setActionNotice(null), 3000);
                     }}
-                    className="px-6 py-2.5 rounded-full bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/30 text-xs font-bold cursor-pointer hover:bg-[#27272A]"
+                    className="px-6 py-2.5 rounded-full bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/30 text-xs font-medium cursor-pointer hover:bg-[#27272A]"
                   >
                     Save &amp; Propagate Brand Narrative
                   </button>
@@ -1746,7 +1746,7 @@ export const ScreenAdminConsole: React.FC = () => {
             {/* Sub-Tab 4: Announcement Ticker */}
             {cmsSubTab === 'ticker' && (
               <div className="p-6 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs space-y-4">
-                <h3 className="text-base font-heading font-bold text-[#0F0F10]">
+                <h3 className="text-base font-heading font-semibold text-[#0F0F10]">
                   Global Storefront Announcement Ticker
                 </h3>
                 <p className="text-xs text-[#71717A]">
@@ -1755,7 +1755,7 @@ export const ScreenAdminConsole: React.FC = () => {
 
                 <div className="space-y-4 text-xs">
                   <div>
-                    <label className="block font-mono text-[10px] uppercase text-[#71717A] mb-1 font-bold">
+                    <label className="block font-mono text-[10px] uppercase text-[#71717A] mb-1 font-medium">
                       Announcement Message
                     </label>
                     <input
@@ -1768,7 +1768,7 @@ export const ScreenAdminConsole: React.FC = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block font-mono text-[10px] uppercase text-[#71717A] mb-1 font-bold">
+                      <label className="block font-mono text-[10px] uppercase text-[#71717A] mb-1 font-medium">
                         Link Button Text
                       </label>
                       <input
@@ -1780,7 +1780,7 @@ export const ScreenAdminConsole: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block font-mono text-[10px] uppercase text-[#71717A] mb-1 font-bold">
+                      <label className="block font-mono text-[10px] uppercase text-[#71717A] mb-1 font-medium">
                         Destination Screen / Route
                       </label>
                       <input
@@ -1800,7 +1800,7 @@ export const ScreenAdminConsole: React.FC = () => {
                       onChange={(e) => updateAnnouncementTicker({ ...announcementTicker, isActive: e.target.checked })}
                       className="w-4 h-4 accent-[#0F0F10] cursor-pointer"
                     />
-                    <label htmlFor="tickerActive" className="font-bold text-[#0F0F10] cursor-pointer">
+                    <label htmlFor="tickerActive" className="font-medium text-[#0F0F10] cursor-pointer">
                       Activate Announcement Ticker on Storefront
                     </label>
                   </div>
@@ -1822,7 +1822,7 @@ export const ScreenAdminConsole: React.FC = () => {
                   onClick={() => setOrdersViewMode('all')}
                   className={`px-4 py-1.5 rounded-full transition-all cursor-pointer ${
                     ordersViewMode === 'all'
-                      ? 'bg-[#0F0F10] text-[#D4AF37] font-bold'
+                      ? 'bg-[#0F0F10] text-[#D4AF37] font-semibold'
                       : 'text-[#71717A] hover:text-[#0F0F10]'
                   }`}
                 >
@@ -1832,7 +1832,7 @@ export const ScreenAdminConsole: React.FC = () => {
                   onClick={() => setOrdersViewMode('delivery_requests')}
                   className={`px-4 py-1.5 rounded-full transition-all cursor-pointer ${
                     ordersViewMode === 'delivery_requests'
-                      ? 'bg-[#0F0F10] text-[#D4AF37] font-bold'
+                      ? 'bg-[#0F0F10] text-[#D4AF37] font-semibold'
                       : 'text-[#71717A] hover:text-[#0F0F10]'
                   }`}
                 >
@@ -1844,7 +1844,7 @@ export const ScreenAdminConsole: React.FC = () => {
                 <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
-                  className="px-4 py-2 rounded-full border border-[#EAE8E3] bg-[#FAF9F6] text-xs font-mono font-bold outline-none cursor-pointer"
+                  className="px-4 py-2 rounded-full border border-[#EAE8E3] bg-[#FAF9F6] text-xs font-mono font-medium outline-none cursor-pointer"
                 >
                   <option value="ALL">All Statuses</option>
                   <option value="PENDING">Pending</option>
@@ -1873,12 +1873,12 @@ export const ScreenAdminConsole: React.FC = () => {
                   <tbody className="divide-y divide-[#EAE8E3]">
                     {displayedOrders.map((order) => (
                       <tr key={order.id} className="hover:bg-[#FAF9F6]/50 transition-colors">
-                        <td className="py-3.5 px-4 font-mono font-bold text-[#0F0F10]">
+                        <td className="py-3.5 px-4 font-mono font-semibold text-[#0F0F10]">
                           #{order.orderNumber}
                           <span className="block text-[10px] font-normal text-[#71717A]">{order.createdAt}</span>
                         </td>
                         <td className="py-3.5 px-4">
-                          <span className="font-bold text-[#0F0F10] block">{order.customerName}</span>
+                          <span className="font-semibold text-[#0F0F10] block">{order.customerName}</span>
                           <span className="text-[11px] text-[#71717A]">{order.customerEmail}</span>
                         </td>
                         <td className="py-3.5 px-4">
@@ -1887,16 +1887,16 @@ export const ScreenAdminConsole: React.FC = () => {
                             {order.fulfillmentType === 'local' ? 'Local Same-Day Rider' : 'Central Warehouse Dispatch'}
                           </span>
                         </td>
-                        <td className="py-3.5 px-4 text-right font-mono font-bold text-[#0F0F10]">
+                        <td className="py-3.5 px-4 text-right font-mono font-semibold text-[#0F0F10]">
                           ₦{(order.totalNgn || 0).toLocaleString()}
                         </td>
                         <td className="py-3.5 px-4 text-center font-mono">
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FAF9F6] border border-[#EAE8E3] text-[#0F0F10]">
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#FAF9F6] border border-[#EAE8E3] text-[#0F0F10]">
                             {order.paymentStatus}
                           </span>
                         </td>
                         <td className="py-3.5 px-4 text-center font-mono">
-                          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#0F0F10] text-[#D4AF37]">
+                          <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-[#0F0F10] text-[#D4AF37]">
                             {order.status}
                           </span>
                         </td>
@@ -1905,7 +1905,7 @@ export const ScreenAdminConsole: React.FC = () => {
                             disabled={orderUpdatingId === order.id || !can('orders:update:status')}
                             value={order.status}
                             onChange={(e) => handleStatusChange(order.id, e.target.value as any)}
-                            className="bg-[#FAF9F6] border border-[#EAE8E3] rounded-full px-3 py-1 text-xs font-mono font-bold text-[#0F0F10] outline-none cursor-pointer"
+                            className="bg-[#FAF9F6] border border-[#EAE8E3] rounded-full px-3 py-1 text-xs font-mono font-medium text-[#0F0F10] outline-none cursor-pointer"
                           >
                             <option value={order.status}>{order.status}</option>
                             {(({ PENDING: ['CANCELLED'], PAID: ['FULFILLING'], FULFILLING: ['READY_PICKUP', 'SHIPPED'], READY_PICKUP: ['DELIVERED'], SHIPPED: ['DELIVERED'] } as Record<string, string[]>)[order.status] || []).map(status => <option key={status} value={status}>{status}</option>)}
@@ -1933,7 +1933,7 @@ export const ScreenAdminConsole: React.FC = () => {
                   onClick={() => setCreatorSubTab('roster')}
                   className={`px-3.5 py-1.5 rounded-xl transition-all cursor-pointer ${
                     creatorSubTab === 'roster'
-                      ? 'bg-[#0F0F10] text-[#D4AF37] font-bold'
+                      ? 'bg-[#0F0F10] text-[#D4AF37] font-semibold'
                       : 'text-[#71717A] hover:text-[#0F0F10]'
                   }`}
                 >
@@ -1943,7 +1943,7 @@ export const ScreenAdminConsole: React.FC = () => {
                   onClick={() => setCreatorSubTab('applications')}
                   className={`px-3.5 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
                     creatorSubTab === 'applications'
-                      ? 'bg-[#0F0F10] text-[#D4AF37] font-bold'
+                      ? 'bg-[#0F0F10] text-[#D4AF37] font-semibold'
                       : 'text-[#71717A] hover:text-[#0F0F10]'
                   }`}
                 >
@@ -1953,7 +1953,7 @@ export const ScreenAdminConsole: React.FC = () => {
                   onClick={() => setCreatorSubTab('pr_boxes')}
                   className={`px-3.5 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
                     creatorSubTab === 'pr_boxes'
-                      ? 'bg-[#0F0F10] text-[#D4AF37] font-bold'
+                      ? 'bg-[#0F0F10] text-[#D4AF37] font-semibold'
                       : 'text-[#71717A] hover:text-[#0F0F10]'
                   }`}
                 >
@@ -1963,7 +1963,7 @@ export const ScreenAdminConsole: React.FC = () => {
                   onClick={() => setCreatorSubTab('campaigns')}
                   className={`px-3.5 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
                     creatorSubTab === 'campaigns'
-                      ? 'bg-[#0F0F10] text-[#D4AF37] font-bold'
+                      ? 'bg-[#0F0F10] text-[#D4AF37] font-semibold'
                       : 'text-[#71717A] hover:text-[#0F0F10]'
                   }`}
                 >
@@ -1973,7 +1973,7 @@ export const ScreenAdminConsole: React.FC = () => {
                   onClick={() => setCreatorSubTab('ugc')}
                   className={`px-3.5 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
                     creatorSubTab === 'ugc'
-                      ? 'bg-[#0F0F10] text-[#D4AF37] font-bold'
+                      ? 'bg-[#0F0F10] text-[#D4AF37] font-semibold'
                       : 'text-[#71717A] hover:text-[#0F0F10]'
                   }`}
                 >
@@ -1984,7 +1984,7 @@ export const ScreenAdminConsole: React.FC = () => {
               {creatorSubTab === 'pr_boxes' && (
                 <button
                   onClick={() => setIsAddPRBoxModalOpen(true)}
-                  className="px-4 py-2 rounded-full bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/30 text-xs font-bold hover:bg-[#27272A] cursor-pointer flex items-center gap-2 shrink-0"
+                  className="px-4 py-2 rounded-full bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/30 text-xs font-medium hover:bg-[#27272A] cursor-pointer flex items-center gap-2 shrink-0"
                 >
                   <Plus className="w-3.5 h-3.5" /> New PR Gift Box
                 </button>
@@ -1993,7 +1993,7 @@ export const ScreenAdminConsole: React.FC = () => {
               {creatorSubTab === 'campaigns' && (
                 <button
                   onClick={() => setIsAddCampaignModalOpen(true)}
-                  className="px-4 py-2 rounded-full bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/30 text-xs font-bold hover:bg-[#27272A] cursor-pointer flex items-center gap-2 shrink-0"
+                  className="px-4 py-2 rounded-full bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/30 text-xs font-medium hover:bg-[#27272A] cursor-pointer flex items-center gap-2 shrink-0"
                 >
                   <Plus className="w-3.5 h-3.5" /> Launch Campaign Brief
                 </button>
@@ -2006,23 +2006,23 @@ export const ScreenAdminConsole: React.FC = () => {
                 {/* Creator Performance KPI Strip */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="p-4 rounded-2xl bg-white border border-[#EAE8E3] lg:shadow-xs">
-                    <span className="text-xs lg:text-[10px] lg:font-mono lg:uppercase text-[#71717A] block lg:font-bold">Total Creator GMV</span>
-                    <strong className="text-lg font-mono font-semibold lg:font-black text-[#0F0F10] mt-1 block">{`₦${creatorsList.reduce((sum, creator) => sum + (creator.totalSalesNgn || 0), 0).toLocaleString()}`}</strong>
+                    <span className="text-xs lg:text-[10px] lg:font-mono lg:uppercase text-[#71717A] block lg:font-medium">Total Creator GMV</span>
+                    <strong className="text-lg font-mono font-semibold text-[#0F0F10] mt-1 block">{`₦${creatorsList.reduce((sum, creator) => sum + (creator.totalSalesNgn || 0), 0).toLocaleString()}`}</strong>
                     <span className="text-xs lg:text-[10px] text-[#6B7280] lg:text-[#997A2E] lg:font-medium">Recorded attributed orders</span>
                   </div>
                   <div className="p-4 rounded-2xl bg-white border border-[#EAE8E3] lg:shadow-xs">
-                    <span className="text-xs lg:text-[10px] lg:font-mono lg:uppercase text-[#71717A] block lg:font-bold">Commissions Settled</span>
-                    <strong className="text-lg font-mono font-semibold lg:font-black text-[#0F0F10] mt-1 block">Ledger only</strong>
+                    <span className="text-xs lg:text-[10px] lg:font-mono lg:uppercase text-[#71717A] block lg:font-medium">Commissions Settled</span>
+                    <strong className="text-lg font-mono font-semibold text-[#0F0F10] mt-1 block">Ledger only</strong>
                     <span className="text-xs lg:text-[10px] text-[#71717A]">No automated payout claimed</span>
                   </div>
                   <div className="p-4 rounded-2xl bg-white border border-[#EAE8E3] lg:shadow-xs">
-                    <span className="text-xs lg:text-[10px] lg:font-mono lg:uppercase text-[#71717A] block lg:font-bold">Outstanding Balances</span>
-                    <strong className="text-lg font-mono font-semibold lg:font-black text-[#0F0F10] lg:text-[#997A2E] mt-1 block">Ledger only</strong>
+                    <span className="text-xs lg:text-[10px] lg:font-mono lg:uppercase text-[#71717A] block lg:font-medium">Outstanding Balances</span>
+                    <strong className="text-lg font-mono font-semibold text-[#0F0F10] lg:text-[#997A2E] mt-1 block">Ledger only</strong>
                     <span className="text-xs lg:text-[10px] text-[#71717A]">Pending withdrawal</span>
                   </div>
                   <div className="p-4 rounded-2xl bg-white border border-[#EAE8E3] lg:shadow-xs">
-                    <span className="text-xs lg:text-[10px] lg:font-mono lg:uppercase text-[#71717A] block lg:font-bold">Active Roster Size</span>
-                    <strong className="text-lg font-mono font-semibold lg:font-black text-[#0F0F10] mt-1 block">{creatorsList.length} Partners</strong>
+                    <span className="text-xs lg:text-[10px] lg:font-mono lg:uppercase text-[#71717A] block lg:font-medium">Active Roster Size</span>
+                    <strong className="text-lg font-mono font-semibold text-[#0F0F10] mt-1 block">{creatorsList.length} Partners</strong>
                     <span className="text-xs lg:text-[10px] text-[#71717A]">Approved partner roster</span>
                   </div>
                 </div>
@@ -2031,7 +2031,7 @@ export const ScreenAdminConsole: React.FC = () => {
                 <div className="rounded-3xl bg-white border border-[#EAE8E3] shadow-xs overflow-hidden">
                   <div className="p-5 border-b border-[#EAE8E3] flex items-center justify-between">
                     <div>
-                      <h3 className="text-base font-heading font-bold text-[#0F0F10]">
+                      <h3 className="text-base font-heading font-semibold text-[#0F0F10]">
                         Active Affiliate Roster &amp; Commission Ledger
                       </h3>
                       <p className="text-xs text-[#71717A]">
@@ -2055,26 +2055,26 @@ export const ScreenAdminConsole: React.FC = () => {
                         {creatorsList.map((c) => (
                           <tr key={c.id} className="hover:bg-[#FAF9F6]/50 transition-colors">
                             <td className="py-3.5 px-4">
-                              <strong className="text-xs font-bold text-[#0F0F10] block">{c.name}</strong>
+                              <strong className="text-xs font-medium text-[#0F0F10] block">{c.name}</strong>
                               <span className="text-[10px] text-[#71717A] font-mono">{c.handle}</span>
                             </td>
-                            <td className="py-3.5 px-4 font-mono font-bold text-[#0F0F10]">
+                            <td className="py-3.5 px-4 font-mono font-semibold text-[#0F0F10]">
                               {c.promoCode}
                             </td>
-                            <td className="py-3.5 px-4 text-center font-mono font-bold text-[#997A2E]">
+                            <td className="py-3.5 px-4 text-center font-mono font-semibold text-[#997A2E]">
                               {c.commissionRate}%
                             </td>
-                            <td className="py-3.5 px-4 text-right font-mono font-bold text-[#0F0F10]">
+                            <td className="py-3.5 px-4 text-right font-mono font-semibold text-[#0F0F10]">
                               ₦{(c.totalSalesNgn ?? (c as any).totalSales ?? 0).toLocaleString()}
                             </td>
-                            <td className="py-3.5 px-4 text-right font-mono font-bold text-[#0F0F10]">
+                            <td className="py-3.5 px-4 text-right font-mono font-semibold text-[#0F0F10]">
                               ₦{(c.commissionEarnedNgn ?? (c as any).earnings ?? 0).toLocaleString()}
                             </td>
                             <td className="py-3.5 px-4 text-right">
                               <button
                                 disabled={payingCreatorId === c.id || ((c.commissionEarnedNgn ?? (c as any).earnings ?? 0) === 0)}
                                 onClick={() => handlePayCreator(c.id)}
-                                className="px-3.5 py-1.5 rounded-full bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/30 text-xs font-mono font-bold hover:bg-[#27272A] cursor-pointer disabled:opacity-40"
+                                className="px-3.5 py-1.5 rounded-full bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/30 text-xs font-mono font-medium hover:bg-[#27272A] cursor-pointer disabled:opacity-40"
                               >
                                 {payingCreatorId === c.id ? 'Processing…' : ((c.commissionEarnedNgn ?? (c as any).earnings ?? 0) === 0) ? 'Settled ✓' : 'Settle Payout'}
                               </button>
@@ -2093,14 +2093,14 @@ export const ScreenAdminConsole: React.FC = () => {
               <div className="p-6 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-base font-heading font-bold text-[#0F0F10]">
+                    <h3 className="text-base font-heading font-semibold text-[#0F0F10]">
                       Creator Press Applications &amp; Credentials
                     </h3>
                     <p className="text-xs text-[#71717A]">
                       Review incoming influencer applications, verify social demographics, and approve with auto-generated promo code.
                     </p>
                   </div>
-                  <span className="px-3 py-1 rounded-full bg-[#0F0F10] text-[#D4AF37] text-xs font-mono font-bold">
+                  <span className="px-3 py-1 rounded-full bg-[#0F0F10] text-[#D4AF37] text-xs font-mono font-medium">
                     {pendingCreatorAppsCount} Pending Review
                   </span>
                 </div>
@@ -2110,7 +2110,7 @@ export const ScreenAdminConsole: React.FC = () => {
                     <div key={app.id} className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] space-y-3">
                       <div className="flex items-start justify-between">
                         <div>
-                          <strong className="text-xs font-bold text-[#0F0F10] block">{app.name}</strong>
+                          <strong className="text-xs font-medium text-[#0F0F10] block">{app.name}</strong>
                           <span className="text-[11px] font-mono text-[#71717A]">{app.handle} • {app.platform} ({app.followers})</span>
                         </div>
                         <span className="text-[10px] font-mono text-[#71717A]">{app.appliedAt}</span>
@@ -2124,19 +2124,19 @@ export const ScreenAdminConsole: React.FC = () => {
                         <div className="grid grid-cols-2 gap-2 pt-1">
                           <button
                             onClick={() => handleReviewCreatorApp(app.id, true)}
-                            className="py-1.5 px-3 rounded-full bg-[#0F0F10] text-[#D4AF37] text-xs font-bold border border-[#D4AF37]/30 hover:bg-[#27272A] cursor-pointer"
+                            className="py-1.5 px-3 rounded-full bg-[#0F0F10] text-[#D4AF37] text-xs font-medium border border-[#D4AF37]/30 hover:bg-[#27272A] cursor-pointer"
                           >
                             Approve application
                           </button>
                           <button
                             onClick={() => handleReviewCreatorApp(app.id, false)}
-                            className="py-1.5 px-3 rounded-full bg-white border border-[#EAE8E3] text-[#71717A] text-xs font-bold hover:bg-[#FAF9F6] cursor-pointer"
+                            className="py-1.5 px-3 rounded-full bg-white border border-[#EAE8E3] text-[#71717A] text-xs font-medium hover:bg-[#FAF9F6] cursor-pointer"
                           >
                             Decline
                           </button>
                         </div>
                       ) : (
-                        <span className="text-[10px] font-mono uppercase font-bold text-[#0F0F10]">
+                        <span className="text-[10px] font-mono uppercase font-semibold text-[#0F0F10]">
                           Status: {app.status}
                         </span>
                       )}
@@ -2153,7 +2153,7 @@ export const ScreenAdminConsole: React.FC = () => {
                 {/* 3A: PR Box Requests Queue */}
                 <div className="p-6 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs space-y-4">
                   <div>
-                    <h3 className="text-base font-heading font-bold text-[#0F0F10]">
+                    <h3 className="text-base font-heading font-semibold text-[#0F0F10]">
                       Partner PR Package Dispatch Queue ({prRequests.length})
                     </h3>
                     <p className="text-xs text-[#71717A]">
@@ -2166,11 +2166,11 @@ export const ScreenAdminConsole: React.FC = () => {
                       <div key={req.id} className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] space-y-3 text-xs">
                         <div className="flex items-start justify-between">
                           <div>
-                            <strong className="text-xs font-bold text-[#0F0F10] block">{req.creatorName}</strong>
+                            <strong className="text-xs font-medium text-[#0F0F10] block">{req.creatorName}</strong>
                             <span className="text-[11px] font-mono text-[#71717A]">{req.creatorHandle} • {req.creatorTier} Tier</span>
                           </div>
                           <span
-                            className={`text-[9.5px] font-mono uppercase font-bold px-2 py-0.5 rounded-full ${
+                            className={`text-[9.5px] font-mono uppercase font-semibold px-2 py-0.5 rounded-full ${
                               req.status === 'DISPATCHED'
                                 ? 'bg-[#0F0F10] text-[#D4AF37]'
                                 : 'bg-white border border-[#EAE8E3] text-[#0F0F10]'
@@ -2181,7 +2181,7 @@ export const ScreenAdminConsole: React.FC = () => {
                         </div>
 
                         <div className="p-2.5 rounded-xl bg-white border border-[#EAE8E3] space-y-1">
-                          <span className="text-[10px] font-mono uppercase text-[#997A2E] font-bold block">
+                          <span className="text-[10px] font-mono uppercase text-[#997A2E] font-semibold block">
                             Requested Box
                           </span>
                           <strong className="text-[#0F0F10] block">{req.boxTitle}</strong>
@@ -2200,7 +2200,7 @@ export const ScreenAdminConsole: React.FC = () => {
                             />
                             <button
                               onClick={() => handleDispatchPRRequest(req.id)}
-                              className="px-4 py-1.5 rounded-full bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/30 text-xs font-bold hover:bg-[#27272A] cursor-pointer shrink-0"
+                              className="px-4 py-1.5 rounded-full bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/30 text-xs font-medium hover:bg-[#27272A] cursor-pointer shrink-0"
                             >
                               Dispatch Box
                             </button>
@@ -2208,7 +2208,7 @@ export const ScreenAdminConsole: React.FC = () => {
                         ) : (
                           <div className="pt-2 border-t border-[#EAE8E3] flex items-center justify-between text-[11px] font-mono text-[#71717A]">
                             <span>Courier: {req.courier}</span>
-                            <span className="font-bold text-[#0F0F10]">{req.trackingNumber}</span>
+                            <span className="font-semibold text-[#0F0F10]">{req.trackingNumber}</span>
                           </div>
                         )}
                       </div>
@@ -2219,7 +2219,7 @@ export const ScreenAdminConsole: React.FC = () => {
                 {/* 3B: Active PR Box Offerings Catalog */}
                 <div className="p-6 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs space-y-4">
                   <div>
-                    <h3 className="text-base font-heading font-bold text-[#0F0F10]">
+                    <h3 className="text-base font-heading font-semibold text-[#0F0F10]">
                       Active PR Gifting Offerings ({prBoxes.length})
                     </h3>
                     <p className="text-xs text-[#71717A]">
@@ -2237,14 +2237,14 @@ export const ScreenAdminConsole: React.FC = () => {
                             className="w-full h-32 object-cover rounded-xl border border-[#EAE8E3]"
                           />
                           <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-mono uppercase text-[#997A2E] font-bold">
+                            <span className="text-[10px] font-mono uppercase text-[#997A2E] font-semibold">
                               {box.category}
                             </span>
-                            <span className="text-[10px] font-mono font-bold text-[#0F0F10]">
+                            <span className="text-[10px] font-mono font-semibold text-[#0F0F10]">
                               {box.retailValue}
                             </span>
                           </div>
-                          <h4 className="text-xs font-bold text-[#0F0F10]">{box.title}</h4>
+                          <h4 className="text-xs font-medium text-[#0F0F10]">{box.title}</h4>
                           <p className="text-[11px] text-[#71717A] line-clamp-2">{box.description}</p>
                           <div className="pt-2 border-t border-[#EAE8E3] text-[10px] font-mono text-[#71717A]">
                             Included: {box.includedProducts.join(', ')}
@@ -2252,8 +2252,8 @@ export const ScreenAdminConsole: React.FC = () => {
                         </div>
 
                         <div className="pt-2 flex items-center justify-between text-xs font-mono">
-                          <span className="text-[#0F0F10] font-bold">{box.spotsLeft} Spots Left</span>
-                          <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-white border border-[#EAE8E3] text-[#71717A]">
+                          <span className="text-[#0F0F10] font-semibold">{box.spotsLeft} Spots Left</span>
+                          <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-white border border-[#EAE8E3] text-[#71717A]">
                             {box.eligibleTiers.join(' • ')}
                           </span>
                         </div>
@@ -2268,7 +2268,7 @@ export const ScreenAdminConsole: React.FC = () => {
             {creatorSubTab === 'campaigns' && (
               <div className="p-6 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs space-y-4">
                 <div>
-                  <h3 className="text-base font-heading font-bold text-[#0F0F10]">
+                  <h3 className="text-base font-heading font-semibold text-[#0F0F10]">
                     Brand Campaign Briefs &amp; Collabs ({creatorCampaigns.length})
                   </h3>
                   <p className="text-xs text-[#71717A]">
@@ -2286,14 +2286,14 @@ export const ScreenAdminConsole: React.FC = () => {
                           className="w-full h-36 object-cover rounded-xl border border-[#EAE8E3]"
                         />
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-mono uppercase text-[#997A2E] font-bold">
+                          <span className="text-[10px] font-mono uppercase text-[#997A2E] font-semibold">
                             {camp.category}
                           </span>
-                          <span className="text-[10px] font-mono uppercase font-bold px-2 py-0.5 rounded-full bg-[#0F0F10] text-[#D4AF37]">
+                          <span className="text-[10px] font-mono uppercase font-semibold px-2 py-0.5 rounded-full bg-[#0F0F10] text-[#D4AF37]">
                             {camp.status}
                           </span>
                         </div>
-                        <h4 className="text-sm font-bold text-[#0F0F10]">{camp.title}</h4>
+                        <h4 className="text-sm font-semibold text-[#0F0F10]">{camp.title}</h4>
                         <p className="text-xs text-[#71717A]">{camp.description}</p>
 
                         <div className="grid grid-cols-3 gap-2 p-2.5 rounded-xl bg-white border border-[#EAE8E3] font-mono text-[11px] text-center">
@@ -2312,7 +2312,7 @@ export const ScreenAdminConsole: React.FC = () => {
                         </div>
 
                         <div className="pt-2 text-xs">
-                          <span className="text-[10px] font-mono uppercase text-[#71717A] font-bold block mb-1">
+                          <span className="text-[10px] font-mono uppercase text-[#71717A] font-semibold block mb-1">
                             Required Deliverables:
                           </span>
                           <div className="flex flex-wrap gap-1.5">
@@ -2327,7 +2327,7 @@ export const ScreenAdminConsole: React.FC = () => {
 
                       <div className="pt-2 border-t border-[#EAE8E3] flex items-center justify-between text-xs font-mono text-[#71717A]">
                         <span>Deadline: {camp.deadline}</span>
-                        <span className="text-[#0F0F10] font-bold">Active Campaign</span>
+                        <span className="text-[#0F0F10] font-semibold">Active Campaign</span>
                       </div>
                     </div>
                   ))}
@@ -2339,7 +2339,7 @@ export const ScreenAdminConsole: React.FC = () => {
             {creatorSubTab === 'ugc' && (
               <div className="p-6 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs space-y-4">
                 <div>
-                  <h3 className="text-base font-heading font-bold text-[#0F0F10]">
+                  <h3 className="text-base font-heading font-semibold text-[#0F0F10]">
                     Creator UGC &amp; Regimen Moderation Desk ({ugcSubmissions.length})
                   </h3>
                   <p className="text-xs text-[#71717A]">
@@ -2353,15 +2353,15 @@ export const ScreenAdminConsole: React.FC = () => {
                       <div className="flex items-start gap-3">
                         <div className="relative w-28 h-28 shrink-0 rounded-xl overflow-hidden border border-[#EAE8E3]">
                           <img src={ugc.thumbnail} alt={ugc.title} className="w-full h-full object-cover" />
-                          <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/70 text-white text-[9px] font-mono font-bold">
+                          <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/70 text-white text-[9px] font-mono font-semibold">
                             {ugc.duration}
                           </span>
                         </div>
                         <div className="space-y-1 flex-1">
-                          <span className="text-[10px] font-mono uppercase text-[#997A2E] font-bold block">
+                          <span className="text-[10px] font-mono uppercase text-[#997A2E] font-semibold block">
                             {ugc.category}
                           </span>
-                          <h4 className="text-xs font-bold text-[#0F0F10]">{ugc.title}</h4>
+                          <h4 className="text-xs font-medium text-[#0F0F10]">{ugc.title}</h4>
                           <span className="text-[11px] font-mono text-[#71717A] block">
                             By {ugc.creatorName} ({ugc.creatorHandle})
                           </span>
@@ -2370,7 +2370,7 @@ export const ScreenAdminConsole: React.FC = () => {
                       </div>
 
                       <div className="p-2 rounded-xl bg-white border border-[#EAE8E3] text-xs">
-                        <span className="text-[10px] font-mono uppercase text-[#71717A] font-bold block mb-1">
+                        <span className="text-[10px] font-mono uppercase text-[#71717A] font-semibold block mb-1">
                           Tagged Products:
                         </span>
                         <div className="flex flex-wrap gap-1">
@@ -2384,7 +2384,7 @@ export const ScreenAdminConsole: React.FC = () => {
 
                       <div className="flex items-center justify-between pt-1">
                         <span
-                          className={`text-[10px] font-mono uppercase font-bold px-2 py-0.5 rounded-full ${
+                          className={`text-[10px] font-mono uppercase font-semibold px-2 py-0.5 rounded-full ${
                             ugc.featuredOnPDP
                               ? 'bg-[#0F0F10] text-[#D4AF37]'
                               : 'bg-white border border-[#EAE8E3] text-[#71717A]'
@@ -2396,7 +2396,7 @@ export const ScreenAdminConsole: React.FC = () => {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => handleModerateUGC(ugc.id, ugc.featuredOnPDP ? 'flag' : 'approve')}
-                            className="px-3.5 py-1.5 rounded-full bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/30 text-xs font-mono font-bold hover:bg-[#27272A] cursor-pointer"
+                            className="px-3.5 py-1.5 rounded-full bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/30 text-xs font-mono font-medium hover:bg-[#27272A] cursor-pointer"
                           >
                             {ugc.featuredOnPDP ? 'Remove from PDP' : 'Feature on PDP'}
                           </button>
@@ -2419,7 +2419,7 @@ export const ScreenAdminConsole: React.FC = () => {
             {/* Customer Directory */}
             <div className="rounded-3xl bg-white border border-[#EAE8E3] shadow-xs overflow-hidden">
               <div className="p-5 border-b border-[#EAE8E3]">
-                <h3 className="text-base font-heading font-bold text-[#0F0F10]">
+                <h3 className="text-base font-heading font-semibold text-[#0F0F10]">
                   Clientele Profiles &amp; Loyalty Ledger
                 </h3>
               </div>
@@ -2438,7 +2438,7 @@ export const ScreenAdminConsole: React.FC = () => {
                     {customersList.map((cust) => (
                       <tr key={cust.id} className="hover:bg-[#FAF9F6]/50 transition-colors">
                         <td className="py-3.5 px-4">
-                          <strong className="text-xs font-bold text-[#0F0F10] block">{cust.name}</strong>
+                          <strong className="text-xs font-medium text-[#0F0F10] block">{cust.name}</strong>
                           <span className="text-[10px] text-[#71717A]">{cust.city}</span>
                         </td>
                         <td className="py-3.5 px-4 font-mono text-[11px]">
@@ -2446,14 +2446,14 @@ export const ScreenAdminConsole: React.FC = () => {
                           <span className="text-[#71717A]">{cust.phone}</span>
                         </td>
                         <td className="py-3.5 px-4">
-                          <span className="font-bold text-[#0F0F10] block">{cust.skinType}</span>
+                          <span className="font-semibold text-[#0F0F10] block">{cust.skinType}</span>
                           <span className="text-[10px] text-[#71717A]">{cust.concerns.join(', ')}</span>
                         </td>
-                        <td className="py-3.5 px-4 text-right font-mono font-bold text-[#0F0F10]">
+                        <td className="py-3.5 px-4 text-right font-mono font-semibold text-[#0F0F10]">
                           ₦{cust.totalSpentNgn.toLocaleString()}
                         </td>
                         <td className="py-3.5 px-4 text-center font-mono">
-                          <span className="px-2.5 py-0.5 rounded-full bg-[#0F0F10] text-[#D4AF37] text-[10px] font-bold">
+                          <span className="px-2.5 py-0.5 rounded-full bg-[#0F0F10] text-[#D4AF37] text-[10px] font-semibold">
                             {cust.tier}
                           </span>
                         </td>
@@ -2466,7 +2466,7 @@ export const ScreenAdminConsole: React.FC = () => {
 
             {/* AI Skin Scan Diagnostic Telemetry */}
             <div className="p-6 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs space-y-4">
-              <h3 className="text-base font-heading font-bold text-[#0F0F10]">
+              <h3 className="text-base font-heading font-semibold text-[#0F0F10]">
                 AI Optical Skin Scan Telemetry (Fitzpatrick IV–VI)
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2474,7 +2474,7 @@ export const ScreenAdminConsole: React.FC = () => {
                   <div key={scan.id} className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] space-y-3">
                     <div className="flex items-start justify-between">
                       <div>
-                        <strong className="text-xs font-bold text-[#0F0F10] block">{scan.customerName}</strong>
+                        <strong className="text-xs font-medium text-[#0F0F10] block">{scan.customerName}</strong>
                         <span className="text-[11px] font-mono text-[#71717A]">{scan.email} • {scan.fitzpatrick}</span>
                       </div>
                       <span className="text-[10px] font-mono text-[#71717A]">{scan.timestamp}</span>
@@ -2483,19 +2483,19 @@ export const ScreenAdminConsole: React.FC = () => {
                     <div className="grid grid-cols-2 gap-2 text-xs font-mono">
                       <div className="p-2.5 rounded-xl bg-white border border-[#EAE8E3]">
                         <span className="text-[10px] text-[#71717A] block">Hydration</span>
-                        <strong className="text-[#0F0F10] text-sm font-bold">{scan.hydrationPercent}%</strong>
+                        <strong className="text-[#0F0F10] text-sm font-semibold">{scan.hydrationPercent}%</strong>
                       </div>
                       <div className="p-2.5 rounded-xl bg-white border border-[#EAE8E3]">
                         <span className="text-[10px] text-[#71717A] block">Barrier Health</span>
-                        <strong className="text-[#0F0F10] text-sm font-bold">{scan.barrierHealthScore} / 100</strong>
+                        <strong className="text-[#0F0F10] text-sm font-semibold">{scan.barrierHealthScore} / 100</strong>
                       </div>
                     </div>
 
                     <div className="p-2.5 rounded-xl bg-white border border-[#EAE8E3] text-xs">
-                      <span className="text-[10px] font-mono uppercase text-[#997A2E] font-bold block">
+                      <span className="text-[10px] font-mono uppercase text-[#997A2E] font-semibold block">
                         Prescribed Regimen
                       </span>
-                      <p className="text-[11px] font-bold text-[#0F0F10] mt-0.5">
+                      <p className="text-[11px] font-semibold text-[#0F0F10] mt-0.5">
                         {scan.recommendedRoutine}
                       </p>
                     </div>
@@ -2506,7 +2506,7 @@ export const ScreenAdminConsole: React.FC = () => {
 
             {/* Reviews Moderation */}
             <div className="p-6 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs space-y-4">
-              <h3 className="text-base font-heading font-bold text-[#0F0F10]">
+              <h3 className="text-base font-heading font-semibold text-[#0F0F10]">
                 Customer Reviews Moderation Queue
               </h3>
               <div className="space-y-3">
@@ -2514,7 +2514,7 @@ export const ScreenAdminConsole: React.FC = () => {
                   <div key={rev.id} className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="space-y-1 flex-1">
                       <div className="flex items-center gap-2">
-                        <strong className="text-xs font-bold text-[#0F0F10]">{rev.authorName}</strong>
+                        <strong className="text-xs font-medium text-[#0F0F10]">{rev.authorName}</strong>
                         <span className="text-[10px] font-mono text-[#71717A]">({rev.city})</span>
                         <div className="flex items-center text-[#D4AF37]">
                           {[...Array(rev.rating)].map((_, i) => (
@@ -2529,13 +2529,13 @@ export const ScreenAdminConsole: React.FC = () => {
                     <div className="flex items-center gap-2 shrink-0">
                       <button
                         onClick={() => handleModerateReview(rev.id, true)}
-                        className="px-4 py-1.5 rounded-full bg-[#0F0F10] text-[#D4AF37] text-xs font-bold border border-[#D4AF37]/30 hover:bg-[#27272A] cursor-pointer"
+                        className="px-4 py-1.5 rounded-full bg-[#0F0F10] text-[#D4AF37] text-xs font-medium border border-[#D4AF37]/30 hover:bg-[#27272A] cursor-pointer"
                       >
                         Feature on PDP
                       </button>
                       <button
                         onClick={() => handleModerateReview(rev.id, false)}
-                        className="px-4 py-1.5 rounded-full bg-white border border-[#EAE8E3] text-[#71717A] text-xs font-bold hover:bg-[#FAF9F6] cursor-pointer"
+                        className="px-4 py-1.5 rounded-full bg-white border border-[#EAE8E3] text-[#71717A] text-xs font-medium hover:bg-[#FAF9F6] cursor-pointer"
                       >
                         Flag
                       </button>
@@ -2559,14 +2559,14 @@ export const ScreenAdminConsole: React.FC = () => {
           <div className="p-6 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs space-y-4 animate-in fade-in duration-200">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-base font-heading font-bold text-[#0F0F10]">
+                <h3 className="text-base font-heading font-semibold text-[#0F0F10]">
                   NIP Bank Transfer Claims Settlement
                 </h3>
                 <p className="text-xs text-[#71717A]">
                   Reconcile manual bank payments against core bank statements.
                 </p>
               </div>
-              <span className="px-3 py-1 rounded-full bg-[#0F0F10] text-[#D4AF37] text-xs font-mono font-bold">
+              <span className="px-3 py-1 rounded-full bg-[#0F0F10] text-[#D4AF37] text-xs font-mono font-medium">
                 {pendingClaimsCount} Pending
               </span>
             </div>
@@ -2578,8 +2578,8 @@ export const ScreenAdminConsole: React.FC = () => {
                   className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] space-y-3"
                 >
                   <div className="flex items-center justify-between text-xs font-mono">
-                    <span className="font-bold text-[#0F0F10]">#{claim.orderNumber}</span>
-                    <span className="font-bold text-[#0F0F10] text-sm">
+                    <span className="font-semibold text-[#0F0F10]">#{claim.orderNumber}</span>
+                    <span className="font-semibold text-[#0F0F10] text-sm">
                       ₦{claim.amountNgn.toLocaleString()}
                     </span>
                   </div>
@@ -2595,21 +2595,21 @@ export const ScreenAdminConsole: React.FC = () => {
                       <button
                         disabled={claimProcessingId === claim.id}
                         onClick={() => handleReviewClaim(claim.id, true)}
-                        className="py-1.5 px-3 rounded-full bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/30 text-xs font-bold hover:bg-[#27272A] cursor-pointer"
+                        className="py-1.5 px-3 rounded-full bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/30 text-xs font-medium hover:bg-[#27272A] cursor-pointer"
                       >
                         Approve
                       </button>
                       <button
                         disabled={claimProcessingId === claim.id}
                         onClick={() => handleReviewClaim(claim.id, false)}
-                        className="py-1.5 px-3 rounded-full bg-white border border-[#EAE8E3] text-[#71717A] text-xs font-bold hover:bg-[#FAF9F6] cursor-pointer"
+                        className="py-1.5 px-3 rounded-full bg-white border border-[#EAE8E3] text-[#71717A] text-xs font-medium hover:bg-[#FAF9F6] cursor-pointer"
                       >
                         Reject
                       </button>
                     </div>
                   ) : (
                     <div className="pt-2 border-t border-[#EAE8E3] flex items-center justify-between text-[11px] font-mono">
-                      <span className="font-bold text-[#0F0F10]">{claim.status}</span>
+                      <span className="font-semibold text-[#0F0F10]">{claim.status}</span>
                       <span className="text-[#71717A]">By {claim.reviewedBy || 'Admin'}</span>
                     </div>
                   )}
@@ -2629,10 +2629,10 @@ export const ScreenAdminConsole: React.FC = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#EAE8E3]">
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-base font-heading font-bold text-[#0F0F10]">
+                  <h3 className="text-base font-heading font-semibold text-[#0F0F10]">
                     Cryptocurrency Escrow &amp; On-Chain Ledger
                   </h3>
-                  <span className="px-2.5 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#997A2E] text-[11px] font-mono font-bold">
+                  <span className="px-2.5 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#997A2E] text-[11px] font-mono font-semibold">
                     Web3 Settlement
                   </span>
                 </div>
@@ -2662,25 +2662,25 @@ export const ScreenAdminConsole: React.FC = () => {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3]">
                 <span className="text-xs lg:text-[11px] font-medium lg:font-semibold text-[#71717A] block">Total Transactions</span>
-                <span className="text-lg font-semibold lg:font-bold font-price text-[#0F0F10] mt-1 block">
+                <span className="text-lg font-semibold font-price text-[#0F0F10] mt-1 block">
                   {cryptoTransactions.length}
                 </span>
               </div>
               <div className="p-4 rounded-2xl bg-[#FAF9F6] lg:bg-amber-50/60 border border-[#EAE8E3] lg:border-amber-200/60">
                 <span className="text-xs lg:text-[11px] font-medium lg:font-semibold text-[#71717A] lg:text-amber-800 block">Pending Escrow</span>
-                <span className="text-lg font-semibold lg:font-bold font-price text-[#0F0F10] lg:text-amber-900 mt-1 block">
+                <span className="text-lg font-semibold font-price text-[#0F0F10] lg:text-amber-900 mt-1 block">
                   {cryptoTransactions.filter(t => t.status === 'PENDING').length}
                 </span>
               </div>
               <div className="p-4 rounded-2xl bg-[#FAF9F6] lg:bg-emerald-50/60 border border-[#EAE8E3] lg:border-emerald-200/60">
                 <span className="text-xs lg:text-[11px] font-medium lg:font-semibold text-[#71717A] lg:text-emerald-800 block">Settled On-Chain</span>
-                <span className="text-lg font-semibold lg:font-bold font-price text-[#0F0F10] lg:text-emerald-900 mt-1 block">
+                <span className="text-lg font-semibold font-price text-[#0F0F10] lg:text-emerald-900 mt-1 block">
                   {cryptoTransactions.filter(t => t.status === 'COMPLETED').length}
                 </span>
               </div>
               <div className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3]">
                 <span className="text-xs lg:text-[11px] font-medium lg:font-semibold text-[#71717A] block">Total Volume (NGN)</span>
-                <span className="text-lg font-semibold lg:font-bold font-price text-[#0F0F10] mt-1 block">
+                <span className="text-lg font-semibold font-price text-[#0F0F10] mt-1 block">
                   ₦{cryptoTransactions.reduce((acc, t) => acc + (Number(t.amountNgn) || 0), 0).toLocaleString()}
                 </span>
               </div>
@@ -2756,7 +2756,7 @@ export const ScreenAdminConsole: React.FC = () => {
                     filteredCryptoTransactions.map((tx) => (
                       <tr key={tx.id} className="hover:bg-[#FAF9F6]/60 transition-colors">
                         <td className="py-3 px-4 font-mono">
-                          <span className="font-bold text-[#0F0F10] block">
+                          <span className="font-semibold text-[#0F0F10] block">
                             #{tx.orderNumber || tx.orderId?.slice(0, 8)}
                           </span>
                           <span className="text-[10px] text-[#71717A]">
@@ -2769,7 +2769,7 @@ export const ScreenAdminConsole: React.FC = () => {
                           </span>
                         </td>
                         <td className="py-3 px-4">
-                          <span className={`inline-flex items-center px-2.5 lg:px-2 py-0.5 rounded-md lg:rounded-full bg-[#FAF9F6] border border-[#EAE8E3] lg:border-transparent text-[#0F0F10] text-xs lg:text-[10px] font-mono font-medium lg:font-bold ${
+                          <span className={`inline-flex items-center px-2.5 lg:px-2 py-0.5 rounded-md lg:rounded-full bg-[#FAF9F6] border border-[#EAE8E3] lg:border-transparent text-[#0F0F10] text-xs lg:text-[10px] font-mono font-medium ${
                             tx.asset === 'USDT' ? 'lg:bg-emerald-100 lg:text-emerald-800' :
                             tx.asset === 'BTC' ? 'lg:bg-amber-100 lg:text-amber-800' :
                             tx.asset === 'ETH' ? 'lg:bg-indigo-100 lg:text-indigo-800' :
@@ -2778,7 +2778,7 @@ export const ScreenAdminConsole: React.FC = () => {
                             {tx.asset} / {tx.network}
                           </span>
                         </td>
-                        <td className="py-3 px-4 font-mono font-medium lg:font-bold text-[#0F0F10]">
+                        <td className="py-3 px-4 font-mono font-medium lg:font-semibold text-[#0F0F10]">
                           {tx.totalCrypto || tx.cryptoAmount} {tx.asset}
                         </td>
                         <td className="py-3 px-4 font-price font-semibold text-[#0F0F10]">
@@ -2806,7 +2806,7 @@ export const ScreenAdminConsole: React.FC = () => {
                           )}
                         </td>
                         <td className="py-3 px-4">
-                          <span className={`inline-flex items-center lg:gap-1.5 px-2.5 py-0.5 rounded-md lg:rounded-full text-xs lg:text-[10px] font-medium lg:font-bold border lg:border-transparent ${
+                          <span className={`inline-flex items-center lg:gap-1.5 px-2.5 py-0.5 rounded-md lg:rounded-full text-xs lg:text-[10px] font-medium border lg:border-transparent ${
                             tx.status === 'COMPLETED' ? 'bg-[#0F0F10] text-white border-[#0F0F10] lg:bg-emerald-100 lg:text-emerald-800' :
                             tx.status === 'PENDING' ? 'bg-amber-50 text-amber-800 border-amber-200 lg:bg-amber-100 lg:text-amber-800' :
                             'bg-[#FAF9F6] text-[#6B7280] border-[#EAE8E3] lg:bg-gray-100 lg:text-gray-700'
@@ -2846,7 +2846,7 @@ export const ScreenAdminConsole: React.FC = () => {
               <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
                 <div className="bg-white rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl border border-[#EAE8E3] animate-in zoom-in-95">
                   <div className="flex items-center justify-between pb-2 border-b border-[#EAE8E3]">
-                    <h4 className="font-heading font-bold text-sm text-[#0F0F10]">
+                    <h4 className="font-heading font-semibold text-sm text-[#0F0F10]">
                       Staff Manual On-Chain Verification
                     </h4>
                     <button
@@ -2862,7 +2862,7 @@ export const ScreenAdminConsole: React.FC = () => {
                   </p>
 
                   <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-[#0F0F10] block">
+                    <label className="text-[11px] font-medium text-[#0F0F10] block">
                       Transaction Hash (TxHash / TXID)
                     </label>
                     <input
@@ -2902,14 +2902,14 @@ export const ScreenAdminConsole: React.FC = () => {
         {/* ======================================================== */}
         {activeTab === 'audit' && (
           <div className="p-6 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs space-y-4 animate-in fade-in duration-200">
-            <h3 className="text-base font-heading font-bold text-[#0F0F10]">
+            <h3 className="text-base font-heading font-semibold text-[#0F0F10]">
               Immutable Administrative Audit Log
             </h3>
             <div className="space-y-3">
               {auditLogs.map((log) => (
                 <div key={log.id} className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] space-y-1 text-xs">
                   <div className="flex items-center justify-between text-[10px] font-mono">
-                    <span className="font-bold text-[#0F0F10]">{log.action}</span>
+                    <span className="font-semibold text-[#0F0F10]">{log.action}</span>
                     <span className="text-[#71717A]">{log.timestamp} • IP: {log.ipAddress}</span>
                   </div>
                   <p className="text-[11px] text-[#0F0F10] font-medium">{log.details}</p>
@@ -2955,10 +2955,10 @@ export const ScreenAdminConsole: React.FC = () => {
           <div className="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl border border-[#EAE8E3] overflow-hidden">
             <div className="p-5 border-b border-[#EAE8E3] flex items-center justify-between bg-[#FAF9F6]">
               <div>
-                <span className="text-[10px] font-mono uppercase tracking-widest text-[#997A2E] font-bold">
+                <span className="text-[10px] font-mono uppercase tracking-widest text-[#997A2E] font-medium">
                   Catalog Taxonomy
                 </span>
-                <h3 className="text-base font-heading font-extrabold text-[#0F0F10]">
+                <h3 className="text-base font-heading font-semibold text-[#0F0F10]">
                   Manage Categories &amp; Disciplines
                 </h3>
               </div>
@@ -2973,7 +2973,7 @@ export const ScreenAdminConsole: React.FC = () => {
             <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
               {/* Existing Categories */}
               <div className="space-y-2">
-                <span className="text-[10px] font-mono uppercase text-[#71717A] font-bold block">
+                <span className="text-[10px] font-mono uppercase text-[#71717A] font-semibold block">
                   Active Categories ({appCategories.length})
                 </span>
                 <div className="divide-y divide-[#EAE8E3] border border-[#EAE8E3] rounded-2xl overflow-hidden bg-[#FAF9F6]">
@@ -2997,12 +2997,12 @@ export const ScreenAdminConsole: React.FC = () => {
 
               {/* Add Category Form */}
               <form onSubmit={handleCreateCategory} className="pt-4 border-t border-[#EAE8E3] space-y-3">
-                <span className="text-[10px] font-mono uppercase text-[#997A2E] font-bold block">
+                <span className="text-[10px] font-mono uppercase text-[#997A2E] font-semibold block">
                   + Add New Category
                 </span>
                 <div className="grid grid-cols-2 gap-3 text-xs">
                   <div>
-                    <label className="block text-[10px] font-mono uppercase text-[#71717A] mb-1 font-bold">
+                    <label className="block text-[10px] font-mono uppercase text-[#71717A] mb-1 font-medium">
                       Category Name
                     </label>
                     <input
@@ -3020,7 +3020,7 @@ export const ScreenAdminConsole: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-mono uppercase text-[#71717A] mb-1 font-bold">
+                    <label className="block text-[10px] font-mono uppercase text-[#71717A] mb-1 font-medium">
                       Slug URL
                     </label>
                     <input
@@ -3035,7 +3035,7 @@ export const ScreenAdminConsole: React.FC = () => {
                 </div>
 
                 <div className="text-xs">
-                  <label className="block text-[10px] font-mono uppercase text-[#71717A] mb-1 font-bold">
+                  <label className="block text-[10px] font-mono uppercase text-[#71717A] mb-1 font-medium">
                     Description
                   </label>
                   <input
@@ -3049,7 +3049,7 @@ export const ScreenAdminConsole: React.FC = () => {
 
                 <button
                   type="submit"
-                  className="w-full py-2.5 rounded-full bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/30 text-xs font-bold hover:bg-[#27272A] cursor-pointer"
+                  className="w-full py-2.5 rounded-full bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/30 text-xs font-medium hover:bg-[#27272A] cursor-pointer"
                 >
                   Create Category
                 </button>
@@ -3067,10 +3067,10 @@ export const ScreenAdminConsole: React.FC = () => {
           <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-[#EAE8E3] overflow-hidden">
             <div className="p-5 border-b border-[#EAE8E3] flex items-center justify-between bg-[#FAF9F6]">
               <div>
-                <span className="text-[10px] font-mono uppercase tracking-widest text-[#997A2E] font-bold">
+                <span className="text-[10px] font-mono uppercase tracking-widest text-[#997A2E] font-medium">
                   Press Gifting Suite
                 </span>
-                <h3 className="text-base font-heading font-extrabold text-[#0F0F10]">
+                <h3 className="text-base font-heading font-semibold text-[#0F0F10]">
                   Create New PR Gift Box
                 </h3>
               </div>
@@ -3084,7 +3084,7 @@ export const ScreenAdminConsole: React.FC = () => {
 
             <form onSubmit={handleCreatePRBox} className="p-6 space-y-4 text-xs">
               <div>
-                <label className="block text-[10px] font-mono uppercase text-[#71717A] mb-1 font-bold">
+                <label className="block text-[10px] font-mono uppercase text-[#71717A] mb-1 font-medium">
                   Package Title
                 </label>
                 <input
@@ -3099,7 +3099,7 @@ export const ScreenAdminConsole: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[10px] font-mono uppercase text-[#71717A] mb-1 font-bold">
+                  <label className="block text-[10px] font-mono uppercase text-[#71717A] mb-1 font-medium">
                     Retail Value (₦)
                   </label>
                   <input
@@ -3112,7 +3112,7 @@ export const ScreenAdminConsole: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-mono uppercase text-[#71717A] mb-1 font-bold">
+                  <label className="block text-[10px] font-mono uppercase text-[#71717A] mb-1 font-medium">
                     Spots Left / Allocation
                   </label>
                   <input
@@ -3128,7 +3128,7 @@ export const ScreenAdminConsole: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-[10px] font-mono uppercase text-[#71717A] mb-1 font-bold">
+                <label className="block text-[10px] font-mono uppercase text-[#71717A] mb-1 font-medium">
                   Included catalogue products
                 </label>
                 <select multiple required aria-label="PR kit products" value={newPRBoxForm.productIds} onChange={event => setNewPRBoxForm(form => ({ ...form, productIds: Array.from(event.target.selectedOptions, option => option.value) }))} className="w-full rounded-xl border p-3 text-sm">
@@ -3138,7 +3138,7 @@ export const ScreenAdminConsole: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-[10px] font-mono uppercase text-[#71717A] mb-1 font-bold">
+                <label className="block text-[10px] font-mono uppercase text-[#71717A] mb-1 font-medium">
                   Description
                 </label>
                 <textarea
@@ -3152,7 +3152,7 @@ export const ScreenAdminConsole: React.FC = () => {
 
               <button
                 type="submit"
-                className="w-full py-2.5 rounded-full bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/30 text-xs font-bold hover:bg-[#27272A] cursor-pointer"
+                className="w-full py-2.5 rounded-full bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/30 text-xs font-medium hover:bg-[#27272A] cursor-pointer"
               >
                 Publish PR kit
               </button>
@@ -3169,10 +3169,10 @@ export const ScreenAdminConsole: React.FC = () => {
           <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-[#EAE8E3] overflow-hidden">
             <div className="p-5 border-b border-[#EAE8E3] flex items-center justify-between bg-[#FAF9F6]">
               <div>
-                <span className="text-[10px] font-mono uppercase tracking-widest text-[#997A2E] font-bold">
+                <span className="text-[10px] font-mono uppercase tracking-widest text-[#997A2E] font-medium">
                   Creator Office Campaigns
                 </span>
-                <h3 className="text-base font-heading font-extrabold text-[#0F0F10]">
+                <h3 className="text-base font-heading font-semibold text-[#0F0F10]">
                   Launch Brand Campaign Brief
                 </h3>
               </div>
@@ -3186,7 +3186,7 @@ export const ScreenAdminConsole: React.FC = () => {
 
             <form onSubmit={handleCreateCampaign} className="p-6 space-y-4 text-xs">
               <div>
-                <label className="block text-[10px] font-mono uppercase text-[#71717A] mb-1 font-bold">
+                <label className="block text-[10px] font-mono uppercase text-[#71717A] mb-1 font-medium">
                   Campaign Title
                 </label>
                 <input
@@ -3201,7 +3201,7 @@ export const ScreenAdminConsole: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[10px] font-mono uppercase text-[#71717A] mb-1 font-bold">
+                  <label className="block text-[10px] font-mono uppercase text-[#71717A] mb-1 font-medium">
                     Commission Rate
                   </label>
                   <input
@@ -3214,7 +3214,7 @@ export const ScreenAdminConsole: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-mono uppercase text-[#71717A] mb-1 font-bold">
+                  <label className="block text-[10px] font-mono uppercase text-[#71717A] mb-1 font-medium">
                     Completion Bonus
                   </label>
                   <input
@@ -3230,7 +3230,7 @@ export const ScreenAdminConsole: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[10px] font-mono uppercase text-[#71717A] mb-1 font-bold">
+                  <label className="block text-[10px] font-mono uppercase text-[#71717A] mb-1 font-medium">
                     Deadline
                   </label>
                   <input
@@ -3243,7 +3243,7 @@ export const ScreenAdminConsole: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-mono uppercase text-[#71717A] mb-1 font-bold">
+                  <label className="block text-[10px] font-mono uppercase text-[#71717A] mb-1 font-medium">
                     Slots
                   </label>
                   <input
@@ -3258,7 +3258,7 @@ export const ScreenAdminConsole: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-[10px] font-mono uppercase text-[#71717A] mb-1 font-bold">
+                <label className="block text-[10px] font-mono uppercase text-[#71717A] mb-1 font-medium">
                   Deliverables (+ separated)
                 </label>
                 <input
@@ -3272,7 +3272,7 @@ export const ScreenAdminConsole: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-[10px] font-mono uppercase text-[#71717A] mb-1 font-bold">
+                <label className="block text-[10px] font-mono uppercase text-[#71717A] mb-1 font-medium">
                   Brief Description
                 </label>
                 <textarea
@@ -3286,7 +3286,7 @@ export const ScreenAdminConsole: React.FC = () => {
 
               <button
                 type="submit"
-                className="w-full py-2.5 rounded-full bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/30 text-xs font-bold hover:bg-[#27272A] cursor-pointer"
+                className="w-full py-2.5 rounded-full bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/30 text-xs font-medium hover:bg-[#27272A] cursor-pointer"
               >
                 Launch Campaign
               </button>

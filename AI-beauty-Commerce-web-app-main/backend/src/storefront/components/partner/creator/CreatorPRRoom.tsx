@@ -99,10 +99,10 @@ export const CreatorPRRoom: React.FC<CreatorPRRoomProps> = ({
 
       {/* Desktop Header */}
       <div className="hidden md:block pb-2 border-b border-[#E5E7EB]">
-        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
+        <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-[#997A2E]">
           VIP Sampling &amp; Press Packaging
         </span>
-        <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-[#0F0F10]">
+        <h1 className="font-heading font-bold text-2xl sm:text-3xl text-[#0F0F10]">
           Creator PR Room
         </h1>
         <p className="text-xs sm:text-sm text-[#6B7280] mt-0.5">
@@ -130,7 +130,7 @@ export const CreatorPRRoom: React.FC<CreatorPRRoomProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-bold text-xs sm:text-sm text-[#0F0F10]">
+                <h3 className="font-medium text-xs sm:text-sm text-[#0F0F10]">
                   {activeRequests[0].boxTitle} — {activeRequests[0].status === 'DISPATCHED' ? 'Out with Courier' : 'Awaiting Hub Packing'}
                 </h3>
                 <StatusBadge status={activeRequests[0].status === 'DISPATCHED' ? 'in-transit' : 'pending'} />
@@ -167,20 +167,20 @@ export const CreatorPRRoom: React.FC<CreatorPRRoomProps> = ({
                     alt={box.title}
                     className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-300"
                   />
-                  <div className="absolute top-3 left-3 bg-[#0F0F10]/80 backdrop-blur-md px-3 py-1 rounded-full text-white text-[10px] font-mono font-bold">
+                  <div className="absolute top-3 left-3 bg-[#0F0F10]/80 backdrop-blur-md px-3 py-1 rounded-full text-white text-[10px] font-mono font-semibold">
                     {box.retailValue} Value (Complimentary)
                   </div>
-                  <div className="absolute top-3 right-3 bg-[#0F0F10] text-[#D4AF37] px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold">
+                  <div className="absolute top-3 right-3 bg-[#0F0F10] text-[#D4AF37] px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold">
                     Eligible Tier ✓
                   </div>
                 </div>
 
                 <div className="p-6 space-y-3">
                   <div>
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
+                    <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-[#997A2E]">
                       {box.openSpots || `${box.spotsLeft} spots remaining`}
                     </span>
-                    <h2 className="font-heading font-extrabold text-xl text-[#0F0F10] mt-0.5">
+                    <h2 className="font-heading font-semibold text-xl text-[#0F0F10] mt-0.5">
                       {box.title}
                     </h2>
                   </div>
@@ -193,7 +193,7 @@ export const CreatorPRRoom: React.FC<CreatorPRRoomProps> = ({
                       <span className="text-[10px] font-mono text-[#9CA3AF] uppercase">
                         Deliverables:
                       </span>
-                      <span className="font-bold text-[#0F0F10]">1 Shoppable Desla Routine + 1 Post</span>
+                      <span className="font-semibold text-[#0F0F10]">1 Shoppable Desla Routine + 1 Post</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-mono text-[#9CA3AF] uppercase">
@@ -211,7 +211,7 @@ export const CreatorPRRoom: React.FC<CreatorPRRoomProps> = ({
                 <button
                   onClick={() => setSelectedBoxForRequest(box)}
                   disabled={box.spotsLeft === 0}
-                  className={`w-full py-3 rounded-full text-xs font-bold flex items-center justify-center gap-2 transition-transform active:scale-[0.98] cursor-pointer ${
+                  className={`w-full py-3 rounded-full text-xs font-medium flex items-center justify-center gap-2 transition-transform active:scale-[0.98] cursor-pointer ${
                     box.spotsLeft === 0
                       ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                       : 'bg-[#0F0F10] hover:bg-[#27272A] text-white shadow-xs'
@@ -234,13 +234,13 @@ export const CreatorPRRoom: React.FC<CreatorPRRoomProps> = ({
           {activeRequests.length === 0 ? (
             <div className="p-12 text-center bg-white rounded-3xl border border-[#E5E7EB]">
               <PackageCheck size={36} className="mx-auto text-[#9CA3AF] mb-3" />
-              <h3 className="font-heading font-bold text-base text-[#0F0F10]">No Active In-Transit Packages</h3>
+              <h3 className="font-heading font-semibold text-base text-[#0F0F10]">No Active In-Transit Packages</h3>
               <p className="text-xs text-[#6B7280] mt-1 max-w-sm mx-auto">
                 Select an available PR box from the Available tab to have high-potency natural formulations dispatched directly to you.
               </p>
               <button
                 onClick={() => setActiveTab('available')}
-                className="mt-4 px-5 py-2 rounded-full bg-[#0F0F10] text-[#D4AF37] text-xs font-bold cursor-pointer"
+                className="mt-4 px-5 py-2 rounded-full bg-[#0F0F10] text-[#D4AF37] text-xs font-medium cursor-pointer"
               >
                 Browse Available Boxes
               </button>
@@ -253,13 +253,13 @@ export const CreatorPRRoom: React.FC<CreatorPRRoomProps> = ({
               >
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
+                    <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-[#997A2E]">
                       Tracking #{req.trackingNumber || 'Not recorded'}
                     </span>
                     <span className="w-1.5 h-1.5 rounded-full bg-[#0F0F10]" />
                     <span className="text-xs font-mono text-[#6B7280]">{req.requestedAt}</span>
                   </div>
-                  <h3 className="font-heading font-extrabold text-lg text-[#0F0F10]">
+                  <h3 className="font-heading font-semibold text-lg text-[#0F0F10]">
                     {req.boxTitle}
                   </h3>
                   <div className="flex items-center gap-4 text-xs text-[#6B7280]">
@@ -277,7 +277,7 @@ export const CreatorPRRoom: React.FC<CreatorPRRoomProps> = ({
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setTrackingRequest(req)}
-                    className="px-5 py-2.5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                    className="px-5 py-2.5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
                   >
                     <span>View delivery status</span>
                     <ChevronRight size={14} className="text-[#D4AF37]" />
@@ -301,8 +301,8 @@ export const CreatorPRRoom: React.FC<CreatorPRRoomProps> = ({
             >
               <div>
                 <div className="flex items-center gap-2">
-                  <h4 className="font-heading font-bold text-sm text-[#0F0F10]">{item.title}</h4>
-                  <span className="px-2 py-0.5 rounded-full bg-[#FAF9F6] text-[#0F0F10] border border-[#E5E7EB] text-[10px] font-mono font-bold flex items-center gap-1">
+                  <h4 className="font-heading font-semibold text-sm text-[#0F0F10]">{item.title}</h4>
+                  <span className="px-2 py-0.5 rounded-full bg-[#FAF9F6] text-[#0F0F10] border border-[#E5E7EB] text-[10px] font-mono font-semibold flex items-center gap-1">
                     <CheckCircle2 size={11} className="text-[#0F0F10]" />
                     <span>Delivered</span>
                   </span>
@@ -337,7 +337,7 @@ export const CreatorPRRoom: React.FC<CreatorPRRoomProps> = ({
                   <Gift size={16} />
                 </div>
                 <div>
-                  <h3 className="font-heading font-extrabold text-lg text-[#0F0F10]">
+                  <h3 className="font-heading font-semibold text-lg text-[#0F0F10]">
                     Request PR Collection
                   </h3>
                   <p className="text-xs text-[#6B7280]">
@@ -362,10 +362,10 @@ export const CreatorPRRoom: React.FC<CreatorPRRoomProps> = ({
                   className="w-16 h-16 rounded-xl object-cover border border-[#E5E7EB] shrink-0"
                 />
                 <div>
-                  <h4 className="font-heading font-bold text-sm text-[#0F0F10]">
+                  <h4 className="font-heading font-semibold text-sm text-[#0F0F10]">
                     {selectedBoxForRequest.title}
                   </h4>
-                  <p className="text-xs text-[#997A2E] font-mono font-bold mt-0.5">
+                  <p className="text-xs text-[#997A2E] font-mono font-medium mt-0.5">
                     {selectedBoxForRequest.retailValue} Retail Value • Complimentary VIP Press Box
                   </p>
                   <p className="text-[11px] text-[#6B7280] line-clamp-1 mt-1">
@@ -375,19 +375,19 @@ export const CreatorPRRoom: React.FC<CreatorPRRoomProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#0F0F10] mb-1">
+                <label className="block text-xs font-medium text-[#0F0F10] mb-1">
                   Recipient Identity &amp; Creator Tier
                 </label>
                 <div className="p-3 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] text-xs flex items-center justify-between">
-                  <span className="font-bold text-[#0F0F10]">{authUser?.profile?.displayName || authUser?.email || ''}</span>
-                  <span className="px-2 py-0.5 rounded-full bg-[#0F0F10] text-[#D4AF37] font-mono text-[10px] font-bold">
+                  <span className="font-semibold text-[#0F0F10]">{authUser?.profile?.displayName || authUser?.email || ''}</span>
+                  <span className="px-2 py-0.5 rounded-full bg-[#0F0F10] text-[#D4AF37] font-mono text-[10px] font-semibold">
                     Approved creator
                   </span>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#0F0F10] mb-1">
+                <label className="block text-xs font-medium text-[#0F0F10] mb-1">
                   Courier Delivery Address
                 </label>
                 <div className="relative">
@@ -403,7 +403,7 @@ export const CreatorPRRoom: React.FC<CreatorPRRoomProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#0F0F10] mb-1">
+                <label className="block text-xs font-medium text-[#0F0F10] mb-1">
                   Delivery Notes / Access Gate Instructions
                 </label>
                 <input
@@ -416,7 +416,7 @@ export const CreatorPRRoom: React.FC<CreatorPRRoomProps> = ({
               </div>
 
               <div className="p-3 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] text-[11px] text-[#6B7280]">
-                <span className="font-bold text-[#0F0F10]">Editorial Agreement:</span> By claiming this press kit, you agree to create 1 authentic routine video or post within 21 days of delivery.
+                <span className="font-semibold text-[#0F0F10]">Editorial Agreement:</span> By claiming this press kit, you agree to create 1 authentic routine video or post within 21 days of delivery.
               </div>
 
               <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#E5E7EB]">
@@ -429,7 +429,7 @@ export const CreatorPRRoom: React.FC<CreatorPRRoomProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-[#D4AF37] text-xs font-bold shadow-md cursor-pointer transition-transform active:scale-95"
+                  className="px-6 py-2.5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-[#D4AF37] text-xs font-medium shadow-md cursor-pointer transition-transform active:scale-95"
                 >
                   Request kit for review
                 </button>
@@ -447,10 +447,10 @@ export const CreatorPRRoom: React.FC<CreatorPRRoomProps> = ({
           <div className="w-full max-w-md rounded-3xl bg-white border border-[#E5E7EB] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-6 border-b border-[#E5E7EB] flex items-center justify-between bg-[#FAF9F6]">
               <div>
-                <span className="text-[10px] font-mono font-bold uppercase text-[#997A2E]">
+                <span className="text-[10px] font-mono font-semibold uppercase text-[#997A2E]">
                   Recorded delivery status
                 </span>
-                <h3 className="font-heading font-extrabold text-lg text-[#0F0F10]">
+                <h3 className="font-heading font-semibold text-lg text-[#0F0F10]">
                   {trackingRequest.boxTitle}
                 </h3>
               </div>
@@ -488,7 +488,7 @@ export const CreatorPRRoom: React.FC<CreatorPRRoomProps> = ({
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className={`text-xs font-bold ${s.status === 'active' ? 'text-[#0F0F10]' : s.status === 'done' ? 'text-[#0F0F10]' : 'text-gray-400'}`}>
+                        <span className={`text-xs font-medium ${s.status === 'active' ? 'text-[#0F0F10]' : s.status === 'done' ? 'text-[#0F0F10]' : 'text-gray-400'}`}>
                           {s.step}
                         </span>
                         <span className="text-[10px] font-mono text-[#9CA3AF]">{s.time}</span>
@@ -500,7 +500,7 @@ export const CreatorPRRoom: React.FC<CreatorPRRoomProps> = ({
               </div>
               <p className="text-xs text-[#6B7280]">Status and references are recorded by the administrator. No live courier feed or handover code is available for this kit.</p>
               <button onClick={() => setTrackingRequest(null)}
-                className="w-full py-2.5 rounded-full bg-[#0F0F10] text-white text-xs font-bold hover:bg-[#27272A] cursor-pointer"
+                className="w-full py-2.5 rounded-full bg-[#0F0F10] text-white text-xs font-medium hover:bg-[#27272A] cursor-pointer"
               >
                 Close Tracking View
               </button>

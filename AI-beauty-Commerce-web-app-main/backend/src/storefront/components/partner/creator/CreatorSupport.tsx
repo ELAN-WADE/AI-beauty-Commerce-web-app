@@ -31,10 +31,10 @@ export const CreatorSupport: React.FC = () => {
   return (
     <MobileRouteContent className="space-y-6 animate-in fade-in duration-200 max-w-2xl mx-auto">
       <div className="pb-2 border-b border-[#E5E7EB] text-center">
-        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
+        <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-[#997A2E]">
           Creator Partner Care
         </span>
-        <h1 className="font-heading font-semibold md:font-extrabold text-xl md:text-3xl text-[#0F0F10]">
+        <h1 className="font-heading font-semibold md:font-bold text-xl md:text-3xl text-[#0F0F10]">
           Creator Support Concierge
         </h1>
         <p className="text-xs sm:text-sm text-[#6B7280] mt-0.5">
@@ -49,7 +49,7 @@ export const CreatorSupport: React.FC = () => {
             <div className="w-12 h-12 rounded-full bg-[#FAF9F6] text-[#0F0F10] border border-[#E5E7EB] flex items-center justify-center mx-auto">
               <CheckCircle2 size={24} />
             </div>
-            <h3 className="font-heading font-bold text-lg text-[#0F0F10]">
+            <h3 className="font-heading font-semibold text-lg text-[#0F0F10]">
               {isLiveBackend ? `Ticket ${ticketId} created` : 'Ticket #CRT-9042 Created'}
             </h3>
             <p className="text-xs text-[#6B7280] max-w-sm mx-auto">
@@ -68,7 +68,7 @@ export const CreatorSupport: React.FC = () => {
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="text-xs font-bold text-[#0F0F10] block mb-1">
+              <label className="text-xs font-medium text-[#0F0F10] block mb-1">
                 Inquiry Category
               </label>
               <select
@@ -84,7 +84,7 @@ export const CreatorSupport: React.FC = () => {
             </div>
 
             <div>
-              <label className="text-xs font-bold text-[#0F0F10] block mb-1">
+              <label className="text-xs font-medium text-[#0F0F10] block mb-1">
                 Message / Details
               </label>
               <textarea
@@ -99,7 +99,7 @@ export const CreatorSupport: React.FC = () => {
 
             <button
               type="submit" disabled={saving}
-              className="w-full py-3 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-[#D4AF37] font-bold text-xs flex items-center justify-center gap-2 shadow-xs cursor-pointer active:scale-[0.98] transition-all"
+              className="w-full py-3 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-[#D4AF37] font-medium text-xs flex items-center justify-center gap-2 shadow-xs cursor-pointer active:scale-[0.98] transition-all"
             >
               <Send size={14} />
               <span>Submit Priority Ticket</span>

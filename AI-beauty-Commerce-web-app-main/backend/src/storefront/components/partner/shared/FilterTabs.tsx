@@ -47,7 +47,7 @@ export const FilterTabs = <T extends string>({
             <span>{tab.label}</span>
             {tab.count !== undefined && (
               <span
-                className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full font-bold ${
+                className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full font-semibold ${
                   isActive
                     ? 'bg-white/20 text-white'
                     : 'bg-[#F3F4F6] text-[#6B7280]'
@@ -57,7 +57,7 @@ export const FilterTabs = <T extends string>({
               </span>
             )}
             {tab.badge && (
-              <span className="text-[9px] uppercase tracking-wider font-mono font-bold bg-[#D4AF37] text-[#0F0F10] px-1.5 py-0.2 rounded-full">
+              <span className="text-[9px] uppercase tracking-wider font-mono font-medium bg-[#D4AF37] text-[#0F0F10] px-1.5 py-0.2 rounded-full">
                 {tab.badge}
               </span>
             )}

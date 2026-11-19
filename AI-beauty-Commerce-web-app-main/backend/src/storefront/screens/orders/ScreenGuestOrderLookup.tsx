@@ -53,7 +53,7 @@ export const ScreenGuestOrderLookup: React.FC = () => {
             <ArrowLeft className="w-4 h-4" />
             <span>Back to Storefront</span>
           </button>
-          <span className="text-[10px] font-mono tracking-widest text-[#997A2E] font-bold uppercase">
+          <span className="text-[10px] font-mono tracking-widest text-[#997A2E] font-medium uppercase">
             DESLA!™ LIVE DISPATCH TELEMETRY
           </span>
         </div>
@@ -65,7 +65,7 @@ export const ScreenGuestOrderLookup: React.FC = () => {
               <Truck className="w-6 h-6 stroke-[1.8]" />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-heading font-extrabold text-[#0F0F10] tracking-tight">
+              <h1 className="text-xl sm:text-2xl font-heading font-bold text-[#0F0F10] tracking-tight">
                 Guest Order &amp; Courier Tracking
               </h1>
               <p className="text-xs text-[#6B7280]">
@@ -85,7 +85,7 @@ export const ScreenGuestOrderLookup: React.FC = () => {
                 placeholder="e.g. DES-829104"
                 value={orderNumber}
                 onChange={(e) => setOrderNumber(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-[#D1D5DB] bg-white text-xs font-mono font-bold text-[#0F0F10] placeholder:text-[#9CA3AF] focus:outline-none focus:border-[#0F0F10]"
+                className="w-full px-4 py-2.5 rounded-xl border border-[#D1D5DB] bg-white text-xs font-mono font-medium text-[#0F0F10] placeholder:text-[#9CA3AF] focus:outline-none focus:border-[#0F0F10]"
               />
             </div>
 
@@ -107,7 +107,7 @@ export const ScreenGuestOrderLookup: React.FC = () => {
               <button
                 type="submit"
                 disabled={busy}
-                className="w-full py-2.5 px-4 rounded-xl bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-bold active:scale-[0.97] transition-all cursor-pointer disabled:opacity-60 flex items-center justify-center gap-1.5 shadow-sm"
+                className="w-full py-2.5 px-4 rounded-xl bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-medium active:scale-[0.97] transition-all cursor-pointer disabled:opacity-60 flex items-center justify-center gap-1.5 shadow-sm"
               >
                 {busy ? <Clock className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                 <span>Track</span>
@@ -132,10 +132,10 @@ export const ScreenGuestOrderLookup: React.FC = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-6 border-b border-[#E5E7EB]">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono font-bold text-[#0F0F10]">
+                  <span className="text-xs font-mono font-medium text-[#0F0F10]">
                     Order #{foundOrder.id}
                   </span>
-                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-semibold">
                     {foundOrder.status}
                   </span>
                 </div>
@@ -147,7 +147,7 @@ export const ScreenGuestOrderLookup: React.FC = () => {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => openAIAssistant()}
-                  className="px-3 py-1.5 rounded-xl bg-[#FAF9F6] border border-[#D4AF37]/50 text-[#997A2E] text-xs font-bold hover:bg-[#F6E7C1]/30 transition-colors flex items-center gap-1.5 cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl bg-[#FAF9F6] border border-[#D4AF37]/50 text-[#997A2E] text-xs font-medium hover:bg-[#F6E7C1]/30 transition-colors flex items-center gap-1.5 cursor-pointer"
                 >
                   <ShieldCheck className="w-3.5 h-3.5 text-[#D4AF37]" />
                   <span>Ask AI Concierge</span>
@@ -159,7 +159,7 @@ export const ScreenGuestOrderLookup: React.FC = () => {
 
             {/* Step-by-Step Courier Timeline */}
             <div className="my-6">
-              <h3 className="text-xs font-mono uppercase tracking-wider text-[#6B7280] font-bold mb-4">
+              <h3 className="text-xs font-mono uppercase tracking-wider text-[#6B7280] font-medium mb-4">
                 Live Courier Timeline
               </h3>
               <div className="relative pl-6 space-y-6 before:content-[''] before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-[#E5E7EB]">
@@ -178,7 +178,7 @@ export const ScreenGuestOrderLookup: React.FC = () => {
                     </div>
                     <div>
                       <div className="flex items-center justify-between">
-                        <h4 className="text-xs font-bold text-[#0F0F10]">{step.title}</h4>
+                        <h4 className="text-xs font-medium text-[#0F0F10]">{step.title}</h4>
                         <span className="text-[10px] font-mono text-[#9CA3AF]">{step.timestamp}</span>
                       </div>
                       <p className="text-xs text-[#6B7280] mt-0.5">{step.description}</p>
@@ -190,7 +190,7 @@ export const ScreenGuestOrderLookup: React.FC = () => {
 
             {/* Items Summary */}
             <div className="pt-6 border-t border-[#E5E7EB]">
-              <h3 className="text-xs font-mono uppercase tracking-wider text-[#6B7280] font-bold mb-3">
+              <h3 className="text-xs font-mono uppercase tracking-wider text-[#6B7280] font-medium mb-3">
                 Items in This Dispatch ({foundOrder.items.length})
               </h3>
               <div className="space-y-2.5">
@@ -200,16 +200,16 @@ export const ScreenGuestOrderLookup: React.FC = () => {
                       <p className="font-semibold text-[#0F0F10]">{item.productName}</p>
                       <span className="text-[10px] text-[#6B7280]">Size: {item.size} • Qty: {item.quantity}</span>
                     </div>
-                    <span className="font-mono font-bold text-[#0F0F10]">
+                    <span className="font-mono font-semibold text-[#0F0F10]">
                       ₦{(item.price * item.quantity).toLocaleString()}
                     </span>
                   </div>
                 ))}
               </div>
 
-              <div className="flex justify-between items-center pt-4 text-xs font-bold text-[#0F0F10]">
+              <div className="flex justify-between items-center pt-4 text-xs font-medium text-[#0F0F10]">
                 <span>{foundOrder.paymentStatus === 'PAID' ? 'Paid order total:' : 'Order total:'}</span>
-                <span className="text-base font-mono font-extrabold text-[#0F4A38]">
+                <span className="text-base font-mono font-semibold text-[#0F4A38]">
                   ₦{foundOrder.total.toLocaleString()}
                 </span>
               </div>

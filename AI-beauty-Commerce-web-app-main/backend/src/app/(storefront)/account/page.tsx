@@ -1,11 +1,6 @@
 'use client';
 
-import dynamic from 'next/dynamic';
-
-const Screen17Account = dynamic(
-  () => import('@/storefront/screens/account/Screen17Account').then((m) => m.Screen17Account),
-  { ssr: false },
-);
+import { Screen17Account } from '@/storefront/screens/account/Screen17Account';
 
 export default function AccountPage() {
   return <Screen17Account />;

@@ -118,6 +118,25 @@ export async function headBytes(bucket: string, key: string, n = 12): Promise<Ui
   return merged;
 }
 
+export async function getObjectBuffer(bucket: string, key: string, maxBytes = 5 * 1024 * 1024): Promise<Buffer> {
+  const out = await s3().send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+  const body = out.Body;
+  if (!body) return Buffer.alloc(0);
+  if (typeof (body as { transformToByteArray?: unknown }).transformToByteArray === 'function') {
+    const arr = await (body as { transformToByteArray: () => Promise<Uint8Array> }).transformToByteArray();
+    if (arr.byteLength > maxBytes) throw new Error('Uploaded object exceeds maximum allowed bytes.');
+    return Buffer.from(arr);
+  }
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for await (const chunk of body as AsyncIterable<Uint8Array>) {
+    total += chunk.byteLength;
+    if (total > maxBytes) throw new Error('Uploaded object exceeds maximum allowed bytes.');
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks);
+}
+
 /** Magic-byte validation (pure, unit-tested): rejects renamed GIFs/SVGs/scripts. */
 export function checkMagicBytes(buf: Uint8Array, mime: string): boolean {
   if (buf.length < 6) return false;

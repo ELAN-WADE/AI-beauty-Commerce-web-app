@@ -27,7 +27,7 @@ export function HeroCmsEditor() {
   }
   return <div className="space-y-6">
     <div className="p-6 rounded-2xl bg-white border border-[#E5E7EB] space-y-4">
-      <h3 className="font-heading font-bold">Hero presentation</h3>
+      <h3 className="font-heading font-semibold">Hero presentation</h3>
       <div className="flex gap-2" role="group" aria-label="Hero mode">
         {(['flex', 'slideshow'] as const).map(mode => <button type="button" key={mode} aria-pressed={settings.mode === mode} onClick={() => updateHeroSettings({ ...settings, mode })} className={'rounded-full px-5 py-2 text-xs border ' + (settings.mode === mode ? 'bg-[#0F0F10] text-[#D4AF37]' : 'border-[#EAE8E3]')}>{mode === 'flex' ? 'Flex carousel' : 'Full-width slideshow'}</button>)}
       </div>

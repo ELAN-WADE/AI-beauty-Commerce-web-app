@@ -71,7 +71,7 @@ export const ViewportToggle: React.FC = () => {
         >
           <Layers size={15} className="text-[#D4AF37]" />
           <span className="hidden sm:inline">Screen: </span>
-          <span className="text-[#D4AF37] font-bold">
+          <span className="text-[#D4AF37] font-semibold">
             {screens.find((s) => s.id === currentScreen)?.number || '03'}
           </span>
           <ChevronDown size={14} className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
@@ -85,7 +85,7 @@ export const ViewportToggle: React.FC = () => {
             />
             <div className="absolute right-0 top-full mt-2 w-80 max-h-[75vh] overflow-y-auto bg-[#141316] rounded-card shadow-2xl border border-[#D4AF37]/30 p-2 z-50 text-xs animate-in fade-in zoom-in-95">
               <div className="px-3 py-2 border-b border-white/10 flex items-center justify-between">
-                <span className="font-heading font-bold text-[#F6E7C1] uppercase tracking-wider text-[10px]">
+                <span className="font-heading font-medium text-[#F6E7C1] uppercase tracking-wider text-[10px]">
                   Desla!™ Screen Navigator
                 </span>
                 <span className="text-[10px] text-[#A19B96]">20 Screens</span>
@@ -104,7 +104,7 @@ export const ViewportToggle: React.FC = () => {
                     }}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left transition-colors ${
                       currentScreen === s.id
-                        ? 'bg-[#D4AF37]/20 text-[#D4AF37] font-bold border border-[#D4AF37]/40'
+                        ? 'bg-[#D4AF37]/20 text-[#D4AF37] font-semibold border border-[#D4AF37]/40'
                         : 'hover:bg-white/5 text-[#E4DFDA]'
                     }`}
                   >

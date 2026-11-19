@@ -174,7 +174,7 @@ export const NetworkPanel: React.FC = () => {
       {/* Status Notice */}
       {(notice || error) && (
         <div
-          className={`p-3 rounded-2xl text-xs font-mono font-bold flex items-center justify-between border ${
+          className={`p-3 rounded-2xl text-xs font-mono font-medium flex items-center justify-between border ${
             error
               ? 'bg-rose-50 text-rose-800 border-rose-200'
               : 'bg-[#0F0F10] text-[#D4AF37] border-[#D4AF37]/30 shadow-xs'
@@ -196,14 +196,14 @@ export const NetworkPanel: React.FC = () => {
       <div className="p-5 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h4 className="text-sm font-heading font-bold text-[#0F0F10]">
+            <h4 className="text-sm font-heading font-semibold text-[#0F0F10]">
               Regional Facility Hubs ({data.locations.length})
             </h4>
             <p className="text-xs text-[#71717A]">
               Active cold-chain logistics centers, local rider radiuses, and platform inventory quotas.
             </p>
           </div>
-          <span className="text-[10px] font-mono uppercase bg-[#FAF9F6] text-[#0F0F10] border border-[#EAE8E3] px-2.5 py-1 rounded-full font-bold">
+          <span className="text-[10px] font-mono uppercase bg-[#FAF9F6] text-[#0F0F10] border border-[#EAE8E3] px-2.5 py-1 rounded-full font-semibold">
             Omnichannel Routing
           </span>
         </div>
@@ -224,7 +224,7 @@ export const NetworkPanel: React.FC = () => {
               >
                 <div className="flex items-start justify-between">
                   <div>
-                    <strong className="text-[#0F0F10] font-bold block">
+                    <strong className="text-[#0F0F10] font-semibold block">
                       {l.name} ({l.code})
                     </strong>
                     <span className="text-[11px] text-[#71717A]">
@@ -232,7 +232,7 @@ export const NetworkPanel: React.FC = () => {
                     </span>
                   </div>
                   <span
-                    className={`text-[9.5px] font-mono uppercase font-bold px-2 py-0.5 rounded-full border ${
+                    className={`text-[9.5px] font-mono uppercase font-semibold px-2 py-0.5 rounded-full border ${
                       l.isActive
                         ? 'bg-[#0F0F10] text-[#D4AF37] border-[#0F0F10]'
                         : 'bg-white text-[#71717A] border-[#EAE8E3]'
@@ -273,7 +273,7 @@ export const NetworkPanel: React.FC = () => {
       {/* 2. Stock Transfer Dispatcher */}
       <div className="p-5 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs space-y-4">
         <div>
-          <h4 className="text-sm font-heading font-bold text-[#0F0F10]">
+          <h4 className="text-sm font-heading font-semibold text-[#0F0F10]">
             Central Lab Stock Transfer Dispatcher
           </h4>
           <p className="text-xs text-[#71717A]">
@@ -336,7 +336,7 @@ export const NetworkPanel: React.FC = () => {
                   'Stock transfer dispatched via priority courier.'
                 )
               }
-              className="flex-1 py-2.5 rounded-xl bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/30 text-xs font-bold hover:bg-[#27272A] cursor-pointer disabled:opacity-50"
+              className="flex-1 py-2.5 rounded-xl bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/30 text-xs font-medium hover:bg-[#27272A] cursor-pointer disabled:opacity-50"
             >
               Dispatch
             </button>
@@ -345,7 +345,7 @@ export const NetworkPanel: React.FC = () => {
 
         {/* Transfers Active Queue */}
         <div className="space-y-2 pt-2 border-t border-[#EAE8E3]">
-          <span className="text-[10px] font-mono uppercase text-[#71717A] font-bold block">
+          <span className="text-[10px] font-mono uppercase text-[#71717A] font-semibold block">
             Recent In-Transit Transfers ({data.transfers.length})
           </span>
           {data.transfers.slice(0, 5).map((t) => {
@@ -357,20 +357,20 @@ export const NetworkPanel: React.FC = () => {
                 className="p-3 rounded-xl bg-[#FAF9F6] border border-[#EAE8E3] flex items-center justify-between text-xs"
               >
                 <div className="font-mono">
-                  <span className="font-bold text-[#0F0F10] block">#{t.id}</span>
+                  <span className="font-semibold text-[#0F0F10] block">#{t.id}</span>
                   <span className="text-[11px] text-[#71717A]">
                     {src} → {dest}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-mono uppercase font-bold px-2 py-0.5 rounded-full bg-white border border-[#EAE8E3] text-[#0F0F10]">
+                  <span className="text-[10px] font-mono uppercase font-semibold px-2 py-0.5 rounded-full bg-white border border-[#EAE8E3] text-[#0F0F10]">
                     {t.status}
                   </span>
                   {t.status === 'DISPATCHED' && (
                     <button
                       disabled={busy}
                       onClick={() => void run({ action: 'receive', transferId: t.id }, 'Transfer confirmed and received at hub.')}
-                      className="px-3 py-1 rounded-full bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/30 text-[11px] font-mono font-bold cursor-pointer hover:bg-[#27272A] disabled:opacity-50"
+                      className="px-3 py-1 rounded-full bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/30 text-[11px] font-mono font-semibold cursor-pointer hover:bg-[#27272A] disabled:opacity-50"
                     >
                       Confirm Receipt
                     </button>
@@ -385,7 +385,7 @@ export const NetworkPanel: React.FC = () => {
       {/* 3. Restock Requests Desk */}
       <div className="p-5 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs space-y-4">
         <div>
-          <h4 className="text-sm font-heading font-bold text-[#0F0F10]">
+          <h4 className="text-sm font-heading font-semibold text-[#0F0F10]">
             Distributor Restock Requests Desk ({data.restocks.length})
           </h4>
           <p className="text-xs text-[#71717A]">
@@ -405,19 +405,19 @@ export const NetworkPanel: React.FC = () => {
                 <div>
                   <strong className="text-[#0F0F10] block">{loc}</strong>
                   <span className="text-[#71717A]">
-                    {v} • <span className="font-mono font-bold text-[#0F0F10]">{r.qty} Units Requested</span>
+                    {v} • <span className="font-mono font-semibold text-[#0F0F10]">{r.qty} Units Requested</span>
                   </span>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-mono uppercase font-bold px-2.5 py-0.5 rounded-full bg-white border border-[#EAE8E3] text-[#0F0F10]">
+                  <span className="text-[10px] font-mono uppercase font-semibold px-2.5 py-0.5 rounded-full bg-white border border-[#EAE8E3] text-[#0F0F10]">
                     {r.status}
                   </span>
                   {r.status === 'REQUESTED' && (
                     <button
                       disabled={busy}
                       onClick={() => void run({ action: 'restock', id: r.id, status: 'APPROVED' }, 'Restock request approved.')}
-                      className="px-3 py-1 rounded-full bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/30 font-mono font-bold text-[11px] hover:bg-[#27272A] cursor-pointer disabled:opacity-50"
+                      className="px-3 py-1 rounded-full bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/30 font-mono font-semibold text-[11px] hover:bg-[#27272A] cursor-pointer disabled:opacity-50"
                     >
                       Approve Request
                     </button>
@@ -426,7 +426,7 @@ export const NetworkPanel: React.FC = () => {
                     <button
                       disabled={busy}
                       onClick={() => void run({ action: 'restock', id: r.id, status: 'FULFILLED' }, 'Restock fulfilled.')}
-                      className="px-3 py-1 rounded-full bg-white border border-[#EAE8E3] text-[#0F0F10] font-mono font-bold text-[11px] hover:bg-[#FAF9F6] cursor-pointer disabled:opacity-50"
+                      className="px-3 py-1 rounded-full bg-white border border-[#EAE8E3] text-[#0F0F10] font-mono font-semibold text-[11px] hover:bg-[#FAF9F6] cursor-pointer disabled:opacity-50"
                     >
                       Mark Fulfilled
                     </button>
@@ -442,7 +442,7 @@ export const NetworkPanel: React.FC = () => {
       {data.finance && (
         <div className="p-5 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs space-y-4">
           <div>
-            <h4 className="text-sm font-heading font-bold text-[#0F0F10]">
+            <h4 className="text-sm font-heading font-semibold text-[#0F0F10]">
               Distributor Margin &amp; Commission Settlements ({data.withdrawals.length})
             </h4>
             <p className="text-xs text-[#71717A]">
@@ -457,10 +457,10 @@ export const NetworkPanel: React.FC = () => {
                 className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] space-y-3 text-xs"
               >
                 <div className="flex items-center justify-between font-mono">
-                  <strong className="text-sm font-bold text-[#0F0F10]">
+                  <strong className="text-sm font-semibold text-[#0F0F10]">
                     {naira(w.amountKobo)}
                   </strong>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#0F0F10] text-[#D4AF37]">
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#0F0F10] text-[#D4AF37]">
                     {w.status}
                   </span>
                 </div>
@@ -497,7 +497,7 @@ export const NetworkPanel: React.FC = () => {
                           `Payout status updated to ${s}.`
                         )
                       }
-                      className={`px-3.5 py-1.5 rounded-full text-[11px] font-mono font-bold cursor-pointer transition disabled:opacity-50 ${
+                      className={`px-3.5 py-1.5 rounded-full text-[11px] font-mono font-semibold cursor-pointer transition disabled:opacity-50 ${
                         s === 'PAID'
                           ? 'bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/30 hover:bg-[#27272A]'
                           : 'bg-white border border-[#EAE8E3] text-[#0F0F10] hover:bg-[#FAF9F6]'

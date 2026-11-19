@@ -16,7 +16,7 @@ const applicationBody = z.object({
   businessName: z.string().trim().max(160).default(''),
   city: z.string().trim().min(1).max(80),
   state: z.string().trim().max(80).default(''),
-  address: z.string().trim().min(1).max(300),
+  address: z.string().trim().max(300),
   phone,
   whatsapp: z.string().trim().max(20).default(''),
 });
@@ -24,8 +24,13 @@ const applicationBody = z.object({
 export const distributorApplicationSchema = applicationBody.strict();
 
 export const reviewApplicationSchema = z
-  .object({ approve: z.boolean(), note: z.string().trim().max(500).default('') })
-  .strict();
+  .object({
+    action: z.enum(['under_review', 'decide']).optional(),
+    approve: z.boolean().optional(),
+    note: z.string().trim().max(500).default(''),
+  })
+  .strict()
+  .refine((v) => v.action === 'under_review' || typeof v.approve === 'boolean', 'Specify approve or action=under_review.');
 
 export const distributorStockSchema = z
   .object({

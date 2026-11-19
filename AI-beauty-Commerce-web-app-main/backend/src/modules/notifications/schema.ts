@@ -6,6 +6,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
@@ -30,10 +31,16 @@ export const notificationOutbox = pgTable(
     status: text('status').notNull().default('pending'),
     attempts: integer('attempts').notNull().default(0),
     nextAttemptAt: timestamptz('next_attempt_at').notNull().defaultNow(),
+    idempotencyKey: text('idempotency_key'),
+    provider: text('provider'),
+    providerMessageId: text('provider_message_id'),
+    sentAt: timestamptz('sent_at'),
+    lastError: text('last_error'),
     createdAt: timestamptz('created_at').notNull().defaultNow(),
   },
   (t) => [
     index('outbox_claim_idx').on(t.status, t.nextAttemptAt),
+    uniqueIndex('outbox_idempotency_key_unique').on(t.idempotencyKey).where(sql`${t.idempotencyKey} IS NOT NULL`),
     check('outbox_channel_allowed', sql`"channel" IN ('email','sms','whatsapp','push')`),
     check('outbox_status_allowed', sql`"status" IN ('pending','sending','sent','failed')`),
   ],

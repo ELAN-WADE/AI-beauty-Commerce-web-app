@@ -1,6 +1,6 @@
 import {orderPartnerAttributions} from '../referrals/schema';
 import { shipments } from '../shipping/schema';
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { and, desc, eq, lt, or, sql } from 'drizzle-orm';
 import type { AppDb, Db } from '../../db/client';
 import { Errors } from '../../lib/errors';
@@ -198,6 +198,22 @@ export async function transitionOrder(
       actor: opts.actor === 'admin' && opts.actorId ? `admin:${opts.actorId}` : opts.actor,
       note: (opts.note ?? '').slice(0, 500),
     });
+    if (['SHIPPED', 'READY_PICKUP', 'DELIVERED'].includes(to) && order.status !== to) {
+      const label = to === 'SHIPPED' ? 'dispatched' : to === 'READY_PICKUP' ? 'ready_for_pickup' : 'delivered';
+      await enqueueNotification(tx, {
+        userId: order.userId,
+        channel: 'email',
+        template: 'shipment.update',
+        payload: {
+          orderId,
+          orderNumber: order.orderNumber,
+          status: label,
+          trackingRef: '',
+          guestEmail: order.guestEmail ?? undefined,
+        },
+        idempotencyKey: `order.status-email:${orderId}:${to}`,
+      });
+    }
     return getOrderView(tx, orderId);
   });
 }
@@ -434,6 +450,14 @@ export async function getOwnOrder(db: AppDb, userId: string, orderId: string): P
   return getOrderView(db, await resolveOwnOrderId(db, userId, orderId));
 }
 
+function matchesGuestTokenHash(expected: string | null, rawToken: string): boolean {
+  if (!expected) return false;
+  const actual = createHash('sha256').update(rawToken).digest('hex');
+  const a = Buffer.from(expected, 'utf8');
+  const b = Buffer.from(actual, 'utf8');
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
 /** Guest lookup requires possession of the 256-bit order capability, not PII. */
 export async function getGuestOrder(db: Db, orderId: string, token: string): Promise<OrderView> {
   const input = orderId.trim();
@@ -442,7 +466,7 @@ export async function getGuestOrder(db: Db, orderId: string, token: string): Pro
     ? await db.select({ id: orders.id, hash: orders.guestAccessTokenHash }).from(orders).where(eq(orders.id, input)).limit(1)
     : await db.select({ id: orders.id, hash: orders.guestAccessTokenHash }).from(orders).where(eq(orders.orderNumber, input.toUpperCase())).limit(1);
   const row = rows[0];
-  if (!row || !row.hash || row.hash !== createHash('sha256').update(token).digest('hex')) {
+  if (!row || !matchesGuestTokenHash(row.hash, token)) {
     throw Errors.notFound('Order not found.');
   }
   return getOrderView(db, row.id);
@@ -451,7 +475,7 @@ export async function getGuestOrder(db: Db, orderId: string, token: string): Pro
 export async function requireGuestOrder(db: Db, orderId: string, token?: string) {
   if (!token || !/^[a-f0-9]{64}$/.test(token)) throw Errors.notFound('Order not found.');
   const [order] = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1);
-  if (!order || !order.guestAccessTokenHash || order.guestAccessTokenHash !== createHash('sha256').update(token).digest('hex')) {
+  if (!order || !matchesGuestTokenHash(order.guestAccessTokenHash, token)) {
     throw Errors.notFound('Order not found.');
   }
   return order;

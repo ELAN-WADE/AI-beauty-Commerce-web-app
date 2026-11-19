@@ -1,3 +1,4 @@
+import { matchingRules } from '../skin/service';
 import { and, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import type { AppDb, Db } from '../../db/client';
 import { ApiError, Errors } from '../../lib/errors';
@@ -15,7 +16,8 @@ function keywords(content: string): string[] {
 
 /** Catalogue grounding: keyword match over active, in-stock variants only. */
 export async function groundProducts(db: Db, content: string) {
-  const keys = keywords(content);
+  const rules = matchingRules([content]);
+  const keys = [...new Set([...keywords(content), ...rules.flatMap(rule => [...rule.subLikes, ...rule.nameLikes])])].slice(0, 20);
   if (keys.length === 0) return [];
   const conds = keys.flatMap((k) => {
     const like = `%${k.replace(/[%_]/g, '')}%`;

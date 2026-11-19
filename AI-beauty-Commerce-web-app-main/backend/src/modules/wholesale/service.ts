@@ -7,6 +7,7 @@ import { HQ_LOCATION_ID, inventoryLocations, stockLevels } from '../inventory/sc
 import { adjustStock, reserveStock } from '../inventory/service';
 import { orderItems, orders, orderStatusHistory } from '../orders/schema';
 import { getOrderView, makeOrderNumber, transitionOrder } from '../orders/service';
+import { enqueueNotification } from '../notifications/service';
 import { ownedPartner } from '../partners/service';
 import { feeFor } from '../shipping/service';
 import { wholesalePrices, wholesaleStockEvents } from './schema';
@@ -76,6 +77,7 @@ export async function checkoutWholesale(db: Db, userId: string, key: string, inp
     await tx.insert(orderItems).values(quote.items.map(({ cartons, unitsPerCarton, minimumCartons, ...item }) => ({ ...item, orderId: order.id })));
     await tx.insert(orderStatusHistory).values({ orderId: order.id, toStatus: 'PENDING', actor: `customer:${userId}`, note: 'Wholesale invoice created.' });
     for (const item of quote.items) await reserveStock(tx, { locationId: HQ_LOCATION_ID, variantId: item.variantId, qty: item.qty, refType: 'order', refId: order.id, ttlMinutes: 30 });
+    await enqueueNotification(tx, { userId, channel: 'email', template: 'order.created', payload: { orderId: order.id }, idempotencyKey: `order.created:${order.id}` });
     return { order: await getOrderView(tx, order.id), replay: false };
   });
 }

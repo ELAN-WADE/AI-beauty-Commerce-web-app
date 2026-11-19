@@ -156,8 +156,13 @@ export async function readJson(req: Request, maxBytes = 1_048_576): Promise<unkn
 export function clientIp(req: Request): string {
   // Forwarded headers are only trustworthy when overwritten by a controlled edge.
   // Configure CLIENT_IP_HEADER with a private header that the edge strips and sets.
-  const header = process.env.CLIENT_IP_HEADER;
-  const ip = header ? req.headers.get(header)?.trim() || 'unknown' : process.env.NODE_ENV === 'production' ? 'unknown' : req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const header = process.env.CLIENT_IP_HEADER?.trim();
+  const raw = header
+    ? req.headers.get(header)
+    : process.env.NODE_ENV === 'production'
+      ? null
+      : req.headers.get('x-forwarded-for');
+  const ip = (header && header.toLowerCase() !== 'x-forwarded-for' ? raw?.trim() : raw?.split(',')[0]?.trim()) || 'unknown';
   return ip.slice(0, 64);
 }
 

@@ -46,7 +46,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
         {/* Header */}
         {title && (
           <div className="px-5 py-3 border-b border-[#E5E7EB] flex items-center justify-between">
-            <h3 className="font-heading font-bold text-base text-[#0F0F10]">{title}</h3>
+            <h3 className="font-heading font-semibold text-base text-[#0F0F10]">{title}</h3>
             <button
               onClick={onClose}
               aria-label="Close sheet"

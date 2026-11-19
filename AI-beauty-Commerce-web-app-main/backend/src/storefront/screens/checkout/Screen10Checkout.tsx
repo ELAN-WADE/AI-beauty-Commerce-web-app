@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { motion } from 'motion/react';
+import { DESLA_EASE_OUT } from '../../components/motion/DeslaMotion';
 import {
   Check,
   ShieldCheck,
@@ -165,12 +167,12 @@ const Screen10CheckoutContent: React.FC = () => {
         {/* Step Progress Header */}
         <div className="flex items-center justify-between pb-3 mb-4 border-b border-[#E5E7EB]">
           <div>
-            <h1 className="font-heading font-extrabold text-base text-[#0F0F10] leading-none">
+            <h1 className="font-heading font-semibold text-base text-[#0F0F10] leading-none">
               Checkout &amp; Fulfillment
             </h1>
             <p className="text-[11px] text-[#6B7280] mt-0.5">Secure local Lagos &amp; national dispatch</p>
           </div>
-          <span className="text-xs font-mono font-bold text-[#997A2E] bg-[#FBF5E8] px-2.5 py-0.5 rounded-full border border-[#D4AF37]/30">
+          <span className="text-xs font-mono font-medium text-[#997A2E] bg-[#FBF5E8] px-2.5 py-0.5 rounded-full border border-[#D4AF37]/30">
             Step 2 of 4
           </span>
         </div>
@@ -185,7 +187,7 @@ const Screen10CheckoutContent: React.FC = () => {
 
                 {/* Step 1: Customer */}
                 <div className="relative z-10 flex flex-col items-center">
-                  <div className="w-7 h-7 rounded-full bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center text-xs font-bold shadow-xs">
+                  <div className="w-7 h-7 rounded-full bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center text-xs font-medium shadow-xs">
                     <Check size={14} weight="bold" aria-hidden="true" />
                   </div>
                   <span className="text-[10px] font-semibold text-[#6B7280] mt-1">Customer</span>
@@ -193,15 +195,15 @@ const Screen10CheckoutContent: React.FC = () => {
 
                 {/* Step 2: Delivery */}
                 <div className="relative z-10 flex flex-col items-center">
-                  <div className="w-7 h-7 rounded-full bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center text-xs font-extrabold shadow-xs">
+                  <div className="w-7 h-7 rounded-full bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center text-xs font-semibold shadow-xs">
                     2
                   </div>
-                  <span className="text-[10px] font-bold text-[#0F0F10] mt-1">Fulfillment</span>
+                  <span className="text-[10px] font-semibold text-[#0F0F10] mt-1">Fulfillment</span>
                 </div>
 
                 {/* Step 3: Order Review */}
                 <div className="relative z-10 flex flex-col items-center">
-                  <div className="w-7 h-7 rounded-full bg-white border-2 border-gray-300 text-gray-400 flex items-center justify-center text-xs font-bold">
+                  <div className="w-7 h-7 rounded-full bg-white border-2 border-gray-300 text-gray-400 flex items-center justify-center text-xs font-medium">
                     3
                   </div>
                   <span className="text-[10px] font-medium text-gray-400 mt-1">Review</span>
@@ -209,7 +211,7 @@ const Screen10CheckoutContent: React.FC = () => {
 
                 {/* Step 4: Pay */}
                 <div className="relative z-10 flex flex-col items-center">
-                  <div className="w-7 h-7 rounded-full bg-white border-2 border-gray-300 text-gray-400 flex items-center justify-center text-xs font-bold">
+                  <div className="w-7 h-7 rounded-full bg-white border-2 border-gray-300 text-gray-400 flex items-center justify-center text-xs font-medium">
                     4
                   </div>
                   <span className="text-[10px] font-medium text-gray-400 mt-1">Payment</span>
@@ -220,28 +222,42 @@ const Screen10CheckoutContent: React.FC = () => {
             {/* Fulfilment: delivery or pickup from a location holding the whole bag */}
             <div className="p-5 rounded-2xl bg-white border border-[#E5E7EB] shadow-xs space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="font-heading font-bold text-sm text-[#0F0F10]">
+                <h3 className="font-heading font-semibold text-sm text-[#0F0F10]">
                   1. Delivery or pickup
                 </h3>
-                <span className="text-[11px] font-mono text-[#997A2E] font-bold">
+                <span className="text-[11px] font-mono text-[#997A2E] font-semibold">
                   {formData.city || selectedCity}
                 </span>
               </div>
 
-              <div className="grid grid-cols-2 gap-2" role="group" aria-label="Fulfilment method">
-                {(['DELIVERY', 'PICKUP'] as const).map((mode) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() => setFulfilMode(mode)}
-                    aria-pressed={fulfilMode === mode}
-                    className={`py-2.5 rounded-xl border-2 text-xs font-bold transition-all cursor-pointer ${
-                      fulfilMode === mode ? 'border-[#D4AF37] bg-[#FBF5E8]/60 text-[#0F0F10]' : 'border-[#E5E7EB] bg-[#FAF9F6] text-[#4B5563]'
-                    }`}
-                  >
-                    {mode === 'DELIVERY' ? 'Deliver to me' : 'Pick up'}
-                  </button>
-                ))}
+              <div className="grid grid-cols-2 gap-1.5 rounded-xl bg-[#F5F2EB] border border-[#EAE5DC] p-1" role="group" aria-label="Fulfilment method">
+                {(['DELIVERY', 'PICKUP'] as const).map((mode) => {
+                  const isActive = fulfilMode === mode;
+                  return (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setFulfilMode(mode)}
+                      aria-pressed={isActive}
+                      className={`relative py-2.5 rounded-[10px] text-xs font-medium transition-colors duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B89248] ${
+                        isActive ? 'text-white' : 'text-[#5D5850] hover:text-[#111111]'
+                      }`}
+                    >
+                      {isActive && (
+                        <motion.span
+                          layoutId="checkout-fulfil-highlight"
+                          transition={{ duration: 0.26, ease: DESLA_EASE_OUT }}
+                          className="absolute inset-0 rounded-[10px] bg-[#111111] shadow-xs ring-1 ring-[#B89248]/40"
+                          aria-hidden="true"
+                        />
+                      )}
+                      <span className="relative z-10 inline-flex items-center justify-center gap-1.5">
+                        {isActive && <span className="w-1.5 h-1.5 rounded-full bg-[#B89248]" aria-hidden="true" />}
+                        <span>{mode === 'DELIVERY' ? 'Deliver to me' : 'Pick up'}</span>
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
 
               {fulfilLoading ? (
@@ -257,19 +273,25 @@ const Screen10CheckoutContent: React.FC = () => {
                         onClick={() => setFulfilLocationId(option.locationId)}
                         role="radio"
                         aria-checked={selected}
-                        className={`w-full text-left p-3.5 rounded-xl border-2 transition-all cursor-pointer ${
-                          selected ? 'border-[#D4AF37] bg-[#FBF5E8]/60' : 'border-[#E5E7EB] bg-[#FAF9F6] hover:border-gray-300'
+                        className={`relative w-full text-left p-3.5 rounded-xl border transition-all duration-200 cursor-pointer ${
+                          selected
+                            ? 'border-[#111111] bg-[#111111] text-white shadow-[0_10px_24px_-12px_rgba(17,17,17,0.35)] ring-1 ring-[#B89248]/45'
+                            : 'border-[#EAE5DC] bg-[#FBF9F5] text-[#111111] hover:border-[#B89248]/60'
                         }`}
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div>
-                            <span className="font-bold text-xs text-[#0F0F10] block">{option.name}</span>
-                            <span className="text-[11px] text-[#6B7280] block mt-0.5">
+                            <span className={`font-medium text-xs block ${selected ? 'text-white' : 'text-[#111111]'}`}>
+                              {option.name}
+                            </span>
+                            <span className={`text-[11px] block mt-0.5 ${selected ? 'text-white/75' : 'text-[#6E6A63]'}`}>
                               {option.city}{option.address ? ` • ${option.address}` : ''}{fulfilMode === 'PICKUP' && option.operatingHours ? ` • ${option.operatingHours}` : ''}
                             </span>
-                            <span className="text-[11px] text-[#6B7280] block mt-0.5">{option.etaText}</span>
+                            <span className={`text-[11px] block mt-0.5 ${selected ? 'text-[#E6C77A]' : 'text-[#6E6A63]'}`}>
+                              {option.etaText}
+                            </span>
                           </div>
-                          <span className="font-mono font-bold text-xs text-[#0F0F10] shrink-0">
+                          <span className={`font-mono font-medium text-xs shrink-0 ${selected ? 'text-[#E6C77A]' : 'text-[#111111]'}`}>
                             {option.feeKobo === 0 ? 'Free' : formatNaira(Math.round(option.feeKobo / 100))}
                           </span>
                         </div>
@@ -293,13 +315,13 @@ const Screen10CheckoutContent: React.FC = () => {
 
             {/* Delivery Address Form */}
             <form onSubmit={handleContinueToPayment} className="p-5 rounded-2xl bg-white border border-[#E5E7EB] shadow-xs space-y-4">
-              <h3 className="font-heading font-bold text-sm text-[#0F0F10]">
+              <h3 className="font-heading font-semibold text-sm text-[#0F0F10]">
                 2. Recipient &amp; Delivery Address
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-bold text-[#4B5563] block mb-1">Full Name</label>
+                  <label className="text-[11px] font-medium text-[#4B5563] block mb-1">Full Name</label>
                   <input
                     type="text"
                     required
@@ -309,7 +331,7 @@ const Screen10CheckoutContent: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold text-[#4B5563] block mb-1">Phone Number (WhatsApp)</label>
+                  <label className="text-[11px] font-medium text-[#4B5563] block mb-1">Phone Number (WhatsApp)</label>
                   <input
                     type="tel"
                     required
@@ -321,7 +343,7 @@ const Screen10CheckoutContent: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-[11px] font-bold text-[#4B5563] block mb-1">Street Address</label>
+                <label className="text-[11px] font-medium text-[#4B5563] block mb-1">Street Address</label>
                 <input
                   type="text"
                   required
@@ -333,7 +355,7 @@ const Screen10CheckoutContent: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-bold text-[#4B5563] block mb-1">City</label>
+                  <label className="text-[11px] font-medium text-[#4B5563] block mb-1">City</label>
                   <input
                     type="text"
                     required
@@ -343,7 +365,7 @@ const Screen10CheckoutContent: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold text-[#4B5563] block mb-1">State</label>
+                  <label className="text-[11px] font-medium text-[#4B5563] block mb-1">State</label>
                   <input
                     type="text"
                     required
@@ -355,7 +377,7 @@ const Screen10CheckoutContent: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-[11px] font-bold text-[#4B5563] block mb-1">Delivery Instructions (Optional)</label>
+                <label className="text-[11px] font-medium text-[#4B5563] block mb-1">Delivery Instructions (Optional)</label>
                 <input
                   type="text"
                   value={formData.deliveryNotes}
@@ -365,12 +387,12 @@ const Screen10CheckoutContent: React.FC = () => {
                 />
               </div>
 
-              <div className="space-y-2 border-t border-[#E5E7EB] pt-3"><h3 className="text-sm font-bold">3. Continue to payment</h3><p className="text-xs text-[#6B7280]">Review this order, then choose your payment gateway on the next step.</p></div>
+              <div className="space-y-2 border-t border-[#E5E7EB] pt-3"><h3 className="text-sm font-medium">3. Continue to payment</h3><p className="text-xs text-[#6B7280]">Review this order, then choose your payment gateway on the next step.</p></div>
 
               <button
                 type="submit"
                 disabled={!canContinue}
-                className="w-full py-4 rounded-full bg-[#0F0F10] hover:bg-[#1F1D22] text-white font-heading font-extrabold text-sm shadow-xl flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer mt-4 disabled:opacity-50"
+                className="w-full py-4 rounded-full bg-[#0F0F10] hover:bg-[#1F1D22] text-white font-heading font-semibold text-sm shadow-xl flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer mt-4 disabled:opacity-50"
               >
                 <span>Continue to payment</span>
                 <ArrowRight size={16} weight="bold" className="text-[#D4AF37]" aria-hidden="true" />
@@ -382,7 +404,7 @@ const Screen10CheckoutContent: React.FC = () => {
           <div className="lg:col-span-5 space-y-4 lg:sticky lg:top-24">
             {/* Order Summary Box */}
             <div className="p-5 rounded-2xl bg-white border border-[#E5E7EB] shadow-xs space-y-4">
-              <h3 className="font-heading font-bold text-sm text-[#0F0F10]">
+              <h3 className="font-heading font-semibold text-sm text-[#0F0F10]">
                 Order Summary ({cartItems.length} items)
               </h3>
 
@@ -395,14 +417,14 @@ const Screen10CheckoutContent: React.FC = () => {
                       className="w-12 h-12 rounded-lg object-cover bg-[#F6F5F2] border border-[#E5E7EB] shrink-0"
                     />
                     <div className="flex-1 min-w-0 text-xs">
-                      <span className="font-bold text-[#0F0F10] block truncate">
+                      <span className="font-semibold text-[#0F0F10] block truncate">
                         {item.product.name}
                       </span>
                       <span className="text-[10px] text-[#6B7280]">
                         Qty: {item.quantity} • {item.size}
                       </span>
                     </div>
-                    <span className="font-mono font-bold text-xs text-[#0F0F10]">
+                    <span className="font-mono font-medium text-xs text-[#0F0F10]">
                       {formatNaira(item.unitPrice * item.quantity)}
                     </span>
                   </div>
@@ -425,9 +447,9 @@ const Screen10CheckoutContent: React.FC = () => {
                   <span>{fulfilMode === 'PICKUP' ? 'Pickup' : 'Delivery'}{selectedOption ? ` (${selectedOption.name})` : ''}</span>
                   <span className="font-mono font-medium text-[#0F0F10]">{currentDeliveryFee == null ? 'Awaiting availability' : formatNaira(currentDeliveryFee)}</span>
                 </div>
-                <div className="pt-3 border-t border-[#E5E7EB] flex justify-between items-center text-sm font-bold text-[#0F0F10]">
+                <div className="pt-3 border-t border-[#E5E7EB] flex justify-between items-center text-sm font-semibold text-[#0F0F10]">
                   <span>Total Due</span>
-                  <span className="font-price font-extrabold text-xl text-[#0F0F10]">{calculatedTotal == null ? 'Choose fulfilment' : formatNaira(calculatedTotal)}</span>
+                  <span className="font-price font-semibold text-xl text-[#0F0F10]">{calculatedTotal == null ? 'Choose fulfilment' : formatNaira(calculatedTotal)}</span>
                 </div>
               </div>
             </div>
@@ -437,7 +459,7 @@ const Screen10CheckoutContent: React.FC = () => {
               <div className="p-4 rounded-2xl bg-white border border-[#E5E7EB] shadow-xs space-y-3">
                 <div className="flex items-center gap-1.5">
                   <ShieldCheck size={15} weight="fill" className="text-[#D4AF37]" aria-hidden="true" />
-                  <span className="font-heading font-bold text-xs text-[#0F0F10]">
+                  <span className="font-heading font-medium text-xs text-[#0F0F10]">
                     Complete Your Routine
                   </span>
                 </div>
@@ -454,16 +476,16 @@ const Screen10CheckoutContent: React.FC = () => {
                         className="w-11 h-11 rounded-lg object-cover bg-[#F6F5F2] shrink-0"
                       />
                       <div className="flex-1 min-w-0">
-                        <span className="font-bold text-[#0F0F10] block truncate text-[11.5px]">
+                        <span className="font-semibold text-[#0F0F10] block truncate text-[11.5px]">
                           {product.name}
                         </span>
-                        <span className="font-mono font-bold text-[#997A2E] text-[11px]">
+                        <span className="font-mono font-semibold text-[#997A2E] text-[11px]">
                           {formatNaira(product.price)}
                         </span>
                       </div>
                       <button
                         onClick={() => addToCart(product, product.sizes?.[0] || 'Standard', 1)}
-                        className="px-2.5 py-1 rounded-lg bg-[#0F0F10] text-white font-bold text-[10px] hover:bg-[#D4AF37] hover:text-[#0F0F10] active:scale-95 transition-all shrink-0 cursor-pointer"
+                        className="px-2.5 py-1 rounded-lg bg-[#0F0F10] text-white font-semibold text-[10px] hover:bg-[#D4AF37] hover:text-[#0F0F10] active:scale-95 transition-all shrink-0 cursor-pointer"
                       >
                         + Add
                       </button>

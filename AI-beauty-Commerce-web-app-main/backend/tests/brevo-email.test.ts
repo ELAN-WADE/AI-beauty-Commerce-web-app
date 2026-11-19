@@ -19,7 +19,7 @@ describe('Brevo HTTPS transactional email', () => {
     const [url, init] = fetcher.mock.calls[0];
     expect(url).toBe('https://api.brevo.com/v3/smtp/email');
     expect(init).toMatchObject({ method: 'POST', cache: 'no-store', redirect: 'error', headers: { 'api-key': 'test-api-secret' } });
-    expect(JSON.parse(init.body)).toEqual({ sender: { email: 'hello@example.com', name: 'Desla!' }, to: [{ email: message.to }], subject: message.subject, textContent: message.text });
+    expect(JSON.parse(init.body)).toEqual({ sender: { email: 'hello@example.com', name: 'Desla' }, to: [{ email: message.to }], subject: message.subject, textContent: message.text });
     expect(init.signal).toBeInstanceOf(AbortSignal);
   });
   it('verifies credentials without sending a message', async () => {

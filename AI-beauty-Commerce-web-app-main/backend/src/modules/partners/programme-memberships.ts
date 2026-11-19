@@ -12,6 +12,7 @@ import { programmeDefinitions, type AdditionalProgramme } from '@/storefront/lib
 import { programmeCommand, adminProgrammeCommand } from './programme-validation';
 import type { z } from 'zod';
 export const PROGRAMME_REVIEW_TEMPLATE = 'partner.programme-reviewed';
+export const PROGRAMME_SUBMITTED_TEMPLATE = 'partner.programme-submitted';
 const membershipKey = (userId: string, programme: AdditionalProgramme) => `programme:${userId}:${programme}`;
 export async function programmeMembership(db: Db, userId: string, programme: AdditionalProgramme) {
   const [member] = await db.select().from(workspaceRecords).where(and(eq(workspaceRecords.idempotencyKey, membershipKey(userId, programme)), eq(workspaceRecords.ownerId, userId), eq(workspaceRecords.kind, 'PARTNER_PROGRAMME'), eq(workspaceRecords.audience, programme))).limit(1);
@@ -46,6 +47,7 @@ export async function writeProgramme(db: Db, userId: string, input: z.infer<type
       const values = { title: input.name, body: input.motivation, url: input.profileUrl, status: 'SUBMITTED', reviewNote: '', data: { details: {} }, updatedAt: new Date() };
       const [saved] = member ? await tx.update(workspaceRecords).set({ ...values, version: member.version + 1 }).where(eq(workspaceRecords.id, member.id)).returning() : await tx.insert(workspaceRecords).values({ ...values, kind: 'PARTNER_PROGRAMME', ownerId: userId, audience: input.programme, idempotencyKey: membershipKey(userId, input.programme) }).returning();
       await audit(tx, { actorId: userId, action: 'partner.programme.apply', entityType: 'workspace', entityId: saved.id });
+      await enqueueNotification(tx, { userId, channel: 'email', template: PROGRAMME_SUBMITTED_TEMPLATE, payload: { membershipId: saved.id, version: saved.version, status: 'SUBMITTED' } });
       return saved;
     }
     if (!member) throw Errors.notFound();

@@ -50,8 +50,8 @@ export const CreatorReferralLinks: React.FC = () => {
     if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
       try {
         await navigator.share({
-          title: `Delsla!™ — ${link.name}`,
-          text: link.promoCode ? `Shop Delsla!™ with code ${link.promoCode}` : 'Shop my curated Delsla!™ edit',
+          title: `Desla!™ — ${link.name}`,
+          text: link.promoCode ? `Shop Desla!™ with code ${link.promoCode}` : 'Shop my curated Desla!™ edit',
           url: link.url
         });
         return;
@@ -152,10 +152,10 @@ export const CreatorReferralLinks: React.FC = () => {
       {/* Desktop Header */}
       <div className="hidden md:flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E5E7EB]">
         <div>
-          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
+          <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-[#997A2E]">
             Attribution &amp; Tracking
           </span>
-          <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-[#0F0F10]">
+          <h1 className="font-heading font-bold text-2xl sm:text-3xl text-[#0F0F10]">
             Referral Links &amp; Promo Codes
           </h1>
           <p className="text-xs sm:text-sm text-[#6B7280] mt-0.5">
@@ -165,7 +165,7 @@ export const CreatorReferralLinks: React.FC = () => {
 
         <button
           onClick={() => setIsCreateModalOpen(true)}
-          className="px-5 py-2.5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-bold shadow-xs active:scale-[0.97] transition-all flex items-center gap-1.5 cursor-pointer self-start sm:self-auto shrink-0"
+          className="px-5 py-2.5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-medium shadow-xs active:scale-[0.97] transition-all flex items-center gap-1.5 cursor-pointer self-start sm:self-auto shrink-0"
         >
           <Plus size={14} className="text-[#D4AF37]" />
           <span>Create New Deep Link</span>
@@ -201,7 +201,7 @@ export const CreatorReferralLinks: React.FC = () => {
       <div className="rounded-2xl sm:rounded-3xl bg-white border border-[#E5E7EB] shadow-2xs overflow-hidden">
         <div className="p-5 sm:p-6 border-b border-[#E5E7EB] flex items-center justify-between">
           <div>
-            <h2 className="font-heading font-extrabold text-lg sm:text-xl text-[#0F0F10] tracking-tight">
+            <h2 className="font-heading font-semibold text-lg sm:text-xl text-[#0F0F10] tracking-tight">
               Active Attribution Links ({creatorLinks.length})
             </h2>
             <p className="text-xs text-[#6B7280] mt-0.5">
@@ -215,32 +215,32 @@ export const CreatorReferralLinks: React.FC = () => {
           {creatorLinks.length === 0 ? (
             <div className="py-10 px-4 text-center text-[#6B7280] space-y-2">
               <Link2 className="w-7 h-7 text-[#997A2E] mx-auto opacity-60" />
-              <p className="font-heading font-bold text-sm text-[#0F0F10]">No Attribution Links Yet</p>
+              <p className="font-heading font-semibold text-sm text-[#0F0F10]">No Attribution Links Yet</p>
               <p className="text-xs">Create custom deep links to your curated routines or products to start earning tracked commissions.</p>
             </div>
           ) : creatorLinks.map((link) => (
             <div key={link.id} className="p-4 space-y-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <span className="font-bold text-sm text-[#0F0F10] block truncate">{link.name}</span>
+                  <span className="font-semibold text-sm text-[#0F0F10] block truncate">{link.name}</span>
                   <span className="text-xs text-[#6B7280] font-mono break-all line-clamp-1">{link.url}</span>
                 </div>
-                <span className="shrink-0 px-2 py-0.5 rounded-md bg-[#FAF9F6] border border-[#E5E7EB] font-mono font-bold text-[#0F0F10] text-xs">
+                <span className="shrink-0 px-2 py-0.5 rounded-md bg-[#FAF9F6] border border-[#E5E7EB] font-mono font-medium text-[#0F0F10] text-xs">
                   {link.promoCode}
                 </span>
               </div>
               <div className="grid grid-cols-3 gap-2 text-xs bg-[#FAF9F6] rounded-xl p-2.5">
                 <div>
                   <span className="text-[11px] text-[#6B7280] block">Clicks</span>
-                  <span className="font-mono font-bold text-[#0F0F10]">{link.clicks.toLocaleString()}</span>
+                  <span className="font-mono font-semibold text-[#0F0F10]">{link.clicks.toLocaleString()}</span>
                 </div>
                 <div>
                   <span className="text-[11px] text-[#6B7280] block">Orders</span>
-                  <span className="font-mono font-bold text-[#0F0F10]">{link.orders.toLocaleString()}</span>
+                  <span className="font-mono font-semibold text-[#0F0F10]">{link.orders.toLocaleString()}</span>
                 </div>
                 <div>
                   <span className="text-[11px] text-[#6B7280] block">Earned</span>
-                  <span className="font-mono font-bold text-[#0F0F10]">₦{link.earnedNgn.toLocaleString('en-NG')}</span>
+                  <span className="font-mono font-semibold text-[#0F0F10]">₦{link.earnedNgn.toLocaleString('en-NG')}</span>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -277,7 +277,7 @@ export const CreatorReferralLinks: React.FC = () => {
         <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="border-b border-[#E5E7EB] text-[10px] font-mono font-bold uppercase text-[#9CA3AF] tracking-wider">
+              <tr className="border-b border-[#E5E7EB] text-[10px] font-mono font-medium uppercase text-[#9CA3AF] tracking-wider">
                 <th className="py-3.5 px-6">Link Name &amp; URL</th>
                 <th className="py-3.5 px-6">Promo Code</th>
                 <th className="py-3.5 px-6">Discount</th>
@@ -294,7 +294,7 @@ export const CreatorReferralLinks: React.FC = () => {
                   <td colSpan={8} className="py-12 text-center text-[#6B7280]">
                     <div className="max-w-xs mx-auto space-y-2">
                       <Link2 className="w-8 h-8 text-[#997A2E] mx-auto opacity-40" />
-                      <p className="font-heading font-bold text-sm text-[#0F0F10]">No Attribution Links Yet</p>
+                      <p className="font-heading font-semibold text-sm text-[#0F0F10]">No Attribution Links Yet</p>
                       <p className="text-xs">Create custom deep links to your curated routines or products to start earning tracked commissions.</p>
                     </div>
                   </td>
@@ -302,13 +302,13 @@ export const CreatorReferralLinks: React.FC = () => {
               ) : creatorLinks.map((link) => (
                 <tr key={link.id} className="hover:bg-[#FAF9F6]/80 transition-colors">
                   <td className="py-4 px-6">
-                    <span className="font-bold text-[#0F0F10] block">{link.name}</span>
+                    <span className="font-semibold text-[#0F0F10] block">{link.name}</span>
                     <span className="text-[11px] text-[#6B7280] font-mono select-all truncate max-w-xs block">
                       {link.url}
                     </span>
                   </td>
                   <td className="py-4 px-6">
-                    <span className="px-2.5 py-1 rounded-md bg-[#FAF9F6] border border-[#E5E7EB] font-mono font-bold text-[#0F0F10] text-xs">
+                    <span className="px-2.5 py-1 rounded-md bg-[#FAF9F6] border border-[#E5E7EB] font-mono font-medium text-[#0F0F10] text-xs">
                       {link.promoCode}
                     </span>
                   </td>
@@ -321,10 +321,10 @@ export const CreatorReferralLinks: React.FC = () => {
                   <td className="py-4 px-6 font-mono text-[#0F0F10]">
                     {link.orders.toLocaleString()}
                   </td>
-                  <td className="py-4 px-6 font-mono font-bold text-[#0F0F10]">
+                  <td className="py-4 px-6 font-mono font-semibold text-[#0F0F10]">
                     {link.conversion}
                   </td>
-                  <td className="py-4 px-6 font-mono font-bold text-[#0F0F10]">
+                  <td className="py-4 px-6 font-mono font-semibold text-[#0F0F10]">
                     ₦{link.earnedNgn.toLocaleString('en-NG')}
                   </td>
                   <td className="py-4 px-6 text-right">
@@ -353,7 +353,7 @@ export const CreatorReferralLinks: React.FC = () => {
                         {copiedId === link.id ? (
                           <>
                             <Check size={12} className="text-[#0F0F10]" />
-                            <span className="text-[#0F0F10] font-bold">Copied</span>
+                            <span className="text-[#0F0F10] font-semibold">Copied</span>
                           </>
                         ) : (
                           <>
@@ -383,7 +383,7 @@ export const CreatorReferralLinks: React.FC = () => {
                   <Link2 size={16} />
                 </div>
                 <div>
-                  <h3 className="font-heading font-extrabold text-lg text-[#0F0F10]">
+                  <h3 className="font-heading font-semibold text-lg text-[#0F0F10]">
                     Create Attribution Deep Link
                   </h3>
                   <p className="text-xs text-[#6B7280]">
@@ -401,7 +401,7 @@ export const CreatorReferralLinks: React.FC = () => {
 
             <form onSubmit={handleCreateSubmit} className="p-6 space-y-4">
               <div>
-                <label className="block text-xs font-bold text-[#0F0F10] mb-1">
+                <label className="block text-xs font-medium text-[#0F0F10] mb-1">
                   Link Name / Campaign Title
                 </label>
                 <input
@@ -415,7 +415,7 @@ export const CreatorReferralLinks: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#0F0F10] mb-1">
+                <label className="block text-xs font-medium text-[#0F0F10] mb-1">
                   Destination Target
                 </label>
                 <div className="grid grid-cols-3 gap-2">
@@ -428,7 +428,7 @@ export const CreatorReferralLinks: React.FC = () => {
                       key={t.id}
                       type="button"
                       onClick={() => setLinkType(t.id as any)}
-                      className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                      className={`py-2 px-3 rounded-xl text-xs font-medium border transition-all cursor-pointer ${
                         linkType === t.id
                           ? 'bg-[#0F0F10] text-[#D4AF37] border-[#0F0F10]'
                           : 'bg-white text-[#6B7280] border-[#E5E7EB] hover:bg-[#FAF9F6]'
@@ -442,7 +442,7 @@ export const CreatorReferralLinks: React.FC = () => {
 
               {linkType === 'product' && (
                 <div>
-                  <label className="block text-xs font-bold text-[#0F0F10] mb-1">
+                  <label className="block text-xs font-medium text-[#0F0F10] mb-1">
                     Select Target Formulation
                   </label>
                   <select
@@ -461,7 +461,7 @@ export const CreatorReferralLinks: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-[#0F0F10] mb-1">
+                  <label className="block text-xs font-medium text-[#0F0F10] mb-1">
                     Promo Code Slug
                   </label>
                   <div className="relative">
@@ -472,13 +472,13 @@ export const CreatorReferralLinks: React.FC = () => {
                       placeholder="AMARA15"
                       value={customPromoCode}
                       onChange={(e) => setCustomPromoCode(e.target.value.toUpperCase())}
-                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-[#E5E7EB] text-xs bg-[#FAF9F6] font-mono font-bold uppercase focus:bg-white focus:outline-none"
+                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-[#E5E7EB] text-xs bg-[#FAF9F6] font-mono font-medium uppercase focus:bg-white focus:outline-none"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#0F0F10] mb-1">
+                  <label className="block text-xs font-medium text-[#0F0F10] mb-1">
                     Customer Discount %
                   </label>
                   <div className="relative">
@@ -486,23 +486,21 @@ export const CreatorReferralLinks: React.FC = () => {
                     <select
                       value={discountPercent}
                       onChange={(e) => setDiscountPercent(Number(e.target.value))}
-                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-[#E5E7EB] text-xs bg-[#FAF9F6] font-mono font-bold focus:bg-white focus:outline-none"
+                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-[#E5E7EB] text-xs bg-[#FAF9F6] font-mono font-medium focus:bg-white focus:outline-none"
                     >
-                      <option value={10}>10% Standard</option>
-                      <option value={15}>15% Campaign Special</option>
-                      <option value={20}>20% VIP Exclusive</option>
+                      <option value={10}>10% Standard Creator Tier</option>
                     </select>
                   </div>
                 </div>
               </div>
 
               <div className="p-3.5 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] text-[11px] text-[#6B7280] space-y-1">
-                <span className="font-bold text-[#0F0F10] block">Automated Provisioning:</span>
+                <span className="font-semibold text-[#0F0F10] block">Server-Verified Attribution:</span>
                 <p>
-                  • Link clicks will track real-time IP &amp; cookie attribution for 30 days.
+                  • Only your approved creator promo code issued by Desla Operations is honored at live checkout.
                 </p>
                 <p>
-                  • Coupon code <strong className="text-[#0F0F10] font-mono">{customPromoCode || '...'}</strong> is instantly active at live checkout.
+                  • Custom campaign links help organize your shareable catalogue URLs without inventing unapproved checkout discounts.
                 </p>
               </div>
 
@@ -516,7 +514,7 @@ export const CreatorReferralLinks: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-[#D4AF37] text-xs font-bold shadow-md cursor-pointer transition-transform active:scale-95"
+                  className="px-6 py-2.5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-[#D4AF37] text-xs font-medium shadow-md cursor-pointer transition-transform active:scale-95"
                 >
                   Generate &amp; Activate Link
                 </button>
@@ -534,10 +532,10 @@ export const CreatorReferralLinks: React.FC = () => {
           <div className="w-full max-w-sm rounded-3xl bg-white border border-[#E5E7EB] shadow-2xl overflow-hidden p-6 text-center space-y-5 animate-in zoom-in-95 duration-200">
             <div className="flex justify-between items-center pb-2 border-b border-[#E5E7EB]">
               <div className="text-left">
-                <span className="text-[10px] font-mono font-bold uppercase text-[#997A2E]">
+                <span className="text-[10px] font-mono font-semibold uppercase text-[#997A2E]">
                   Digital QR Pass
                 </span>
-                <h4 className="font-heading font-extrabold text-base text-[#0F0F10]">
+                <h4 className="font-heading font-semibold text-base text-[#0F0F10]">
                   {activeQrLink.name}
                 </h4>
               </div>
@@ -563,7 +561,7 @@ export const CreatorReferralLinks: React.FC = () => {
             </div>
 
             <div className="space-y-1">
-              <span className="text-xs font-mono font-bold text-[#0F0F10] block">
+              <span className="text-xs font-mono font-medium text-[#0F0F10] block">
                 Promo Code: {activeQrLink.promoCode} ({activeQrLink.discountPercent}% Off)
               </span>
               <p className="text-[11px] text-[#6B7280] font-mono select-all truncate px-4">
@@ -574,7 +572,7 @@ export const CreatorReferralLinks: React.FC = () => {
             <div className="flex gap-2">
               <button
                 onClick={() => handleCopy(activeQrLink.id, activeQrLink.url)}
-                className="flex-1 py-2.5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                className="flex-1 py-2.5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-medium transition-all cursor-pointer flex items-center justify-center gap-1.5"
               >
                 <Copy size={13} className="text-[#D4AF37]" />
                 <span>{copiedId === activeQrLink.id ? 'Copied ✓' : 'Copy Link'}</span>

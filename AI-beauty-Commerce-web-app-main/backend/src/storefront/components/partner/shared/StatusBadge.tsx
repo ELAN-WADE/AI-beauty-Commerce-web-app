@@ -45,7 +45,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
 
   // Monospace uppercase stamp without unnecessary bulky borders
   return (
-    <span className="inline-flex items-center gap-1.5 font-mono uppercase tracking-wider font-bold text-[10px] text-[#0F0F10]">
+    <span className="inline-flex items-center gap-1.5 font-mono uppercase tracking-wider font-medium text-[10px] text-[#0F0F10]">
       <span className="w-1 h-1 rounded-full bg-[#0F0F10] shrink-0" />
       <span>{formattedLabel}</span>
     </span>

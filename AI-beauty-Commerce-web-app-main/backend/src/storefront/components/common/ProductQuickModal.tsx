@@ -1,9 +1,12 @@
+import { animateToBag } from '../../lib/cart-motion';
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { X, Check, ShoppingBag, Star, ShieldCheck, Minus, Plus } from '@phosphor-icons/react';
 import { Product } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { ProductImage } from './ProductImage';
+import { DESLA_EASE_DRAWER, DESLA_EASE_OUT } from '../motion/DeslaMotion';
 
 interface ProductQuickModalProps {
   product: Product | null;
@@ -17,6 +20,7 @@ export const ProductQuickModal: React.FC<ProductQuickModalProps> = ({
   onClose,
 }) => {
   const { addToCart, viewProductDetails } = useApp();
+  const prefersReduced = useReducedMotion();
   const router = useRouter();
   useEffect(() => {
     if (isOpen && product?.id) router.prefetch('/products/' + encodeURIComponent(product.id));
@@ -84,18 +88,19 @@ export const ProductQuickModal: React.FC<ProductQuickModalProps> = ({
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen || !product) return null;
-  const variant = product.variants?.find(variant => variant.sizeLabel === selectedSize);
-  const unitPrice = variant?.priceNgn ?? product.price;
-  const comparePrice = variant ? variant.compareAtNgn : product.originalPrice;
+  const unitPrice = product ? (product.variants?.find(v => v.sizeLabel === selectedSize)?.priceNgn ?? product.price) : 0;
+  const comparePrice = product
+    ? (product.variants?.find(v => v.sizeLabel === selectedSize)?.compareAtNgn ?? product.originalPrice)
+    : undefined;
 
   const formatNaira = (amt: number) => '₦' + amt.toLocaleString('en-NG');
 
-  const handleAddToCart = () => {
-    if (isSubmitting) return;
+  const handleAddToCart = (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (!product || isSubmitting) return;
     setIsSubmitting(true);
     try {
       if (!addToCart({ ...product, price: unitPrice }, selectedSize, quantity)) { setIsSubmitting(false); return; }
+      animateToBag(event.currentTarget, product.image);
       setJustAdded(true);
       setTimeout(() => {
         setJustAdded(false);
@@ -108,24 +113,35 @@ export const ProductQuickModal: React.FC<ProductQuickModalProps> = ({
   };
 
   const handleViewFullDetails = () => {
+    if (!product) return;
     onClose();
     viewProductDetails(product);
   };
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="quick-add-title"
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
-      onClick={onClose}
-    >
-      <div
-        ref={modalRef}
-        tabIndex={-1}
-        onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-lg sm:max-w-2xl lg:max-w-3xl bg-white rounded-t-3xl sm:rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.2)] overflow-hidden max-h-[88vh] sm:max-h-[85vh] flex flex-col font-body transition-transform animate-in slide-in-from-bottom duration-250"
-      >
+    <AnimatePresence>
+      {isOpen && product && (
+        <motion.div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="quick-add-title"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.18, ease: DESLA_EASE_OUT }}
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/55 backdrop-blur-xs"
+          onClick={onClose}
+        >
+          <motion.div
+            ref={modalRef}
+            tabIndex={-1}
+            onClick={(e) => e.stopPropagation()}
+            initial={prefersReduced ? { opacity: 0 } : { opacity: 0, y: 18, scale: 0.96 }}
+            animate={prefersReduced ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
+            exit={prefersReduced ? { opacity: 0 } : { opacity: 0, y: 12, scale: 0.97 }}
+            transition={{ duration: 0.24, ease: DESLA_EASE_DRAWER }}
+            className="relative w-full max-w-lg sm:max-w-2xl lg:max-w-3xl bg-white rounded-t-3xl sm:rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.2)] overflow-hidden max-h-[88vh] sm:max-h-[85vh] flex flex-col font-body"
+          >
         {/* Accessible Close Button */}
         <button
           onClick={onClose}
@@ -144,15 +160,15 @@ export const ProductQuickModal: React.FC<ProductQuickModalProps> = ({
             {/* Badges */}
             <div className="absolute top-4 left-4 right-4 z-10 flex flex-row flex-wrap items-center gap-2">
               {product.customBadge && !/clinical/i.test(product.customBadge) && (
-                <span className="text-[10px] font-mono font-semibold uppercase tracking-wide text-[#0F0F10]">
+                <span className="text-[10px] font-mono font-medium uppercase tracking-wide text-[#0F0F10]">
                   {product.customBadge}
                 </span>
               )}
-              <span className="text-[10px] font-mono font-semibold uppercase tracking-wide text-[#0F0F10]">
+              <span className="text-[10px] font-mono font-medium uppercase tracking-wide text-[#0F0F10]">
                 {[product.subCategory, product.category].find(value => value && !/clinical/i.test(value)) || 'Formulation'}
               </span>
               {product.isBestseller && (
-                <span className="text-[10px] font-mono font-semibold uppercase tracking-wide text-[#0F0F10]">
+                <span className="text-[10px] font-mono font-medium uppercase tracking-wide text-[#0F0F10]">
                   Best Seller
                 </span>
               )}
@@ -170,7 +186,7 @@ export const ProductQuickModal: React.FC<ProductQuickModalProps> = ({
             <div className="space-y-2.5">
               <h2
                 id="quick-add-title"
-                className="font-heading font-extrabold text-xl sm:text-2xl text-[#0F0F10] tracking-tight leading-snug break-words"
+                className="font-heading font-semibold text-xl sm:text-2xl text-[#0F0F10] tracking-tight leading-snug break-words"
               >
                 {product.name}
               </h2>
@@ -183,7 +199,7 @@ export const ProductQuickModal: React.FC<ProductQuickModalProps> = ({
                       <Star key={i} size={12} weight="fill" aria-hidden="true" />
                     ))}
                   </div>
-                  <span className="font-bold text-[#0F0F10] text-xs">{product.rating.toFixed(1)}</span>
+                  <span className="font-medium text-[#0F0F10] text-xs">{product.rating.toFixed(1)}</span>
                   {product.reviewsCount ? (
                     <>
                       <span>•</span>
@@ -201,7 +217,7 @@ export const ProductQuickModal: React.FC<ProductQuickModalProps> = ({
 
               {/* Price */}
               <div className="flex items-baseline gap-2.5 pt-1">
-                <span className="font-price font-extrabold text-2xl text-[#0F0F10]">
+                <span className="font-price font-semibold text-2xl text-[#0F0F10]">
                   {formatNaira(unitPrice)}
                 </span>
                 {comparePrice && comparePrice > unitPrice && (
@@ -231,7 +247,7 @@ export const ProductQuickModal: React.FC<ProductQuickModalProps> = ({
             {/* Size / Variant Options */}
             {product.sizes && product.sizes.length > 0 && (
               <div className="space-y-2 pt-1">
-                <label className="text-xs font-bold text-[#0F0F10] flex justify-between">
+                <label className="text-xs font-medium text-[#0F0F10] flex justify-between">
                   <span>Size / Volume</span>
                   <span className="text-[#997A2E] font-mono text-[11px]">{selectedSize}</span>
                 </label>
@@ -246,7 +262,7 @@ export const ProductQuickModal: React.FC<ProductQuickModalProps> = ({
                         onClick={() => setSelectedSize(size)}
                         className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 ${
                           isSelected
-                            ? 'bg-[#0F0F10] text-white shadow-xs font-bold'
+                            ? 'bg-[#0F0F10] text-white shadow-xs font-semibold'
                             : 'bg-[#F5F5F5] text-[#525252] hover:bg-[#EBEBEB]'
                         }`}
                       >
@@ -271,7 +287,7 @@ export const ProductQuickModal: React.FC<ProductQuickModalProps> = ({
                   >
                     <Minus size={14} />
                   </button>
-                  <span className="w-8 text-center font-mono font-bold text-xs text-[#0F0F10]">
+                  <span className="w-8 text-center font-mono font-semibold text-xs text-[#0F0F10]">
                     {quantity}
                   </span>
                   <button
@@ -307,7 +323,7 @@ export const ProductQuickModal: React.FC<ProductQuickModalProps> = ({
               <div className="text-center pt-1">
                 <button
                   onClick={handleViewFullDetails}
-                  className="text-xs font-semibold text-[#737373] hover:text-[#0F0F10] underline underline-offset-4 cursor-pointer transition-colors"
+                  className="text-xs font-medium text-[#737373] hover:text-[#0F0F10] underline underline-offset-4 cursor-pointer transition-colors"
                 >
                   View full formulation dossier &amp; reviews →
                 </button>
@@ -315,7 +331,9 @@ export const ProductQuickModal: React.FC<ProductQuickModalProps> = ({
             </div>
           </div>
         </div>
-      </div>
-    </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };

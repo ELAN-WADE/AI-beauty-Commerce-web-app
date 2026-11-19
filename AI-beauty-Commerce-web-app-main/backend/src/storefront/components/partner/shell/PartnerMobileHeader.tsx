@@ -35,10 +35,10 @@ export const PartnerMobileHeader: React.FC<PartnerMobileHeaderProps> = ({
           <ArrowLeft size={18} />
         </button>
         <div className="flex items-center gap-1.5">
-          <span className="font-heading font-black text-base text-[#0F0F10] tracking-tight">
-            Delsla!™
+          <span className="font-heading font-medium text-base text-[#0F0F10] tracking-tight">
+            Desla!™
           </span>
-          <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#FBF5E8] text-[#997A2E]">
+          <span className="text-[10px] font-mono font-medium uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#FBF5E8] text-[#997A2E]">
             {isCreator ? 'Creator' : 'Distributor'}
           </span>
         </div>
@@ -56,7 +56,7 @@ export const PartnerMobileHeader: React.FC<PartnerMobileHeaderProps> = ({
         <button
           onClick={onOpenMore}
           aria-label="Open menu"
-          className="w-9 h-9 rounded-full bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center text-xs font-mono font-bold cursor-pointer"
+          className="w-9 h-9 rounded-full bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center text-xs font-mono font-medium cursor-pointer"
         >
           {initials}
         </button>

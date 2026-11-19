@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion } from 'motion/react';
 import {
   MagnifyingGlass,
   ShoppingBag,
@@ -10,6 +11,7 @@ import {
 import { useApp } from '../../context/AppContext';
 import { BrandLogo } from './BrandLogo';
 import { FaceScanIcon } from './FaceScanIcon';
+import { DESLA_SPRING_SNAPPY } from '../motion/DeslaMotion';
 
 export const DesktopNav: React.FC = () => {
   const {
@@ -54,7 +56,7 @@ export const DesktopNav: React.FC = () => {
 
           {/* Right: Authenticity & Concierge & Direct Orders Access */}
           <div className="flex items-center gap-3.5 text-[11px]">
-            <span className="font-price font-semibold text-[#D4AF37]">
+            <span className="font-price font-medium text-[#D4AF37]">
               100% NAFDAC Authentic
             </span>
             <span className="text-white/20">|</span>
@@ -79,69 +81,93 @@ export const DesktopNav: React.FC = () => {
       </div>
 
       {/* 2. MAIN CONCISE NAVIGATION BAR */}
-      <div className="bg-white/80 backdrop-blur-md border-b border-[#E5E7EB]/80 shadow-[0_4px_24px_-6px_rgba(0,0,0,0.03)]">
-        <div className="max-w-7xl mx-auto px-6 py-3.5 flex items-center justify-between gap-4 lg:gap-6">
-          {/* Brand Logo & Core Nav on Left */}
-          <div className="flex items-center gap-7 shrink-0">
+      <div className="bg-white/95 backdrop-blur-md border-b border-[#EAE5DC]">
+        <div className="max-w-7xl mx-auto px-6 h-[64px] flex items-center justify-between gap-4 lg:gap-6">
+          {/* Clean Desla Wordmark & Core Nav on Left */}
+          <div className="flex items-center gap-8 shrink-0">
             <BrandLogo
               variant="dark"
               size="md"
-              showTagline={true}
+              showTagline={false}
               onClick={() => navigateTo('home')}
             />
 
-            {/* Concise Navigation Links */}
-            <nav aria-label="Main Navigation" className="hidden lg:flex items-center gap-6 text-sm font-semibold text-[#0F0F10]">
+            {/* Concise Navigation Links (500 medium weight with shared-element active indicator) */}
+            <nav aria-label="Main Navigation" className="hidden lg:flex items-center gap-6 text-sm font-medium text-[#0F0F10]">
               <button
+                type="button"
                 onClick={() => {
                   setSelectedCategory('All');
                   navigateTo('catalogue');
                 }}
+                aria-current={isShopActive ? 'page' : undefined}
                 className={`transition-colors cursor-pointer py-1 relative ${
-                  isShopActive ? 'text-[#0F0F10] font-bold' : 'text-[#4B5563] hover:text-[#0F0F10]'
+                  isShopActive ? 'text-[#0F0F10] font-medium' : 'text-[#4B5563] hover:text-[#0F0F10]'
                 }`}
               >
                 <span>Shop</span>
                 {isShopActive && (
-                  <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#D4AF37] rounded-full" />
+                  <motion.span
+                    layoutId="desktop-nav-active-indicator"
+                    transition={DESLA_SPRING_SNAPPY}
+                    className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#D4AF37] rounded-full"
+                  />
                 )}
               </button>
 
               <button
+                type="button"
                 onClick={() => navigateTo('categories')}
+                aria-current={currentScreen === 'categories' ? 'page' : undefined}
                 className={`transition-colors cursor-pointer py-1 relative ${
-                  currentScreen === 'categories' ? 'text-[#0F0F10] font-bold' : 'text-[#4B5563] hover:text-[#0F0F10]'
+                  currentScreen === 'categories' ? 'text-[#0F0F10] font-medium' : 'text-[#4B5563] hover:text-[#0F0F10]'
                 }`}
               >
                 <span>Collections</span>
                 {currentScreen === 'categories' && (
-                  <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#D4AF37] rounded-full" />
+                  <motion.span
+                    layoutId="desktop-nav-active-indicator"
+                    transition={DESLA_SPRING_SNAPPY}
+                    className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#D4AF37] rounded-full"
+                  />
                 )}
               </button>
 
               <button
+                type="button"
                 onClick={() => navigateTo('community')}
+                aria-current={currentScreen === 'community' ? 'page' : undefined}
                 className={`transition-colors cursor-pointer py-1 flex items-center gap-1.5 relative ${
-                  currentScreen === 'community' ? 'text-[#0F0F10] font-bold' : 'text-[#4B5563] hover:text-[#0F0F10]'
+                  currentScreen === 'community' ? 'text-[#0F0F10] font-medium' : 'text-[#4B5563] hover:text-[#0F0F10]'
                 }`}
               >
                 <UsersThree size={15} weight="fill" className="text-[#D4AF37]" aria-hidden="true" />
                 <span>Community</span>
                 {currentScreen === 'community' && (
-                  <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#D4AF37] rounded-full" />
+                  <motion.span
+                    layoutId="desktop-nav-active-indicator"
+                    transition={DESLA_SPRING_SNAPPY}
+                    className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#D4AF37] rounded-full"
+                  />
                 )}
               </button>
 
               <button
+                type="button"
                 onClick={() => navigateTo('ai-scan')}
+                aria-current={currentScreen === 'ai-scan' ? 'page' : undefined}
                 className={`transition-colors cursor-pointer py-1 flex items-center gap-1.5 relative ${
-                  currentScreen === 'ai-scan' ? 'text-[#0F0F10] font-bold' : 'text-[#4B5563] hover:text-[#0F0F10]'
+                  currentScreen === 'ai-scan' ? 'text-[#0F0F10] font-medium' : 'text-[#4B5563] hover:text-[#0F0F10]'
                 }`}
               >
                 <FaceScanIcon size={15} className="text-[#D4AF37]" strokeWidth={1.8} />
                 <span>AI Scan</span>
                 {currentScreen === 'ai-scan' && (
-                  <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#D4AF37] rounded-full" />
+                  <motion.span
+                    layoutId="desktop-nav-active-indicator"
+                    transition={DESLA_SPRING_SNAPPY}
+                    className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#D4AF37] rounded-full"
+                  />
                 )}
               </button>
             </nav>
@@ -172,19 +198,21 @@ export const DesktopNav: React.FC = () => {
             {/* Shopping Bag Access: Gated to authenticated users */}
             {authUser && (
               <button
+                type="button"
                 onClick={() => navigateTo('cart')}
+                data-cart-target
                 className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#FAF9F6] hover:bg-[#F3EEE3] border border-[#E5E7EB] text-[#0F0F10] active:scale-[0.97] transition-transform duration-160 ease-out cursor-pointer group"
                 aria-label="View shopping bag"
               >
                 <div className="relative flex items-center">
                   <ShoppingBag size={16} weight="fill" className="text-[#0F0F10] group-hover:text-[#997A2E] transition-colors" aria-hidden="true" />
                   {cartCount > 0 && (
-                    <span className="ml-1 px-1.5 py-0.2 bg-[#D4AF37] text-[#0F0F10] text-[10px] font-extrabold rounded-full flex items-center justify-center">
+                    <span className="ml-1 px-1.5 py-0.2 bg-[#D4AF37] text-[#0F0F10] text-[10px] font-medium rounded-full flex items-center justify-center">
                       {cartCount}
                     </span>
                   )}
                 </div>
-                <span className="text-xs font-semibold text-[#0F0F10]">
+                <span className="text-xs font-medium text-[#0F0F10]">
                   {cartSubtotal > 0 ? formatNaira(cartSubtotal) : 'Bag'}
                 </span>
               </button>
@@ -194,10 +222,10 @@ export const DesktopNav: React.FC = () => {
             {authUser ? (
               <button
                 onClick={() => navigateTo('account')}
-                className="flex items-center gap-2 pl-2 pr-3 py-1 rounded-full bg-[#FAF9F6] hover:bg-[#F3EEE3] border border-[#E5E7EB] text-xs font-semibold text-[#0F0F10] active:scale-[0.97] transition-transform duration-160 ease-out cursor-pointer"
+                className="flex items-center gap-2 pl-2 pr-3 py-1 rounded-full bg-[#FAF9F6] hover:bg-[#F3EEE3] border border-[#E5E7EB] text-xs font-medium text-[#0F0F10] active:scale-[0.97] transition-transform duration-160 ease-out cursor-pointer"
                 title={`Signed in as ${authUser.email}`}
               >
-                <div className="w-6 h-6 rounded-full bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center text-[10px] font-bold">
+                <div className="w-6 h-6 rounded-full bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center text-[10px] font-medium">
                   {authUser.profile?.displayName ? authUser.profile.displayName.charAt(0).toUpperCase() : <User size={12} weight="fill" aria-hidden="true" />}
                 </div>
                 <span className="truncate max-w-[100px]">
@@ -207,7 +235,7 @@ export const DesktopNav: React.FC = () => {
             ) : (
               <button
                 onClick={() => navigateTo('login')}
-                className="px-4 py-1.5 rounded-full bg-[#0F0F10] text-white hover:bg-[#27272A] text-xs font-semibold shadow-xs active:scale-95 transition-transform duration-160 ease-out cursor-pointer"
+                className="px-4 py-1.5 rounded-full bg-[#0F0F10] text-white hover:bg-[#27272A] text-xs font-medium shadow-xs active:scale-95 transition-transform duration-160 ease-out cursor-pointer"
               >
                 Sign In
               </button>

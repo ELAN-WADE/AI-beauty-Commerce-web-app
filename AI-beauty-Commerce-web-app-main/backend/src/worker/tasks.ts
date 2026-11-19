@@ -85,7 +85,7 @@ export async function processOutbox(db: AppDb, sender: EmailSender = getEmailSen
           continue;
         }
         await sender.send(message);
-        await markSent(db, row.id);
+        await markSent(db, row.id, { provider: sender.name, messageId: sender.lastMessageId });
         sent += 1;
         continue;
       }
@@ -102,7 +102,7 @@ export async function processOutbox(db: AppDb, sender: EmailSender = getEmailSen
           continue;
         }
         await earnForOrder(db, { userId, orderId, totalKobo });
-        await markSent(db, row.id);
+        await markSent(db, row.id, { provider: 'internal:loyalty' });
         sent += 1;
         continue;
       }
@@ -114,7 +114,7 @@ export async function processOutbox(db: AppDb, sender: EmailSender = getEmailSen
           continue;
         }
         await awardOrderCommissions(db, orderId);
-        await markSent(db, row.id);
+        await markSent(db, row.id, { provider: 'internal:commission' });
         sent += 1;
         continue;
       }
@@ -141,7 +141,7 @@ export async function processOutbox(db: AppDb, sender: EmailSender = getEmailSen
         } else if (row.template === 'cart.abandoned' && typeof payload.cartId === 'string') {
           const view = await getCartView(db, payload.cartId);
           if (view.lines.length === 0) {
-            await markSent(db, row.id);
+            await markSent(db, row.id, { provider: 'noop:empty-cart' });
             continue;
           }
           text = smsCartAbandoned(view.subtotalKobo / 100);
@@ -150,8 +150,8 @@ export async function processOutbox(db: AppDb, sender: EmailSender = getEmailSen
           failed += 1;
           continue;
         }
-        await termiiSend(fetch, termiiConfig(), { to: phone, text, channel: row.channel === 'whatsapp' ? 'whatsapp' : 'generic' });
-        await markSent(db, row.id);
+        const smsRes = await termiiSend(fetch, termiiConfig(), { to: phone, text, channel: row.channel === 'whatsapp' ? 'whatsapp' : 'generic' });
+        await markSent(db, row.id, { provider: 'termii', messageId: smsRes.messageId });
         sent += 1;
         continue;
       }
@@ -181,7 +181,7 @@ export async function processOutbox(db: AppDb, sender: EmailSender = getEmailSen
         const cartId = String(payload.cartId ?? '');
         const view = await getCartView(db, cartId);
         if (view.lines.length === 0) {
-          await markSent(db, row.id); // cart emptied since — nothing to send
+          await markSent(db, row.id, { provider: sender.name, messageId: sender.lastMessageId }); // cart emptied since — nothing to send
           continue;
         }
         const msg = renderCartAbandoned({
@@ -194,10 +194,11 @@ export async function processOutbox(db: AppDb, sender: EmailSender = getEmailSen
         failed += 1;
         continue;
       }
-      await markSent(db, row.id);
+      await markSent(db, row.id, { provider: sender.name, messageId: sender.lastMessageId });
       sent += 1;
-    } catch {
-      await markFailed(db, row.id);
+    } catch (err) {
+      const code = (err && typeof err === 'object' && 'code' in err && typeof err.code === 'string') ? err.code : '';
+      await markFailed(db, row.id, /^[A-Z_]+$/.test(code) ? code : 'DELIVERY_ERROR');
       failed += 1;
     }
   }

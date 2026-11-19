@@ -21,7 +21,7 @@ export const SCREEN_PATHS: Record<ScreenId, string> = {
   payment: '/checkout/payment',
   'order-confirmed': '/order-confirmed',
   orders: '/orders',
-  'ai-scan': '/ai-skin-scan',
+  'ai-scan': '/skin-analysis',
   'ask-ai': '/ask-ai',
   rewards: '/rewards',
   account: '/account',
@@ -52,6 +52,9 @@ export function screenForPath(pathname: string): ScreenId | null {
   if (pathname === '/') return 'home';
   if (pathname.startsWith('/products/')) return 'product-details';
   if (pathname.startsWith('/orders/')) return 'orders';
+  if (pathname === '/ai-skin-scan' || pathname === '/skin-analysis' || pathname.startsWith('/skin-analysis/')) {
+    return 'ai-scan';
+  }
   const entry = (Object.entries(SCREEN_PATHS) as [ScreenId, string][]).find(
     ([, p]) => p === pathname,
   );

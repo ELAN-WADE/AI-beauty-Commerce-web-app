@@ -495,15 +495,15 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
         <div className="p-5 sm:p-6 border-b border-[#EAE8E3] flex items-center justify-between bg-[#FAF9F6]">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] font-mono tracking-widest uppercase px-2 py-0.5 rounded-full bg-[#FAF9F6] text-[#0F0F10] border border-[#E5E7EB] font-bold">
+              <span className="text-[10px] font-mono tracking-widest uppercase px-2 py-0.5 rounded-full bg-[#FAF9F6] text-[#0F0F10] border border-[#E5E7EB] font-medium">
                 {product ? 'Catalog Editor' : 'New Formulation'}
               </span>
-              <span className="text-[9.5px] font-mono font-bold uppercase tracking-wider text-[#0F0F10] flex items-center gap-1">
+              <span className="text-[9.5px] font-mono font-medium uppercase tracking-wider text-[#0F0F10] flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#0F0F10]" />
                 {isActive ? 'Published' : 'Draft'}
               </span>
             </div>
-            <h3 className="text-lg font-heading font-extrabold text-[#0F0F10]">
+            <h3 className="text-lg font-heading font-semibold text-[#0F0F10]">
               {product ? product.name : 'Create New Formulation'}
             </h3>
           </div>
@@ -535,7 +535,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
                 onClick={() => setActiveTab(tab.id as any)}
                 className={`py-3 px-3 flex items-center gap-1.5 border-b-2 font-medium transition-colors cursor-pointer whitespace-nowrap ${
                   isTabActive
-                    ? 'border-[#0F0F10] text-[#0F0F10] font-bold bg-white'
+                    ? 'border-[#0F0F10] text-[#0F0F10] font-semibold bg-white'
                     : 'border-transparent text-[#6B7280] hover:text-[#0F0F10]'
                 }`}
               >
@@ -560,7 +560,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
           {activeTab === 'identity' && (
             <div className="space-y-4">
               <div>
-                <label className="block text-[11px] font-bold text-[#0F0F10] mb-1 uppercase tracking-wide">
+                <label className="block text-[11px] font-medium text-[#0F0F10] mb-1 uppercase tracking-wide">
                   Product Name *
                 </label>
                 <input
@@ -574,7 +574,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-bold text-[#0F0F10] mb-1 uppercase tracking-wide">
+                  <label className="block text-[11px] font-medium text-[#0F0F10] mb-1 uppercase tracking-wide">
                     Brand Label
                   </label>
                   <input
@@ -585,7 +585,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-[#0F0F10] mb-1 uppercase tracking-wide">
+                  <label className="block text-[11px] font-medium text-[#0F0F10] mb-1 uppercase tracking-wide">
                     Slug (URL Key)
                   </label>
                   <input
@@ -599,7 +599,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-bold text-[#0F0F10] mb-1 uppercase tracking-wide">
+                  <label className="block text-[11px] font-medium text-[#0F0F10] mb-1 uppercase tracking-wide">
                     Primary Category
                   </label>
                   <select
@@ -615,7 +615,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-[#0F0F10] mb-1 uppercase tracking-wide">
+                  <label className="block text-[11px] font-medium text-[#0F0F10] mb-1 uppercase tracking-wide">
                     Sub-Category / Discipline
                   </label>
                   <input
@@ -629,7 +629,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-[#0F0F10] mb-1 uppercase tracking-wide">
+                <label className="block text-[11px] font-medium text-[#0F0F10] mb-1 uppercase tracking-wide">
                   Natural Tagline
                 </label>
                 <input
@@ -642,7 +642,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-[#0F0F10] mb-1 uppercase tracking-wide">
+                <label className="block text-[11px] font-medium text-[#0F0F10] mb-1 uppercase tracking-wide">
                   Editorial Formulation Description
                 </label>
                 <textarea
@@ -655,7 +655,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-[#0F0F10] mb-1 uppercase tracking-wide">
+                <label className="block text-[11px] font-medium text-[#0F0F10] mb-1 uppercase tracking-wide">
                   Social Hashtag (Community Buzz Integration)
                 </label>
                 <input
@@ -674,7 +674,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="text-xs font-bold text-[#0F0F10] uppercase tracking-wide">
+                  <h4 className="text-xs font-medium text-[#0F0F10] uppercase tracking-wide">
                     SKU &amp; Size Variants
                   </h4>
                   <p className="text-[11px] text-[#6B7280]">
@@ -684,7 +684,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
                 <button
                   type="button"
                   onClick={handleAddVariant}
-                  className="px-3.5 py-1.5 rounded-full bg-[#0F0F10] text-white text-xs font-bold flex items-center gap-1 hover:bg-[#27272A] cursor-pointer"
+                  className="px-3.5 py-1.5 rounded-full bg-[#0F0F10] text-white text-xs font-medium flex items-center gap-1 hover:bg-[#27272A] cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   Add Variant
@@ -698,7 +698,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
                     className="p-4 rounded-2xl border border-[#E5E7EB] bg-white shadow-xs space-y-3"
                   >
                     <div className="flex items-center justify-between pb-2 border-b border-[#F3F4F6]">
-                      <span className="text-[11px] font-mono font-bold text-[#0F0F10]">
+                      <span className="text-[11px] font-mono font-semibold text-[#0F0F10]">
                         Variant #{idx + 1}
                       </span>
                       {variants.length > 1 && (
@@ -749,7 +749,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
                           aria-label={`Price NGN ${idx + 1}`} value={v.priceNgn || ''}
                           onChange={(e) => handleUpdateVariant(idx, 'priceNgn', Number(e.target.value))}
                           placeholder="24500"
-                          className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] text-xs font-bold text-[#0F0F10]"
+                          className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] text-xs font-medium text-[#0F0F10]"
                         />
                       </div>
                       <div>
@@ -778,7 +778,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
                           type="number"
                           aria-label={`Stock quantity ${idx + 1}`} value={v.stock}
                           onChange={(e) => handleUpdateVariant(idx, 'stock', Number(e.target.value))}
-                          className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] text-xs font-bold text-[#0F0F10]"
+                          className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] text-xs font-medium text-[#0F0F10]"
                         />
                       </div>
                     </div>
@@ -795,7 +795,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="text-xs font-bold text-[#0F0F10] uppercase tracking-wide">
+                    <h4 className="text-xs font-medium text-[#0F0F10] uppercase tracking-wide">
                       Natural Benefits ("What It Does" Accordion)
                     </h4>
                     <p className="text-[11px] text-[#6B7280]">
@@ -845,7 +845,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
                     <button
                       type="button"
                       onClick={handleAddBullet}
-                      className="px-4 py-2 rounded-xl bg-[#0F0F10] text-white text-xs font-bold hover:bg-[#27272A] cursor-pointer shrink-0"
+                      className="px-4 py-2 rounded-xl bg-[#0F0F10] text-white text-xs font-medium hover:bg-[#27272A] cursor-pointer shrink-0"
                     >
                       Add Bullet
                     </button>
@@ -855,7 +855,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
 
               {/* Application Ritual & Precautions */}
               <div className="space-y-3 pt-3 border-t border-[#E5E7EB]">
-                <h4 className="text-xs font-bold text-[#0F0F10] uppercase tracking-wide">
+                <h4 className="text-xs font-medium text-[#0F0F10] uppercase tracking-wide">
                   Application Ritual &amp; Safety Precautions
                 </h4>
 
@@ -920,7 +920,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
 
               {/* Target Audience: Skin Types & Concerns */}
               <div className="space-y-3 pt-3 border-t border-[#E5E7EB]">
-                <h4 className="text-xs font-bold text-[#0F0F10] uppercase tracking-wide">
+                <h4 className="text-xs font-medium text-[#0F0F10] uppercase tracking-wide">
                   Target Skin Types &amp; Concerns
                 </h4>
 
@@ -980,13 +980,13 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
               {/* Active Natural Ingredients */}
               <div className="space-y-3 pt-3 border-t border-[#E5E7EB]">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-[#0F0F10] uppercase tracking-wide">
+                  <h4 className="text-xs font-medium text-[#0F0F10] uppercase tracking-wide">
                     Active Natural Ingredients
                   </h4>
                   <button
                     type="button"
                     onClick={handleAddIngredient}
-                    className="text-xs text-[#0F0F10] font-bold flex items-center gap-1 hover:underline cursor-pointer"
+                    className="text-xs text-[#0F0F10] font-medium flex items-center gap-1 hover:underline cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     Add Ingredient
@@ -1043,7 +1043,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
               {/* Primary Packshot */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="block text-[11px] font-bold text-[#0F0F10] uppercase tracking-wide">
+                  <label className="block text-[11px] font-medium text-[#0F0F10] uppercase tracking-wide">
                     Primary Packshot Photography *
                   </label>
                   <span className="text-[10px] text-[#6B7280]">
@@ -1108,7 +1108,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
                           type="button"
                           onClick={() => heroFileRef.current?.click()}
                           disabled={isUploadingHero}
-                          className="text-xs font-bold text-[#0F0F10] hover:text-[#997A2E] underline cursor-pointer disabled:opacity-50"
+                          className="text-xs font-medium text-[#0F0F10] hover:text-[#997A2E] underline cursor-pointer disabled:opacity-50"
                         >
                           {isUploadingHero ? 'Uploading file...' : 'Click to upload packshot photo'}
                         </button>
@@ -1138,7 +1138,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
 
               {/* Quick Pick Presets */}
               <div>
-                <label className="block text-[11px] font-bold text-[#0F0F10] mb-2 uppercase tracking-wide">
+                <label className="block text-[11px] font-medium text-[#0F0F10] mb-2 uppercase tracking-wide">
                   Quick Pick Studio Presets
                 </label>
                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
@@ -1165,7 +1165,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
               {/* Gallery List */}
               <div className="space-y-3 pt-3 border-t border-[#E5E7EB]">
                 <div className="flex items-center justify-between">
-                  <label className="block text-[11px] font-bold text-[#0F0F10] uppercase tracking-wide">
+                  <label className="block text-[11px] font-medium text-[#0F0F10] uppercase tracking-wide">
                     Gallery Perspectives &amp; Texture Shots ({galleryImages.length})
                   </label>
                   <span className="text-[10px] text-[#6B7280]">
@@ -1195,7 +1195,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
                     type="button"
                     onClick={() => galleryFileRef.current?.click()}
                     disabled={isUploadingGallery}
-                    className="px-4 py-2 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] hover:border-[#0F0F10] text-[#0F0F10] text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors"
+                    className="px-4 py-2 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] hover:border-[#0F0F10] text-[#0F0F10] text-xs font-medium flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors"
                   >
                     {isUploadingGallery ? (
                       <>
@@ -1221,7 +1221,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
                     <button
                       type="button"
                       onClick={handleAddGalleryUrl}
-                      className="px-4 py-2 rounded-xl bg-[#0F0F10] text-white text-xs font-bold hover:bg-[#27272A] cursor-pointer"
+                      className="px-4 py-2 rounded-xl bg-[#0F0F10] text-white text-xs font-medium hover:bg-[#27272A] cursor-pointer"
                     >
                       Add URL
                     </button>
@@ -1254,7 +1254,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
           {activeTab === 'logistics' && (
             <div className="space-y-4">
               <div>
-                <h4 className="text-xs font-bold text-[#0F0F10] uppercase tracking-wide">
+                <h4 className="text-xs font-medium text-[#0F0F10] uppercase tracking-wide">
                   Regional Warehouse &amp; Hub Stock Allocations
                 </h4>
                 <p className="text-[11px] text-[#6B7280]">
@@ -1288,7 +1288,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
                         min="0"
                         value={hub.quantity}
                         onChange={(e) => handleUpdateHubStock(idx, Math.max(0, parseInt(e.target.value) || 0))}
-                        className="w-20 px-3 py-1.5 rounded-xl border border-[#E5E7EB] text-xs font-bold font-mono text-center"
+                        className="w-20 px-3 py-1.5 rounded-xl border border-[#E5E7EB] text-xs font-medium font-mono text-center"
                       />
                     </div>
                   </div>
@@ -1303,7 +1303,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
             <div className="space-y-5">
               {/* Brand Info ACF */}
               <div className="p-4 rounded-2xl border border-[#E5E7EB] bg-white space-y-3">
-                <h4 className="text-xs font-bold text-[#0F0F10] uppercase tracking-wide">
+                <h4 className="text-xs font-medium text-[#0F0F10] uppercase tracking-wide">
                   Brand Heritage &amp; Natural Origin ACF
                 </h4>
 
@@ -1335,7 +1335,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
 
                 <div className="flex items-center justify-between pt-2">
                   <div>
-                    <span className="text-xs font-bold text-[#0F0F10] block">Cruelty-Free Certified</span>
+                    <span className="text-xs font-medium text-[#0F0F10] block">Cruelty-Free Certified</span>
                     <span className="text-[10px] text-[#6B7280]">Guarantees no animal testing in African or international labs.</span>
                   </div>
                   <input
@@ -1349,7 +1349,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
 
               {/* Custom Ribbon Badge ACF */}
               <div className="p-4 rounded-2xl border border-[#E5E7EB] bg-white space-y-3">
-                <h4 className="text-xs font-bold text-[#0F0F10] uppercase tracking-wide">
+                <h4 className="text-xs font-medium text-[#0F0F10] uppercase tracking-wide">
                   Merchandising Ribbon / Custom Badge ACF
                 </h4>
 
@@ -1451,7 +1451,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2.5 rounded-full border border-[#E5E7EB] bg-white text-xs font-bold text-[#6B7280] hover:text-[#0F0F10] hover:bg-[#FAF9F6] transition cursor-pointer"
+            className="px-5 py-2.5 rounded-full border border-[#E5E7EB] bg-white text-xs font-medium text-[#6B7280] hover:text-[#0F0F10] hover:bg-[#FAF9F6] transition cursor-pointer"
           >
             Discard
           </button>
@@ -1460,7 +1460,7 @@ export const ProductDrawer: React.FC<ProductDrawerProps> = ({
             type="button"
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="px-7 py-2.5 rounded-full bg-[#0F0F10] text-white text-xs font-bold hover:bg-[#27272A] active:scale-[0.98] transition shadow-xs flex items-center gap-2 cursor-pointer disabled:opacity-50"
+            className="px-7 py-2.5 rounded-full bg-[#0F0F10] text-white text-xs font-medium hover:bg-[#27272A] active:scale-[0.98] transition shadow-xs flex items-center gap-2 cursor-pointer disabled:opacity-50"
           >
             {isSubmitting ? (
               <>

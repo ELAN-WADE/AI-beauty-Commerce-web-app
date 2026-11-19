@@ -66,8 +66,8 @@ export const CreatorStorefront: React.FC = () => {
     if (typeof navigator !== 'undefined' && typeof navigator.share === 'function' && storefrontLink) {
       try {
         await navigator.share({
-          title: creatorName ? `${creatorName} — Delsla!™ Storefront` : 'Delsla!™ Creator Storefront',
-          text: promoCode ? `Use my Delsla!™ code ${promoCode}` : creatorHeadline || 'Explore my Delsla!™ curation',
+          title: creatorName ? `${creatorName} — Desla!™ Storefront` : 'Desla!™ Creator Storefront',
+          text: promoCode ? `Use my Desla!™ code ${promoCode}` : creatorHeadline || 'Explore my Desla!™ curation',
           url: storefrontLink
         });
         return;
@@ -177,10 +177,10 @@ export const CreatorStorefront: React.FC = () => {
       {/* Editorial Header with View Switcher (Desktop >= md) */}
       <div className="hidden md:flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E5E7EB]">
         <div>
-          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
+          <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-[#997A2E]">
             Client-Facing Destination
           </span>
-          <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-[#0F0F10]">
+          <h1 className="font-heading font-bold text-2xl sm:text-3xl text-[#0F0F10]">
             Creator Storefront
           </h1>
           <p className="text-xs sm:text-sm text-[#6B7280] mt-0.5">
@@ -193,7 +193,7 @@ export const CreatorStorefront: React.FC = () => {
           <div className="p-0.5 rounded-full bg-[#FAF9F6] border border-[#E5E7EB] flex text-xs">
             <button
               onClick={() => setViewMode('preview')}
-              className={`px-3 py-1.5 rounded-full font-bold transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-full font-semibold transition-all cursor-pointer ${
                 viewMode === 'preview'
                   ? 'bg-[#0F0F10] text-[#D4AF37] shadow-xs'
                   : 'text-[#6B7280] hover:text-[#0F0F10]'
@@ -203,7 +203,7 @@ export const CreatorStorefront: React.FC = () => {
             </button>
             <button
               onClick={() => setViewMode('editor')}
-              className={`px-3 py-1.5 rounded-full font-bold transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-full font-semibold transition-all cursor-pointer ${
                 viewMode === 'editor'
                   ? 'bg-[#0F0F10] text-white shadow-xs'
                   : 'text-[#6B7280] hover:text-[#0F0F10]'
@@ -215,7 +215,7 @@ export const CreatorStorefront: React.FC = () => {
 
           <button
             onClick={() => void handleShareStorefront()}
-            className="px-4 py-2 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-[0.97] transition-all"
+            className="px-4 py-2 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-medium flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-[0.97] transition-all"
           >
             <Share2 size={13} className="text-[#D4AF37]" />
             <span>{copiedLink ? 'Link Copied ✓' : 'Share Storefront'}</span>
@@ -231,10 +231,10 @@ export const CreatorStorefront: React.FC = () => {
         <form onSubmit={handleSaveEditor} className="p-6 sm:p-10 rounded-3xl bg-white border border-[#E5E7EB] shadow-xs max-w-3xl mx-auto space-y-6">
           <div className="flex items-center justify-between pb-4 border-b border-[#E5E7EB]">
             <div>
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
+              <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-[#997A2E]">
                 Customization Panel
               </span>
-              <h2 className="font-heading font-bold text-lg text-[#0F0F10]">
+              <h2 className="font-heading font-semibold text-lg text-[#0F0F10]">
                 Configure Your Public Profile &amp; Formulations
               </h2>
             </div>
@@ -242,7 +242,7 @@ export const CreatorStorefront: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-bold text-[#0F0F10] block mb-1.5">Display Name</label>
+              <label className="text-xs font-medium text-[#0F0F10] block mb-1.5">Display Name</label>
               <input
                 type="text"
                 readOnly={isLiveBackend} value={creatorName}
@@ -251,18 +251,18 @@ export const CreatorStorefront: React.FC = () => {
               />
             </div>
             <div>
-              <label className="text-xs font-bold text-[#0F0F10] block mb-1.5">Creator Handle</label>
+              <label className="text-xs font-medium text-[#0F0F10] block mb-1.5">Creator Handle</label>
               <input
                 type="text"
                 readOnly={isLiveBackend} value={creatorHandle}
                 onChange={(e) => setCreatorHandle(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-[#E5E7EB] text-xs bg-[#FAF9F6] font-mono font-bold"
+                className="w-full px-4 py-2.5 rounded-xl border border-[#E5E7EB] text-xs bg-[#FAF9F6] font-mono font-medium"
               />
             </div>
           </div>
 
           <div>
-            <label className="text-xs font-bold text-[#0F0F10] block mb-1.5">Editorial Headline</label>
+            <label className="text-xs font-medium text-[#0F0F10] block mb-1.5">Editorial Headline</label>
             <input
               type="text"
               value={creatorHeadline}
@@ -272,7 +272,7 @@ export const CreatorStorefront: React.FC = () => {
           </div>
 
           <div>
-            <label className="text-xs font-bold text-[#0F0F10] block mb-1.5">Storefront Bio</label>
+            <label className="text-xs font-medium text-[#0F0F10] block mb-1.5">Storefront Bio</label>
             <textarea
               rows={3}
               value={creatorBio}
@@ -283,20 +283,20 @@ export const CreatorStorefront: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-[#E5E7EB]">
             <div>
-              <label className="text-xs font-bold text-[#0F0F10] block mb-1.5">Affiliate Promo Code</label>
+              <label className="text-xs font-medium text-[#0F0F10] block mb-1.5">Affiliate Promo Code</label>
               <input
                 type="text"
                 readOnly={isLiveBackend} value={promoCode}
                 onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                className="w-full px-4 py-2.5 rounded-xl border border-[#E5E7EB] text-xs bg-[#FAF9F6] font-mono font-bold text-[#997A2E]"
+                className="w-full px-4 py-2.5 rounded-xl border border-[#E5E7EB] text-xs bg-[#FAF9F6] font-mono font-medium text-[#997A2E]"
               />
               <span className="text-[10px] text-[#6B7280] mt-1 block">Your assigned referral terms are managed by the administrator.</span>
             </div>
 
             <div className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] text-xs space-y-1">
-              <span className="text-[10px] font-mono text-[#9CA3AF] uppercase block font-bold">Storefront Attribution</span>
-              <p className="font-extrabold text-base text-[#0F0F10]">See earnings ledger</p>
-              <p className="text-[11px] font-mono text-[#0F0F10] font-bold">{'Collection status: ' + (record?.status || 'Not submitted')}</p>
+              <span className="text-[10px] font-mono text-[#9CA3AF] uppercase block font-semibold">Storefront Attribution</span>
+              <p className="font-semibold text-base text-[#0F0F10]">See earnings ledger</p>
+              <p className="text-[11px] font-mono text-[#0F0F10] font-semibold">{'Collection status: ' + (record?.status || 'Not submitted')}</p>
             </div>
           </div>
 
@@ -304,14 +304,14 @@ export const CreatorStorefront: React.FC = () => {
           <div className="space-y-3 pt-4 border-t border-[#E5E7EB]">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-xs font-bold text-[#0F0F10]">
+                <h3 className="text-xs font-medium text-[#0F0F10]">
                   Curate Displayed Formulations
                 </h3>
                 <p className="text-[11px] text-[#6B7280]">
                   Select the products featured in your "Verified Natural Picks" shelf
                 </p>
               </div>
-              <span className="text-[11px] font-mono text-[#997A2E] font-bold">
+              <span className="text-[11px] font-mono text-[#997A2E] font-semibold">
                 {creatorStorefrontProducts.length} Selected
               </span>
             </div>
@@ -333,11 +333,11 @@ export const CreatorStorefront: React.FC = () => {
                     <div className="flex items-center gap-2.5 min-w-0">
                       <img src={p.image} alt={p.name} className="w-9 h-9 rounded-lg object-cover shrink-0" />
                       <div className="min-w-0">
-                        <p className="text-xs font-bold text-[#0F0F10] truncate">{p.name}</p>
+                        <p className="text-xs font-medium text-[#0F0F10] truncate">{p.name}</p>
                         <p className="text-[10px] font-mono text-[#6B7280]">₦{p.price.toLocaleString('en-NG')}</p>
                       </div>
                     </div>
-                    <span className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold ${
+                    <span className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[10px] font-semibold ${
                       isSelected ? 'bg-[#0F0F10] text-[#D4AF37]' : 'border border-[#E5E7EB] text-transparent'
                     }`}>
                       ✓
@@ -351,7 +351,7 @@ export const CreatorStorefront: React.FC = () => {
           <div className="flex justify-end pt-4 border-t border-[#E5E7EB]">
             <button
               type="submit" disabled={saving || (isLiveBackend && record?.status === 'SUBMITTED')}
-              className="px-6 py-2.5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-[0.98] transition-all"
+              className="px-6 py-2.5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-medium flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-[0.98] transition-all"
             >
               <Save size={14} className="text-[#D4AF37]" />
               <span>{saving ? 'Submitting…' : isLiveBackend ? record?.status === 'SUBMITTED' ? 'Awaiting admin review' : 'Submit collection for review' : 'Save & Update Storefront'}</span>
@@ -373,7 +373,7 @@ export const CreatorStorefront: React.FC = () => {
                   alt={creatorName}
                   className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl object-cover shadow-sm ring-4 ring-[#FAF9F6]"
                 />
-                <span className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#0F0F10] text-[#D4AF37] border-2 border-white flex items-center justify-center font-bold text-xs shadow-xs">
+                <span className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#0F0F10] text-[#D4AF37] border-2 border-white flex items-center justify-center font-medium text-xs shadow-xs">
                   ✓
                 </span>
               </div>
@@ -382,10 +382,10 @@ export const CreatorStorefront: React.FC = () => {
               <div className="flex-1 text-center sm:text-left space-y-2">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
-                    <h2 className="font-heading font-extrabold text-2xl sm:text-3xl text-[#0F0F10] tracking-tight">
+                    <h2 className="font-heading font-semibold text-2xl sm:text-3xl text-[#0F0F10] tracking-tight">
                       {creatorName}
                     </h2>
-                    <span className="text-xs font-mono font-bold text-[#997A2E] tracking-wide">
+                    <span className="text-xs font-mono font-medium text-[#997A2E] tracking-wide">
                       {creatorHandle}
                     </span>
                   </div>
@@ -394,7 +394,7 @@ export const CreatorStorefront: React.FC = () => {
                   {promoCode && (
                     <button
                       onClick={handleCopyCode}
-                      className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#FAF9F6] border border-[#D4AF37]/50 text-xs font-mono font-bold text-[#0F0F10] hover:bg-[#FBF5E8] transition-colors cursor-pointer self-center sm:self-auto shadow-2xs"
+                      className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#FAF9F6] border border-[#D4AF37]/50 text-xs font-mono font-medium text-[#0F0F10] hover:bg-[#FBF5E8] transition-colors cursor-pointer self-center sm:self-auto shadow-2xs"
                     >
                       <span>Use Code: <strong>{promoCode}</strong></span>
                       <span className="text-[10px] text-[#997A2E] bg-white px-2 py-0.5 rounded-full border border-[#D4AF37]/30">
@@ -416,10 +416,10 @@ export const CreatorStorefront: React.FC = () => {
             <div className="space-y-4 pt-4 border-t border-[#E5E7EB]/70">
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
+                  <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-[#997A2E]">
                     Daily Holy-Grails
                   </span>
-                  <h3 className="font-heading font-bold text-lg text-[#0F0F10]">
+                  <h3 className="font-heading font-semibold text-lg text-[#0F0F10]">
                     {creatorName}'s Natural Picks ({finalProducts.length})
                   </h3>
                 </div>
@@ -442,13 +442,13 @@ export const CreatorStorefront: React.FC = () => {
                           className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
                         {discount > 0 && (
-                          <span className="absolute top-2 right-2 text-[9px] font-mono font-bold bg-[#0F0F10]/85 text-[#D4AF37] px-1.5 py-0.5 rounded-full">
+                          <span className="absolute top-2 right-2 text-[9px] font-mono font-semibold bg-[#0F0F10]/85 text-[#D4AF37] px-1.5 py-0.5 rounded-full">
                             -{discount}%
                           </span>
                         )}
                       </div>
-                      <h4 className="text-xs font-bold text-[#0F0F10] line-clamp-1">{p.name}</h4>
-                      <p className="text-xs font-mono font-extrabold text-[#0F0F10]">
+                      <h4 className="text-xs font-medium text-[#0F0F10] line-clamp-1">{p.name}</h4>
+                      <p className="text-xs font-mono font-semibold text-[#0F0F10]">
                         ₦{p.price.toLocaleString('en-NG')}
                       </p>
                     </div>
@@ -458,7 +458,7 @@ export const CreatorStorefront: React.FC = () => {
                         addToCart(p);
                         showToast(`Added ${p.name} to shopping bag with promo ${promoCode}!`);
                       }}
-                      className="mt-3 w-full py-1.5 rounded-full bg-[#FAF9F6] group-hover:bg-[#0F0F10] text-[#0F0F10] group-hover:text-white text-xs font-bold transition-colors cursor-pointer active:scale-95 flex items-center justify-center gap-1"
+                      className="mt-3 w-full py-1.5 rounded-full bg-[#FAF9F6] group-hover:bg-[#0F0F10] text-[#0F0F10] group-hover:text-white text-xs font-medium transition-colors cursor-pointer active:scale-95 flex items-center justify-center gap-1"
                     >
                       <ShoppingBag size={12} className="text-[#997A2E] group-hover:text-[#D4AF37]" />
                       <span>Add to Bag</span>

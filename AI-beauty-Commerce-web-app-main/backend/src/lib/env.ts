@@ -35,10 +35,15 @@ export function assertProductionEnv(): void {
     process.env.FRONTEND_URL = `https://${process.env.FRONTEND_URL}`;
   }
 
+  const isLocalhostApp =
+    process.env.RENDER !== 'true' &&
+    /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/i.test((process.env.APP_URL || '').trim());
+
   const isDevDeploy =
     process.env.RENDER_DEV === 'true' ||
     process.env.DEV_DEPLOY === 'true' ||
-    process.env.SKIP_PROD_ENV_ASSERT === 'true';
+    process.env.SKIP_PROD_ENV_ASSERT === 'true' ||
+    isLocalhostApp;
 
   required('DATABASE_URL');
 

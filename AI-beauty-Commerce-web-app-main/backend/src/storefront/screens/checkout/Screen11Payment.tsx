@@ -46,7 +46,6 @@ const Screen11PaymentContent: React.FC = () => {
     isLiveBackend,
     prepareLiveCheckout,
     prepareLiveCryptoCheckout,
-    confirmLiveCryptoPayment,
     reverifyPayment,
     addLocalOrder,
     clearCart,
@@ -63,9 +62,8 @@ const Screen11PaymentContent: React.FC = () => {
   const [cryptoNetwork, setCryptoNetwork] = useState<'TRC20' | 'ERC20' | 'BTC' | 'ETH' | 'SOL'>('TRC20');
   const [cryptoRates, setCryptoRates] = useState<CryptoRatesDto | null>(null);
   const [isLoadingRates, setIsLoadingRates] = useState(false);
-  const [cryptoInvoice, setCryptoInvoice] = useState<(CryptoInitDto & { serverOrderId?: string; orderNumber?: string }) | null>(null);
+  const [cryptoInvoice, setCryptoInvoice] = useState<(CryptoInitDto & { serverOrderId?: string; orderNumber?: string; guestToken?: string }) | null>(null);
   const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
-  const [txHashInput, setTxHashInput] = useState('');
   const [isVerifyingTx, setIsVerifyingTx] = useState(false);
   const [verifyError, setVerifyError] = useState<string | null>(null);
   const [verifySuccess, setVerifySuccess] = useState<string | null>(null);
@@ -148,7 +146,7 @@ const Screen11PaymentContent: React.FC = () => {
 
     pollingRef.current = setInterval(async () => {
       try {
-        const res = await getCryptoPaymentStatus(cryptoInvoice.paymentId);
+        const res = await getCryptoPaymentStatus(cryptoInvoice.paymentId, cryptoInvoice.guestToken);
         if (res.status === 'COMPLETED' || (res.status as string) === 'PAID') {
           if (pollingRef.current) clearInterval(pollingRef.current);
           setVerifySuccess(`Blockchain transaction verified! Order #${res.orderNumber || cryptoInvoice.orderNumber} settled.`);
@@ -181,24 +179,25 @@ const Screen11PaymentContent: React.FC = () => {
     }
   };
 
-  // Verify submitted TxHash
+  // Check on-chain settlement status directly from server
   const handleVerifyTxHash = async () => {
     if (!cryptoInvoice) return;
-    if (!txHashInput.trim()) {
-      setVerifyError('Please enter the blockchain transaction hash (TXID).');
-      return;
-    }
     setIsVerifyingTx(true);
     setVerifyError(null);
     try {
-      const res = await confirmLiveCryptoPayment(cryptoInvoice.paymentId, txHashInput.trim());
-      setVerifySuccess(`Transaction verified on blockchain! Order confirmed.`);
-      if (pollingRef.current) clearInterval(pollingRef.current);
-      setTimeout(() => {
-        navigateTo('order-confirmed');
-      }, 1500);
+      const res = await getCryptoPaymentStatus(cryptoInvoice.paymentId, cryptoInvoice.guestToken);
+      if (res.status === 'COMPLETED' || (res.status as string) === 'PAID') {
+        setVerifySuccess(`Transaction verified on blockchain! Order #${res.orderNumber || cryptoInvoice.orderNumber} confirmed.`);
+        if (pollingRef.current) clearInterval(pollingRef.current);
+        setTimeout(() => {
+          clearCart();
+          navigateTo('order-confirmed');
+        }, 1500);
+      } else {
+        setVerifyError('Transfer not yet settled on-chain. Orders confirm automatically once the signed blockchain settlement webhook verifies your transfer. Keep your TXID for support if needed.');
+      }
     } catch (err: any) {
-      setVerifyError(err?.message || 'Blockchain verification failed. Please check your transaction hash and try again.');
+      setVerifyError(err?.message || 'Unable to check settlement status right now. Please try again shortly.');
     } finally {
       setIsVerifyingTx(false);
     }
@@ -271,10 +270,10 @@ const Screen11PaymentContent: React.FC = () => {
             </div>
 
             <div className="space-y-1">
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
+              <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-[#997A2E]">
                 {selectedGateway === 'stripe' ? 'Stripe 3D Secure' : 'Flutterwave Rave Gateway'}
               </span>
-              <h3 className="font-heading font-bold text-base text-[#0F0F10]">
+              <h3 className="font-heading font-semibold text-base text-[#0F0F10]">
                 Authorizing Payment
               </h3>
               <p className="text-xs text-[#6B7280]">
@@ -284,7 +283,7 @@ const Screen11PaymentContent: React.FC = () => {
 
             <div className="p-3 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] text-xs flex items-center justify-between font-mono">
               <span className="text-[#6B7280]">Total Due:</span>
-              <strong className="text-[#0F0F10] font-price font-bold text-sm">{formatNaira(effectiveTotal)}</strong>
+              <strong className="text-[#0F0F10] font-price font-semibold text-sm">{formatNaira(effectiveTotal)}</strong>
             </div>
 
             <p className="text-[10px] text-[#9CA3AF]">
@@ -307,7 +306,7 @@ const Screen11PaymentContent: React.FC = () => {
 
                 {/* Step 1: Customer */}
                 <div className="relative z-10 flex flex-col items-center">
-                  <div className="w-7 h-7 rounded-full bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center text-xs font-bold shadow-xs">
+                  <div className="w-7 h-7 rounded-full bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center text-xs font-medium shadow-xs">
                     <Check size={14} strokeWidth={2.6} />
                   </div>
                   <span className="text-[10px] font-semibold text-[#6B7280] mt-1">Customer</span>
@@ -315,7 +314,7 @@ const Screen11PaymentContent: React.FC = () => {
 
                 {/* Step 2: Delivery */}
                 <div className="relative z-10 flex flex-col items-center">
-                  <div className="w-7 h-7 rounded-full bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center text-xs font-bold shadow-xs">
+                  <div className="w-7 h-7 rounded-full bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center text-xs font-medium shadow-xs">
                     <Check size={14} strokeWidth={2.6} />
                   </div>
                   <span className="text-[10px] font-semibold text-[#6B7280] mt-1">Fulfillment</span>
@@ -323,15 +322,15 @@ const Screen11PaymentContent: React.FC = () => {
 
                 {/* Step 3: Payment */}
                 <div className="relative z-10 flex flex-col items-center">
-                  <div className="w-7 h-7 rounded-full bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center text-xs font-extrabold shadow-xs">
+                  <div className="w-7 h-7 rounded-full bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center text-xs font-semibold shadow-xs">
                     3
                   </div>
-                  <span className="text-[10px] font-bold text-[#0F0F10] mt-1">Payment</span>
+                  <span className="text-[10px] font-semibold text-[#0F0F10] mt-1">Payment</span>
                 </div>
 
                 {/* Step 4: Confirmed */}
                 <div className="relative z-10 flex flex-col items-center">
-                  <div className="w-7 h-7 rounded-full bg-white border-2 border-gray-300 text-gray-400 flex items-center justify-center text-xs font-bold">
+                  <div className="w-7 h-7 rounded-full bg-white border-2 border-gray-300 text-gray-400 flex items-center justify-center text-xs font-medium">
                     4
                   </div>
                   <span className="text-[10px] font-medium text-gray-400 mt-1">Confirmed</span>
@@ -339,13 +338,13 @@ const Screen11PaymentContent: React.FC = () => {
               </div>
             </div>
 
-            {/* TRI-GATEWAY SELECTOR: PAYSTACK, FLUTTERWAVE & CRYPTOCURRENCY */}
+            {/* TRI-GATEWAY SELECTOR: STRIPE, FLUTTERWAVE & CRYPTOCURRENCY */}
             <div className="p-4 rounded-2xl bg-white border border-[#E5E7EB] shadow-xs space-y-3">
               <div className="flex items-center justify-between">
-                <span className="font-heading font-bold text-xs uppercase tracking-wider text-[#0F0F10]">
+                <span className="font-heading font-semibold text-xs uppercase tracking-wider text-[#0F0F10]">
                   Select Official Payment Gateway
                 </span>
-                <span className="text-[10px] font-mono text-[#997A2E] font-bold">
+                <span className="text-[10px] font-mono text-[#997A2E] font-medium">
                   NAFDAC Verified Escrow
                 </span>
               </div>
@@ -362,7 +361,7 @@ const Screen11PaymentContent: React.FC = () => {
                   }`}
                 >
                   <div>
-                    <span className="font-heading font-extrabold text-sm tracking-wider text-[#00C3F7] block">
+                    <span className="font-heading font-semibold text-sm tracking-wider text-[#00C3F7] block">
                       stripe
                     </span>
                     <span className="text-[10px] text-[#6B7280]">
@@ -389,7 +388,7 @@ const Screen11PaymentContent: React.FC = () => {
                   }`}
                 >
                   <div>
-                    <span className="font-heading font-extrabold text-sm tracking-wider text-[#FB7701] block">
+                    <span className="font-heading font-semibold text-sm tracking-wider text-[#FB7701] block">
                       flutterwave
                     </span>
                     <span className="text-[10px] text-[#6B7280]">
@@ -418,7 +417,7 @@ const Screen11PaymentContent: React.FC = () => {
                   <div>
                     <div className="flex items-center gap-1.5">
                       <Coins size={14} className="text-[#997A2E]" />
-                      <span className="font-heading font-extrabold text-sm tracking-wider text-[#0F0F10] block">
+                      <span className="font-heading font-semibold text-sm tracking-wider text-[#0F0F10] block">
                         Crypto
                       </span>
                     </div>
@@ -443,7 +442,7 @@ const Screen11PaymentContent: React.FC = () => {
                 <div className="flex items-center justify-between pb-3.5 border-b border-white/10">
                   <div className="flex items-center gap-2.5">
                     <div className="w-2.5 h-2.5 rounded-full bg-[#00C3F7] animate-pulse" />
-                    <span className="font-heading font-extrabold text-base tracking-wider text-[#00C3F7]">
+                    <span className="font-heading font-semibold text-base tracking-wider text-[#00C3F7]">
                       stripe
                     </span>
                     <span className="text-[10px] text-white/70 font-mono uppercase tracking-widest px-2 py-0.5 rounded bg-white/10">
@@ -458,7 +457,7 @@ const Screen11PaymentContent: React.FC = () => {
 
                 <div className="pt-3.5 flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] uppercase font-bold text-white/60 tracking-wider block">
+                    <span className="text-[10px] uppercase font-medium text-white/60 tracking-wider block">
                       Merchant Recipient
                     </span>
                     <h3 className="font-heading font-semibold text-sm text-white mt-0.5">
@@ -469,10 +468,10 @@ const Screen11PaymentContent: React.FC = () => {
                     </span>
                   </div>
                   <div className="text-right">
-                    <span className="text-[10px] uppercase font-bold text-white/60 tracking-wider block">
+                    <span className="text-[10px] uppercase font-medium text-white/60 tracking-wider block">
                       Amount Due
                     </span>
-                    <p className="font-price font-bold text-2xl text-[#D4AF37] mt-0.5">
+                    <p className="font-price font-semibold text-2xl text-[#D4AF37] mt-0.5">
                       {formatNaira(effectiveTotal)}
                     </p>
                   </div>
@@ -483,7 +482,7 @@ const Screen11PaymentContent: React.FC = () => {
                 <div className="flex items-center justify-between pb-3.5 border-b border-white/10">
                   <div className="flex items-center gap-2.5">
                     <div className="w-2.5 h-2.5 rounded-full bg-[#FB7701] animate-pulse" />
-                    <span className="font-heading font-extrabold text-base tracking-wider text-[#FB7701]">
+                    <span className="font-heading font-semibold text-base tracking-wider text-[#FB7701]">
                       flutterwave
                     </span>
                     <span className="text-[10px] text-white/70 font-mono uppercase tracking-widest px-2 py-0.5 rounded bg-white/10">
@@ -498,7 +497,7 @@ const Screen11PaymentContent: React.FC = () => {
 
                 <div className="pt-3.5 flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] uppercase font-bold text-white/60 tracking-wider block">
+                    <span className="text-[10px] uppercase font-medium text-white/60 tracking-wider block">
                       Merchant Recipient
                     </span>
                     <h3 className="font-heading font-semibold text-sm text-white mt-0.5">
@@ -509,10 +508,10 @@ const Screen11PaymentContent: React.FC = () => {
                     </span>
                   </div>
                   <div className="text-right">
-                    <span className="text-[10px] uppercase font-bold text-white/60 tracking-wider block">
+                    <span className="text-[10px] uppercase font-medium text-white/60 tracking-wider block">
                       Amount Due
                     </span>
-                    <p className="font-price font-bold text-2xl text-[#D4AF37] mt-0.5">
+                    <p className="font-price font-semibold text-2xl text-[#D4AF37] mt-0.5">
                       {formatNaira(effectiveTotal)}
                     </p>
                   </div>
@@ -524,7 +523,7 @@ const Screen11PaymentContent: React.FC = () => {
                 <div className="flex items-center justify-between pb-3.5 border-b border-white/10">
                   <div className="flex items-center gap-2.5">
                     <div className="w-2.5 h-2.5 rounded-full bg-[#D4AF37] animate-pulse" />
-                    <span className="font-heading font-extrabold text-base tracking-wider text-[#D4AF37] flex items-center gap-1.5">
+                    <span className="font-heading font-semibold text-base tracking-wider text-[#D4AF37] flex items-center gap-1.5">
                       <Coins size={16} />
                       DESLA CRYPTO ESCROW
                     </span>
@@ -540,7 +539,7 @@ const Screen11PaymentContent: React.FC = () => {
 
                 <div className="pt-3.5 flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] uppercase font-bold text-white/60 tracking-wider block">
+                    <span className="text-[10px] uppercase font-medium text-white/60 tracking-wider block">
                       Settlement Currency &amp; Rate
                     </span>
                     <h3 className="font-heading font-semibold text-sm text-white mt-0.5 flex items-center gap-2">
@@ -559,10 +558,10 @@ const Screen11PaymentContent: React.FC = () => {
                     </span>
                   </div>
                   <div className="text-right">
-                    <span className="text-[10px] uppercase font-bold text-white/60 tracking-wider block">
+                    <span className="text-[10px] uppercase font-medium text-white/60 tracking-wider block">
                       Total Due in Crypto
                     </span>
-                    <p className="font-price font-bold text-2xl text-[#D4AF37] mt-0.5">
+                    <p className="font-price font-semibold text-2xl text-[#D4AF37] mt-0.5">
                       {computedTotalCrypto} <span className="text-sm font-sans font-normal text-white/70">{cryptoAsset}</span>
                     </p>
                   </div>
@@ -588,7 +587,7 @@ const Screen11PaymentContent: React.FC = () => {
                             onClick={() => handleSelectAsset(asset)}
                             className={`p-3 rounded-xl border-2 text-center transition-all cursor-pointer ${
                               cryptoAsset === asset
-                                ? 'border-[#D4AF37] bg-[#FAF7EE] text-[#0F0F10] font-bold shadow-xs'
+                                ? 'border-[#D4AF37] bg-[#FAF7EE] text-[#0F0F10] font-semibold shadow-xs'
                                 : 'border-[#E5E7EB] bg-[#FAF9F6] text-[#4B5563] hover:border-gray-300'
                             }`}
                           >
@@ -612,12 +611,12 @@ const Screen11PaymentContent: React.FC = () => {
                             onClick={() => setCryptoNetwork('TRC20')}
                             className={`p-3 rounded-xl border-2 text-left transition-all cursor-pointer ${
                               cryptoNetwork === 'TRC20'
-                                ? 'border-[#0F0F10] bg-[#FAF9F6] text-[#0F0F10] font-bold shadow-xs'
+                                ? 'border-[#0F0F10] bg-[#FAF9F6] text-[#0F0F10] font-semibold shadow-xs'
                                 : 'border-[#E5E7EB] bg-white text-[#4B5563] hover:border-gray-300'
                             }`}
                           >
                             <div className="flex items-center justify-between">
-                              <span className="text-xs font-bold">TRC-20 (TRON)</span>
+                              <span className="text-xs font-medium">TRC-20 (TRON)</span>
                               <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold">Recommended</span>
                             </div>
                             <span className="text-[10px] text-[#6B7280] block mt-1">Fast • Low fee (1 USDT)</span>
@@ -627,11 +626,11 @@ const Screen11PaymentContent: React.FC = () => {
                             onClick={() => setCryptoNetwork('ERC20')}
                             className={`p-3 rounded-xl border-2 text-left transition-all cursor-pointer ${
                               cryptoNetwork === 'ERC20'
-                                ? 'border-[#0F0F10] bg-[#FAF9F6] text-[#0F0F10] font-bold shadow-xs'
+                                ? 'border-[#0F0F10] bg-[#FAF9F6] text-[#0F0F10] font-semibold shadow-xs'
                                 : 'border-[#E5E7EB] bg-white text-[#4B5563] hover:border-gray-300'
                             }`}
                           >
-                            <span className="text-xs font-bold">ERC-20 (Ethereum)</span>
+                            <span className="text-xs font-medium">ERC-20 (Ethereum)</span>
                             <span className="text-[10px] text-[#6B7280] block mt-1">Global standard</span>
                           </button>
                         </div>
@@ -648,7 +647,7 @@ const Screen11PaymentContent: React.FC = () => {
                         <span>Estimated Network Gas / Mining Fee:</span>
                         <span className="font-mono font-medium text-[#0F0F10]">{computedFee} {cryptoAsset}</span>
                       </div>
-                      <div className="pt-2 border-t border-[#E5E7EB] flex justify-between font-bold text-sm text-[#0F0F10]">
+                      <div className="pt-2 border-t border-[#E5E7EB] flex justify-between font-semibold text-sm text-[#0F0F10]">
                         <span>Exact Transfer Required:</span>
                         <span className="font-mono text-[#997A2E]">{computedTotalCrypto} {cryptoAsset}</span>
                       </div>
@@ -687,7 +686,7 @@ const Screen11PaymentContent: React.FC = () => {
                     <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
                       <div className="flex items-center gap-2">
                         <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
-                        <span className="text-xs font-mono font-bold text-[#0F0F10]">
+                        <span className="text-xs font-mono font-medium text-[#0F0F10]">
                           INVOICE: #{cryptoInvoice.orderNumber || 'DES-CRYPTO'}
                         </span>
                       </div>
@@ -749,7 +748,7 @@ const Screen11PaymentContent: React.FC = () => {
                           Exact Amount to Transfer
                         </span>
                         <div className="flex items-center justify-center gap-2">
-                          <strong className="text-xl font-price font-bold text-[#0F0F10]">
+                          <strong className="text-xl font-price font-semibold text-[#0F0F10]">
                             {cryptoInvoice.totalCrypto} {cryptoInvoice.asset}
                           </strong>
                           <button
@@ -770,7 +769,7 @@ const Screen11PaymentContent: React.FC = () => {
                             Dedicated Deposit Address ({cryptoInvoice.network})
                           </span>
                           {copiedField === 'address' && (
-                            <span className="text-[10px] text-emerald-600 font-bold animate-in fade-in">
+                            <span className="text-[10px] text-emerald-600 font-semibold animate-in fade-in">
                               Copied to clipboard!
                             </span>
                           )}
@@ -797,26 +796,19 @@ const Screen11PaymentContent: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Manual TxHash Submission Form */}
+                    {/* Settlement Status Check */}
                     <div className="p-4 rounded-xl bg-white border border-[#E5E7EB] space-y-3">
                       <div>
-                        <label className="text-xs font-bold text-[#0F0F10] block mb-1">
-                          Already Sent? Paste Transaction Hash (TxHash / TXID)
+                        <label className="text-xs font-medium text-[#0F0F10] block mb-1">
+                          Automatic On-Chain Confirmation
                         </label>
-                        <p className="text-[10px] text-[#6B7280] mb-2">
-                          After transferring from your wallet or exchange (Binance, Bybit, TrustWallet, etc.), paste the transaction ID below for instant on-chain clearance.
+                        <p className="text-[11px] text-[#6B7280] leading-relaxed">
+                          Send the exact amount above to the deposit address. Your order confirms automatically once our signed payment processor verifies on-chain confirmations. Keep your wallet TXID if you need support assistance.
                         </p>
-                        <input
-                          type="text"
-                          value={txHashInput}
-                          onChange={(e) => setTxHashInput(e.target.value)}
-                          placeholder="e.g. 0x8f2d... or tron txid"
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-[#E5E7EB] text-xs font-mono focus:outline-hidden focus:ring-2 focus:ring-[#D4AF37]/50"
-                        />
                       </div>
 
                       {verifyError && (
-                        <div className="p-2.5 rounded-lg bg-red-50 border border-red-200 text-[11px] text-red-700 flex items-center gap-1.5">
+                        <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-[11px] text-amber-800 flex items-center gap-1.5">
                           <AlertTriangle size={14} className="shrink-0" />
                           <span>{verifyError}</span>
                         </div>
@@ -832,12 +824,12 @@ const Screen11PaymentContent: React.FC = () => {
                           {isVerifyingTx ? (
                             <>
                               <Loader2 size={15} className="animate-spin text-[#D4AF37]" />
-                              <span>Validating Blockchain Confirmation…</span>
+                              <span>Checking Settlement Status…</span>
                             </>
                           ) : (
                             <>
                               <CheckCircle2 size={15} className="text-[#D4AF37]" />
-                              <span>Verify On-Chain Settlement</span>
+                              <span>Check Settlement Status</span>
                             </>
                           )}
                         </button>
@@ -861,7 +853,7 @@ const Screen11PaymentContent: React.FC = () => {
                 )}
               </div>
             ) : (
-              /* HOSTED CHECKOUT (PAYSTACK / FLUTTERWAVE) */
+              /* HOSTED CHECKOUT (STRIPE / FLUTTERWAVE) */
               <div className="p-5 rounded-2xl bg-white border border-[#E5E7EB] shadow-xs space-y-4">
                 <div className="rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] p-5 flex items-start gap-4">
                   <div className="w-11 h-11 rounded-xl bg-white border border-[#E5E7EB] flex items-center justify-center text-[#997A2E] shrink-0">
@@ -943,7 +935,7 @@ const Screen11PaymentContent: React.FC = () => {
                 <h3 className="font-heading font-semibold text-sm text-[#0F0F10]">
                   Order Items ({cartItems.length})
                 </h3>
-                <span className="text-[11px] font-mono text-[#997A2E] font-bold">
+                <span className="text-[11px] font-mono text-[#997A2E] font-semibold">
                   City: {selectedCity}
                 </span>
               </div>
@@ -992,11 +984,11 @@ const Screen11PaymentContent: React.FC = () => {
                 <div className="pt-3 border-t border-[#E5E7EB] flex justify-between items-center text-sm font-semibold text-[#0F0F10]">
                   <span>Total Payable</span>
                   <div className="text-right">
-                    <span className="font-price font-bold text-2xl text-[#0F0F10] block">
+                    <span className="font-price font-semibold text-2xl text-[#0F0F10] block">
                       {formatNaira(effectiveTotal)}
                     </span>
                     {selectedGateway === 'crypto' && (
-                      <span className="text-[11px] font-mono font-bold text-[#997A2E]">
+                      <span className="text-[11px] font-mono font-semibold text-[#997A2E]">
                         ≈ {computedTotalCrypto} {cryptoAsset}
                       </span>
                     )}

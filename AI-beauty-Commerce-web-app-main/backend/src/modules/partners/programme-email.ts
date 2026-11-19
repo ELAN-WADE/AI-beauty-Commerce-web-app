@@ -5,9 +5,9 @@ import { users } from '@/modules/auth/schema';
 import { frontendOrigin } from '@/modules/auth/email';
 import { workspaceRecords } from '@/modules/workspaces/schema';
 import { isAdditionalProgramme, programmeDefinitions, programmePath } from '@/storefront/lib/partner-programmes';
-import { PROGRAMME_REVIEW_TEMPLATE } from './programme-memberships';
+import { PROGRAMME_REVIEW_TEMPLATE, PROGRAMME_SUBMITTED_TEMPLATE } from './programme-memberships';
 export async function pendingProgrammeEmail(db: Db, row: { userId: string | null; template: string; payload: unknown }): Promise<EmailMessage | null> {
-  if (row.template !== PROGRAMME_REVIEW_TEMPLATE || !row.userId) return null;
+  if (![PROGRAMME_REVIEW_TEMPLATE, PROGRAMME_SUBMITTED_TEMPLATE].includes(row.template) || !row.userId) return null;
   const payload = row.payload as { membershipId?: unknown; status?: unknown; version?: unknown };
   if (typeof payload?.membershipId !== 'string' || !/^[0-9a-f-]{36}$/i.test(payload.membershipId)) return null;
   const [member] = await db.select().from(workspaceRecords).where(and(eq(workspaceRecords.id, payload.membershipId), eq(workspaceRecords.ownerId, row.userId), eq(workspaceRecords.kind, 'PARTNER_PROGRAMME')));
@@ -16,5 +16,5 @@ export async function pendingProgrammeEmail(db: Db, row: { userId: string | null
   if (!user?.emailVerifiedAt) return null;
   const label = programmeDefinitions[member.audience].label;
   const link = new URL(programmePath(member.audience), frontendOrigin()).toString();
-  return { to: user.email, subject: `Desla! ${label} application update`, text: `Hello ${member.title},\n\nYour ${label} application status is ${member.status.toLowerCase()}.\n${member.reviewNote}\n\n${member.status === 'APPROVED' ? 'Sign in with the same account and accept your programme agreement to open the workspace.' : 'Sign in with the same account to review the application update.'}\n${link}\n\nDesla!` };
+  return { to: user.email, subject: `Desla ${label} application ${member.status === 'SUBMITTED' ? 'received — under review' : 'update'}`, text: `Hello ${member.title},\n\nYour ${label} application status is ${member.status.toLowerCase()}.\n${member.reviewNote}\n\n${member.status === 'SUBMITTED' ? 'Your request is under review. We will email you when a decision is recorded. Application reference: ' + member.id + '. This is not an approved partner ID.' : member.status === 'APPROVED' ? 'Sign in with the same account and accept your programme agreement to open the workspace.' : 'Sign in with the same account to review the application update.'}\n${link}\n\nDesla` };
 }

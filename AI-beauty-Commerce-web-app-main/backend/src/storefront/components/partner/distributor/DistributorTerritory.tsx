@@ -16,7 +16,7 @@ export const DistributorTerritory: React.FC = () => {
         description="Your assigned fulfilment location and configured service settings."
       />
       <div className="hidden md:block border-b border-[#E5E7EB] pb-2">
-        <h1 className="font-heading text-2xl font-extrabold">City Hub Territory &amp; Zones</h1>
+        <h1 className="font-heading text-2xl font-bold">City Hub Territory &amp; Zones</h1>
         <p className="text-sm text-[#6B7280]">Your assigned fulfilment location and configured service settings.</p>
       </div>
       <MobileRouteContent className="space-y-4">
@@ -24,7 +24,7 @@ export const DistributorTerritory: React.FC = () => {
         {!location && !error && <p role="status">Loading assigned location…</p>}
         {location && (
           <article className="space-y-4 rounded-2xl md:rounded-3xl border bg-white p-6">
-            <h2 className="font-bold">{location.name}</h2>
+            <h2 className="font-semibold">{location.name}</h2>
             <p className="text-sm">{location.code} · {location.isActive ? 'Active' : 'Awaiting activation by admin'}</p>
             <p className="flex gap-2 text-sm"><MapPin size={16} />{[location.address,location.city,location.state].filter(Boolean).join(', ') || 'Address not configured'}</p>
             <p className="flex gap-2 text-sm"><Phone size={16} />{location.phone || 'Phone not configured'}</p>

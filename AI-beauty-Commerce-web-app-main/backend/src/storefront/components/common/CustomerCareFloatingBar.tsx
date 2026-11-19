@@ -40,7 +40,7 @@ export const CustomerCareFloatingBar: React.FC = () => {
           <Headset size={16} weight="fill" className="text-[#D4AF37] shrink-0" aria-hidden="true" />
 
           <div className="flex flex-col text-left">
-            <span className="text-[11px] font-heading font-bold text-white tracking-wide flex items-center gap-1">
+            <span className="text-[11px] font-heading font-semibold text-white tracking-wide flex items-center gap-1">
               <span>Customer Care</span>
               <span className="text-[9px] font-mono uppercase px-1 py-0.2 rounded-xs bg-[#D4AF37]/20 text-[#D4AF37] font-semibold">
                 VIP
@@ -71,7 +71,7 @@ export const CustomerCareFloatingBar: React.FC = () => {
               <div className="flex items-center gap-2.5">
                 <Headset size={20} weight="fill" className="text-[#D4AF37] shrink-0" aria-hidden="true" />
                 <div>
-                  <h3 id="customer-care-title" className="font-heading font-extrabold text-sm text-[#0F0F10] tracking-tight">
+                  <h3 id="customer-care-title" className="font-heading font-semibold text-sm text-[#0F0F10] tracking-tight">
                     Desla!™ VIP Customer Care
                   </h3>
                   <p className="text-[11px] text-[#6B7280]">
@@ -111,7 +111,7 @@ export const CustomerCareFloatingBar: React.FC = () => {
                 <div className="flex items-center gap-3">
                   <ChatCircleDots size={20} weight="fill" className="text-emerald-600 shrink-0" aria-hidden="true" />
                   <div>
-                    <span className="font-heading font-bold text-xs text-[#0F0F10] block">
+                    <span className="font-heading font-medium text-xs text-[#0F0F10] block">
                       Direct WhatsApp Specialist
                     </span>
                     <span className="text-[10px] text-emerald-800">
@@ -130,7 +130,7 @@ export const CustomerCareFloatingBar: React.FC = () => {
                 <div className="flex items-center gap-3">
                   <Headset size={20} weight="fill" className="text-[#0F0F10] shrink-0" aria-hidden="true" />
                   <div>
-                    <span className="font-heading font-bold text-xs text-[#0F0F10] block">
+                    <span className="font-heading font-medium text-xs text-[#0F0F10] block">
                       Priority Telephone Line
                     </span>
                     <span className="text-[10px] text-[#6B7280]">

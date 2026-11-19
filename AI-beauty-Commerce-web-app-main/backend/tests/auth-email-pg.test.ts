@@ -210,14 +210,16 @@ describe('account emails through database outbox and delivery worker', () => {
     expect(await db.select().from(schema.users).where(eq(schema.users.email, account.email))).toHaveLength(1);
     await verifyEmail(db as never, account.token);
     await resendVerification(db as never, account.email);
-    expect(await outbox()).toHaveLength(3);
+    expect(await outbox()).toHaveLength(4);
     const { sender, messages } = mailbox();
     await processOutbox(db as never, sender);
-    expect(messages).toHaveLength(1);
-    expect(messages[0].subject).toBe('Your Desla! account is already verified');
-    expect(messages[0].text).toContain('https://shop.example.com/login');
-    expect(messages[0].text).toContain('https://shop.example.com/forgot-password');
-    expect(messages[0].text).not.toContain('token=');
+    expect(messages).toHaveLength(2);
+    expect(messages.some(m => m.subject === 'Welcome to Desla Beauty')).toBe(true);
+    const accessMsg = messages.find(m => m.subject === 'Your Desla Beauty account is already verified');
+    expect(accessMsg).toBeDefined();
+    expect(accessMsg!.text).toContain('https://shop.example.com/login');
+    expect(accessMsg!.text).toContain('https://shop.example.com/forgot-password');
+    expect(accessMsg!.text).not.toContain('token=');
     await expect(login(db as never, { email: account.email, password: 'Original-password-1' })).resolves.toHaveProperty('token');
     await expect(login(db as never, { email: account.email, password: 'Other-password-2' })).rejects.toThrow();
   });
@@ -284,8 +286,11 @@ describe('account emails through database outbox and delivery worker', () => {
     const { sender, messages } = mailbox();
     const result = await processOutbox(db as never, sender);
     expect(result.detail).toContain('discarded=3');
-    expect(messages).toHaveLength(0);
-    expect((await outbox()).every(r => r.status === 'failed' && JSON.stringify(r.payload) === '{}')).toBe(true);
+    expect(messages).toHaveLength(1);
+    expect(messages[0].subject).toBe('Welcome to Desla Beauty');
+    const rows = await outbox();
+    expect(rows.filter(r => r.template !== 'auth.welcome').every(r => r.status === 'failed' && JSON.stringify(r.payload) === '{}')).toBe(true);
+    expect(rows.find(r => r.template === 'auth.welcome')?.status).toBe('sent');
     await expect(resetPassword(db as never, reset.resetToken!, 'Replacement-password-2')).rejects.toThrow();
   });
 

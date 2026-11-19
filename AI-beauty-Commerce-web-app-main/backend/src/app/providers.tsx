@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { MotionConfig } from 'motion/react';
 import { ViewportProvider } from '@/storefront/context/ViewportContext';
 import { AppProvider } from '@/storefront/context/AppContext';
 import { initErrorReporting } from '@/storefront/lib/observe';
@@ -8,9 +9,9 @@ import type { Product } from '@/storefront/types';
 import type { StorefrontSeed } from '@/lib/server-storefront';
 
 /**
- * Client providers — identical tree to Vite `src/main.tsx`. No UI change.
- * `initialCatalogue` is the ISR server seed (Phase 3): present at first
- * render on both server and client, so SSR HTML and hydration match exactly.
+ * Client providers — wraps storefront in MotionConfig (reducedMotion="user")
+ * with Emil Kowalski's restrained ease-out defaults so every transition respects
+ * accessibility preferences automatically.
  */
 export default function Providers({
   children,
@@ -25,8 +26,13 @@ export default function Providers({
     initErrorReporting();
   }, []);
   return (
-    <ViewportProvider>
-      <AppProvider initialCatalogue={initialCatalogue} initialEditorial={initialEditorial}>{children}</AppProvider>
-    </ViewportProvider>
+    <MotionConfig
+      reducedMotion="user"
+      transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
+    >
+      <ViewportProvider>
+        <AppProvider initialCatalogue={initialCatalogue} initialEditorial={initialEditorial}>{children}</AppProvider>
+      </ViewportProvider>
+    </MotionConfig>
   );
 }

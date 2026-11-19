@@ -25,6 +25,7 @@ export function useCustomerCart({ userId, authLoading, onSignIn, onResumed, cata
   const cartReady = !!userId && readyOwner === userId;
 
   useEffect(() => {
+    window.dispatchEvent(new Event('desla:cart-save-error'));
     owner.current = userId;
     snapshot.current = []; dirty.current = false; sequence.current++;
     setState({ owner: userId, items: [] }); setReadyOwner(undefined); setCartError(''); setCartSaving(false);
@@ -56,7 +57,9 @@ export function useCustomerCart({ userId, authLoading, onSignIn, onResumed, cata
         if (owner.current !== userId || sequence.current !== version) return;
         const mapped = cartFromServer(saved.lines, items.map(item => item.product));
         snapshot.current = mapped; dirty.current = false; setState({ owner: userId, items: mapped }); setCartError('');
+        window.dispatchEvent(new Event('desla:cart-saved'));
       } catch (error) {
+        window.dispatchEvent(new Event('desla:cart-save-error'));
         if (owner.current === userId) setCartError(error instanceof Error ? error.message : 'Your bag could not be saved. Retry before checkout.');
         throw error;
       } finally { if (owner.current === userId) setCartSaving(false); }

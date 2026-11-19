@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { motion } from 'motion/react';
+import { animateToBag } from '../../lib/cart-motion';
 import { Heart, ShoppingBag, Star, Check } from '@phosphor-icons/react';
 import { Product } from '../../types';
 import { useProductActions } from '../../context/AppContext';
@@ -49,6 +51,7 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({
     // Single simple product: add directly to cart
     const size = product.selectedSize || (product.sizes && product.sizes[0]) || 'Standard';
     if (!addToCart(product, size, 1)) return;
+    animateToBag(e.currentTarget as HTMLElement, product.image);
     setJustAdded(true);
     setTimeout(() => setJustAdded(false), 1400);
     if (onQuickAdd) onQuickAdd();
@@ -112,22 +115,23 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({
         isRail ? 'w-[200px] shrink-0' : 'w-full'
       }`}
     >
-      {/* Photographic Frame (Aspect Square Matching Reference) */}
-      <div className="relative aspect-square w-full overflow-hidden bg-[#F6F5F2] rounded-2xl">
+      {/* Photographic Frame (Zero hover gap: strictly clipped rounded container + GPU transform) */}
+      <div className="relative aspect-square w-full overflow-hidden bg-[#F6F5F2] rounded-2xl isolate">
         <ProductImage
           src={product.image}
           alt={product.name}
           sizes="(max-width: 768px) 50vw, 20vw"
-          className="object-cover object-center group-hover:scale-[1.035] transition-transform duration-500 ease-out"
+          className="object-cover object-center will-change-transform group-hover:scale-[1.03] transition-transform duration-300 ease-out"
         />
 
+        {product.galleryImages?.[1] && <div className="desla-product-preview absolute inset-0 pointer-events-none"><ProductImage src={product.galleryImages[1]} alt={`${product.name} — alternate view`} sizes="(max-width: 768px) 50vw, 20vw" className="object-cover" /></div>}
         {badge && (
-          <span className="absolute top-3 left-3 z-10 text-[#0F0F10] text-[10px] font-mono uppercase tracking-wider opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
+          <span className="absolute top-3 left-3 z-10 text-[#0F0F10] text-[10px] font-mono font-medium uppercase tracking-wider opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
             {badge}
           </span>
         )}
 
-        {/* Minimal Wishlist Accent */}
+        {/* Minimal Wishlist Accent with Tactile Heart Pop */}
         <button
           type="button"
           onClick={handleWishlist}
@@ -135,41 +139,49 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({
           aria-label={wishlisted ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
           aria-pressed={wishlisted}
         >
-          <Heart
-            size={15}
-            weight={wishlisted ? 'fill' : 'regular'}
-            className={wishlisted ? 'text-red-600 scale-105 transition-transform duration-200' : 'transition-transform duration-200'}
-            aria-hidden="true"
-          />
+          <motion.span
+            key={wishlisted ? 'liked' : 'idle'}
+            initial={wishlisted ? { scale: 0.8 } : false}
+            animate={wishlisted ? { scale: [0.85, 1.22, 0.96, 1] } : { scale: 1 }}
+            transition={{ duration: 0.28, ease: [0.23, 1, 0.32, 1] }}
+            className="inline-flex items-center justify-center"
+          >
+            <Heart
+              size={15}
+              weight={wishlisted ? 'fill' : 'regular'}
+              className={wishlisted ? 'text-red-600' : ''}
+              aria-hidden="true"
+            />
+          </motion.span>
         </button>
       </div>
 
       {/* Product Content Details (Disciplined Minimalist Hierarchy) */}
       <div className="pt-2.5 pb-1 px-0.5 flex flex-col flex-1 justify-between">
         <div>
-          {/* Concise Category & Rating (Without redundant review count numbers) */}
+          {/* Concise Category & Rating (500 medium supporting metadata) */}
           <div className="flex items-center justify-between text-[11px] gap-2">
-            <span className="text-[#6B7280] uppercase tracking-wider text-[10px] font-bold truncate opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
+            <span className="text-[#6B7280] uppercase tracking-wider text-[10px] font-medium truncate opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
               {descriptor}
             </span>
             {product.rating > 0 && (
-              <div className="flex items-center gap-1 text-[#0F0F10] shrink-0 text-[11px] font-bold">
+              <div className="flex items-center gap-1 text-[#0F0F10] shrink-0 text-[11px] font-medium">
                 <Star size={11} weight="fill" className="text-[#D4AF37]" aria-hidden="true" />
                 <span>{product.rating.toFixed(1)}</span>
               </div>
             )}
           </div>
 
-          {/* Product Name */}
-          <h3 className="font-heading font-bold text-xs sm:text-[13px] leading-snug text-[#0F0F10] line-clamp-2 mt-0.5 group-hover:text-[#997A2E] transition-colors">
+          {/* Product Name (Manrope 500) */}
+          <h3 className="font-heading font-medium text-xs sm:text-[13px] leading-snug text-[#0F0F10] line-clamp-2 mt-0.5 group-hover:text-[#997A2E] transition-colors">
             {product.name}
           </h3>
         </div>
 
-        {/* Pricing and Cart Control */}
+        {/* Pricing (600) and Cart Control */}
         <div className="pt-1.5 mt-1 flex items-center justify-between">
           <div className="flex items-baseline gap-1.5">
-            <span className="font-price font-bold text-[14px] text-[#0F0F10]">
+            <span className="font-price font-semibold text-[14px] text-[#0F0F10]">
               {formatNaira(product.price)}
             </span>
             {product.originalPrice && product.originalPrice > product.price && (

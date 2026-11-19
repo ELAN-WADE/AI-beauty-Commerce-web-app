@@ -54,7 +54,7 @@ export const CreatorSecondaryNav: React.FC<CreatorSecondaryNavProps> = ({
         <div className="flex items-center gap-2.5">
           <button
             onClick={() => onRouteChange('overview')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E5E7EB] bg-white hover:bg-[#FAF9F6] text-xs font-semibold text-[#0F0F10] transition-colors cursor-pointer group active:scale-[0.97]"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E5E7EB] bg-white hover:bg-[#FAF9F6] text-xs font-medium text-[#0F0F10] transition-colors cursor-pointer group active:scale-[0.97]"
             title="Return to Creator Office Home"
           >
             <ArrowLeft
@@ -66,7 +66,7 @@ export const CreatorSecondaryNav: React.FC<CreatorSecondaryNavProps> = ({
 
           <span className="text-[#D1D5DB] font-light text-sm">/</span>
 
-          <span className="text-xs sm:text-sm font-bold text-[#0F0F10] tracking-tight">
+          <span className="text-xs sm:text-sm font-medium text-[#0F0F10] tracking-tight">
             {currentDestination.label}
           </span>
         </div>
@@ -102,7 +102,7 @@ export const CreatorSecondaryNav: React.FC<CreatorSecondaryNavProps> = ({
           title="Creator Office Home"
         >
           <LayoutGrid size={16} />
-          <span className="absolute left-full ml-3 px-2 py-1 bg-[#0F0F10] text-white text-[10px] font-bold rounded-md whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50">
+          <span className="absolute left-full ml-3 px-2 py-1 bg-[#0F0F10] text-white text-[10px] font-medium rounded-md whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50">
             Creator Office Home
           </span>
         </button>
@@ -123,7 +123,7 @@ export const CreatorSecondaryNav: React.FC<CreatorSecondaryNavProps> = ({
               title={dest.label}
             >
               <Icon size={16} />
-              <span className="absolute left-full ml-3 px-2 py-1 bg-[#0F0F10] text-white text-[10px] font-bold rounded-md whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50">
+              <span className="absolute left-full ml-3 px-2 py-1 bg-[#0F0F10] text-white text-[10px] font-medium rounded-md whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50">
                 {dest.label}
               </span>
             </button>
@@ -135,7 +135,7 @@ export const CreatorSecondaryNav: React.FC<CreatorSecondaryNavProps> = ({
       <div className="hidden lg:block fixed left-4 bottom-7 z-40">
         <button
           onClick={() => onRouteChange('support')}
-          className="px-4 py-2 rounded-full bg-[#0F0F10] hover:bg-black text-white text-[11px] font-bold shadow-md cursor-pointer tracking-tight transition-all active:scale-95"
+          className="px-4 py-2 rounded-full bg-[#0F0F10] hover:bg-black text-white text-[11px] font-medium shadow-md cursor-pointer tracking-tight transition-all active:scale-95"
           title="Open Creator Support"
         >
           Creator Support

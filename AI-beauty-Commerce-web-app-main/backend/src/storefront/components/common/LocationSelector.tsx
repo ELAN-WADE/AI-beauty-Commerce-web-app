@@ -32,7 +32,7 @@ export const LocationSelector: React.FC = () => {
           <div className="flex items-center gap-2.5">
             <MapPin size={20} weight="fill" className="text-[#D4AF37] shrink-0" aria-hidden="true" />
             <div>
-              <h3 className="font-heading font-extrabold tracking-tight text-lg text-[#FBF9F5]">
+              <h3 className="font-heading font-semibold tracking-tight text-lg text-[#FBF9F5]">
                 Select Your Delivery City
               </h3>
               <p className="text-xs text-[#A19B96]">
@@ -75,14 +75,14 @@ export const LocationSelector: React.FC = () => {
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-heading font-bold text-sm text-[#FBF9F5]">
+                      <span className="font-heading font-semibold text-sm text-[#FBF9F5]">
                         {item.city}
                       </span>
                       <span className="text-[11px] text-[#A19B96]">
                         ({item.state})
                       </span>
                       {item.city === 'Lagos' && (
-                        <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-xs bg-[#D4AF37]/20 text-[#F6E7C1]">
+                        <span className="text-[9px] font-medium uppercase tracking-wider px-1.5 py-0.5 rounded-xs bg-[#D4AF37]/20 text-[#F6E7C1]">
                           Central HQ
                         </span>
                       )}

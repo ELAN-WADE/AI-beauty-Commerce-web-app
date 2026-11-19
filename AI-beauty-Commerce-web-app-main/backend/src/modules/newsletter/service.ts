@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { and, eq, gt, sql } from 'drizzle-orm';
 import type { AppDb, Db } from '../../db/client';
-import type { EmailMessage } from '../../lib/email';
+import { renderDeslaEmailHtml, type EmailMessage } from '../../lib/email';
 import { Errors } from '../../lib/errors';
 import { openAuthUrl, sealAuthUrl } from '../../lib/outbox-crypto';
 import { frontendOrigin } from '../auth/email';
@@ -62,10 +62,41 @@ export async function pendingNewsletterEmail(db: Db, row: { template: string; pa
   if (!subscriber) return null;
   if (row.template === 'newsletter.confirm') {
     if (subscriber.status !== 'PENDING' || subscriber.confirmTokenHash !== newsletterHash(token) || !subscriber.confirmExpiresAt || subscriber.confirmExpiresAt <= new Date()) return null;
-    return { to: subscriber.email, subject: 'Confirm your Formulation Journal subscription', text: `Confirm that you want to receive Desla! product news and the Formulation Journal:\n\n${newsletterLink('confirm', token)}\n\nThis link expires in 24 hours. If you did not request this invitation, ignore this email; you will not be subscribed.` };
+    const confirmUrl = newsletterLink('confirm', token);
+    const preheader = 'Confirm your Desla Beauty Formulation Journal subscription.';
+    return {
+      to: subscriber.email,
+      subject: 'Confirm your Desla Beauty Formulation Journal subscription',
+      preheader,
+      text: `Confirm that you want to receive Desla Beauty product news and the Formulation Journal:\n\n${confirmUrl}\n\nThis link expires in 24 hours. If you did not request this invitation, ignore this email; you will not be subscribed.\n\n— Desla Beauty`,
+      html: renderDeslaEmailHtml({
+        preheader,
+        eyebrow: 'Formulation Journal',
+        heading: 'Confirm your subscription',
+        paragraphs: ['Confirm that you want to receive Desla Beauty formulation launches and seasonal notes. This link expires in 24 hours.'],
+        ctaLabel: 'Confirm Subscription',
+        ctaUrl: confirmUrl,
+        note: 'If you did not request this invitation, ignore this email and you will not be subscribed.',
+      }),
+    };
   }
   if (row.template === 'newsletter.welcome' && subscriber.status === 'CONFIRMED' && subscriber.unsubscribeTokenHash === newsletterHash(token)) {
-    return { to: subscriber.email, subject: 'Welcome to the Formulation Journal', text: `Your Desla! Formulation Journal subscription is confirmed.\n\nUnsubscribe at any time:\n${newsletterLink('unsubscribe', token)}` };
+    const unsubUrl = newsletterLink('unsubscribe', token);
+    const preheader = 'Your Desla Beauty Formulation Journal subscription is confirmed.';
+    return {
+      to: subscriber.email,
+      subject: 'Welcome to the Desla Beauty Formulation Journal',
+      preheader,
+      text: `Your Desla Beauty Formulation Journal subscription is confirmed.\n\nUnsubscribe at any time:\n${unsubUrl}\n\n— Desla Beauty`,
+      html: renderDeslaEmailHtml({
+        preheader,
+        eyebrow: 'Formulation Journal',
+        heading: 'Welcome to the Formulation Journal',
+        paragraphs: ['Your Desla Beauty Formulation Journal subscription is confirmed. You will receive curated updates on new formulations and skincare guidance.'],
+        ctaLabel: 'Manage Preferences',
+        ctaUrl: unsubUrl,
+      }),
+    };
   }
   return null;
 }

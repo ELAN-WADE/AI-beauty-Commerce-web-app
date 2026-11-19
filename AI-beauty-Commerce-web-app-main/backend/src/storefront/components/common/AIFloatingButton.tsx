@@ -78,7 +78,7 @@ export const AIFloatingButton: React.FC = () => {
             isExpanded ? 'max-w-[160px] opacity-100 pl-2.5' : 'max-w-0 opacity-0 pl-0 pointer-events-none'
           }`}
         >
-          <span className="font-heading font-extrabold text-xs text-[#0F0F10] tracking-tight">
+          <span className="font-heading font-semibold text-xs text-[#0F0F10] tracking-tight">
             Ask Desla<span className="text-[#D4AF37]">!™</span> AI
           </span>
         </div>

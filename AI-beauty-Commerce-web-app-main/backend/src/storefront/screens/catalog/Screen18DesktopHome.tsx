@@ -1,3 +1,4 @@
+import { SkincareDiscovery } from '../../components/home/SkincareDiscovery';
 import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { BrandLogo } from '../../components/common/BrandLogo';
@@ -71,6 +72,7 @@ export const Screen18DesktopHome: React.FC = () => {
           onOpenModal={handleOpenVariantModal}
         />
 
+        <SkincareDiscovery />
         {/* 5. 3-Chapter Interactive Daily Ritual */}
         <DailyRitualShowcase
           onAddCompleteRoutine={handleAddRoutineBundle}
@@ -114,7 +116,7 @@ export const Screen18DesktopHome: React.FC = () => {
 
           {/* Column 2: Formulation Disciplines */}
           <div className="space-y-3">
-            <h4 className="font-heading font-bold text-xs uppercase tracking-wider text-[#0F0F10]">
+            <h4 className="font-heading font-medium text-xs uppercase tracking-wider text-[#0F0F10]">
               Formulations
             </h4>
             <ul className="space-y-2">
@@ -171,7 +173,7 @@ export const Screen18DesktopHome: React.FC = () => {
 
           {/* Column 3: Portals & Diagnostics */}
           <div className="space-y-3">
-            <h4 className="font-heading font-bold text-xs uppercase tracking-wider text-[#0F0F10]">
+            <h4 className="font-heading font-medium text-xs uppercase tracking-wider text-[#0F0F10]">
               Portals &amp; Orders
             </h4>
             <ul className="space-y-2">
@@ -221,7 +223,7 @@ export const Screen18DesktopHome: React.FC = () => {
 
           {/* Column 4: Client Services & Concierge */}
           <div className="space-y-3">
-            <h4 className="font-heading font-bold text-xs uppercase tracking-wider text-[#0F0F10]">
+            <h4 className="font-heading font-medium text-xs uppercase tracking-wider text-[#0F0F10]">
               Client Services
             </h4>
             <p className="text-xs text-[#4B5563] leading-relaxed">

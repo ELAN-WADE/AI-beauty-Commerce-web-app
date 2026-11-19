@@ -136,7 +136,7 @@ describe('provider drivers (mocked HTTP)', () => {
     const r = await opayCashierInit(
       mockFetch({ code: '00000', data: { cashierUrl: 'https://opay/x', orderNo: 'OP123' } }),
       cfg,
-      { reference: 'DES-A1', amountKobo: 250000, productName: 'Glowly order', returnUrl: 'https://x/r', callbackUrl: 'https://x/c' },
+      { reference: 'DES-A1', amountKobo: 250000, productName: 'Desla Beauty order', returnUrl: 'https://x/r', callbackUrl: 'https://x/c' },
     );
     expect(r).toMatchObject({ authorizationUrl: 'https://opay/x', providerRef: 'OP123' });
     await expect(

@@ -13,7 +13,7 @@ import type { FetchFn } from '@/lib/providers';
 // (E.164 normalization, length bounds, explicit unconfigured error, timeouts)
 // → TEST below with mocked HTTP.
 describe('termii sender', () => {
-  const cfg: TermiiConfig = { baseUrl: 'https://api.ng.termii.com', apiKey: 'k', senderId: 'Glowly', sendPath: '/api/sms/send' };
+  const cfg: TermiiConfig = { baseUrl: 'https://api.ng.termii.com', apiKey: 'k', senderId: 'Desla', sendPath: '/api/sms/send' };
   const mockFetch =
     (json: unknown, ok = true): FetchFn =>
     (async (url: unknown, init: unknown) => {
@@ -40,7 +40,7 @@ describe('termii sender', () => {
     );
     expect(r).toEqual({ messageId: '8394925629000072200' });
     const body = (globalThis as Record<string, unknown>).__lastTermiiBody as Record<string, unknown>;
-    expect(body).toMatchObject({ to: '+2348031234567', from: 'Glowly', sms: 'hello', type: 'plain', channel: 'whatsapp', api_key: 'k' });
+    expect(body).toMatchObject({ to: '+2348031234567', from: 'Desla', sms: 'hello', type: 'plain', channel: 'whatsapp', api_key: 'k' });
   });
 
   it('refuses provider errors, bad numbers, and missing keys', async () => {

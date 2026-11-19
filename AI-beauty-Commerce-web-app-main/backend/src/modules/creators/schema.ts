@@ -64,7 +64,7 @@ export const creatorApplications = pgTable(
   },
   (t) => [
     index('creator_apps_status_idx').on(t.status),
-    check('creator_app_status_allowed', sql`"status" IN ('pending','approved','rejected')`),
+    check('creator_app_status_allowed', sql`"status" IN ('pending','under_review','approved','rejected')`),
     check('creator_app_platform_allowed', sql`"platform" IN ('Instagram','TikTok','YouTube')`),
   ],
 );

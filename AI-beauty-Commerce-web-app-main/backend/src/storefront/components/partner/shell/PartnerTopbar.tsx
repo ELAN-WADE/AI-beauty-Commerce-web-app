@@ -41,7 +41,7 @@ export const PartnerTopbar: React.FC<PartnerTopbarProps> = ({
       <div className="flex items-center gap-4 flex-1 max-w-xl">
         <button
           onClick={() => navigateTo('home')}
-          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#E5E7EB] bg-[#FAF9F6] hover:bg-[#F3F4F6] text-xs font-semibold text-[#0F0F10] transition-colors cursor-pointer shrink-0"
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#E5E7EB] bg-[#FAF9F6] hover:bg-[#F3F4F6] text-xs font-medium text-[#0F0F10] transition-colors cursor-pointer shrink-0"
           title="Return to the customer storefront"
         >
           <ArrowLeft size={14} className="text-[#6B7280]" />
@@ -55,7 +55,7 @@ export const PartnerTopbar: React.FC<PartnerTopbarProps> = ({
               if (onSwitchWorkspace) onSwitchWorkspace('CREATOR');
               else navigateTo('creators');
             }}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all cursor-pointer ${
               isCreator
                 ? 'bg-[#0F0F10] text-[#D4AF37] shadow-xs'
                 : 'text-[#6B7280] hover:text-[#0F0F10]'
@@ -69,7 +69,7 @@ export const PartnerTopbar: React.FC<PartnerTopbarProps> = ({
               if (onSwitchWorkspace) onSwitchWorkspace('DISTRIBUTOR');
               else navigateTo('distributor-portal');
             }}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all cursor-pointer ${
               !isCreator
                 ? 'bg-[#0F0F10] text-[#D4AF37] shadow-xs'
                 : 'text-[#6B7280] hover:text-[#0F0F10]'
@@ -103,7 +103,7 @@ export const PartnerTopbar: React.FC<PartnerTopbarProps> = ({
         {/* Quick Action Button */}
         <button
           onClick={onQuickAction}
-          className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-bold shadow-xs active:scale-[0.97] transition-all cursor-pointer"
+          className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-medium shadow-xs active:scale-[0.97] transition-all cursor-pointer"
         >
           <Plus size={14} className="text-[#D4AF37]" />
           <span>{isCreator ? 'Create Content' : 'New Restock'}</span>
@@ -119,7 +119,7 @@ export const PartnerTopbar: React.FC<PartnerTopbarProps> = ({
         </button>
 
         {/* User Avatar */}
-        <div className="w-8 h-8 rounded-full bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center text-xs font-mono font-bold">
+        <div className="w-8 h-8 rounded-full bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center text-xs font-mono font-medium">
           {initials}
         </div>
       </div>

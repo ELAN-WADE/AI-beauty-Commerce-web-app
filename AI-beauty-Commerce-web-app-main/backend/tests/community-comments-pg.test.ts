@@ -48,7 +48,7 @@ describe('community likes, threaded comments, and review isolation', () => {
 
     const [brand] = await db
       .insert(schema.brands)
-      .values({ name: 'Delsla Lab', slug: 'delsla-lab-comments' })
+      .values({ name: 'Desla Lab', slug: 'desla-lab-comments' })
       .returning();
     const [category] = await db
       .insert(schema.categories)

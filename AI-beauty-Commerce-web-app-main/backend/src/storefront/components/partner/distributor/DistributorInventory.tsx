@@ -174,10 +174,10 @@ export const DistributorInventory: React.FC<DistributorInventoryProps> = ({
       {/* Desktop Header */}
       <div className="hidden md:flex pb-2 border-b border-[#E5E7EB] flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
+          <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-[#997A2E]">
             City Hub Warehousing • {selectedCity || 'Lagos'} Hub Depot
           </span>
-          <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-[#0F0F10]">
+          <h1 className="font-heading font-bold text-2xl sm:text-3xl text-[#0F0F10]">
             Inventory &amp; SKU Stock Pools
           </h1>
           <p className="text-xs sm:text-sm text-[#6B7280] mt-0.5">
@@ -187,7 +187,7 @@ export const DistributorInventory: React.FC<DistributorInventoryProps> = ({
 
         <button
           onClick={() => onRestockItem && onRestockItem(localInventory[0]?.sku || '')}
-          className="px-5 py-2.5 rounded-full bg-[#0F0F10] text-[#D4AF37] text-xs font-bold flex items-center gap-2 self-start sm:self-auto hover:bg-[#27272A] shadow-xs cursor-pointer active:scale-95 transition-all"
+          className="px-5 py-2.5 rounded-full bg-[#0F0F10] text-[#D4AF37] text-xs font-medium flex items-center gap-2 self-start sm:self-auto hover:bg-[#27272A] shadow-xs cursor-pointer active:scale-95 transition-all"
         >
           <Truck size={14} />
           <span>Wholesale Master Cartons</span>
@@ -275,16 +275,16 @@ export const DistributorInventory: React.FC<DistributorInventoryProps> = ({
                         className="w-10 h-10 rounded-xl object-cover border border-[#E5E7EB] shrink-0"
                       />
                       <div>
-                        <span className="font-bold text-[#0F0F10] block">{item.name}</span>
+                        <span className="font-semibold text-[#0F0F10] block">{item.name}</span>
                         <span className="text-[11px] font-mono text-[#6B7280]">{item.sku}</span>
                       </div>
                     </div>
                   </td>
                   <td className="py-4 text-[#6B7280]">{item.category}</td>
-                  <td className="py-4 text-right font-mono font-extrabold text-sm text-[#0F0F10]">
+                  <td className="py-4 text-right font-mono font-semibold text-sm text-[#0F0F10]">
                     {item.available}
                   </td>
-                  <td className="py-4 text-right font-mono text-[#6B7280] font-bold">
+                  <td className="py-4 text-right font-mono text-[#6B7280] font-semibold">
                     {item.reserved}
                   </td>
                   <td className="py-4 text-right font-mono text-[#9CA3AF]">
@@ -308,7 +308,7 @@ export const DistributorInventory: React.FC<DistributorInventoryProps> = ({
 
                       <button
                         onClick={() => onRestockItem && onRestockItem(item.sku)}
-                        className="px-3 py-1.5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer transition-transform active:scale-95 shadow-xs"
+                        className="px-3 py-1.5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-[11px] font-semibold inline-flex items-center gap-1 cursor-pointer transition-transform active:scale-95 shadow-xs"
                       >
                         <Truck size={12} className="text-[#D4AF37]" />
                         <span>Restock</span>
@@ -328,10 +328,10 @@ export const DistributorInventory: React.FC<DistributorInventoryProps> = ({
           <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-[#EAE8E3] overflow-hidden">
             <div className="p-5 border-b border-[#EAE8E3] flex items-center justify-between">
               <div>
-                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
+                <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-[#997A2E]">
                   City Hub Reconciliation
                 </span>
-                <h3 className="font-heading font-extrabold text-lg text-[#0F0F10]">
+                <h3 className="font-heading font-semibold text-lg text-[#0F0F10]">
                   Adjust Local Count • {adjustingItem.name}
                 </h3>
               </div>
@@ -346,16 +346,16 @@ export const DistributorInventory: React.FC<DistributorInventoryProps> = ({
             <form onSubmit={handleExecuteAdjustment} className="p-5 space-y-4 text-xs">
               <div>
                 <span className="text-[#71717A] block mb-1">Current Hub Available:</span>
-                <p className="font-mono text-base font-bold text-[#0F0F10]">{adjustingItem.available} Units</p>
+                <p className="font-mono text-base font-semibold text-[#0F0F10]">{adjustingItem.available} Units</p>
               </div>
 
               <div>
-                <label className="block font-bold text-[#0F0F10] mb-1">Adjustment Quantity (+ / -)</label>
+                <label className="block font-medium text-[#0F0F10] mb-1">Adjustment Quantity (+ / -)</label>
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={() => setAdjustDelta((d) => (d > 0 ? -Math.abs(d) : d))}
-                    className={`flex-1 py-2 rounded-xl border text-xs font-bold cursor-pointer ${
+                    className={`flex-1 py-2 rounded-xl border text-xs font-medium cursor-pointer ${
                       adjustDelta < 0 ? 'bg-rose-50 border-rose-300 text-rose-700' : 'bg-white border-[#E5E7EB] text-[#71717A]'
                     }`}
                   >
@@ -364,7 +364,7 @@ export const DistributorInventory: React.FC<DistributorInventoryProps> = ({
                   <button
                     type="button"
                     onClick={() => setAdjustDelta((d) => Math.abs(d))}
-                    className={`flex-1 py-2 rounded-xl border text-xs font-bold cursor-pointer ${
+                    className={`flex-1 py-2 rounded-xl border text-xs font-medium cursor-pointer ${
                       adjustDelta > 0 ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-white border-[#E5E7EB] text-[#71717A]'
                     }`}
                   >
@@ -378,13 +378,13 @@ export const DistributorInventory: React.FC<DistributorInventoryProps> = ({
                     const val = Number(e.target.value);
                     setAdjustDelta(adjustDelta < 0 ? -val : val);
                   }}
-                  className="w-full mt-2 p-2.5 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] text-xs font-mono font-bold focus:outline-none"
+                  className="w-full mt-2 p-2.5 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] text-xs font-mono font-medium focus:outline-none"
                   required
                 />
               </div>
 
               <div>
-                <label className="block font-bold text-[#0F0F10] mb-1">Reason</label>
+                <label className="block font-medium text-[#0F0F10] mb-1">Reason</label>
                 <select
                   value={adjustReason}
                   onChange={(e) => setAdjustReason(e.target.value)}
@@ -398,7 +398,7 @@ export const DistributorInventory: React.FC<DistributorInventoryProps> = ({
               </div>
 
               <div>
-                <label className="block font-bold text-[#0F0F10] mb-1">Note (Optional)</label>
+                <label className="block font-medium text-[#0F0F10] mb-1">Note (Optional)</label>
                 <input
                   type="text"
                   value={adjustNote}
@@ -418,7 +418,7 @@ export const DistributorInventory: React.FC<DistributorInventoryProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-full bg-[#0F0F10] text-[#D4AF37] font-bold text-xs shadow-md cursor-pointer"
+                  className="px-5 py-2 rounded-full bg-[#0F0F10] text-[#D4AF37] font-medium text-xs shadow-md cursor-pointer"
                 >
                   Save Count
                 </button>

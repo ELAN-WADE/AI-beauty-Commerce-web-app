@@ -1,3 +1,4 @@
+import { SkincareDiscovery } from '../../components/home/SkincareDiscovery';
 import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { BrandLogo } from '../../components/common/BrandLogo';
@@ -72,6 +73,7 @@ export const Screen03Home: React.FC = () => {
           onOpenModal={handleOpenVariantModal}
         />
 
+        <SkincareDiscovery />
         {/* 5. 3-Chapter Interactive Daily Ritual */}
         <DailyRitualShowcase
           onAddCompleteRoutine={handleAddRoutineBundle}

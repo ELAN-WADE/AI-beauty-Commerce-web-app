@@ -15,7 +15,7 @@ import { useApp } from '../../context/AppContext';
 import { fetchLoyaltyView, redeemLoyaltyVoucher, type LoyaltyView } from '../../lib/owned-api';
 
 export const Screen16Rewards: React.FC = () => {
-  const { userProfile, vouchers, pointsActivity, redeemVoucher, isLiveBackend, authUser } = useApp();
+  const { userProfile, vouchers, pointsActivity, redeemVoucher, isLiveBackend, authUser, requestCustomerSignIn, navigateTo } = useApp();
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
   // Live loyalty (owned backend, authenticated only; mocks otherwise)
@@ -59,8 +59,52 @@ export const Screen16Rewards: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#FCFAF9] pb-28">
-      <main className="max-w-md mx-auto px-4 pt-3 space-y-5">
+    <div className="min-h-screen bg-[#FBF9F5] pb-28">
+      <main className="max-w-md mx-auto px-4 pt-4 space-y-5">
+        {/* Cohesive Desla Club Loyalty Sign-In Prompt for Guests */}
+        {isLiveBackend && !authUser && (
+          <section
+            aria-label="Desla Club Loyalty Sign In"
+            className="rounded-[20px] border border-[#E7E1D6] bg-[#F4EFE6]/70 backdrop-blur-md p-5 space-y-3.5 text-center shadow-[0_14px_34px_-18px_rgba(17,17,17,0.10)]"
+          >
+            <div className="flex justify-center">
+              <img
+                src="/desla_logo_dark.svg"
+                alt="Desla!"
+                className="h-5 w-auto block object-contain select-none"
+              />
+            </div>
+            <div className="space-y-1">
+              <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-[#8C6D28]">
+                Desla Club Loyalty
+              </p>
+              <h1 className="font-heading text-lg font-semibold text-[#111111] tracking-tight">
+                Sign in to unlock your rewards
+              </h1>
+              <p className="text-xs text-[#6E6A63] leading-relaxed">
+                Track live points earned on every formulation order and issue instant checkout vouchers.
+              </p>
+            </div>
+            <div className="flex items-center justify-center gap-2.5 pt-0.5">
+              <button
+                type="button"
+                onClick={() => requestCustomerSignIn('/rewards')}
+                className="h-10 px-5 rounded-[10px] bg-[#111111] hover:bg-[#242426] text-white text-xs font-medium inline-flex items-center gap-1.5 transition-all cursor-pointer"
+              >
+                <span>Sign In</span>
+                <ArrowRight size={13} className="text-[#E6C77A]" />
+              </button>
+              <button
+                type="button"
+                onClick={() => navigateTo('signup')}
+                className="h-10 px-4 rounded-[10px] border border-[#DDD7CC] hover:border-[#111111] bg-white/90 hover:bg-white text-[#111111] text-xs font-medium transition-all cursor-pointer"
+              >
+                Create Account
+              </button>
+            </div>
+          </section>
+        )}
+
         {/* Luxury Gold Membership Card */}
         <section
           aria-label="Membership Status"
@@ -71,27 +115,27 @@ export const Screen16Rewards: React.FC = () => {
 
           <div className="relative z-10 flex items-start justify-between">
             <div>
-              <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-black/10 backdrop-blur-xs text-[10px] font-bold tracking-widest uppercase">
+              <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-black/10 backdrop-blur-xs text-[10px] font-medium tracking-widest uppercase">
                 <Award size={13} />
                 <span>{userProfile.tier} Tier Member</span>
               </div>
-              <h2 className="font-heading font-extrabold text-2xl tracking-tight mt-2 text-[#1E1B1D]">
+              <h2 className="font-heading font-semibold text-2xl tracking-tight mt-2 text-[#1E1B1D]">
                 {userProfile.name}
               </h2>
             </div>
-            <div className="w-10 h-10 rounded-2xl bg-black/10 flex items-center justify-center font-heading font-extrabold text-lg">
+            <div className="w-10 h-10 rounded-2xl bg-black/10 flex items-center justify-center font-heading font-semibold text-lg">
               ✦
             </div>
           </div>
 
           <div className="relative z-10 mt-6 pt-4 border-t border-black/10 flex items-end justify-between">
             <div>
-              <span className="text-[10px] uppercase font-bold tracking-wider opacity-80 block">
+              <span className="text-[10px] uppercase font-medium tracking-wider opacity-80 block">
                 Available Rewards Balance
               </span>
-              <p className="font-heading font-extrabold text-3xl text-[#1E1B1D] leading-none mt-0.5">
+              <p className="font-heading font-semibold text-3xl text-[#1E1B1D] leading-none mt-0.5">
                 {(displayPoints || 0).toLocaleString()}{' '}
-                <span className="text-sm font-bold uppercase tracking-wider">Points</span>
+                <span className="text-sm font-medium uppercase tracking-wider">Points</span>
               </p>
             </div>
             <span className="text-[11px] font-mono font-semibold bg-black/10 px-2 py-1 rounded-lg">
@@ -114,7 +158,7 @@ export const Screen16Rewards: React.FC = () => {
         {/* Live loyalty ledger (owned backend, authenticated only) */}
         {liveView && (
           <section aria-label="Live Loyalty" className="p-4 rounded-card bg-white border border-[#D4AF37]/40 space-y-3">
-            <h4 className="font-heading font-bold text-xs uppercase tracking-wider text-[#0F0F10]">
+            <h4 className="font-heading font-medium text-xs uppercase tracking-wider text-[#0F0F10]">
               Live Points Ledger
             </h4>
             <div className="space-y-2">
@@ -126,7 +170,7 @@ export const Screen16Rewards: React.FC = () => {
                   <button
                     onClick={() => handleLiveRedeem(t.points)}
                     disabled={redeeming !== null || displayPoints < t.points}
-                    className="px-3.5 py-1.5 rounded-btn text-xs font-bold bg-[#0F0F10] text-[#D4AF37] active:scale-95 transition-all cursor-pointer disabled:opacity-40"
+                    className="px-3.5 py-1.5 rounded-btn text-xs font-medium bg-[#0F0F10] text-[#D4AF37] active:scale-95 transition-all cursor-pointer disabled:opacity-40"
                   >
                     {redeeming === t.points ? 'Issuing…' : 'Redeem'}
                   </button>
@@ -136,7 +180,7 @@ export const Screen16Rewards: React.FC = () => {
             {liveView.vouchers.length > 0 && (
               <div className="space-y-1.5 pt-1">
                 {liveView.vouchers.filter((v) => v.status === 'active').map((v) => (
-                  <div key={v.code} className="flex items-center justify-between text-xs font-mono font-bold text-emerald-700">
+                  <div key={v.code} className="flex items-center justify-between text-xs font-mono font-medium text-emerald-700">
                     <span>Code: {v.code} — ₦{(v.amountKobo / 100).toLocaleString('en-NG')} off</span>
                     <button onClick={() => handleCopy(v.code)} className="p-0.5 hover:text-emerald-900 cursor-pointer" aria-label="Copy voucher code">
                       <Copy size={12} />
@@ -151,7 +195,7 @@ export const Screen16Rewards: React.FC = () => {
                 {liveView.activity.map((act, idx) => (
                   <div key={act.id ?? idx} className="p-3 rounded-xl bg-white border border-glowly-border flex items-center justify-between text-xs">
                     <span className="font-semibold text-glowly-charcoal text-xs">{act.title}</span>
-                    <span className={`font-mono font-bold text-xs ${act.points > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    <span className={`font-mono font-medium text-xs ${act.points > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                       {act.points > 0 ? `+${act.points}` : act.points} pts
                     </span>
                   </div>
@@ -166,7 +210,7 @@ export const Screen16Rewards: React.FC = () => {
         <section aria-label="Redeemable Vouchers">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h3 className="font-heading font-bold text-sm text-glowly-charcoal leading-none">
+              <h3 className="font-heading font-semibold text-sm text-glowly-charcoal leading-none">
                 Redeem Exclusive Vouchers
               </h3>
               <p className="text-[11px] text-glowly-muted mt-0.5">
@@ -190,10 +234,10 @@ export const Screen16Rewards: React.FC = () => {
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <h4 className="font-heading font-bold text-xs text-glowly-charcoal truncate">
+                        <h4 className="font-heading font-medium text-xs text-glowly-charcoal truncate">
                           {v.title}
                         </h4>
-                        <span className="px-1.5 py-0.5 rounded bg-glowly-surface text-glowly-primary font-mono text-[9px] font-bold border">
+                        <span className="px-1.5 py-0.5 rounded bg-glowly-surface text-glowly-primary font-mono text-[9px] font-semibold border">
                           {v.discountValue}
                         </span>
                       </div>
@@ -201,7 +245,7 @@ export const Screen16Rewards: React.FC = () => {
                         Cost: <strong>{v.pointsCost} Points</strong> • {v.expiresAt}
                       </p>
                       {v.isRedeemed && (
-                        <div className="flex items-center gap-1.5 mt-1 font-mono text-xs font-bold text-emerald-700">
+                        <div className="flex items-center gap-1.5 mt-1 font-mono text-xs font-medium text-emerald-700">
                           <span>Code: {v.code}</span>
                           <button
                             onClick={() => handleCopy(v.code)}
@@ -216,14 +260,14 @@ export const Screen16Rewards: React.FC = () => {
 
                   <div className="shrink-0">
                     {v.isRedeemed ? (
-                      <span className="px-3 py-1.5 rounded-btn bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200">
+                      <span className="px-3 py-1.5 rounded-btn bg-emerald-50 text-emerald-700 text-xs font-medium border border-emerald-200">
                         Redeemed
                       </span>
                     ) : (
                       <button
                         onClick={() => redeemVoucher(v.id)}
                         disabled={!canAfford}
-                        className={`px-3.5 py-1.5 rounded-btn text-xs font-bold transition-all ${
+                        className={`px-3.5 py-1.5 rounded-btn text-xs font-medium transition-all ${
                           canAfford
                             ? 'bg-glowly-primary text-white hover:bg-glowly-primary-hover active:scale-95 shadow-soft'
                             : 'bg-glowly-surface text-glowly-muted border border-glowly-border cursor-not-allowed'
@@ -242,16 +286,16 @@ export const Screen16Rewards: React.FC = () => {
 
         {/* How to Earn Points Guide */}
         <section aria-label="Earning Rules" className="p-4 rounded-card bg-white border border-glowly-border space-y-2.5 text-xs">
-          <h4 className="font-heading font-bold text-xs uppercase tracking-wider text-glowly-charcoal">
-            How to Earn Glowly Points
+          <h4 className="font-heading font-semibold text-xs uppercase tracking-wider text-glowly-charcoal">
+            How to Earn Desla Points
           </h4>
           <div className="space-y-1.5 text-glowly-muted">
             <div className="flex items-center justify-between py-1 border-b border-glowly-border/40">
               <span>Every ₦100 Spent on Catalogue</span>
-              <strong className="text-glowly-charcoal font-mono">+1 Point</strong>
+              <strong className="text-glowly-charcoal font-mono font-semibold">+1 Point</strong>
             </div>
             <div className="flex items-center justify-between py-1 border-b border-glowly-border/40">
-              <span>Complete AI Skin Diagnosis</span>
+              <span>Complete AI Skin Assessment</span>
               <strong className="text-glowly-primary font-mono">+500 Points</strong>
             </div>
             <div className="flex items-center justify-between py-1">
@@ -264,7 +308,7 @@ export const Screen16Rewards: React.FC = () => {
         {/* Points History Ledger (mock; hidden when live) */}
         {!liveView && (
         <section aria-label="Activity History">
-          <h4 className="font-heading font-bold text-xs uppercase tracking-wider text-glowly-charcoal mb-2.5">
+          <h4 className="font-heading font-medium text-xs uppercase tracking-wider text-glowly-charcoal mb-2.5">
             Points Ledger & Activity
           </h4>
           <div className="space-y-2">
@@ -280,7 +324,7 @@ export const Screen16Rewards: React.FC = () => {
                   <span className="text-[10px] text-glowly-muted">{act.date}</span>
                 </div>
                 <span
-                  className={`font-mono font-bold text-xs ${
+                  className={`font-mono font-medium text-xs ${
                     act.points > 0 ? 'text-emerald-600' : 'text-rose-600'
                   }`}
                 >

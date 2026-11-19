@@ -312,7 +312,7 @@ const ScreenCommunityChatContent: React.FC = () => {
           {/* Desktop Left Column: Hubs, Curated Routines & Trending (3 cols) */}
           <aside className="hidden lg:block lg:col-span-3 space-y-5">
             <div className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] space-y-3 shadow-xs">
-              <div className="flex items-center gap-2 text-xs font-bold text-[#0F0F10]">
+              <div className="flex items-center gap-2 text-xs font-medium text-[#0F0F10]">
                 <Storefront size={15} weight="fill" className="text-[#D4AF37]" aria-hidden="true" />
                 <span>Nearest Distributor Hub</span>
               </div>
@@ -320,7 +320,7 @@ const ScreenCommunityChatContent: React.FC = () => {
                 Verified partners in <strong>{selectedCity}</strong> holding authentic Desla formulations for same-day delivery.
               </p>
               <div className="p-2.5 rounded-xl bg-white border border-[#E5E7EB] text-xs">
-                <span className="font-bold text-[#0F0F10] block">
+                <span className="font-semibold text-[#0F0F10] block">
                   {cityDistributors[0]?.businessName || 'No local hub listed'}
                 </span>
                 <span className="text-[10.5px] text-[#6B7280] mt-0.5 block truncate">
@@ -330,14 +330,14 @@ const ScreenCommunityChatContent: React.FC = () => {
               <button
                 type="button"
                 onClick={() => navigateTo('distributors')}
-                className="w-full py-2 px-3 rounded-xl bg-[#F3EEE3] hover:bg-[#EAE4D7] text-[#0F0F10] text-[11px] font-bold active:scale-95 transition-all cursor-pointer text-center block"
+                className="w-full py-2 px-3 rounded-xl bg-[#F3EEE3] hover:bg-[#EAE4D7] text-[#0F0F10] text-[11px] font-semibold active:scale-95 transition-all cursor-pointer text-center block"
               >
                 Browse All {selectedCity} Hubs →
               </button>
             </div>
 
             <div className="p-4 rounded-2xl bg-white border border-[#E5E7EB] shadow-xs space-y-3">
-              <div className="flex items-center gap-2 text-xs font-bold text-[#0F0F10]">
+              <div className="flex items-center gap-2 text-xs font-medium text-[#0F0F10]">
                 <BookOpen size={15} weight="fill" className="text-[#997A2E]" aria-hidden="true" />
                 <span>Curated Routines</span>
               </div>
@@ -348,7 +348,7 @@ const ScreenCommunityChatContent: React.FC = () => {
                     onClick={() => setActiveTab('transformations')}
                     className="w-full text-left p-2 rounded-xl bg-[#FAF9F6] hover:bg-[#F3EEE3] cursor-pointer transition-all"
                   >
-                    <span className="font-bold text-[#0F0F10] block text-[11.5px]">
+                    <span className="font-semibold text-[#0F0F10] block text-[11.5px]">
                       #NaturalGlowRoutine
                     </span>
                     <span className="text-[10px] text-[#6B7280]">
@@ -362,7 +362,7 @@ const ScreenCommunityChatContent: React.FC = () => {
                     onClick={() => setActiveTab('transformations')}
                     className="w-full text-left p-2 rounded-xl bg-[#FAF9F6] hover:bg-[#F3EEE3] cursor-pointer transition-all"
                   >
-                    <span className="font-bold text-[#0F0F10] block text-[11.5px]">
+                    <span className="font-semibold text-[#0F0F10] block text-[11.5px]">
                       #BarrierRepairAM
                     </span>
                     <span className="text-[10px] text-[#6B7280]">
@@ -375,7 +375,7 @@ const ScreenCommunityChatContent: React.FC = () => {
 
             {trendingItems.length > 0 && (
               <div className="p-4 rounded-2xl bg-white border border-[#E5E7EB] shadow-xs space-y-3">
-                <span className="text-xs font-bold text-[#0F0F10] block">
+                <span className="text-xs font-medium text-[#0F0F10] block">
                   Trending Formulations
                 </span>
                 <div className="space-y-2.5">
@@ -392,10 +392,10 @@ const ScreenCommunityChatContent: React.FC = () => {
                         className="w-10 h-10 rounded-lg object-cover bg-[#F6F5F2] border border-[#E5E7EB]"
                       />
                       <div className="flex-1 min-w-0 text-xs">
-                        <span className="font-bold text-[#0F0F10] block truncate text-[11px]">
+                        <span className="font-semibold text-[#0F0F10] block truncate text-[11px]">
                           {item.name}
                         </span>
-                        <span className="font-mono text-[#997A2E] font-bold text-[10.5px]">
+                        <span className="font-mono text-[#997A2E] font-semibold text-[10.5px]">
                           {formatNaira(item.price)}
                         </span>
                       </div>
@@ -416,7 +416,7 @@ const ScreenCommunityChatContent: React.FC = () => {
                   onClick={() => setActiveTab('feed')}
                   className={`px-4 py-2 rounded-full text-xs font-heading font-semibold active:scale-95 transition-all cursor-pointer whitespace-nowrap ${
                     activeTab === 'feed'
-                      ? 'bg-[#0F0F10] text-white font-bold shadow-xs'
+                      ? 'bg-[#0F0F10] text-white font-semibold shadow-xs'
                       : 'bg-[#F3EEE3] text-[#0F0F10] hover:bg-[#EAE4D7]'
                   }`}
                 >
@@ -427,7 +427,7 @@ const ScreenCommunityChatContent: React.FC = () => {
                   onClick={() => setActiveTab('transformations')}
                   className={`px-4 py-2 rounded-full text-xs font-heading font-semibold active:scale-95 transition-all cursor-pointer whitespace-nowrap ${
                     activeTab === 'transformations'
-                      ? 'bg-[#0F0F10] text-white font-bold shadow-xs'
+                      ? 'bg-[#0F0F10] text-white font-semibold shadow-xs'
                       : 'bg-[#F3EEE3] text-[#0F0F10] hover:bg-[#EAE4D7]'
                   }`}
                 >
@@ -438,7 +438,7 @@ const ScreenCommunityChatContent: React.FC = () => {
                   onClick={() => setActiveTab('chat')}
                   className={`px-4 py-2 rounded-full text-xs font-heading font-semibold active:scale-95 transition-all cursor-pointer whitespace-nowrap ${
                     activeTab === 'chat'
-                      ? 'bg-[#0F0F10] text-white font-bold shadow-xs'
+                      ? 'bg-[#0F0F10] text-white font-semibold shadow-xs'
                       : 'bg-[#F3EEE3] text-[#0F0F10] hover:bg-[#EAE4D7]'
                   }`}
                 >
@@ -449,7 +449,7 @@ const ScreenCommunityChatContent: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsCreateModalOpen(true)}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#0F0F10] hover:bg-[#D4AF37] hover:text-[#0F0F10] text-white font-heading font-bold text-xs shadow-xs active:scale-95 transition-all cursor-pointer whitespace-nowrap shrink-0"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#0F0F10] hover:bg-[#D4AF37] hover:text-[#0F0F10] text-white font-heading font-medium text-xs shadow-xs active:scale-95 transition-all cursor-pointer whitespace-nowrap shrink-0"
               >
                 <Plus size={14} weight="bold" aria-hidden="true" />
                 <span>Share Routine</span>
@@ -909,11 +909,11 @@ const ScreenCommunityChatContent: React.FC = () => {
             {flashSaleItems.length > 0 && (
               <div className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] shadow-xs space-y-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-[#0F0F10]">
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-[#0F0F10]">
                     <Flame size={15} weight="fill" className="text-[#D4AF37]" aria-hidden="true" />
                     <span>Flash Routine Drops</span>
                   </div>
-                  <span className="px-2 py-0.5 rounded-full bg-[#F3EEE3] text-[#0F0F10] text-[9.5px] font-mono font-bold">
+                  <span className="px-2 py-0.5 rounded-full bg-[#F3EEE3] text-[#0F0F10] text-[9.5px] font-mono font-semibold">
                     Active
                   </span>
                 </div>
@@ -930,11 +930,11 @@ const ScreenCommunityChatContent: React.FC = () => {
                         className="w-12 h-12 rounded-lg object-cover bg-[#F6F5F2] shrink-0"
                       />
                       <div className="flex-1 min-w-0 text-xs">
-                        <h4 className="font-bold text-[#0F0F10] truncate text-[11px]">
+                        <h4 className="font-semibold text-[#0F0F10] truncate text-[11px]">
                           {prod.name}
                         </h4>
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="font-mono font-bold text-xs text-[#0F0F10]">
+                          <span className="font-mono font-medium text-xs text-[#0F0F10]">
                             {formatNaira(prod.price)}
                           </span>
                           {prod.originalPrice && (
@@ -947,7 +947,7 @@ const ScreenCommunityChatContent: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => addToCart(prod, prod.sizes?.[0] || 'Standard', 1)}
-                        className="px-2.5 py-1 rounded-md bg-[#0F0F10] hover:bg-[#D4AF37] hover:text-[#0F0F10] text-white text-[10px] font-bold active:scale-95 transition-all shrink-0 cursor-pointer"
+                        className="px-2.5 py-1 rounded-md bg-[#0F0F10] hover:bg-[#D4AF37] hover:text-[#0F0F10] text-white text-[10px] font-semibold active:scale-95 transition-all shrink-0 cursor-pointer"
                       >
                         + Add
                       </button>
@@ -958,7 +958,7 @@ const ScreenCommunityChatContent: React.FC = () => {
             )}
 
             <div className="p-4 rounded-2xl bg-white border border-[#E5E7EB] shadow-xs space-y-2.5 text-xs">
-              <span className="font-heading font-bold text-xs text-[#0F0F10] block">
+              <span className="font-heading font-medium text-xs text-[#0F0F10] block">
                 Creator Affiliate Desk
               </span>
               <p className="text-[11px] text-[#6B7280] leading-snug">
@@ -967,7 +967,7 @@ const ScreenCommunityChatContent: React.FC = () => {
               <button
                 type="button"
                 onClick={() => navigateTo('creators')}
-                className="w-full py-2.5 px-3 rounded-xl bg-[#0F0F10] hover:bg-[#1F1D22] text-white text-[11px] font-bold active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2 shadow-xs"
+                className="w-full py-2.5 px-3 rounded-xl bg-[#0F0F10] hover:bg-[#1F1D22] text-white text-[11px] font-semibold active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2 shadow-xs"
               >
                 <span>Join Creator Studio</span>
                 <ArrowRight size={13} weight="bold" aria-hidden="true" />

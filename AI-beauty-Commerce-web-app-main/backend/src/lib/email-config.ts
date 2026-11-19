@@ -13,9 +13,10 @@ export function emailFrom() {
   if (/[\r\n]/.test(raw) || !/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(email)) {
     throw new Error('EMAIL_FROM (or SMTP_FROM) must contain a valid verified sender address.');
   }
-  const name = (process.env.EMAIL_FROM_NAME || match?.[1] || '').trim().replace(/^"(.*)"$/, '$1');
+  let name = (process.env.EMAIL_FROM_NAME || match?.[1] || '').trim().replace(/^"(.*)"$/, '$1');
   if (/[\r\n]/.test(name)) throw new Error('EMAIL_FROM_NAME must be a single line.');
-  return { email, ...(name ? { name } : {}) };
+  if (!name || /glowly|glowy|desla/i.test(name)) name = 'Desla';
+  return { email, name };
 }
 
 /** Validate names/settings only; never include credential values in errors. */

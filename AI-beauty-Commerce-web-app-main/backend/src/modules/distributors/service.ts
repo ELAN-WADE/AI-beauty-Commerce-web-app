@@ -1,4 +1,4 @@
-import { enqueuePartnerReviewEmail } from '../partners/email';
+import { enqueuePartnerReviewEmail, enqueuePartnerSubmittedEmail, enqueuePartnerUnderReviewEmail } from '../partners/email';
 import { walletFor } from '../ledger/service';
 
 import { getTableColumns, and, asc, desc, eq, ilike, inArray, sql } from 'drizzle-orm';
@@ -173,11 +173,12 @@ export async function submitApplication(db: AppDb, userId: string | undefined, i
 
     if (approved) throw Errors.conflict('Your partner account is already approved. Refresh your session.');
 
-    const [pending] = await tx.select().from(distributorApplications).where(and(eq(distributorApplications.userId, userId), eq(distributorApplications.status, 'pending'))).limit(1);
+    const [pending] = await tx.select().from(distributorApplications).where(and(eq(distributorApplications.userId, userId), inArray(distributorApplications.status, ['pending', 'under_review']))).limit(1);
 
     if (pending) return pending;
 
     const [row] = await tx.insert(distributorApplications).values({ ...input, userId }).returning();
+    await enqueuePartnerSubmittedEmail(tx, { userId, kind: 'DISTRIBUTOR', applicationId: row.id });
 
     return row;
 
@@ -207,6 +208,35 @@ export async function listApplications(db: AppDb, status?: string) {
 
 
 
+export async function markApplicationUnderReview(
+  db: Db,
+  input: { applicationId: string; adminId: string; note?: string },
+) {
+  return db.transaction(async (tx) => {
+    const [app] = await tx
+      .select()
+      .from(distributorApplications)
+      .where(eq(distributorApplications.id, input.applicationId))
+      .for('update')
+      .limit(1);
+    if (!app) throw Errors.notFound('Application not found.');
+    if (app.userId && app.userId === input.adminId) throw Errors.forbidden('You cannot review your own application.');
+    if (app.status === 'under_review') return { applicationId: app.id, status: 'under_review' as const };
+    if (app.status !== 'pending') throw Errors.conflict('Application already reviewed.');
+    await tx
+      .update(distributorApplications)
+      .set({
+        status: 'under_review',
+        reviewedBy: input.adminId,
+        reviewNote: (input.note ?? app.reviewNote ?? '').slice(0, 500),
+        updatedAt: new Date(),
+      })
+      .where(eq(distributorApplications.id, app.id));
+    await enqueuePartnerUnderReviewEmail(tx, { userId: app.userId, kind: 'DISTRIBUTOR', applicationId: app.id });
+    return { applicationId: app.id, status: 'under_review' as const };
+  });
+}
+
 export async function reviewApplication(db: Db, input: { applicationId: string; adminId: string; approve: boolean; note: string }) {
 
   return db.transaction(async (tx) => {
@@ -219,7 +249,7 @@ export async function reviewApplication(db: Db, input: { applicationId: string; 
 
     if (app.userId && app.userId === input.adminId) throw Errors.forbidden('You cannot review your own application.');
 
-    if (app.status !== 'pending') throw Errors.conflict('Application already reviewed.');
+    if (!['pending', 'under_review'].includes(app.status)) throw Errors.conflict('Application already reviewed.');
 
     let distributorId: string | null = null;
 

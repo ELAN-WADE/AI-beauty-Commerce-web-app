@@ -284,7 +284,7 @@ interface AppContextType {
   reverifyPayment: (reference: string) => Promise<boolean>;
   addLocalOrder: (order: Order) => void;
   prepareLiveCheckout: (provider: PayProvider) => Promise<LiveCheckoutResult>;
-  prepareLiveCryptoCheckout: (asset: string, network: string) => Promise<CryptoInitDto & { serverOrderId: string; orderNumber: string }>;
+  prepareLiveCryptoCheckout: (asset: string, network: string) => Promise<CryptoInitDto & { serverOrderId: string; orderNumber: string; guestToken?: string }>;
   confirmLiveCryptoPayment: (paymentId: string, txHash?: string) => Promise<{ order: Order; status: string }>;
 
   // Storefront & Editorial CMS State
@@ -458,68 +458,80 @@ export const AppProvider: React.FC<{ children: ReactNode; initialCatalogue?: Pro
   }, []);
 
   const editorialDraftRevision = useRef(0);
-  // Live storefront synchronization via Server-Sent Events (SSE)
+  const isStandaloneLightweightRoute = /^\/(login|signup|forgot-password|reset-password|verify-email|skin-analysis)(?:\/|$)/i.test(pathname);
+
+  // Live storefront synchronization via Server-Sent Events (SSE) — deferred off critical first paint
   useEffect(() => {
-    if (!isOwnedApiConfigured) return;
-    const unsubscribe = subscribeStorefrontSyncApi(() => {
-      invalidateProductDetails();
-      Promise.all([
-        fetchCatalogFromOwnedApi(100, true),
-        fetchCategoriesApi(),
-        apiFetch<any>('/api/storefront').catch(() => null),
-      ])
-        .then(([live, liveCats, editorial]) => {
-          if (live) {
-            setProducts(live);
-            setQuickModalProduct(previous => previous ? live.find(product => product.id === previous.id) ?? null : null);
-            setSelectedProduct((prev) => {
-              if (!prev) return live[0] ?? null;
-              return live.find((p) => p.id === prev.id) ?? live[0] ?? null;
-            });
-          }
-          if (liveCats && live) {
-            const catsWithCounts = liveCats.map((cat) => ({
-              ...cat,
-              itemCount: live.filter((p) => (p.category || '').toLowerCase() === (cat.slug || '').toLowerCase() || (p.category || '').toLowerCase() === (cat.name || '').toLowerCase()).length,
-            }));
-            setCategoriesList(catsWithCounts);
-          } else if (liveCats) {
-            setCategoriesList(liveCats);
-          }
-          if (editorial?.config && editorialDraftRevision.current === 0) {
-            setStorefrontVersion(editorial.version);
-            if (editorial.config.heroSlides) setHeroSlides(editorial.config.heroSlides);
-            if (editorial.config.hero) setHeroSettings(editorial.config.hero);
-            if (editorial.config.routineSteps) setRoutineSteps(editorial.config.routineSteps);
-            if (editorial.config.brandStory) setBrandStory(editorial.config.brandStory);
-            if (editorial.config.announcementTicker) setAnnouncementTicker(editorial.config.announcementTicker);
-          }
+    if (!isOwnedApiConfigured || isStandaloneLightweightRoute) return;
+    let unsubscribe: (() => void) | null = null;
+    const timer = window.setTimeout(() => {
+      unsubscribe = subscribeStorefrontSyncApi(() => {
+        invalidateProductDetails();
+        Promise.all([
+          fetchCatalogFromOwnedApi(100, true),
+          fetchCategoriesApi(),
+          apiFetch<any>('/api/storefront').catch(() => null),
+        ])
+          .then(([live, liveCats, editorial]) => {
+            if (live) {
+              setProducts(live);
+              setQuickModalProduct(previous => previous ? live.find(product => product.id === previous.id) ?? null : null);
+              setSelectedProduct((prev) => {
+                if (!prev) return live[0] ?? null;
+                return live.find((p) => p.id === prev.id) ?? live[0] ?? null;
+              });
+            }
+            if (liveCats && live) {
+              const catsWithCounts = liveCats.map((cat) => ({
+                ...cat,
+                itemCount: live.filter((p) => (p.category || '').toLowerCase() === (cat.slug || '').toLowerCase() || (p.category || '').toLowerCase() === (cat.name || '').toLowerCase()).length,
+              }));
+              setCategoriesList(catsWithCounts);
+            } else if (liveCats) {
+              setCategoriesList(liveCats);
+            }
+            if (editorial?.config && editorialDraftRevision.current === 0) {
+              setStorefrontVersion(editorial.version);
+              if (editorial.config.heroSlides) setHeroSlides(editorial.config.heroSlides);
+              if (editorial.config.hero) setHeroSettings(editorial.config.hero);
+              if (editorial.config.routineSteps) setRoutineSteps(editorial.config.routineSteps);
+              if (editorial.config.brandStory) setBrandStory(editorial.config.brandStory);
+              if (editorial.config.announcementTicker) setAnnouncementTicker(editorial.config.announcementTicker);
+            }
+          })
+          .catch(() => {});
+      });
+    }, 2500);
+    return () => {
+      window.clearTimeout(timer);
+      unsubscribe?.();
+    };
+  }, [isStandaloneLightweightRoute]);
+
+  const hasHydratedEcosystem = useRef(false);
+  // Ecosystem hydration (distributors, creators) — skipped on standalone auth/scan routes and deferred off critical first paint
+  useEffect(() => {
+    if (!isOwnedApiConfigured || isStandaloneLightweightRoute || hasHydratedEcosystem.current) return;
+    let cancelled = false;
+    const immediate = /^\/(distributors|checkout|creator-storefront|creators|distributor)(?:\/|$)/i.test(pathname);
+    const timer = window.setTimeout(() => {
+      hasHydratedEcosystem.current = true;
+      fetchDistributors()
+        .then((live) => {
+          if (!cancelled && live) setDistributorsList(live);
         })
         .catch(() => {});
-    });
-    return () => {
-      unsubscribe();
-    };
-  }, []);
-
-  // Ecosystem hydration (distributors, creators, community — same pattern).
-  useEffect(() => {
-    if (!isOwnedApiConfigured) return;
-    let cancelled = false;
-    fetchDistributors()
-      .then((live) => {
-        if (!cancelled && live) setDistributorsList(live);
-      })
-      .catch(() => {});
-    fetchCreators()
-      .then((live) => {
-        if (!cancelled && live) setCreatorsList(live);
-      })
-      .catch(() => {});
+      fetchCreators()
+        .then((live) => {
+          if (!cancelled && live) setCreatorsList(live);
+        })
+        .catch(() => {});
+    }, immediate ? 0 : 750);
     return () => {
       cancelled = true;
+      window.clearTimeout(timer);
     };
-  }, []);
+  }, [isStandaloneLightweightRoute, pathname]);
 
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -694,21 +706,23 @@ export const AppProvider: React.FC<{ children: ReactNode; initialCatalogue?: Pro
   };
 
   // Creator PR & Campaigns
-        const [storefrontVersion, setStorefrontVersion] = useState(initialEditorial?.version || 0);
+  const [storefrontVersion, setStorefrontVersion] = useState(initialEditorial?.version || 0);
+  const hasServerEditorial = useRef(Boolean(initialEditorial?.config));
   useEffect(() => {
-    if (isPartnerDesignPreview()) return;
+    if (isPartnerDesignPreview() || hasServerEditorial.current || isStandaloneLightweightRoute) return;
     let cancelled = false;
     apiFetch<any>('/api/storefront').then(result => {
       if (cancelled || editorialDraftRevision.current !== 0) return;
       setStorefrontVersion(result.version);
       if (result.config) {
+        hasServerEditorial.current = true;
         setHeroSlides(result.config.heroSlides); setRoutineSteps(result.config.routineSteps);
         if (result.config.hero) setHeroSettings(result.config.hero);
         setBrandStory(result.config.brandStory); setAnnouncementTicker(result.config.announcementTicker);
       }
     }).catch(() => { /* Keep the existing editorial defaults if no saved configuration can be loaded. */ });
     return () => { cancelled = true; };
-  }, []);
+  }, [isStandaloneLightweightRoute]);
   const publishStorefront = async () => {
     if (isPartnerDesignPreview()) return;
     const revision = editorialDraftRevision.current;
@@ -815,7 +829,7 @@ export const AppProvider: React.FC<{ children: ReactNode; initialCatalogue?: Pro
         const newProd: Product = {
           id: productData.id || `prod-${Date.now()}`,
           name: productData.name || 'Untitled Formulation',
-          brand: productData.brand || 'Delsla Natural',
+          brand: productData.brand || 'Desla Natural',
           category: productData.category || 'Skincare',
           price: productData.price || 15000,
           comparePrice: productData.comparePrice,
@@ -1540,7 +1554,7 @@ export const AppProvider: React.FC<{ children: ReactNode; initialCatalogue?: Pro
         setCreatorDiscountPercent(live.discountPercent);
         return {
           success: true,
-          message: `Applied ${live.name}'s Creator Code: ${live.discountPercent}% Off Total Order!`
+          message: live.discountPercent > 0 ? `Applied ${live.name}'s code: ${live.discountPercent}% off eligible products.` : 'Partner code applied to your bag.'
         };
       } catch (e) {
         return { success: false, message: e instanceof Error ? e.message : 'Could not validate this creator code.' };
@@ -1873,7 +1887,7 @@ export const AppProvider: React.FC<{ children: ReactNode; initialCatalogue?: Pro
   const prepareLiveCryptoCheckout = async (
     asset: string,
     network: string,
-  ): Promise<CryptoInitDto & { serverOrderId: string; orderNumber: string }> => {
+  ): Promise<CryptoInitDto & { serverOrderId: string; orderNumber: string; guestToken?: string }> => {
     if (!isOwnedApiConfigured || isPartnerDesignPreview()) {
       const orderNumber = `DES-CRYPTO-${Math.floor(1000 + Math.random() * 9000)}`;
       const mockDeposit = asset === 'BTC' ? 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh' : asset === 'SOL' ? '7EYnhQoR9YM3N7UoaKRoA44BW8PYJuYYXibUh1HeQLA' : '0x71C8366420A092679E5486965480201134093B66';
@@ -1948,8 +1962,19 @@ export const AppProvider: React.FC<{ children: ReactNode; initialCatalogue?: Pro
       try { sessionStorage.setItem('glowly-active-checkout', JSON.stringify(liveCheckoutAttempt.current)); } catch { /* ignore */ }
       rememberGuestOrderToken(view.id, view.orderNumber, liveCheckoutAttempt.current.guestToken);
 
-      const init = await initCryptoPayment(view.id, asset, network, `${operationKey}:crypto:${asset}:${network}`);
-      return { ...init, serverOrderId: view.id, orderNumber: view.orderNumber };
+      const init = await initCryptoPayment(
+        view.id,
+        asset,
+        network,
+        `${operationKey}:crypto:${asset}:${network}`,
+        liveCheckoutAttempt.current.guestToken,
+      );
+      return {
+        ...init,
+        serverOrderId: view.id,
+        orderNumber: view.orderNumber,
+        guestToken: liveCheckoutAttempt.current.guestToken,
+      };
     } catch (e) {
       const message = e instanceof ApiError || e instanceof Error ? e.message : 'Crypto checkout initialization failed.';
       throw new Error(message);

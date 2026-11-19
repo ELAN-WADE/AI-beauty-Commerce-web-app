@@ -64,13 +64,13 @@ export const Screen02Onboarding: React.FC = () => {
         </div>
 
         {/* Pillar Badge */}
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#D4AF37]/15 border border-[#D4AF37]/30 text-[#D4AF37] text-[10px] font-mono font-bold uppercase tracking-wider mb-3">
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#D4AF37]/15 border border-[#D4AF37]/30 text-[#D4AF37] text-[10px] font-mono font-medium uppercase tracking-wider mb-3">
           <ShieldCheck size={12} />
           <span>{slide.badge}</span>
         </div>
 
         {/* Headline */}
-        <h2 className="font-heading font-extrabold text-2xl sm:text-3xl text-[#FBF9F5] tracking-tight leading-snug max-w-[310px]">
+        <h2 className="font-heading font-semibold text-2xl sm:text-3xl text-[#FBF9F5] tracking-tight leading-snug max-w-[310px]">
           {slide.title}
         </h2>
 
@@ -100,7 +100,7 @@ export const Screen02Onboarding: React.FC = () => {
       <div className="pb-4 max-w-sm mx-auto w-full">
         <button
           onClick={handleNext}
-          className="w-full py-4 px-6 rounded-full bg-gradient-to-r from-[#D4AF37] via-[#F6E7C1] to-[#D4AF37] text-[#09090B] font-heading font-extrabold text-sm tracking-wide shadow-2xl active:scale-[0.98] flex items-center justify-center gap-2 transition-all hover:brightness-105 border border-[#F6E7C1]/50 cursor-pointer"
+          className="w-full py-4 px-6 rounded-full bg-gradient-to-r from-[#D4AF37] via-[#F6E7C1] to-[#D4AF37] text-[#09090B] font-heading font-semibold text-sm tracking-wide shadow-2xl active:scale-[0.98] flex items-center justify-center gap-2 transition-all hover:brightness-105 border border-[#F6E7C1]/50 cursor-pointer"
         >
           <span>{currentSlide === slides.length - 1 ? 'Enter Desla! Storefront' : 'Continue'}</span>
           <ArrowRight size={18} strokeWidth={2.4} />

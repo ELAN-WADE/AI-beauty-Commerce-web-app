@@ -30,7 +30,10 @@ const OfflineStatusBanner = dynamic(() => import('@/storefront/components/common
  */
 export default function StorefrontChrome({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  React.useEffect(() => scheduleBackgroundWarmup(['/catalogue', '/search', '/community', '/categories'].map(path => () => router.prefetch(path))), [router]);
+  React.useEffect(() => {
+    if (process.env.NODE_ENV !== 'production') return;
+    return scheduleBackgroundWarmup(['/catalogue', '/search', '/categories'].map(path => () => router.prefetch(path)));
+  }, [router]);
   const pathname = usePathname() ?? '/';
   const [designPreview, setDesignPreview] = React.useState(false);
   React.useEffect(() => { setDesignPreview(isPortalDesignPreview()); }, []);

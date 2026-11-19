@@ -99,7 +99,7 @@ export const PartnerMobileBottomNav: React.FC<PartnerMobileBottomNavProps> = ({
                 >
                   <Icon size={22} className="text-[#D4AF37]" />
                 </div>
-                <span className="text-[9.5px] font-mono font-extrabold uppercase tracking-wider text-[#0F0F10] mt-0.5">
+                <span className="text-[9.5px] font-mono font-medium uppercase tracking-wider text-[#0F0F10] mt-0.5">
                   {tab.label}
                 </span>
               </button>
@@ -120,14 +120,14 @@ export const PartnerMobileBottomNav: React.FC<PartnerMobileBottomNavProps> = ({
                   className={isActive ? 'text-[#0F0F10] stroke-[2.3]' : 'text-[#9CA3AF]'}
                 />
                 {tab.badge !== undefined && (
-                  <span className="absolute -top-1 -right-2 px-1.2 py-0.2 rounded-full bg-rose-600 text-white text-[9px] font-mono font-bold leading-none">
+                  <span className="absolute -top-1 -right-2 px-1.2 py-0.2 rounded-full bg-rose-600 text-white text-[9px] font-mono font-medium leading-none">
                     {tab.badge}
                   </span>
                 )}
               </div>
               <span
                 className={`text-[10px] mt-1 font-medium ${
-                  isActive ? 'font-bold text-[#0F0F10]' : 'text-[#6B7280]'
+                  isActive ? 'font-medium text-[#0F0F10]' : 'text-[#6B7280]'
                 }`}
               >
                 {tab.label}

@@ -415,31 +415,31 @@ export const BeautyFace3D: React.FC<BeautyFace3DProps> = ({
             {scanStage === 'preparing' && (
               <>
                 <span className="w-2 h-2 rounded-full bg-[#D4AF37] animate-ping" />
-                <span className="text-[#997A2E] font-bold">CALIBRATING NATURAL SENSOR</span>
+                <span className="text-[#997A2E] font-semibold">CALIBRATING NATURAL SENSOR</span>
               </>
             )}
             {scanStage === 'scanning' && (
               <>
                 <Activity size={12} className="text-[#D4AF37] animate-pulse" />
-                <span className="text-[#997A2E] font-bold">ANALYZING FACIAL ZONES</span>
+                <span className="text-[#997A2E] font-semibold">ANALYZING FACIAL ZONES</span>
               </>
             )}
             {scanStage === 'analyzing' && (
               <>
                 <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-                <span className="text-[#0F0F10] font-bold">PROCESSING STRATUM CORNEUM</span>
+                <span className="text-[#0F0F10] font-semibold">PROCESSING STRATUM CORNEUM</span>
               </>
             )}
             {scanStage === 'results' && (
               <>
                 <ShieldCheck size={13} className="text-emerald-600" />
-                <span className="text-emerald-700 font-bold">DIAGNOSTIC COMPLETE</span>
+                <span className="text-emerald-700 font-semibold">DIAGNOSTIC COMPLETE</span>
               </>
             )}
           </div>
 
           {scanStage === 'scanning' && (
-            <div className="px-2.5 py-1 rounded-full bg-[#0F0F10] text-white font-mono font-bold text-xs shadow-xs">
+            <div className="px-2.5 py-1 rounded-full bg-[#0F0F10] text-white font-mono font-medium text-xs shadow-xs">
               {Math.round(scanProgress)}%
             </div>
           )}
@@ -459,7 +459,7 @@ export const BeautyFace3D: React.FC<BeautyFace3DProps> = ({
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-[#D4AF37]" />
-                <h4 className="font-heading font-extrabold text-xs text-[#0F0F10]">
+                <h4 className="font-heading font-semibold text-xs text-[#0F0F10]">
                   {activeLandmark.label}
                 </h4>
               </div>
@@ -468,10 +468,10 @@ export const BeautyFace3D: React.FC<BeautyFace3DProps> = ({
               </p>
             </div>
             <div className="text-right">
-              <span className="font-mono font-black text-sm text-[#997A2E]">
+              <span className="font-mono font-semibold text-sm text-[#997A2E]">
                 {activeLandmark.score}
               </span>
-              <span className="text-[9.5px] uppercase font-bold text-emerald-600 block">
+              <span className="text-[9.5px] uppercase font-semibold text-emerald-600 block">
                 Optimal
               </span>
             </div>

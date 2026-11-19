@@ -59,7 +59,7 @@ export const ClinicalFaqNewsletterSection: React.FC = () => {
               <p className="text-[10px] font-mono uppercase tracking-[0.25em] text-[#8E8E93] font-semibold">
                 Natural Transparency
               </p>
-              <h2 className="font-heading font-extrabold text-section-fluid text-[#0F0F10] tracking-tight">
+              <h2 className="font-heading font-semibold text-section-fluid text-[#0F0F10] tracking-tight">
                 Frequently Inquired.
               </h2>
               <p className="text-xs text-[#6B7280] font-normal">
@@ -100,7 +100,7 @@ export const ClinicalFaqNewsletterSection: React.FC = () => {
                 <p className="text-[9.5px] font-mono uppercase tracking-wider text-[#8E8E93] font-semibold">
                   Private Subscriptions
                 </p>
-                <h3 className="font-heading font-bold text-base sm:text-lg text-[#0F0F10]">
+                <h3 className="font-heading font-semibold text-base sm:text-lg text-[#0F0F10]">
                   The Formulation Journal
                 </h3>
                 <p className="text-xs text-[#6B7280] leading-relaxed font-normal">
@@ -129,7 +129,7 @@ export const ClinicalFaqNewsletterSection: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isSubscribed || busy}
-                  className="w-full py-2.5 px-5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-heading font-semibold transition-all micro-press cursor-pointer shadow-2xs flex items-center justify-center gap-2"
+                  className="w-full py-2.5 px-5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-heading font-medium transition-all micro-press cursor-pointer shadow-2xs flex items-center justify-center gap-2"
                 >
                   {isSubscribed ? (
                     <>

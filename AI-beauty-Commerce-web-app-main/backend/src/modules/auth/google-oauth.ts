@@ -5,6 +5,7 @@ import type { AppDb, Db } from '../../db/client';
 import { users, userRoles, googleIdentities, oauthRequests, oauthGrants } from './schema';
 import { profiles } from '../users/schema';
 import { hashPassword, normalizeEmail, newRawToken, createSession, sha256Hex, enforceSessionCap, type SessionMeta } from './service';
+import { enqueueCustomerWelcomeEmail } from './email';
 import { ApiError, Errors } from '../../lib/errors';
 import { openAuthUrl, sealAuthUrl } from '../../lib/outbox-crypto';
 import { accountIntent, oauthIntent, googleConfig, safeReturnTo } from './redirects';
@@ -81,9 +82,11 @@ export async function authenticateGoogleUser(db: Db, google: GoogleUserProfile, 
     if (privileged && intent !== 'ADMIN') throw Errors.forbidden('Use the private administrator sign-in page for this Google account.');
     if ((privileged && (email !== adminEmail() || user?.email !== adminEmail())) || (intent === 'ADMIN' && (!privileged || user?.email !== adminEmail()))) throw Errors.forbidden('This Google account is not permitted for administrator sign-in.');
     if (!identity && user && !user.emailVerifiedAt) throw new ApiError(409, 'verify_before_link', 'Verify your existing account email before using Google sign-in. Request a new verification link from sign-in.');
+    let createdNewCustomer = false;
     if (!user) {
       [user] = await tx.insert(users).values({ email, passwordHash: await hashPassword(newRawToken()), emailVerifiedAt: new Date(), signupIntent: accountIntent(intent) }).onConflictDoNothing({ target: users.email }).returning();
       if (!user) throw Errors.conflict('Please retry sign-in.');
+      createdNewCustomer = intent !== 'ADMIN';
     }
     if (!user.emailVerifiedAt) throw Errors.forbidden('Verify your account email before signing in.');
     if (!identity) {
@@ -92,6 +95,7 @@ export async function authenticateGoogleUser(db: Db, google: GoogleUserProfile, 
     }
     await tx.insert(profiles).values({ userId: user.id, displayName: google.name, avatarUrl: google.picture ?? null }).onConflictDoNothing();
     if (intent !== 'ADMIN') await tx.insert(userRoles).values({ userId: user.id, roleId: 'CUSTOMER' }).onConflictDoNothing();
+    if (createdNewCustomer) await enqueueCustomerWelcomeEmail(tx, user.id);
     // Intent selects onboarding only. Partner approval/role grants stay in their existing services.
     return { userId: user.id, email: user.email };
   });

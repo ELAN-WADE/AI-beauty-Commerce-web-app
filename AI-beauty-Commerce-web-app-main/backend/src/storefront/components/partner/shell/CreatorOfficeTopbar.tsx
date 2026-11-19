@@ -30,15 +30,15 @@ export const CreatorOfficeTopbar: React.FC<CreatorOfficeTopbarProps> = ({
       {/* Left: Brand & Workspace Title */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center font-heading font-black text-lg shadow-xs">
+          <div className="w-9 h-9 rounded-xl bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center font-heading font-medium text-lg shadow-xs">
             D
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="font-heading font-black text-base text-[#0F0F10] tracking-tight">
-                Delsla!™
+              <span className="font-heading font-medium text-base text-[#0F0F10] tracking-tight">
+                Desla!™
               </span>
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
+              <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-[#997A2E]">
                 Office
               </span>
             </div>
@@ -69,7 +69,7 @@ export const CreatorOfficeTopbar: React.FC<CreatorOfficeTopbarProps> = ({
         {/* Subtle Storefront View Link */}
         <button
           onClick={() => navigateTo('home')}
-          className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#E5E7EB] bg-[#FAF9F6] hover:bg-[#F3EEE3] text-xs font-semibold text-[#4B5563] hover:text-[#0F0F10] transition-colors cursor-pointer"
+          className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#E5E7EB] bg-[#FAF9F6] hover:bg-[#F3EEE3] text-xs font-medium text-[#4B5563] hover:text-[#0F0F10] transition-colors cursor-pointer"
           title="Switch to customer storefront"
         >
           <span>Storefront</span>
@@ -80,7 +80,7 @@ export const CreatorOfficeTopbar: React.FC<CreatorOfficeTopbarProps> = ({
         <div className="relative">
           <button
             onClick={() => setWorkspaceMenuOpen(!workspaceMenuOpen)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#E5E7EB] bg-white hover:bg-[#FAF9F6] text-xs font-bold text-[#0F0F10] transition-colors cursor-pointer"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#E5E7EB] bg-white hover:bg-[#FAF9F6] text-xs font-medium text-[#0F0F10] transition-colors cursor-pointer"
             title="Switch Workspace"
           >
             <span className="w-2 h-2 rounded-full bg-[#D4AF37]" />
@@ -99,7 +99,7 @@ export const CreatorOfficeTopbar: React.FC<CreatorOfficeTopbarProps> = ({
                   <span className="text-[10px] font-mono text-[#9CA3AF] uppercase block">
                     Active Workspace
                   </span>
-                  <p className="text-xs font-bold text-[#0F0F10]">Delsla Creator Office</p>
+                  <p className="text-xs font-medium text-[#0F0F10]">Desla Creator Office</p>
                 </div>
 
                 <button
@@ -108,11 +108,11 @@ export const CreatorOfficeTopbar: React.FC<CreatorOfficeTopbarProps> = ({
                     if (onSwitchWorkspace) onSwitchWorkspace('CREATOR');
                     else navigateTo('creators');
                   }}
-                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-[#0F0F10] bg-[#FAF9F6] flex items-center gap-2 cursor-pointer"
+                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-[#0F0F10] bg-[#FAF9F6] flex items-center gap-2 cursor-pointer"
                 >
                   <Users size={14} className="text-[#D4AF37]" />
                   <div className="flex-1">
-                    <span className="block font-bold">Creator Studio</span>
+                    <span className="block font-medium">Creator Studio</span>
                     <span className="text-[10px] text-[#6B7280]">Content & Affiliate Office</span>
                   </div>
                 </button>
@@ -123,11 +123,11 @@ export const CreatorOfficeTopbar: React.FC<CreatorOfficeTopbarProps> = ({
                     if (onSwitchWorkspace) onSwitchWorkspace('DISTRIBUTOR');
                     else navigateTo('distributor-portal');
                   }}
-                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-[#4B5563] hover:text-[#0F0F10] hover:bg-[#FAF9F6] flex items-center gap-2 cursor-pointer mt-0.5"
+                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-[#4B5563] hover:text-[#0F0F10] hover:bg-[#FAF9F6] flex items-center gap-2 cursor-pointer mt-0.5"
                 >
                   <Store size={14} className="text-[#6B7280]" />
                   <div className="flex-1">
-                    <span className="block font-bold">Distributor Hub</span>
+                    <span className="block font-medium">Distributor Hub</span>
                     <span className="text-[10px] text-[#6B7280]">Inventory & Regional Logistics</span>
                   </div>
                 </button>
@@ -152,11 +152,11 @@ export const CreatorOfficeTopbar: React.FC<CreatorOfficeTopbarProps> = ({
 
         {/* Creator User Pill */}
         <div className="hidden lg:flex items-center gap-2 pl-2 border-l border-[#E5E7EB]">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#0F0F10] to-[#27272A] text-[#D4AF37] font-bold text-xs flex items-center justify-center border border-[#D4AF37]/30">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#0F0F10] to-[#27272A] text-[#D4AF37] font-medium text-xs flex items-center justify-center border border-[#D4AF37]/30">
             {accountName.slice(0, 1).toUpperCase()}
           </div>
           <div className="leading-tight">
-            <span className="text-xs font-bold text-[#0F0F10] block">{accountName}</span>
+            <span className="text-xs font-medium text-[#0F0F10] block">{accountName}</span>
             <span className="text-[10px] font-mono text-[#997A2E] font-medium block">Creator</span>
           </div>
         </div>

@@ -24,15 +24,21 @@ const nextConfig = {
   // Phase 2 low-bandwidth diet: dedupe barrel imports (lucide alone ships
   // hundreds of icons) so route bundles stay small on 3G.
   experimental: {
-    optimizePackageImports: ['lucide-react', 'framer-motion', '@hugeicons/react', '@phosphor-icons/react'],
-    imgOptConcurrency: 1,
-    imgOptSequentialRead: true,
+    optimizePackageImports: [
+      'lucide-react',
+      'framer-motion',
+      'motion',
+      'motion/react',
+      '@hugeicons/react',
+      '@phosphor-icons/react',
+    ],
   },
   images: {
     // Product packshots are same-origin `public/` files; modern formats for
     // any future remote/optimized images. No markup changes needed today.
     // WebP avoids AVIF's larger cold-encode working set on the shared web host.
     formats: ['image/webp'],
+    minimumCacheTTL: 3600,
     remotePatterns: [
       { protocol: 'https', hostname: 'images.unsplash.com', pathname: '/**' },
       ...(process.env.PUBLIC_MEDIA_URL ? (() => {

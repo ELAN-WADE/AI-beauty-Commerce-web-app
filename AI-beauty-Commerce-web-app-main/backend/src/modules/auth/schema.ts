@@ -70,6 +70,7 @@ export const userSessions = pgTable('user_sessions', {
   expiresAt: timestamptz('expires_at').notNull(),
   revokedAt: timestamptz('revoked_at'),
   mfaVerifiedAt: timestamptz('mfa_verified_at'),
+  lastActiveAt: timestamptz('last_active_at').notNull().defaultNow(),
   createdAt: timestamptz('created_at').notNull().defaultNow(),
 }, (t) => [index('user_sessions_active_scope_idx').on(t.userId, t.authScope, t.createdAt).where(sql`${t.revokedAt} is null`)]);
 

@@ -88,7 +88,7 @@ export const CreatorContentLibrary: React.FC<CreatorContentLibraryProps> = ({
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
       {editing && <section role="dialog" aria-label="Edit content draft" className="rounded-3xl border border-[#E5E7EB] bg-white p-6 space-y-4">
-        <h2 className="font-bold">Edit content draft</h2>
+        <h2 className="font-semibold">Edit content draft</h2>
         <label className="block">Title<input aria-label="Draft title" className="block w-full border rounded-xl p-3" value={editing.title} onChange={e => setEditing({ ...editing, title: e.target.value })} /></label>
         <label className="block">Content<textarea aria-label="Draft content" className="block w-full border rounded-xl p-3" rows={6} value={editing.body} onChange={e => setEditing({ ...editing, body: e.target.value })} /></label>
         <label className="block">Hosted media URL<input aria-label="Draft media URL" type="url" className="block w-full border rounded-xl p-3" value={editing.url} onChange={e => setEditing({ ...editing, url: e.target.value })} /></label>
@@ -138,10 +138,10 @@ export const CreatorContentLibrary: React.FC<CreatorContentLibraryProps> = ({
       {/* Desktop Header */}
       <div className="hidden md:flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E5E7EB]">
         <div>
-          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
+          <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-[#997A2E]">
             Content Management
           </span>
-          <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-[#0F0F10]">
+          <h1 className="font-heading font-bold text-2xl sm:text-3xl text-[#0F0F10]">
             My Content Library
           </h1>
           <p className="text-xs sm:text-sm text-[#6B7280] mt-0.5">
@@ -151,7 +151,7 @@ export const CreatorContentLibrary: React.FC<CreatorContentLibraryProps> = ({
 
         <button
           onClick={onOpenCreate}
-          className="px-5 py-2.5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-bold shadow-xs active:scale-[0.97] transition-all flex items-center gap-1.5 cursor-pointer self-start sm:self-auto shrink-0"
+          className="px-5 py-2.5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-medium shadow-xs active:scale-[0.97] transition-all flex items-center gap-1.5 cursor-pointer self-start sm:self-auto shrink-0"
         >
           <Plus size={14} className="text-[#D4AF37]" />
           <span>Author New Routine</span>
@@ -215,7 +215,7 @@ export const CreatorContentLibrary: React.FC<CreatorContentLibraryProps> = ({
                 </div>
 
                 <div className="p-5 space-y-3">
-                  <h3 className="font-heading font-bold text-base text-[#0F0F10] line-clamp-2">
+                  <h3 className="font-heading font-semibold text-base text-[#0F0F10] line-clamp-2">
                     {item.title}
                   </h3>
                   <div className="flex items-center justify-between text-xs text-[#6B7280]">
@@ -229,12 +229,12 @@ export const CreatorContentLibrary: React.FC<CreatorContentLibraryProps> = ({
                   </div>
 
                   <div className="p-3 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] flex items-center justify-between text-xs font-mono">
-                    <div className="flex items-center gap-1.5 text-[#0F0F10] font-bold">
+                    <div className="flex items-center gap-1.5 text-[#0F0F10] font-semibold">
                       <ShoppingBag size={13} className="text-[#997A2E]" />
                       <span>{item.orders} orders</span>
                     </div>
                     <div className="text-right">
-                      <span className="font-extrabold text-[#0F0F10]">{item.commission}</span>
+                      <span className="font-semibold text-[#0F0F10]">{item.commission}</span>
                     </div>
                   </div>
                 </div>
@@ -244,7 +244,7 @@ export const CreatorContentLibrary: React.FC<CreatorContentLibraryProps> = ({
               <div className="px-5 py-3 border-t border-[#E5E7EB] bg-[#FAF9F6]/50 flex items-center justify-between">
                 <button
                   onClick={isLiveBackend ? () => ['DRAFT', 'REJECTED'].includes(item.record.status) ? setEditing({ ...item.record }) : showToast('Submitted content is locked while it is reviewed.') : onOpenCreate}
-                  className="text-xs font-bold text-[#0F0F10] hover:text-[#997A2E] flex items-center gap-1 cursor-pointer"
+                  className="text-xs font-medium text-[#0F0F10] hover:text-[#997A2E] flex items-center gap-1 cursor-pointer"
                 >
                   <Edit2 size={12} />
                   <span>Edit in Studio</span>

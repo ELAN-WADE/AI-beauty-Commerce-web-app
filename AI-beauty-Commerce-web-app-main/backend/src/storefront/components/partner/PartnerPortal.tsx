@@ -1,3 +1,4 @@
+import { ProgrammeTerms } from './ProgrammeTerms';
 import React, { useState, useEffect } from 'react';
 import { LayoutGroup } from 'framer-motion';
 import { PartnerAppShell } from './shell/PartnerAppShell';
@@ -172,6 +173,7 @@ export const PartnerPortal: React.FC<PartnerPortalProps> = ({ kind: initialKind 
     >
       <LayoutGroup id="partner-portal-layout">
         {renderActiveScreen()}
+        <div className="mx-auto max-w-7xl p-4 sm:p-6"><ProgrammeTerms kind={currentKind} /></div>
       </LayoutGroup>
     </PartnerAppShell>
   );

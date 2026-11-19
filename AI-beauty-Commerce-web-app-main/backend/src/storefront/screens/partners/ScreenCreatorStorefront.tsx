@@ -44,7 +44,7 @@ export function ScreenCreatorStorefront() {
           ← Return
         </button>
         {data?.promoCode && (
-          <span className="font-mono text-xs font-bold px-3 py-1 rounded-full bg-[#FBF5E8] text-[#997A2E] border border-[#D4AF37]/30">
+          <span className="font-mono text-xs font-medium px-3 py-1 rounded-full bg-[#FBF5E8] text-[#997A2E] border border-[#D4AF37]/30">
             Use Code: {data.promoCode} ({data.discountPercent}% Off)
           </span>
         )}
@@ -55,7 +55,7 @@ export function ScreenCreatorStorefront() {
           <p role="alert" className="text-sm text-rose-800">{error}</p>
           <button
             onClick={() => setAttempt(value => value + 1)}
-            className="rounded-full bg-[#0F0F10] text-white px-5 py-2 text-xs font-bold"
+            className="rounded-full bg-[#0F0F10] text-white px-5 py-2 text-xs font-medium"
           >
             Retry Collection
           </button>
@@ -68,7 +68,7 @@ export function ScreenCreatorStorefront() {
       ) : (
         <>
           <div className="space-y-2">
-            <p className="text-xs uppercase tracking-widest text-[#997A2E] font-bold">Curated by {data.name}</p>
+            <p className="text-xs uppercase tracking-widest text-[#997A2E] font-medium">Curated by {data.name}</p>
             <h1 className="text-3xl sm:text-4xl font-heading font-bold text-[#0F0F10]">{data.title}</h1>
             <p className="max-w-2xl whitespace-pre-wrap text-xs sm:text-sm text-[#6B7280] leading-relaxed">{data.body}</p>
           </div>

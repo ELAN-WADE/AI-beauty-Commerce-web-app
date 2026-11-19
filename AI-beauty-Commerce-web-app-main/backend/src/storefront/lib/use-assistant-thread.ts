@@ -24,7 +24,7 @@ export function useAssistantThread(owner: string | null, mode: 'guest' | 'accoun
       let assistant: ChatMsg;
       if (mode === 'account') assistant = (await aiChat(content, owner!)).assistant;
       else {
-        const reply = await apiFetch<{ text: string; recommendedProductIds: string[] }>('/api/ai/guest-chat', { method: 'POST', body: JSON.stringify({ content }) });
+        const reply = await apiFetch<{ text: string; recommendedProductIds: string[] }>('/api/ai/guest-chat', { method: 'POST', body: JSON.stringify({ content, history: thread.identity === requestIdentity ? thread.messages.slice(-9).map(message => ({ role: message.sender === 'user' ? 'user' : 'assistant', content: message.text.slice(0, 2000) })) : [] }) });
         assistant = { id: crypto.randomUUID(), sender: 'assistant', text: reply.text, timestamp: 'Just now', recommendedProductIds: reply.recommendedProductIds };
       }
       if (active()) setThread(previous => previous.identity === requestIdentity ? { ...previous, messages: [...previous.messages, assistant] } : previous);
@@ -33,7 +33,7 @@ export function useAssistantThread(owner: string | null, mode: 'guest' | 'accoun
     } finally {
       if (pendingRef.current === requestIdentity) { pendingRef.current = null; setPending(null); }
     }
-  }, [owner, mode]);
+  }, [owner, mode, thread]);
   const reset = useCallback(() => {
     if (mode === 'account' && owner) resetAiConversation(owner);
     identity.current = { owner };

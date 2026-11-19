@@ -1,17 +1,30 @@
 import { createHash } from 'node:crypto';
 import { and, eq, gt, isNull } from 'drizzle-orm';
 import type { Db } from '../../db/client';
-import { renderPasswordReset, renderVerifyEmail, type EmailMessage } from '../../lib/email';
+import { renderDeslaEmailHtml, renderPasswordReset, renderVerifyEmail, renderWelcomeEmail, type EmailMessage } from '../../lib/email';
 import { openAuthUrl, sealAuthUrl } from '../../lib/outbox-crypto';
 import { enqueueNotification } from '../notifications/service';
+import { profiles } from '../users/schema';
 import { emailVerificationTokens, passwordResetTokens, users } from './schema';
 
 type AuthEmailTemplate = 'auth.verify-email' | 'auth.reset-password';
 export const ACCOUNT_ACCESS_TEMPLATE = 'auth.account-access';
+export const CUSTOMER_WELCOME_TEMPLATE = 'auth.welcome';
 
 /** An existing verified account gets guidance without a new verification proof. */
 export function enqueueAccountAccessEmail(tx: Db, userId: string) {
   return enqueueNotification(tx, { userId, channel: 'email', template: ACCOUNT_ACCESS_TEMPLATE, payload: {} });
+}
+
+/** Idempotent customer welcome email queued once a customer account is verified. */
+export function enqueueCustomerWelcomeEmail(tx: Db, userId: string) {
+  return enqueueNotification(tx, {
+    userId,
+    channel: 'email',
+    template: CUSTOMER_WELCOME_TEMPLATE,
+    payload: {},
+    idempotencyKey: `auth.welcome:${userId}`,
+  });
 }
 
 /** Storefront origin for browser redirects and email links (never the API host). */
@@ -45,7 +58,9 @@ export function authEmailLink(template: AuthEmailTemplate, token: string): strin
 /** Call inside the transaction that inserts the hashed one-time token. */
 export async function enqueueAuthEmail(tx: Db, input: { userId: string; email: string; template: AuthEmailTemplate; token: string }) {
   return enqueueNotification(tx, {
-    userId: input.userId, channel: 'email', template: input.template,
+    userId: input.userId,
+    channel: 'email',
+    template: input.template,
     payload: { email: input.email, sealedUrl: sealAuthUrl(authEmailLink(input.template, input.token)) },
   });
 }
@@ -57,6 +72,16 @@ export async function pendingAuthEmail(
   now = new Date(),
 ): Promise<EmailMessage | null> {
   if (!row.userId) return null;
+  if (row.template === CUSTOMER_WELCOME_TEMPLATE) {
+    const [user] = await db.select().from(users).where(eq(users.id, row.userId)).limit(1);
+    if (!user?.emailVerifiedAt) return null;
+    const [profile] = await db.select({ displayName: profiles.displayName }).from(profiles).where(eq(profiles.userId, user.id)).limit(1);
+    return renderWelcomeEmail({
+      email: user.email,
+      name: profile?.displayName || undefined,
+      storefrontUrl: frontendOrigin().toString(),
+    });
+  }
   if (row.template === ACCOUNT_ACCESS_TEMPLATE) {
     const [user] = await db.select().from(users).where(eq(users.id, row.userId)).limit(1);
     if (!user?.emailVerifiedAt) return null;
@@ -64,10 +89,24 @@ export async function pendingAuthEmail(
     const reset = new URL('/forgot-password', frontendOrigin());
     signIn.searchParams.set('intent', user.signupIntent);
     reset.searchParams.set('intent', user.signupIntent);
+    const preheader = 'Your Desla Beauty account is already verified.';
     return {
       to: user.email,
-      subject: 'Your Desla! account is already verified',
-      text: `Hello,\n\nA signup or verification request was made for this email address. Your Desla! account is already verified; no verification token is needed.\n\nSign in using your existing password or Continue with Google:\n${signIn}\n\nIf you signed up with Google or do not know your password, request a password-reset link to set a local password:\n${reset}\n\nYour password and account have not been changed by this request. If you did not request this email, you can ignore it.\n\n— Desla!`,
+      subject: 'Your Desla Beauty account is already verified',
+      preheader,
+      text: `Hello,\n\nA signup or verification request was made for this email address. Your Desla Beauty account is already verified; no verification token is needed.\n\nSign in using your existing password or Continue with Google:\n${signIn}\n\nIf you signed up with Google or do not know your password, request a password-reset link to set a local password:\n${reset}\n\nYour password and account have not been changed by this request. If you did not request this email, you can ignore it.\n\n— Desla Beauty`,
+      html: renderDeslaEmailHtml({
+        preheader,
+        eyebrow: 'Account Access',
+        heading: 'Your account is already verified',
+        paragraphs: [
+          'A signup or verification request was received for this email address. Your Desla Beauty account is already verified and ready to use.',
+          'Sign in with your existing password or Continue with Google. If you need a new password, request a password reset link.',
+        ],
+        ctaLabel: 'Sign In to Desla Beauty',
+        ctaUrl: signIn.toString(),
+        note: 'No changes were made to your account or password. If you did not request this email, you may safely ignore it.',
+      }),
     };
   }
   if (!['auth.verify-email', 'auth.reset-password'].includes(row.template)) return null;
@@ -81,14 +120,22 @@ export async function pendingAuthEmail(
   const verification = row.template === 'auth.verify-email';
   if (verification && user.emailVerifiedAt) return null;
   const table = verification ? emailVerificationTokens : passwordResetTokens;
-  const [token] = await db.select({ expiresAt: table.expiresAt }).from(table).where(and(
-    eq(table.userId, user.id), eq(table.tokenHash, createHash('sha256').update(raw).digest('hex')),
-    isNull(table.consumedAt), gt(table.expiresAt, now),
-  )).limit(1);
+  const [token] = await db
+    .select({ expiresAt: table.expiresAt })
+    .from(table)
+    .where(
+      and(
+        eq(table.userId, user.id),
+        eq(table.tokenHash, createHash('sha256').update(raw).digest('hex')),
+        isNull(table.consumedAt),
+        gt(table.expiresAt, now),
+      ),
+    )
+    .limit(1);
   if (!token) return null;
   // Rebuild from trusted configuration so queued emails follow an origin correction.
-   const link = new URL(authEmailLink(row.template as AuthEmailTemplate, raw));
-   link.searchParams.set('intent', user.signupIntent);
+  const link = new URL(authEmailLink(row.template as AuthEmailTemplate, raw));
+  link.searchParams.set('intent', user.signupIntent);
   const message = verification
     ? renderVerifyEmail({ verifyUrl: link.toString(), email: user.email, expiresAt: token.expiresAt })
     : renderPasswordReset({ resetUrl: link.toString(), email: user.email, expiresAt: token.expiresAt });

@@ -47,7 +47,7 @@ describe('account email transport configuration', () => {
     const message = { to: 'buyer@example.com', subject: 'Verify email', text: 'One-time link' };
     sendMail.mockResolvedValueOnce({ accepted: ['buyer@example.com'], rejected: [] });
     await expect(sender.send(message)).resolves.toBeUndefined();
-    expect(sendMail).toHaveBeenCalledWith({ from: 'Desla <hello@example.com>', ...message });
+    expect(sendMail).toHaveBeenCalledWith({ from: { name: 'Desla', address: 'hello@example.com' }, ...message });
     sendMail.mockResolvedValueOnce({ accepted: [], rejected: ['buyer@example.com'] });
     await expect(sender.send(message)).rejects.toThrow('did not accept');
   });

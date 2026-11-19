@@ -119,16 +119,16 @@ export const PartnerLivePanel: React.FC<Props> = ({ kind, view = 'overview' }) =
   return (
     <section aria-label="Live operations" className="p-5 rounded-2xl bg-white border border-[#D4AF37]/40 space-y-4">
       <div className="flex items-center justify-between gap-2">
-        <div><h2 className="font-heading font-bold text-xl text-[#0F0F10]">{data.profile.name}</h2><p className="text-sm text-[#6B7280]">{data.location?.name ?? 'Creator account'}{kind === 'DISTRIBUTOR' ? ` · ${(data.profile.commissionBps ?? 0) / 100}% commission on platform orders` : ''}</p></div>
-        <button onClick={() => void refresh()} disabled={busy} className="text-[11px] font-bold text-[#997A2E] hover:underline cursor-pointer disabled:opacity-50">Refresh</button>
+        <div><h2 className="font-heading font-semibold text-xl text-[#0F0F10]">{data.profile.name}</h2><p className="text-sm text-[#6B7280]">{data.location?.name ?? 'Creator account'}{kind === 'DISTRIBUTOR' ? ` · ${(data.profile.commissionBps ?? 0) / 100}% commission on platform orders` : ''}</p></div>
+        <button onClick={() => void refresh()} disabled={busy} className="text-[11px] font-medium text-[#997A2E] hover:underline cursor-pointer disabled:opacity-50">Refresh</button>
       </div>
       {(notice || error) && <p className={`text-[11px] ${error ? 'text-rose-600' : 'text-emerald-700'}`}>{error || notice}</p>}
       {kind === 'CREATOR' && ['overview', 'links'].includes(view) && data.profile.promoCode && <div className="rounded-xl border border-[#E5E7EB] bg-[#FAF9F6] p-4 space-y-3">
-        <h3 className="font-heading font-bold">Your referral link</h3><p className="text-sm">Give {data.profile.discountPercent}% off · Earn {data.profile.commissionRate}% commission on eligible merchandise.</p>
-        <p className="font-mono text-lg font-bold">{data.profile.promoCode}</p>
+        <h3 className="font-heading font-semibold">Your referral link</h3><p className="text-sm">Give {data.profile.discountPercent}% off · Earn {data.profile.commissionRate}% commission on eligible merchandise.</p>
+        <p className="font-mono text-lg font-semibold">{data.profile.promoCode}</p>
         <input aria-label="Your referral link" readOnly value={`${window.location.origin}${window.location.pathname}?ref=${encodeURIComponent(data.profile.promoCode)}`} className={partnerInput} />
         <button disabled={busy} className={partnerButton} onClick={() => void run(() => navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?ref=${encodeURIComponent(data.profile.promoCode!)}`), 'Referral link copied.')}>Copy referral link</button>
-        {data.metrics && <><dl className="grid grid-cols-2 sm:grid-cols-4 gap-4 border-t pt-4">{[['Paid orders', data.metrics.ordersCount], ['Paid merchandise', money(data.metrics.paidMerchandiseKobo)], ['Refunds', money(data.metrics.refundedKobo)], ['Net commission', money(data.metrics.commissionNetKobo)]].map(([label, value]) => <div key={label}><dt className="text-xs text-[#6B7280]">{label}</dt><dd className="font-mono font-bold mt-1 break-words">{value}</dd></div>)}</dl><p className="text-xs text-[#6B7280]">Paid orders include later refunds. Merchandise excludes shipping; refunds include all refunded charges. Net commission includes reversals and is separate from your withdrawable balance.</p><dl className="grid grid-cols-2 sm:grid-cols-3 gap-4 border-t pt-4">{[['Content rewards pending', money(data.metrics.contentPendingKobo ?? 0)], ['Content rewards cleared', money(data.metrics.contentAvailableKobo ?? 0)], ['Rewarded posts', String(data.metrics.contentPosts ?? 0)]].map(([label, value]) => <div key={label}><dt className="text-xs text-[#6B7280]">{label}</dt><dd className="font-mono font-bold mt-1 break-words">{value}</dd></div>)}</dl><p className="text-xs text-[#6B7280]">Content rewards settle weekly from verified orders placed with your code — likes alone never pay. Only admin-approved posts earn; rewards clear after the hold period, net of refunds.</p></>}
+        {data.metrics && <><dl className="grid grid-cols-2 sm:grid-cols-4 gap-4 border-t pt-4">{[['Paid orders', data.metrics.ordersCount], ['Paid merchandise', money(data.metrics.paidMerchandiseKobo)], ['Refunds', money(data.metrics.refundedKobo)], ['Net commission', money(data.metrics.commissionNetKobo)]].map(([label, value]) => <div key={label}><dt className="text-xs text-[#6B7280]">{label}</dt><dd className="font-mono font-medium mt-1 break-words">{value}</dd></div>)}</dl><p className="text-xs text-[#6B7280]">Paid orders include later refunds. Merchandise excludes shipping; refunds include all refunded charges. Net commission includes reversals and is separate from your withdrawable balance.</p><dl className="grid grid-cols-2 sm:grid-cols-3 gap-4 border-t pt-4">{[['Content rewards pending', money(data.metrics.contentPendingKobo ?? 0)], ['Content rewards cleared', money(data.metrics.contentAvailableKobo ?? 0)], ['Rewarded posts', String(data.metrics.contentPosts ?? 0)]].map(([label, value]) => <div key={label}><dt className="text-xs text-[#6B7280]">{label}</dt><dd className="font-mono font-medium mt-1 break-words">{value}</dd></div>)}</dl><p className="text-xs text-[#6B7280]">Content rewards settle weekly from verified orders placed with your code — likes alone never pay. Only admin-approved posts earn; rewards clear after the hold period, net of refunds.</p></>}
       </div>}
 
       {showWallet && <><div className="grid grid-cols-3 gap-2 text-center">
@@ -144,7 +144,7 @@ export const PartnerLivePanel: React.FC<Props> = ({ kind, view = 'overview' }) =
       {kind === 'DISTRIBUTOR' && (
         <>
           {showOrders && <div className="space-y-2">
-            <h4 className="text-xs font-bold text-[#0F0F10]">Assigned orders ({data.orders?.length ?? 0})</h4>
+            <h4 className="text-xs font-medium text-[#0F0F10]">Assigned orders ({data.orders?.length ?? 0})</h4>
             {(data.orders ?? []).length === 0 && <p className="text-[11px] text-[#6B7280]">No orders assigned to {data.location?.name ?? 'your location'} yet.</p>}
             {(data.orders ?? []).slice(0, 10).map((o) => (
               <div key={o.id} className="p-3 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] space-y-2">
@@ -154,18 +154,18 @@ export const PartnerLivePanel: React.FC<Props> = ({ kind, view = 'overview' }) =
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {o.status === 'PAID' && (
-                    <button disabled={busy} onClick={() => void run(() => partnerOrderTransition({ orderId: o.id, transition: 'ACCEPT' }), 'Order accepted.')} className="px-3 py-1.5 rounded-full bg-[#0F0F10] text-white text-[11px] font-bold cursor-pointer disabled:opacity-50">Accept &amp; pack</button>
+                    <button disabled={busy} onClick={() => void run(() => partnerOrderTransition({ orderId: o.id, transition: 'ACCEPT' }), 'Order accepted.')} className="px-3 py-1.5 rounded-full bg-[#0F0F10] text-white text-[11px] font-medium cursor-pointer disabled:opacity-50">Accept &amp; pack</button>
                   )}
                   {o.status === 'FULFILLING' && o.fulfilmentMethod === 'DELIVERY' && (
-                    <button disabled={busy} onClick={() => void run(() => partnerOrderTransition({ orderId: o.id, transition: 'DISPATCH' }), 'Marked dispatched.')} className="px-3 py-1.5 rounded-full bg-[#0F0F10] text-white text-[11px] font-bold cursor-pointer disabled:opacity-50">Mark dispatched</button>
+                    <button disabled={busy} onClick={() => void run(() => partnerOrderTransition({ orderId: o.id, transition: 'DISPATCH' }), 'Marked dispatched.')} className="px-3 py-1.5 rounded-full bg-[#0F0F10] text-white text-[11px] font-medium cursor-pointer disabled:opacity-50">Mark dispatched</button>
                   )}
                   {o.status === 'FULFILLING' && o.fulfilmentMethod === 'PICKUP' && (
-                    <button disabled={busy} onClick={() => void run(() => partnerOrderTransition({ orderId: o.id, transition: 'READY_PICKUP' }), 'Marked ready for pickup.')} className="px-3 py-1.5 rounded-full bg-[#0F0F10] text-white text-[11px] font-bold cursor-pointer disabled:opacity-50">Ready for pickup</button>
+                    <button disabled={busy} onClick={() => void run(() => partnerOrderTransition({ orderId: o.id, transition: 'READY_PICKUP' }), 'Marked ready for pickup.')} className="px-3 py-1.5 rounded-full bg-[#0F0F10] text-white text-[11px] font-medium cursor-pointer disabled:opacity-50">Ready for pickup</button>
                   )}
                   {o.status === 'READY_PICKUP' && (
                     <span className="flex items-center gap-1.5">
                       <input value={pickupCodes[o.id] ?? ''} onChange={(e) => setPickupCodes((p) => ({ ...p, [o.id]: e.target.value.replace(/\D/g, '').slice(0, 6) }))} placeholder="6-digit code" inputMode="numeric" className="w-28 px-2.5 py-1.5 rounded-lg bg-white border border-[#E5E7EB] text-xs font-mono" />
-                      <button disabled={busy} onClick={() => void run(() => partnerOrderTransition({ orderId: o.id, transition: 'CONFIRM_PICKUP', code: pickupCodes[o.id] }), 'Pickup confirmed.')} className="px-3 py-1.5 rounded-full bg-[#0F0F10] text-white text-[11px] font-bold cursor-pointer disabled:opacity-50">Verify &amp; release</button>
+                      <button disabled={busy} onClick={() => void run(() => partnerOrderTransition({ orderId: o.id, transition: 'CONFIRM_PICKUP', code: pickupCodes[o.id] }), 'Pickup confirmed.')} className="px-3 py-1.5 rounded-full bg-[#0F0F10] text-white text-[11px] font-medium cursor-pointer disabled:opacity-50">Verify &amp; release</button>
                     </span>
                   )}
                   {o.status === 'SHIPPED' && (
@@ -177,7 +177,7 @@ export const PartnerLivePanel: React.FC<Props> = ({ kind, view = 'overview' }) =
           </div>}
 
           {showInventory && <div className="space-y-2">
-            <h4 className="text-sm font-bold text-[#0F0F10]">Stock at your location</h4>
+            <h4 className="text-sm font-semibold text-[#0F0F10]">Stock at your location</h4>
             <p className="text-xs text-[#6B7280]">Platform allocation fulfils customer orders. Wholesale stock belongs to your business for direct resale.</p>
             {(data.inventory ?? []).length === 0 && <p className="text-[11px] text-[#6B7280]">No stock rows yet. Request a restock below.</p>}
             {(data.inventory ?? []).map((row) => (
@@ -200,7 +200,7 @@ export const PartnerLivePanel: React.FC<Props> = ({ kind, view = 'overview' }) =
             </form>
             {(data.restocks ?? []).map(r => <p key={r.id} className="text-xs text-[#6B7280]">{data.variants?.find(v => v.id === r.variantId)?.sku ?? r.variantId} · {r.qty} units · {r.status}</p>)}
             <form className="rounded-xl bg-[#FAF9F6] p-4 space-y-3" onSubmit={e => { e.preventDefault(); void run(async () => { await recordWholesaleSale({ variantId: sale.variantId, qty: Number(sale.qty), note: sale.note }, saleKey); setSale({ variantId: '', qty: '', note: '' }); setSaleKey(newIdempotencyKey()); }, 'Direct sale recorded against your wholesale stock.'); }}>
-              <h4 className="text-sm font-bold">Record a direct wholesale-stock sale</h4><p className="text-xs text-[#6B7280]">Updates units sold from your own stock. Direct sales do not create platform commission.</p>
+              <h4 className="text-sm font-medium">Record a direct wholesale-stock sale</h4><p className="text-xs text-[#6B7280]">Updates units sold from your own stock. Direct sales do not create platform commission.</p>
               <select required aria-label="Wholesale stock sold" value={sale.variantId} onChange={e => { setSale(s => ({ ...s, variantId: e.target.value })); setSaleKey(newIdempotencyKey()); }} className={partnerInput}><option value="">Choose stock…</option>{data.inventory?.filter(r => r.pool === 'WHOLESALE' && r.onHand > 0).map(r => <option key={r.variantId} value={r.variantId}>{r.name} · {r.size}</option>)}</select>
               <div className="grid sm:grid-cols-2 gap-2"><input required type="number" min="1" max="10000" aria-label="Units sold" placeholder="Units sold" className={partnerInput} value={sale.qty} onChange={e => { setSale(s => ({ ...s, qty: e.target.value })); setSaleKey(newIdempotencyKey()); }} /><input required minLength={3} maxLength={200} aria-label="Direct sale reference" placeholder="Receipt / sale reference" className={partnerInput} value={sale.note} onChange={e => { setSale(s => ({ ...s, note: e.target.value })); setSaleKey(newIdempotencyKey()); }} /></div>
               <button disabled={busy} className={partnerButton}>Record direct sale</button>
@@ -211,7 +211,7 @@ export const PartnerLivePanel: React.FC<Props> = ({ kind, view = 'overview' }) =
                   <div key={t.id} className="flex items-center justify-between text-[11px] text-[#6B7280]">
                     <span>Transfer {t.id.slice(0, 8)} • {t.status}</span>
                     {t.status === 'DISPATCHED' && (
-                      <button disabled={busy} onClick={() => void run(() => partnerReceiveTransfer(t.id), 'Transfer received.')} className="px-3 py-1 rounded-full border border-[#D4AF37] text-[#997A2E] font-bold cursor-pointer disabled:opacity-50">Confirm receipt</button>
+                      <button disabled={busy} onClick={() => void run(() => partnerReceiveTransfer(t.id), 'Transfer received.')} className="px-3 py-1 rounded-full border border-[#D4AF37] text-[#997A2E] font-medium cursor-pointer disabled:opacity-50">Confirm receipt</button>
                     )}
                   </div>
                 ))}
@@ -222,12 +222,12 @@ export const PartnerLivePanel: React.FC<Props> = ({ kind, view = 'overview' }) =
       )}
 
       {showWallet && <><div className="space-y-2">
-        <h4 className="text-xs font-bold text-[#0F0F10]">Bank accounts</h4>
+        <h4 className="text-xs font-medium text-[#0F0F10]">Bank accounts</h4>
         {wallet.banks.length === 0 && <p className="text-[11px] text-[#6B7280]">No bank account yet. Add one, then ask support to verify it before withdrawal.</p>}
         {wallet.banks.map((b) => (
           <div key={b.id} className="flex items-center justify-between text-xs">
             <span className="text-[#0F0F10]">{b.bankName} ••••{b.maskedNumber.slice(-4)} • {b.accountName}</span>
-            <span className={`text-[10px] font-bold ${b.verifiedAt ? 'text-emerald-700' : 'text-amber-700'}`}>{b.verifiedAt ? 'Verified' : 'Unverified'}</span>
+            <span className={`text-[10px] font-semibold ${b.verifiedAt ? 'text-emerald-700' : 'text-amber-700'}`}>{b.verifiedAt ? 'Verified' : 'Unverified'}</span>
           </div>
         ))}
         <form
@@ -242,12 +242,12 @@ export const PartnerLivePanel: React.FC<Props> = ({ kind, view = 'overview' }) =
           <input value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="Bank name" className="px-3 py-2 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] text-xs" />
           <input value={accountName} onChange={(e) => setAccountName(e.target.value)} placeholder="Account name" className="px-3 py-2 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] text-xs" />
           <input value={accountNumber} onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="10-digit number" inputMode="numeric" className="px-3 py-2 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] text-xs font-mono" />
-          <button type="submit" disabled={busy} className="col-span-2 py-2.5 rounded-xl border border-[#E5E7EB] text-xs font-bold cursor-pointer disabled:opacity-50">Register bank account</button>
+          <button type="submit" disabled={busy} className="col-span-2 py-2.5 rounded-xl border border-[#E5E7EB] text-xs font-medium cursor-pointer disabled:opacity-50">Register bank account</button>
         </form>
       </div>
 
       <div className="space-y-2">
-        <h4 className="text-xs font-bold text-[#0F0F10]">Withdrawals</h4>
+        <h4 className="text-xs font-medium text-[#0F0F10]">Withdrawals</h4>
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -263,23 +263,23 @@ export const PartnerLivePanel: React.FC<Props> = ({ kind, view = 'overview' }) =
             ))}
           </select>
           <input value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value.replace(/[^0-9.]/g, ''))} placeholder="₦ amount" inputMode="decimal" className="w-28 px-3 py-2 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] text-xs" />
-          <button type="submit" disabled={busy} className="px-4 py-2 rounded-xl bg-[#0F0F10] text-white text-xs font-bold cursor-pointer disabled:opacity-50">Withdraw</button>
+          <button type="submit" disabled={busy} className="px-4 py-2 rounded-xl bg-[#0F0F10] text-white text-xs font-medium cursor-pointer disabled:opacity-50">Withdraw</button>
         </form>
         {wallet.withdrawals.slice(0, 5).map((w) => (
           <div key={w.id} className="flex items-center justify-between text-[11px] text-[#6B7280]">
             <span>{naira(w.amountKobo)}</span>
-            <span className="font-bold">{w.status}</span>
+            <span className="font-semibold">{w.status}</span>
           </div>
         ))}
       </div>
 
       <div className="space-y-1.5">
-        <h4 className="text-xs font-bold text-[#0F0F10]">Earnings journal</h4>
+        <h4 className="text-xs font-medium text-[#0F0F10]">Earnings journal</h4>
         {wallet.entries.length === 0 && <p className="text-[11px] text-[#6B7280]">No earnings yet. Commissions appear here after verified payments.</p>}
         {wallet.entries.slice(0, 10).map((entry) => (
           <div key={entry.id} className="flex items-center justify-between text-[11px]">
             <span className="text-[#4B5563] truncate">{entry.description} • {entry.bucket}</span>
-            <span className={`font-mono font-bold ${entry.amountKobo >= 0 ? 'text-emerald-700' : 'text-rose-600'}`}>{entry.amountKobo >= 0 ? '+' : ''}{naira(entry.amountKobo)}</span>
+            <span className={`font-mono font-semibold ${entry.amountKobo >= 0 ? 'text-emerald-700' : 'text-rose-600'}`}>{entry.amountKobo >= 0 ? '+' : ''}{naira(entry.amountKobo)}</span>
           </div>
         ))}
       </div></>}

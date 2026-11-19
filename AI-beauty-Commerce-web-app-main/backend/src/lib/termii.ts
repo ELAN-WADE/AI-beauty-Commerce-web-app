@@ -22,7 +22,7 @@ export function termiiConfig(): TermiiConfig {
   return {
     baseUrl: process.env.TERMII_BASE_URL ?? 'https://api.ng.termii.com',
     apiKey: process.env.TERMII_API_KEY ?? '',
-    senderId: process.env.TERMII_SENDER_ID ?? 'Glowly',
+    senderId: process.env.TERMII_SENDER_ID ?? 'Desla',
     sendPath: process.env.TERMII_SEND_PATH ?? '/api/sms/send',
   };
 }
@@ -87,13 +87,13 @@ export async function termiiSend(
 const nairaShort = (kobo: number) => `N${(kobo / 100).toLocaleString('en-NG')}`;
 
 export function smsOrderPaid(orderNumber: string, totalKobo: number): string {
-  return `Glowly: payment confirmed for ${orderNumber} (${nairaShort(totalKobo)}). Items are being prepared.`;
+  return `Desla Beauty: payment confirmed for ${orderNumber} (${nairaShort(totalKobo)}). Items are being prepared.`;
 }
 
 export function smsShipmentUpdate(orderNumber: string, status: string, trackingRef: string): string {
-  return `Glowly: order ${orderNumber} is ${status.replace(/_/g, ' ')}${trackingRef ? ` (${trackingRef})` : ''}.`;
+  return `Desla Beauty: order ${orderNumber} is ${status.replace(/_/g, ' ')}${trackingRef ? ` (${trackingRef})` : ''}.`;
 }
 
 export function smsCartAbandoned(subtotalNgn: number): string {
-  return `Glowly: your bag (${nairaShort(subtotalNgn * 100)}) is waiting. Complete checkout within 48hrs before reserved stock releases.`;
+  return `Desla Beauty: your bag (${nairaShort(subtotalNgn * 100)}) is waiting. Complete checkout within 48hrs before reserved stock releases.`;
 }

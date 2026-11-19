@@ -252,10 +252,10 @@ export const AdminInventoryConsole: React.FC = () => {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
         <div className="p-4 sm:p-5 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs">
           <div className="flex items-center justify-between text-[#71717A] mb-2">
-            <span className="text-[11px] font-mono uppercase font-bold tracking-wider">Total Active Units</span>
+            <span className="text-[11px] font-mono uppercase font-medium tracking-wider">Total Active Units</span>
             <Boxes size={18} className="text-[#0F0F10]" />
           </div>
-          <div className="text-2xl sm:text-3xl font-heading font-semibold lg:font-extrabold text-[#0F0F10]">
+          <div className="text-2xl sm:text-3xl font-heading font-semibold text-[#0F0F10]">
             {metrics.totalUnits.toLocaleString('en-NG')}
           </div>
           <p className="text-[11px] text-[#71717A] mt-1 font-mono">{isLiveBackend ? `Across ${locations.length} inventory locations` : 'Across 5 Nationwide Depots'}</p>
@@ -263,10 +263,10 @@ export const AdminInventoryConsole: React.FC = () => {
 
         <div className="p-4 sm:p-5 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs">
           <div className="flex items-center justify-between text-[#71717A] mb-2">
-            <span className="text-[11px] font-mono uppercase font-bold tracking-wider">Wholesale Inventory GMV</span>
+            <span className="text-[11px] font-mono uppercase font-medium tracking-wider">Wholesale Inventory GMV</span>
             <Building2 size={18} className="text-[#997A2E]" />
           </div>
-          <div className="text-2xl sm:text-3xl font-heading font-semibold lg:font-extrabold text-[#0F0F10]">
+          <div className="text-2xl sm:text-3xl font-heading font-semibold text-[#0F0F10]">
             {isLiveBackend ? 'Not reconciled' : `₦${(metrics.totalValuation / 1_000_000).toFixed(1)}M`}
           </div>
           <p className="text-[11px] text-[#71717A] mt-1 font-mono">{isLiveBackend ? 'Cost basis is not configured' : 'Cost Basis @ ₦16K/unit avg'}</p>
@@ -274,13 +274,13 @@ export const AdminInventoryConsole: React.FC = () => {
 
         <div className="p-4 sm:p-5 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs">
           <div className="flex items-center justify-between text-[#71717A] mb-2">
-            <span className="text-[11px] font-mono uppercase font-bold tracking-wider">Low Stock Warnings</span>
+            <span className="text-[11px] font-mono uppercase font-medium tracking-wider">Low Stock Warnings</span>
             <AlertTriangle size={18} className="text-[#D4AF37]" />
           </div>
-          <div className="text-2xl sm:text-3xl font-heading font-semibold lg:font-extrabold text-[#0F0F10] flex items-center gap-2">
+          <div className="text-2xl sm:text-3xl font-heading font-semibold text-[#0F0F10] flex items-center gap-2">
             <span>{metrics.lowStockCount}</span>
             {metrics.lowStockCount > 0 && (
-              <span className="text-xs px-2 py-0.5 rounded-full bg-[#FBF5E8] text-[#997A2E] font-mono font-bold">
+              <span className="text-xs px-2 py-0.5 rounded-full bg-[#FBF5E8] text-[#997A2E] font-mono font-medium">
                 Action Required
               </span>
             )}
@@ -290,10 +290,10 @@ export const AdminInventoryConsole: React.FC = () => {
 
         <div className="p-4 sm:p-5 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs">
           <div className="flex items-center justify-between text-[#71717A] mb-2">
-            <span className="text-[11px] font-mono uppercase font-bold tracking-wider">Lab Shipments In Transit</span>
+            <span className="text-[11px] font-mono uppercase font-medium tracking-wider">Lab Shipments In Transit</span>
             <Truck size={18} className="text-[#0F0F10]" />
           </div>
-          <div className="text-2xl sm:text-3xl font-heading font-semibold lg:font-extrabold text-[#0F0F10]">
+          <div className="text-2xl sm:text-3xl font-heading font-semibold text-[#0F0F10]">
             {labShipments.filter((s) => s.status === 'IN_TRANSIT').length}
           </div>
           <p className="text-[11px] text-[#71717A] mt-1 font-mono">Cold-chain tracked batches</p>
@@ -339,7 +339,7 @@ export const AdminInventoryConsole: React.FC = () => {
               }));
               setIsStockInModalOpen(true);
             }}
-            className="px-3.5 py-2 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-[#D4AF37] text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all active:scale-95 cursor-pointer"
+            className="px-3.5 py-2 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-[#D4AF37] text-xs font-medium flex items-center gap-1.5 shadow-xs transition-all active:scale-95 cursor-pointer"
           >
             <Plus size={14} className="text-[#D4AF37]" />
             <span>+ Stock In</span>
@@ -451,7 +451,7 @@ export const AdminInventoryConsole: React.FC = () => {
                     <th className="py-3 px-3 text-center">Abuja Hub</th>
                     <th className="py-3 px-3 text-center">PH Hub</th>
                     <th className="py-3 px-3 text-center">Kano Hub</th>
-                    <th className="py-3 px-3 text-center font-bold">Total Stock</th>
+                    <th className="py-3 px-3 text-center font-medium">Total Stock</th>
                     <th className="py-3 px-3 text-center">Status</th>
                     <th className="py-3 px-4 text-right">Quick Action</th>
                   </tr>
@@ -468,7 +468,7 @@ export const AdminInventoryConsole: React.FC = () => {
                         {/* Formulation & SKU */}
                         <td className="py-3.5 px-4">
                           <div>
-                            <span className="font-bold text-[#0F0F10] block">{item.productName}</span>
+                            <span className="font-semibold text-[#0F0F10] block">{item.productName}</span>
                             <span className="font-mono text-[10px] text-[#71717A]">SKU: {item.sku}</span>
                           </div>
                         </td>
@@ -481,55 +481,55 @@ export const AdminInventoryConsole: React.FC = () => {
                         </td>
 
                         {/* Central Lab */}
-                        <td className={`py-3.5 px-3 text-center font-mono ${selectedHub === 'central' ? 'bg-[#FBF5E8] font-bold text-[#997A2E]' : 'text-[#0F0F10]'}`}>
+                        <td className={`py-3.5 px-3 text-center font-mono ${selectedHub === 'central' ? 'bg-[#FBF5E8] font-semibold text-[#997A2E]' : 'text-[#0F0F10]'}`}>
                           {item.centralStock}
                         </td>
 
                         {/* Lagos */}
-                        <td className={`py-3.5 px-3 text-center font-mono ${selectedHub === 'lagos' ? 'bg-[#FBF5E8] font-bold text-[#997A2E]' : 'text-[#0F0F10]'}`}>
-                          <span className={item.lagosHub <= 15 ? 'text-rose-600 font-bold' : ''}>
+                        <td className={`py-3.5 px-3 text-center font-mono ${selectedHub === 'lagos' ? 'bg-[#FBF5E8] font-semibold text-[#997A2E]' : 'text-[#0F0F10]'}`}>
+                          <span className={item.lagosHub <= 15 ? 'text-rose-600 font-semibold' : ''}>
                             {item.lagosHub}
                           </span>
                         </td>
 
                         {/* Abuja */}
-                        <td className={`py-3.5 px-3 text-center font-mono ${selectedHub === 'abuja' ? 'bg-[#FBF5E8] font-bold text-[#997A2E]' : 'text-[#0F0F10]'}`}>
-                          <span className={item.abujaHub <= 15 ? 'text-rose-600 font-bold' : ''}>
+                        <td className={`py-3.5 px-3 text-center font-mono ${selectedHub === 'abuja' ? 'bg-[#FBF5E8] font-semibold text-[#997A2E]' : 'text-[#0F0F10]'}`}>
+                          <span className={item.abujaHub <= 15 ? 'text-rose-600 font-semibold' : ''}>
                             {item.abujaHub}
                           </span>
                         </td>
 
                         {/* PH */}
-                        <td className={`py-3.5 px-3 text-center font-mono ${selectedHub === 'ph' ? 'bg-[#FBF5E8] font-bold text-[#997A2E]' : 'text-[#0F0F10]'}`}>
-                          <span className={item.phHub <= 10 ? 'text-rose-600 font-bold' : ''}>
+                        <td className={`py-3.5 px-3 text-center font-mono ${selectedHub === 'ph' ? 'bg-[#FBF5E8] font-semibold text-[#997A2E]' : 'text-[#0F0F10]'}`}>
+                          <span className={item.phHub <= 10 ? 'text-rose-600 font-semibold' : ''}>
                             {item.phHub}
                           </span>
                         </td>
 
                         {/* Kano */}
-                        <td className={`py-3.5 px-3 text-center font-mono ${selectedHub === 'kano' ? 'bg-[#FBF5E8] font-bold text-[#997A2E]' : 'text-[#0F0F10]'}`}>
-                          <span className={item.kanoHub <= 10 ? 'text-rose-600 font-bold' : ''}>
+                        <td className={`py-3.5 px-3 text-center font-mono ${selectedHub === 'kano' ? 'bg-[#FBF5E8] font-semibold text-[#997A2E]' : 'text-[#0F0F10]'}`}>
+                          <span className={item.kanoHub <= 10 ? 'text-rose-600 font-semibold' : ''}>
                             {item.kanoHub}
                           </span>
                         </td>
 
                         {/* Total Units */}
-                        <td className="py-3.5 px-3 text-center font-mono font-bold text-[#0F0F10]">
+                        <td className="py-3.5 px-3 text-center font-mono font-semibold text-[#0F0F10]">
                           {totalUnits}
                         </td>
 
                         {/* Health Status */}
                         <td className="py-3.5 px-3 text-center">
                           {isDepleted ? (
-                            <span className="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-mono font-bold">
+                            <span className="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-mono font-semibold">
                               Depleted
                             </span>
                           ) : isLow ? (
-                            <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-mono font-bold flex items-center justify-center gap-1">
+                            <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-mono font-semibold flex items-center justify-center gap-1">
                               <AlertTriangle size={10} /> Low Stock
                             </span>
                           ) : (
-                            <span className="px-2 py-0.5 rounded-full bg-[#F3F4F6] lg:bg-emerald-50 text-[#111827] lg:text-emerald-700 border border-[#E5E7EB] lg:border-emerald-200 text-[10px] font-mono font-semibold lg:font-bold">
+                            <span className="px-2 py-0.5 rounded-full bg-[#F3F4F6] lg:bg-emerald-50 text-[#111827] lg:text-emerald-700 border border-[#E5E7EB] lg:border-emerald-200 text-[10px] font-mono font-semibold">
                               Optimal
                             </span>
                           )}
@@ -592,14 +592,14 @@ export const AdminInventoryConsole: React.FC = () => {
         <div className="rounded-3xl bg-white border border-[#EAE8E3] shadow-xs overflow-hidden">
           <div className="p-5 border-b border-[#EAE8E3] flex items-center justify-between">
             <div>
-              <h3 className="font-heading font-bold text-base text-[#0F0F10]">
+              <h3 className="font-heading font-semibold text-base text-[#0F0F10]">
                 Stock Movement &amp; Intake Audit Ledger
               </h3>
               <p className="text-xs text-[#71717A] mt-0.5">
                 Cryptographically tracked record of factory intakes, regional hub dispatches, and damaged write-offs.
               </p>
             </div>
-            <span className="text-xs font-mono text-[#997A2E] font-bold">
+            <span className="text-xs font-mono text-[#997A2E] font-medium">
               {stockMovementLogs.length} Logged Entries
             </span>
           </div>
@@ -625,12 +625,12 @@ export const AdminInventoryConsole: React.FC = () => {
                   return (
                     <tr key={log.id} className="hover:bg-[#FAF9F6]/50 transition-colors">
                       <td className="py-3.5 px-4 font-mono">
-                        <span className="font-bold text-[#0F0F10] block">{log.timestamp}</span>
+                        <span className="font-semibold text-[#0F0F10] block">{log.timestamp}</span>
                         <span className="text-[11px] text-[#71717A]">{log.actor}</span>
                       </td>
                       <td className="py-3.5 px-4">
                         <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold lg:font-bold ${
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold ${
                             isPositive
                               ? 'bg-[#0F0F10] text-white border border-[#0F0F10] lg:bg-emerald-50 lg:text-emerald-700 lg:border-emerald-200'
                               : isNegative
@@ -642,10 +642,10 @@ export const AdminInventoryConsole: React.FC = () => {
                         </span>
                       </td>
                       <td className="py-3.5 px-4 font-mono">
-                        <span className="font-bold text-[#0F0F10] block">{log.productName}</span>
+                        <span className="font-semibold text-[#0F0F10] block">{log.productName}</span>
                         <span className="text-[10px] text-[#71717A]">{log.sku}</span>
                       </td>
-                      <td className="py-3.5 px-3 text-center font-mono font-bold">
+                      <td className="py-3.5 px-3 text-center font-mono font-semibold">
                         <span className={isPositive ? 'text-[#0F0F10] lg:text-emerald-600' : isNegative ? 'text-rose-600' : 'text-[#0F0F10]'}>
                           {isPositive ? `+${log.quantity}` : isNegative ? `-${log.quantity}` : log.quantity}
                         </span>
@@ -669,7 +669,7 @@ export const AdminInventoryConsole: React.FC = () => {
         <div className="space-y-4">
           <div className="p-5 rounded-3xl bg-white border border-[#EAE8E3] shadow-xs flex items-center justify-between">
             <div>
-              <h3 className="font-heading font-bold text-base text-[#0F0F10]">
+              <h3 className="font-heading font-semibold text-base text-[#0F0F10]">
                 Central Laboratory Batch Shipments (#LAB-409)
               </h3>
               <p className="text-xs text-[#71717A] mt-0.5">
@@ -678,7 +678,7 @@ export const AdminInventoryConsole: React.FC = () => {
             </div>
             <button
               onClick={() => setIsNewLabShipmentModalOpen(true)}
-              className="px-4 py-2 rounded-full bg-[#0F0F10] text-[#D4AF37] text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+              className="px-4 py-2 rounded-full bg-[#0F0F10] text-[#D4AF37] text-xs font-medium flex items-center gap-1.5 cursor-pointer shadow-xs"
             >
               <Plus size={14} />
               <span>Dispatch New Batch</span>
@@ -693,15 +693,15 @@ export const AdminInventoryConsole: React.FC = () => {
               >
                 <div className="flex items-start justify-between">
                   <div>
-                    <span className="font-mono text-[10px] uppercase font-bold text-[#997A2E] tracking-wider">
+                    <span className="font-mono text-[10px] uppercase font-medium text-[#997A2E] tracking-wider">
                       Batch Restock Shipment
                     </span>
-                    <h4 className="font-heading font-semibold lg:font-extrabold text-lg text-[#0F0F10] mt-0.5 font-mono">
+                    <h4 className="font-heading font-semibold text-lg text-[#0F0F10] mt-0.5 font-mono">
                       {ship.batchNumber}
                     </h4>
                   </div>
                   <span
-                    className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-semibold lg:font-bold uppercase ${
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-semibold uppercase ${
                       ship.status === 'DELIVERED'
                         ? 'bg-[#F3F4F6] text-[#111827] border border-[#E5E7EB] lg:bg-emerald-50 lg:text-emerald-700 lg:border-emerald-200'
                         : ship.status === 'IN_TRANSIT'
@@ -744,13 +744,13 @@ export const AdminInventoryConsole: React.FC = () => {
                         updateShipmentStatus(ship.id, 'DELIVERED');
                         showToast(`Batch ${ship.batchNumber} marked DELIVERED. Units integrated into ${ship.destinationHub}!`);
                       }}
-                      className="px-4 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
+                      className="px-4 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
                     >
                       <CheckCircle2 size={14} />
                       <span>Confirm Hub Arrival (Deliver)</span>
                     </button>
                   ) : (
-                    <span className="text-xs text-emerald-700 font-mono font-bold flex items-center gap-1">
+                    <span className="text-xs text-emerald-700 font-mono font-medium flex items-center gap-1">
                       <CheckCircle2 size={13} /> Stock Integrated
                     </span>
                   )}
@@ -769,7 +769,7 @@ export const AdminInventoryConsole: React.FC = () => {
         <div className="rounded-3xl bg-white border border-[#EAE8E3] shadow-xs overflow-hidden">
           <div className="p-5 border-b border-[#EAE8E3] flex items-center justify-between">
             <div>
-              <h3 className="font-heading font-bold text-base text-[#0F0F10]">
+              <h3 className="font-heading font-semibold text-base text-[#0F0F10]">
                 Wholesale Master Carton Price Book
               </h3>
               <p className="text-xs text-[#71717A] mt-0.5">
@@ -793,18 +793,18 @@ export const AdminInventoryConsole: React.FC = () => {
               <tbody className="divide-y divide-[#EAE8E3]">
                 {wholesaleCartons.map((wc) => (
                   <tr key={wc.id} className="hover:bg-[#FAF9F6]/50 transition-colors">
-                    <td className="py-3.5 px-4 font-bold text-[#0F0F10]">{wc.name}</td>
+                    <td className="py-3.5 px-4 font-semibold text-[#0F0F10]">{wc.name}</td>
                     <td className="py-3.5 px-4 font-mono text-[#71717A]">{wc.sku}</td>
-                    <td className="py-3.5 px-4 text-center font-mono font-bold text-[#0F0F10]">
+                    <td className="py-3.5 px-4 text-center font-mono font-semibold text-[#0F0F10]">
                       {wc.cartonUnits} Units
                     </td>
-                    <td className="py-3.5 px-4 text-right font-mono font-bold text-[#0F0F10]">
+                    <td className="py-3.5 px-4 text-right font-mono font-semibold text-[#0F0F10]">
                       ₦{wc.wholesalePrice.toLocaleString('en-NG')}
                     </td>
-                    <td className="py-3.5 px-4 text-right font-mono font-bold text-[#71717A]">
+                    <td className="py-3.5 px-4 text-right font-mono font-semibold text-[#71717A]">
                       ₦{wc.retailCartonValue.toLocaleString('en-NG')}
                     </td>
-                    <td className="py-3.5 px-4 text-center font-mono font-bold text-[#997A2E]">
+                    <td className="py-3.5 px-4 text-center font-mono font-semibold text-[#997A2E]">
                       {wc.marginPercent}%
                     </td>
                   </tr>
@@ -823,10 +823,10 @@ export const AdminInventoryConsole: React.FC = () => {
           <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-[#EAE8E3] overflow-hidden">
             <div className="p-6 border-b border-[#EAE8E3] flex items-center justify-between">
               <div>
-                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
+                <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-[#997A2E]">
                   Factory Intake Protocol
                 </span>
-                <h3 className="font-heading font-extrabold text-xl text-[#0F0F10]">Stock In / Add Batch</h3>
+                <h3 className="font-heading font-semibold text-xl text-[#0F0F10]">Stock In / Add Batch</h3>
               </div>
               <button
                 onClick={() => setIsStockInModalOpen(false)}
@@ -852,11 +852,11 @@ export const AdminInventoryConsole: React.FC = () => {
               className="p-6 space-y-4 text-xs"
             >
               <div>
-                <label className="block font-bold text-[#0F0F10] mb-1">Select Formulation SKU</label>
+                <label className="block font-medium text-[#0F0F10] mb-1">Select Formulation SKU</label>
                 <select
                   value={stockInForm.sku}
                   onChange={(e) => setStockInForm({ ...stockInForm, sku: e.target.value })}
-                  className="w-full p-2.5 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] text-xs font-mono font-bold focus:outline-none focus:border-[#D4AF37]"
+                  className="w-full p-2.5 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] text-xs font-mono font-medium focus:outline-none focus:border-[#D4AF37]"
                   required
                 >
                   {inventoryItems.map((item) => (
@@ -869,11 +869,11 @@ export const AdminInventoryConsole: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-[#0F0F10] mb-1">Target Depot / Hub</label>
+                  <label className="block font-medium text-[#0F0F10] mb-1">Target Depot / Hub</label>
                   <select
                     value={stockInForm.hub}
                     onChange={(e) => setStockInForm({ ...stockInForm, hub: e.target.value as any })}
-                    className="w-full p-2.5 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] text-xs font-bold focus:outline-none focus:border-[#D4AF37]"
+                    className="w-full p-2.5 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] text-xs font-medium focus:outline-none focus:border-[#D4AF37]"
                   >
                     {isLiveBackend ? <><option value="">Select location</option>{locations.map(location => <option key={location.id} value={location.id === '00000000-0000-4000-8000-000000000001' ? 'central' : location.id}>{location.name} ({location.code})</option>)}</> : <><option value="central">Central Laboratory</option>
                     <option value="lagos">Lagos Central Hub</option>
@@ -884,13 +884,13 @@ export const AdminInventoryConsole: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-[#0F0F10] mb-1">Units Quantity (+)</label>
+                  <label className="block font-medium text-[#0F0F10] mb-1">Units Quantity (+)</label>
                   <input
                     type="number"
                     min="1"
                     value={stockInForm.quantity}
                     onChange={(e) => setStockInForm({ ...stockInForm, quantity: Number(e.target.value) })}
-                    className="w-full p-2.5 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] text-xs font-mono font-bold focus:outline-none focus:border-[#D4AF37]"
+                    className="w-full p-2.5 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] text-xs font-mono font-medium focus:outline-none focus:border-[#D4AF37]"
                     required
                   />
                 </div>
@@ -898,7 +898,7 @@ export const AdminInventoryConsole: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-[#0F0F10] mb-1">Batch / Lot Number</label>
+                  <label className="block font-medium text-[#0F0F10] mb-1">Batch / Lot Number</label>
                   <input
                     type="text"
                     value={stockInForm.batchNumber}
@@ -909,7 +909,7 @@ export const AdminInventoryConsole: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-[#0F0F10] mb-1">Expiry Date</label>
+                  <label className="block font-medium text-[#0F0F10] mb-1">Expiry Date</label>
                   <input
                     type="date"
                     value={stockInForm.expiryDate}
@@ -920,7 +920,7 @@ export const AdminInventoryConsole: React.FC = () => {
               </div>
 
               <div>
-                <label className="block font-bold text-[#0F0F10] mb-1">Audit Ledger Note</label>
+                <label className="block font-medium text-[#0F0F10] mb-1">Audit Ledger Note</label>
                 <input
                   type="text"
                   value={stockInForm.note}
@@ -939,7 +939,7 @@ export const AdminInventoryConsole: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-full bg-[#0F0F10] text-[#D4AF37] font-bold text-xs shadow-md hover:bg-[#27272A] cursor-pointer"
+                  className="px-6 py-2.5 rounded-full bg-[#0F0F10] text-[#D4AF37] font-medium text-xs shadow-md hover:bg-[#27272A] cursor-pointer"
                 >
                   Confirm Stock Intake
                 </button>
@@ -957,10 +957,10 @@ export const AdminInventoryConsole: React.FC = () => {
           <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-[#EAE8E3] overflow-hidden">
             <div className="p-6 border-b border-[#EAE8E3] flex items-center justify-between">
               <div>
-                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
+                <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-[#997A2E]">
                   Regional Redistribution
                 </span>
-                <h3 className="font-heading font-extrabold text-xl text-[#0F0F10]">Inter-Hub Stock Transfer</h3>
+                <h3 className="font-heading font-semibold text-xl text-[#0F0F10]">Inter-Hub Stock Transfer</h3>
               </div>
               <button
                 onClick={() => setIsTransferModalOpen(false)}
@@ -986,11 +986,11 @@ export const AdminInventoryConsole: React.FC = () => {
               className="p-6 space-y-4 text-xs"
             >
               <div>
-                <label className="block font-bold text-[#0F0F10] mb-1">Select Formulation SKU</label>
+                <label className="block font-medium text-[#0F0F10] mb-1">Select Formulation SKU</label>
                 <select
                   value={transferForm.sku}
                   onChange={(e) => setTransferForm({ ...transferForm, sku: e.target.value })}
-                  className="w-full p-2.5 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] text-xs font-mono font-bold focus:outline-none focus:border-[#D4AF37]"
+                  className="w-full p-2.5 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] text-xs font-mono font-medium focus:outline-none focus:border-[#D4AF37]"
                   required
                 >
                   {inventoryItems.map((item) => (
@@ -1003,11 +1003,11 @@ export const AdminInventoryConsole: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-[#0F0F10] mb-1">Origin (From Hub)</label>
+                  <label className="block font-medium text-[#0F0F10] mb-1">Origin (From Hub)</label>
                   <select
                     value={transferForm.fromHub}
                     onChange={(e) => setTransferForm({ ...transferForm, fromHub: e.target.value as any })}
-                    className="w-full p-2.5 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] text-xs font-bold focus:outline-none focus:border-[#D4AF37]"
+                    className="w-full p-2.5 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] text-xs font-medium focus:outline-none focus:border-[#D4AF37]"
                   >
                     {isLiveBackend ? <><option value="">Select location</option>{locations.map(location => <option key={location.id} value={location.id === '00000000-0000-4000-8000-000000000001' ? 'central' : location.id}>{location.name} ({location.code})</option>)}</> : <><option value="central">Central Laboratory</option>
                     <option value="lagos">Lagos Central Hub</option>
@@ -1018,11 +1018,11 @@ export const AdminInventoryConsole: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-[#0F0F10] mb-1">Destination (To Hub)</label>
+                  <label className="block font-medium text-[#0F0F10] mb-1">Destination (To Hub)</label>
                   <select
                     value={transferForm.toHub}
                     onChange={(e) => setTransferForm({ ...transferForm, toHub: e.target.value as any })}
-                    className="w-full p-2.5 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] text-xs font-bold focus:outline-none focus:border-[#D4AF37]"
+                    className="w-full p-2.5 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] text-xs font-medium focus:outline-none focus:border-[#D4AF37]"
                   >
                     {isLiveBackend ? <><option value="">Select location</option>{locations.map(location => <option key={location.id} value={location.id === '00000000-0000-4000-8000-000000000001' ? 'central' : location.id}>{location.name} ({location.code})</option>)}</> : <><option value="lagos">Lagos Central Hub</option>
                     <option value="abuja">Abuja Wuse Hub</option>
@@ -1035,19 +1035,19 @@ export const AdminInventoryConsole: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-[#0F0F10] mb-1">Transfer Units</label>
+                  <label className="block font-medium text-[#0F0F10] mb-1">Transfer Units</label>
                   <input
                     type="number"
                     min="1"
                     value={transferForm.quantity}
                     onChange={(e) => setTransferForm({ ...transferForm, quantity: Number(e.target.value) })}
-                    className="w-full p-2.5 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] text-xs font-mono font-bold focus:outline-none focus:border-[#D4AF37]"
+                    className="w-full p-2.5 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] text-xs font-mono font-medium focus:outline-none focus:border-[#D4AF37]"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block font-bold text-[#0F0F10] mb-1">Courier / Carrier</label>
+                  <label className="block font-medium text-[#0F0F10] mb-1">Courier / Carrier</label>
                   <input
                     type="text"
                     value={transferForm.courier}
@@ -1058,7 +1058,7 @@ export const AdminInventoryConsole: React.FC = () => {
               </div>
 
               <div>
-                <label className="block font-bold text-[#0F0F10] mb-1">Transfer Reference / Manifest Note</label>
+                <label className="block font-medium text-[#0F0F10] mb-1">Transfer Reference / Manifest Note</label>
                 <input
                   type="text"
                   value={transferForm.note}
@@ -1077,7 +1077,7 @@ export const AdminInventoryConsole: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-full bg-[#0F0F10] text-[#D4AF37] font-bold text-xs shadow-md hover:bg-[#27272A] cursor-pointer"
+                  className="px-6 py-2.5 rounded-full bg-[#0F0F10] text-[#D4AF37] font-medium text-xs shadow-md hover:bg-[#27272A] cursor-pointer"
                 >
                   Execute Transfer
                 </button>
@@ -1095,10 +1095,10 @@ export const AdminInventoryConsole: React.FC = () => {
           <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-[#EAE8E3] overflow-hidden">
             <div className="p-6 border-b border-[#EAE8E3] flex items-center justify-between">
               <div>
-                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-rose-600">
+                <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-rose-600">
                   Write-off &amp; Reconciliation
                 </span>
-                <h3 className="font-heading font-extrabold text-xl text-[#0F0F10]">Stock Deduction / Adjustment</h3>
+                <h3 className="font-heading font-semibold text-xl text-[#0F0F10]">Stock Deduction / Adjustment</h3>
               </div>
               <button
                 onClick={() => setIsAdjustModalOpen(false)}
@@ -1124,11 +1124,11 @@ export const AdminInventoryConsole: React.FC = () => {
               className="p-6 space-y-4 text-xs"
             >
               <div>
-                <label className="block font-bold text-[#0F0F10] mb-1">Select Formulation SKU</label>
+                <label className="block font-medium text-[#0F0F10] mb-1">Select Formulation SKU</label>
                 <select
                   value={adjustForm.sku}
                   onChange={(e) => setAdjustForm({ ...adjustForm, sku: e.target.value })}
-                  className="w-full p-2.5 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] text-xs font-mono font-bold focus:outline-none focus:border-[#D4AF37]"
+                  className="w-full p-2.5 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] text-xs font-mono font-medium focus:outline-none focus:border-[#D4AF37]"
                   required
                 >
                   {inventoryItems.map((item) => (
@@ -1141,11 +1141,11 @@ export const AdminInventoryConsole: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-[#0F0F10] mb-1">Depot Location</label>
+                  <label className="block font-medium text-[#0F0F10] mb-1">Depot Location</label>
                   <select
                     value={adjustForm.hub}
                     onChange={(e) => setAdjustForm({ ...adjustForm, hub: e.target.value as any })}
-                    className="w-full p-2.5 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] text-xs font-bold focus:outline-none focus:border-[#D4AF37]"
+                    className="w-full p-2.5 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] text-xs font-medium focus:outline-none focus:border-[#D4AF37]"
                   >
                     {isLiveBackend ? <><option value="">Select location</option>{locations.map(location => <option key={location.id} value={location.id === '00000000-0000-4000-8000-000000000001' ? 'central' : location.id}>{location.name} ({location.code})</option>)}</> : <><option value="lagos">Lagos Central Hub</option>
                     <option value="abuja">Abuja Wuse Hub</option>
@@ -1156,20 +1156,20 @@ export const AdminInventoryConsole: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-[#0F0F10] mb-1">Units Adjustment (Negative)</label>
+                  <label className="block font-medium text-[#0F0F10] mb-1">Units Adjustment (Negative)</label>
                   <input
                     type="number"
                     max="-1"
                     value={adjustForm.delta}
                     onChange={(e) => setAdjustForm({ ...adjustForm, delta: Number(e.target.value) })}
-                    className="w-full p-2.5 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] text-xs font-mono font-bold text-rose-600 focus:outline-none focus:border-[#D4AF37]"
+                    className="w-full p-2.5 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] text-xs font-mono font-medium text-rose-600 focus:outline-none focus:border-[#D4AF37]"
                     required
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block font-bold text-[#0F0F10] mb-1">Reason Classification</label>
+                <label className="block font-medium text-[#0F0F10] mb-1">Reason Classification</label>
                 <select
                   value={adjustForm.reason}
                   onChange={(e) => setAdjustForm({ ...adjustForm, reason: e.target.value })}
@@ -1183,7 +1183,7 @@ export const AdminInventoryConsole: React.FC = () => {
               </div>
 
               <div>
-                <label className="block font-bold text-[#0F0F10] mb-1">Mandatory Audit Note</label>
+                <label className="block font-medium text-[#0F0F10] mb-1">Mandatory Audit Note</label>
                 <textarea
                   rows={2}
                   value={adjustForm.notes}
@@ -1204,7 +1204,7 @@ export const AdminInventoryConsole: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-md cursor-pointer"
+                  className="px-6 py-2.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white font-medium text-xs shadow-md cursor-pointer"
                 >
                   Confirm Deduction
                 </button>
@@ -1222,10 +1222,10 @@ export const AdminInventoryConsole: React.FC = () => {
           <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-[#EAE8E3] overflow-hidden">
             <div className="p-6 border-b border-[#EAE8E3] flex items-center justify-between">
               <div>
-                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
+                <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-[#997A2E]">
                   Cold-Chain Logistics
                 </span>
-                <h3 className="font-heading font-extrabold text-xl text-[#0F0F10]">Dispatch Central Lab Batch</h3>
+                <h3 className="font-heading font-semibold text-xl text-[#0F0F10]">Dispatch Central Lab Batch</h3>
               </div>
               <button
                 onClick={() => setIsNewLabShipmentModalOpen(false)}
@@ -1257,11 +1257,11 @@ export const AdminInventoryConsole: React.FC = () => {
               className="p-6 space-y-4 text-xs"
             >
               <div>
-                <label className="block font-bold text-[#0F0F10] mb-1">Destination Regional Hub</label>
+                <label className="block font-medium text-[#0F0F10] mb-1">Destination Regional Hub</label>
                 <select
                   value={newShipmentForm.destinationHub}
                   onChange={(e) => setNewShipmentForm({ ...newShipmentForm, destinationHub: e.target.value })}
-                  className="w-full p-2.5 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] text-xs font-bold focus:outline-none focus:border-[#D4AF37]"
+                  className="w-full p-2.5 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] text-xs font-medium focus:outline-none focus:border-[#D4AF37]"
                 >
                   <option value="Lagos Victoria Island Central Hub">Lagos Victoria Island Central Hub</option>
                   <option value="Abuja Wuse 2 Distribution Hub">Abuja Wuse 2 Distribution Hub</option>
@@ -1272,24 +1272,24 @@ export const AdminInventoryConsole: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-[#0F0F10] mb-1">Batch Number</label>
+                  <label className="block font-medium text-[#0F0F10] mb-1">Batch Number</label>
                   <input
                     type="text"
                     value={newShipmentForm.batchNumber}
                     onChange={(e) => setNewShipmentForm({ ...newShipmentForm, batchNumber: e.target.value })}
-                    className="w-full p-2.5 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] text-xs font-mono font-bold focus:outline-none focus:border-[#D4AF37]"
+                    className="w-full p-2.5 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] text-xs font-mono font-medium focus:outline-none focus:border-[#D4AF37]"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block font-bold text-[#0F0F10] mb-1">Total Units Count</label>
+                  <label className="block font-medium text-[#0F0F10] mb-1">Total Units Count</label>
                   <input
                     type="number"
                     min="1"
                     value={newShipmentForm.itemCount}
                     onChange={(e) => setNewShipmentForm({ ...newShipmentForm, itemCount: Number(e.target.value) })}
-                    className="w-full p-2.5 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] text-xs font-mono font-bold focus:outline-none focus:border-[#D4AF37]"
+                    className="w-full p-2.5 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] text-xs font-mono font-medium focus:outline-none focus:border-[#D4AF37]"
                     required
                   />
                 </div>
@@ -1297,7 +1297,7 @@ export const AdminInventoryConsole: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-[#0F0F10] mb-1">Courier Service</label>
+                  <label className="block font-medium text-[#0F0F10] mb-1">Courier Service</label>
                   <input
                     type="text"
                     value={newShipmentForm.courier}
@@ -1308,7 +1308,7 @@ export const AdminInventoryConsole: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-[#0F0F10] mb-1">Tracking Code</label>
+                  <label className="block font-medium text-[#0F0F10] mb-1">Tracking Code</label>
                   <input
                     type="text"
                     value={newShipmentForm.trackingNumber}
@@ -1320,7 +1320,7 @@ export const AdminInventoryConsole: React.FC = () => {
               </div>
 
               <div>
-                <label className="block font-bold text-[#0F0F10] mb-1">Estimated Arrival ETA</label>
+                <label className="block font-medium text-[#0F0F10] mb-1">Estimated Arrival ETA</label>
                 <input
                   type="text"
                   value={newShipmentForm.eta}
@@ -1340,7 +1340,7 @@ export const AdminInventoryConsole: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-full bg-[#0F0F10] text-[#D4AF37] font-bold text-xs shadow-md hover:bg-[#27272A] cursor-pointer"
+                  className="px-6 py-2.5 rounded-full bg-[#0F0F10] text-[#D4AF37] font-medium text-xs shadow-md hover:bg-[#27272A] cursor-pointer"
                 >
                   Dispatch Cold-Chain Batch
                 </button>

@@ -27,7 +27,7 @@ export const DistributorReports: React.FC = () => {
         description="Exports contain the current records returned for your account."
       />
       <div className="hidden md:block border-b pb-2">
-        <h1 className="font-heading text-2xl font-extrabold">Exportable Operational Reports</h1>
+        <h1 className="font-heading text-2xl font-bold">Exportable Operational Reports</h1>
         <p className="text-sm text-[#6B7280]">Exports contain the current records returned for your account.</p>
       </div>
       <MobileRouteContent className="space-y-4">
@@ -37,7 +37,7 @@ export const DistributorReports: React.FC = () => {
           {reports.map(report => (
             <article key={report.id} className="space-y-4 rounded-2xl md:rounded-3xl border bg-white p-6">
               <FileText className="text-[#997A2E]" />
-              <h2 className="font-bold">{report.title}</h2>
+              <h2 className="font-semibold">{report.title}</h2>
               <p className="text-sm">{report.rows.length} records</p>
               <button disabled={!report.rows.length} onClick={() => download(report)} className="inline-flex items-center gap-2 rounded-full bg-black px-4 py-2 text-sm text-white disabled:opacity-40 cursor-pointer">
                 <Download size={16} />Download CSV

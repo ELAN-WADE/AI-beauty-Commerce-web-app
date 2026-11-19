@@ -18,6 +18,7 @@ import { eq } from 'drizzle-orm';
 import { cache } from 'react';
 import { unstable_cache } from 'next/cache';
 import { getDb, type AppDb } from '@/db/client';
+import { getStorefrontCacheVersion } from '@/lib/storefront-revalidate';
 import {
   getProduct,
   listProducts,
@@ -101,10 +102,50 @@ async function readCatalogSeed(limit = 100, db?: AppDb): Promise<StorefrontProdu
   }
 }
 
+const catalogMemState = globalThis as typeof globalThis & {
+  __deslaCatalogMemCache?: {
+    version: number;
+    limit: number;
+    expiresAt: number;
+    data: StorefrontProduct[];
+    inflight?: Promise<StorefrontProduct[]>;
+  };
+};
+
 const cachedCatalogue = unstable_cache((limit: number) => readCatalogSeed(limit), ['public-catalogue-v1'], { revalidate: 60, tags: ['public-catalogue'] });
 export const getCatalogSeed = cache(async (limit = 100, db?: AppDb) => {
   if (db) return readCatalogSeed(limit, db);
-  try { return await cachedCatalogue(limit); } catch { return readCatalogSeed(limit); }
+  if (process.env.NODE_ENV === 'test') {
+    try { return await cachedCatalogue(limit); } catch { return readCatalogSeed(limit); }
+  }
+  const now = Date.now();
+  const ver = getStorefrontCacheVersion();
+  const mem = catalogMemState.__deslaCatalogMemCache;
+  if (mem && mem.version === ver && mem.limit === limit && mem.expiresAt > now && mem.data.length > 0) {
+    return mem.data;
+  }
+  if (mem && mem.version === ver && mem.limit === limit && mem.inflight) {
+    return mem.inflight;
+  }
+  const promise = (async () => {
+    try { return await cachedCatalogue(limit); } catch { return readCatalogSeed(limit); }
+  })().then((data) => {
+    catalogMemState.__deslaCatalogMemCache = {
+      version: getStorefrontCacheVersion(),
+      limit,
+      expiresAt: Date.now() + 30_000,
+      data,
+    };
+    return data;
+  });
+  catalogMemState.__deslaCatalogMemCache = {
+    version: ver,
+    limit,
+    expiresAt: mem?.expiresAt ?? 0,
+    data: mem?.data ?? [],
+    inflight: promise,
+  };
+  return promise;
 });
 
 /** Single-product seed + metadata source. `null` = product unavailable. */

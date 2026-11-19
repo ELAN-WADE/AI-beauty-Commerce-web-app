@@ -79,7 +79,7 @@ export async function flutterwaveInit(
     currency: 'NGN',
     redirect_url: input.redirectUrl,
     customer: { email: input.email, name: input.name, phonenumber: input.phone ?? '' },
-    customizations: { title: 'Glowly Beauty & Skincare' },
+    customizations: { title: 'Desla Beauty' },
     meta: { order_number: input.orderNumber },
   };
   const data = (await callApi(fetchFn, `${cfg.baseUrl}/payments`, {
@@ -198,7 +198,7 @@ export async function stripeInit(
     'payment_method_types[0]': 'card',
     'line_items[0][price_data][currency]': 'ngn',
     'line_items[0][price_data][unit_amount]': String(input.amountKobo),
-    'line_items[0][price_data][product_data][name]': `Desla order ${input.orderNumber}`,
+    'line_items[0][price_data][product_data][name]': `Desla Beauty order ${input.orderNumber}`,
     'line_items[0][quantity]': '1',
     mode: 'payment',
     customer_email: input.email,
@@ -308,7 +308,7 @@ export async function opayCashierInit(
   const payload = {
     reference: input.reference,
     amount: { total: input.amountKobo, currency: 'NGN' }, // docs: CENT units
-    product: { name: input.productName, description: 'Glowly order' },
+    product: { name: input.productName, description: 'Desla Beauty order' },
     country: 'NG',
     returnUrl: input.returnUrl,
     callbackUrl: input.callbackUrl,

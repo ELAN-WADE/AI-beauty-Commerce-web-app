@@ -45,20 +45,20 @@ export const Screen12OrderConfirmed: React.FC = () => {
       </section>
       {!closed && !paid && activeOrder.paymentMethod.startsWith('Bank transfer') && <p className="rounded-2xl border border-[#D4AF37]/40 bg-[#FBF5E8] p-4 text-sm">Complete your transfer, then submit proof from Orders. A submitted transfer is reviewed before payment is confirmed.</p>}
       <section className="space-y-4 rounded-3xl border border-[#E5E7EB] p-6 shadow-xs">
-        <h2 className="font-heading font-bold">Order history</h2>
+        <h2 className="font-heading font-semibold">Order history</h2>
         {activeOrder.trackingSteps.length ? <ol className="space-y-3">{activeOrder.trackingSteps.map((step, index) => <li key={index} className="rounded-xl border border-[#E5E7EB] bg-[#FAF9F6] p-3"><p className="text-sm font-semibold">{step.title}</p><p className="mt-1 text-xs text-[#6B7280]">{step.timestamp}</p></li>)}</ol> : <p className="text-sm text-[#6B7280]">No shipment updates have been recorded yet.</p>}
       </section>
       <section className="space-y-3 rounded-3xl border border-[#E5E7EB] p-6 shadow-xs">
-        <h2 className="flex items-center gap-2 font-bold"><MapPin size={18} />{pickup ? 'Pickup order contact' : 'Delivery address'}</h2>
+        <h2 className="flex items-center gap-2 font-semibold"><MapPin size={18} />{pickup ? 'Pickup order contact' : 'Delivery address'}</h2>
         <p className="text-sm">{[address.name, address.phone].filter(Boolean).join(' · ') || 'Contact details are available in your order record.'}</p>
         {!pickup && <p className="text-sm text-[#6B7280]">{[address.street, address.city, address.state].filter(Boolean).join(', ') || 'No address is recorded.'}</p>}
         {pickup && <p className="text-sm text-[#6B7280]">Open Orders for the selected pickup location. When the order is ready, request your six-digit collection code there.</p>}
       </section>
       <section className="space-y-3 rounded-3xl border border-[#E5E7EB] p-6 shadow-xs">
-        <div className="flex items-center justify-between"><h2 className="font-bold">Order items ({activeOrder.items.length})</h2><p className="font-bold">{money(activeOrder.total)}</p></div>
+        <div className="flex items-center justify-between"><h2 className="font-semibold">Order items ({activeOrder.items.length})</h2><p className="font-semibold">{money(activeOrder.total)}</p></div>
         {activeOrder.items.map((item, index) => <div key={index} className="flex items-center justify-between gap-3 border-t border-[#E5E7EB] py-3 text-sm"><div className="flex items-center gap-3">{item.image && <img src={item.image} alt={item.productName} className="h-12 w-12 rounded-xl object-cover" />}<div><p className="font-semibold">{item.productName}</p><p className="text-xs text-[#6B7280]">Qty: {item.quantity} · {item.size}</p></div></div><span>{money(item.price * item.quantity)}</span></div>)}
       </section>
-      <div className="grid gap-3 sm:grid-cols-2"><button onClick={openOrders} className="flex items-center justify-center gap-2 rounded-full bg-[#0F0F10] p-4 text-sm font-bold text-white"><Package size={16} />Track order status</button><button onClick={() => navigateTo('home')} className="flex items-center justify-center gap-2 rounded-full border border-[#E5E7EB] p-4 text-sm"><ShoppingBag size={16} />Continue shopping</button></div>
+      <div className="grid gap-3 sm:grid-cols-2"><button onClick={openOrders} className="flex items-center justify-center gap-2 rounded-full bg-[#0F0F10] p-4 text-sm font-medium text-white"><Package size={16} />Track order status</button><button onClick={() => navigateTo('home')} className="flex items-center justify-center gap-2 rounded-full border border-[#E5E7EB] p-4 text-sm"><ShoppingBag size={16} />Continue shopping</button></div>
     </main>
   </div>;
 };

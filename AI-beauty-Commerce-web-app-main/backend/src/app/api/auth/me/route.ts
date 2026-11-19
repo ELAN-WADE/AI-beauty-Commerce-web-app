@@ -13,13 +13,16 @@ import { sessionScopeFromHeaders } from '@/lib/cookies';
 export const GET = api(async ({ req }) => {
   const db = getDb();
   const ctx = await requireAuth(db, sessionScopeFromHeaders(req.headers));
-  const access = ctx.authScope === 'ADMIN' ? await userPermissions(db, ctx.userId) : { permissions: new Set<string>() };
-  const profile = await getProfile(db, ctx.userId);
-  const [mfa] = await db.select({ enabledAt: users.mfaEnabledAt, verifiedAt: userSessions.mfaVerifiedAt, signupIntent: users.signupIntent })
-    .from(users)
-    .innerJoin(userSessions, eq(userSessions.userId, users.id))
-    .where(and(eq(users.id, ctx.userId), eq(userSessions.id, ctx.sessionId), isNull(userSessions.revokedAt)))
-    .limit(1);
+  const [access, profile, [mfa]] = await Promise.all([
+    ctx.authScope === 'ADMIN' ? userPermissions(db, ctx.userId) : Promise.resolve({ permissions: new Set<string>() }),
+    getProfile(db, ctx.userId),
+    db
+      .select({ enabledAt: users.mfaEnabledAt, verifiedAt: userSessions.mfaVerifiedAt, signupIntent: users.signupIntent })
+      .from(users)
+      .innerJoin(userSessions, eq(userSessions.userId, users.id))
+      .where(and(eq(users.id, ctx.userId), eq(userSessions.id, ctx.sessionId), isNull(userSessions.revokedAt)))
+      .limit(1),
+  ]);
   return NextResponse.json({
     id: ctx.userId,
     email: ctx.email,

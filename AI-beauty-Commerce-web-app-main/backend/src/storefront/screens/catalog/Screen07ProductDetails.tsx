@@ -1,5 +1,6 @@
+import { animateToBag } from '../../lib/cart-motion';
 import { NavigationIcon } from '../../components/common/NavigationIcon';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   Star,
   Minus,
@@ -43,6 +44,14 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
   // (no mismatch, no "Product Not Found" flash). Context still syncs post-mount.
   const selectedProduct = initialProduct ?? contextSelectedProduct;
 
+  const purchaseButton = useRef<HTMLButtonElement>(null);
+  const [showQuickPurchase, setShowQuickPurchase] = useState(false);
+  useEffect(() => {
+    if (!purchaseButton.current) return;
+    const observer = new IntersectionObserver(([entry]) => setShowQuickPurchase(!entry.isIntersecting && entry.boundingClientRect.top < 0));
+    observer.observe(purchaseButton.current);
+    return () => observer.disconnect();
+  }, [selectedProduct?.id]);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [selectedSize, setSelectedSize] = useState(
     selectedProduct?.selectedSize || selectedProduct?.sizes[0] || 'Standard'
@@ -95,11 +104,11 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
     return (
       <div className="min-h-screen bg-white flex items-center justify-center p-6 text-center text-[#0F0F10]">
         <div className="space-y-4">
-          <h3 className="font-heading font-extrabold tracking-tight text-2xl text-[#0F0F10]">Product Not Found</h3>
+          <h3 className="font-heading font-semibold tracking-tight text-2xl text-[#0F0F10]">Product Not Found</h3>
           <p className="text-sm text-[#6B7280]">The requested formulation is currently unavailable.</p>
           <button
             onClick={() => navigateTo('catalogue')}
-            className="px-6 py-2.5 rounded-full bg-[#0F0F10] text-white font-bold text-xs active-press cursor-pointer"
+            className="px-6 py-2.5 rounded-full bg-[#0F0F10] text-white font-medium text-xs active-press cursor-pointer"
           >
             Back to Catalogue
           </button>
@@ -126,8 +135,9 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
     setOpenAccordion(openAccordion === id ? null : id);
   };
 
-  const handleAddToCart = () => {
+  const handleAddToCart = (event: React.MouseEvent<HTMLButtonElement>) => {
     if (!addToCart({ ...selectedProduct, price: unitPrice }, selectedSize, quantity)) return;
+    animateToBag(event.currentTarget, selectedProduct.image);
     setJustAdded(true);
     setTimeout(() => setJustAdded(false), 1500);
   };
@@ -276,7 +286,7 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
             <div className="space-y-1.5">
               <div className="flex flex-wrap items-center gap-1.5">
                 {selectedProduct.customBadge && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/30 text-[10px] font-mono font-bold uppercase tracking-wider">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/30 text-[10px] font-mono font-medium uppercase tracking-wider">
                     {selectedProduct.customBadge}
                   </span>
                 )}
@@ -297,7 +307,7 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
               </div>
 
               {/* Product Title */}
-              <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-[#0F0F10] tracking-tight leading-snug">
+              <h1 className="font-heading font-bold text-2xl sm:text-3xl text-[#0F0F10] tracking-tight leading-snug">
                 {selectedProduct.name}
               </h1>
 
@@ -309,11 +319,11 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
                       <Star key={i} size={12} weight="fill" aria-hidden="true" />
                     ))}
                   </div>
-                  <span className="font-bold text-[#0F0F10] ml-0.5 text-[11px]">{selectedProduct.rating}</span>
+                  <span className="font-semibold text-[#0F0F10] ml-0.5 text-[11px]">{selectedProduct.rating}</span>
                 </div>
                 <span>•</span>
                 <span className="text-[11px] text-[#6B7280]">
-                  {shownReviews.length + 482} verified reviews
+                  {selectedProduct.reviewsCount} published reviews
                 </span>
                 <span>•</span>
                 <span className="font-medium text-[#0F0F10] text-[11px]">
@@ -325,7 +335,7 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
             {/* Price & Savings Block - Clean White Card */}
             <div className="p-3.5 rounded-2xl bg-white border border-[#E5E7EB] space-y-1">
               <div className="flex items-baseline gap-2.5 flex-wrap">
-                <span className="font-price font-extrabold text-xl sm:text-2xl text-[#0F0F10]">
+                <span className="font-price font-semibold text-xl sm:text-2xl text-[#0F0F10]">
                   {formatNaira(unitPrice)}
                 </span>
                 {comparePrice && comparePrice > unitPrice && (
@@ -334,7 +344,7 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
                   </span>
                 )}
                 {discountPct > 0 && (
-                  <span className="px-2 py-0.5 rounded-full bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/30 text-[10px] font-mono font-bold uppercase tracking-wider">
+                  <span className="px-2 py-0.5 rounded-full bg-[#0F0F10] text-[#D4AF37] border border-[#D4AF37]/30 text-[10px] font-mono font-medium uppercase tracking-wider">
                     {discountPct}% OFF
                   </span>
                 )}
@@ -364,7 +374,7 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
                       }`}
                     >
                       <div className="min-w-0">
-                        <span className="text-xs font-bold text-[#0F0F10] block truncate">
+                        <span className="text-xs font-medium text-[#0F0F10] block truncate">
                           {size}
                         </span>
                         <span className="text-[10.5px] font-mono text-[#6B7280] block">
@@ -394,7 +404,7 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
                   >
                     <Minus size={12} />
                   </button>
-                  <span className="w-7 text-center font-mono font-bold text-xs text-[#0F0F10]">
+                  <span className="w-7 text-center font-mono font-medium text-xs text-[#0F0F10]">
                     {quantity}
                   </span>
                   <button
@@ -408,8 +418,9 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
 
                 {/* Primary Add to Bag CTA */}
                 <button
+                  ref={purchaseButton}
                   onClick={handleAddToCart}
-                  className="flex-1 sm:flex-initial sm:max-w-xs min-h-[46px] py-3 px-7 rounded-full bg-[#0F0F10] hover:bg-[#1F1D22] text-white font-heading font-bold text-xs sm:text-[13px] tracking-wide shadow-sm flex items-center justify-center gap-2 active-press transition-all cursor-pointer"
+                  className="flex-1 sm:flex-initial sm:max-w-xs min-h-[46px] py-3 px-7 rounded-full bg-[#0F0F10] hover:bg-[#1F1D22] text-white font-heading font-medium text-xs sm:text-[13px] tracking-wide shadow-sm flex items-center justify-center gap-2 active-press transition-all cursor-pointer"
                 >
                   {justAdded ? (
                     <>
@@ -439,7 +450,7 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
               <div className="py-2.5">
                 <button
                   onClick={() => toggleAccordion('what-it-does')}
-                  className="w-full flex items-center justify-between font-bold text-[#0F0F10] text-left cursor-pointer active-press"
+                  className="w-full flex items-center justify-between font-semibold text-[#0F0F10] text-left cursor-pointer active-press"
                 >
                   <span>What It Does &amp; Natural Benefits</span>
                   <CaretDown
@@ -460,7 +471,9 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
               <div className="py-2.5">
                 <button
                   onClick={() => toggleAccordion('ingredients')}
-                  className="w-full flex items-center justify-between font-bold text-[#0F0F10] text-left cursor-pointer active-press"
+                  aria-expanded={openAccordion === 'ingredients'}
+                  aria-controls="product-ingredients"
+                  className="w-full flex items-center justify-between font-semibold text-[#0F0F10] text-left cursor-pointer active-press"
                 >
                   <span>INCI Natural Ingredients Transparency</span>
                   <CaretDown
@@ -471,7 +484,7 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
                   />
                 </button>
                 {openAccordion === 'ingredients' && (
-                  <div className="mt-2 space-y-1.5 text-[#6B7280] text-[11.5px]">
+                  <div id="product-ingredients" className="mt-2 space-y-1.5 text-[#6B7280] text-sm desla-stage">
                     <p className="leading-relaxed">
                       Safe-conscious formulations formulated without harsh sulfates, artificial endocrine disruptors, or bleaching agents:
                     </p>
@@ -497,10 +510,10 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="font-heading font-extrabold text-base text-[#0F0F10]">
+                    <h3 className="font-heading font-semibold text-base text-[#0F0F10]">
                       Verified Customer Reviews
                     </h3>
-                    <span className="px-2 py-0.5 rounded-full bg-[#F3EEE3] text-[#0F0F10] border border-[#E5E7EB] text-[10.5px] font-bold">
+                    <span className="px-2 py-0.5 rounded-full bg-[#F3EEE3] text-[#0F0F10] border border-[#E5E7EB] text-[10.5px] font-semibold">
                       NAFDAC Verified
                     </span>
                   </div>
@@ -511,9 +524,9 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
 
                 <button
                   onClick={() => { if (!authUser) { requestCustomerSignIn(); return; } setReviewSyncNote(null); setIsReviewModalOpen(true); }}
-                  className="px-4 py-2 rounded-full bg-[#0F0F10] hover:bg-[#D4AF37] text-white hover:text-[#0F0F10] text-xs font-heading font-bold active-press transition-colors cursor-pointer shrink-0"
+                  className="px-4 py-2 rounded-full bg-[#0F0F10] hover:bg-[#D4AF37] text-white hover:text-[#0F0F10] text-xs font-heading font-medium active-press transition-colors cursor-pointer shrink-0"
                 >
-                  {authUser ? 'Write Review' : 'Sign in to read reviews'}
+                  {authUser ? 'Write Review' : 'Sign in to write a review'}
                 </button>
               </div>
               {reviewSyncNote && (
@@ -531,12 +544,12 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
                         {rev.authorAvatar ? (
                           <img src={rev.authorAvatar} alt={rev.authorName} className="w-7 h-7 rounded-full object-cover" />
                         ) : (
-                          <div className="w-7 h-7 rounded-full bg-[#E5E7EB] text-[#4B5563] flex items-center justify-center font-bold text-[10px] uppercase">
+                          <div className="w-7 h-7 rounded-full bg-[#E5E7EB] text-[#4B5563] flex items-center justify-center font-semibold text-[10px] uppercase">
                             {rev.authorName ? rev.authorName.charAt(0) : 'U'}
                           </div>
                         )}
                         <div>
-                          <span className="font-bold text-xs text-[#0F0F10] block">{rev.authorName}</span>
+                          <span className="font-medium text-xs text-[#0F0F10] block">{rev.authorName}</span>
                           <span className="text-[10px] text-[#263127] font-semibold">{rev.verifiedPurchase ? 'Verified purchase' : 'Community review'}{rev.city ? ' · ' + rev.city : ''}</span>
                         </div>
                       </div>
@@ -547,7 +560,7 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
                       </div>
                     </div>
 
-                    <h4 className="font-heading font-bold text-xs text-[#0F0F10]">{rev.title}</h4>
+                    <h4 className="font-heading font-medium text-xs text-[#0F0F10]">{rev.title}</h4>
                     <p className="text-xs text-[#6B7280] leading-relaxed">{rev.comment}</p>
 
                     {/* Customer Photo Proof if Attached */}
@@ -587,13 +600,13 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <ChatCircleText size={16} weight="fill" className="text-[#D4AF37]" aria-hidden="true" />
-                    <h4 className="font-heading font-bold text-sm text-[#0F0F10]">
+                    <h4 className="font-heading font-semibold text-sm text-[#0F0F10]">
                       Community Buzz ({selectedProduct.hashtag})
                     </h4>
                   </div>
                   <button
                     onClick={() => navigateTo('community')}
-                    className="text-xs font-bold text-[#997A2E] hover:underline active-press cursor-pointer"
+                    className="text-xs font-medium text-[#997A2E] hover:underline active-press cursor-pointer"
                   >
                     View All Posts →
                   </button>
@@ -606,17 +619,17 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
                         {post.authorAvatar ? (
                           <img src={post.authorAvatar} alt={post.authorName} className="w-7 h-7 rounded-full object-cover" />
                         ) : (
-                          <div className="w-7 h-7 rounded-full bg-[#E5E7EB] text-[#4B5563] flex items-center justify-center font-bold text-[10px] uppercase">
+                          <div className="w-7 h-7 rounded-full bg-[#E5E7EB] text-[#4B5563] flex items-center justify-center font-semibold text-[10px] uppercase">
                             {post.authorName ? post.authorName.charAt(0) : 'U'}
                           </div>
                         )}
                         <div>
-                          <span className="font-bold text-xs text-[#0F0F10] block">{post.authorName}</span>
+                          <span className="font-medium text-xs text-[#0F0F10] block">{post.authorName}</span>
                           <span className="text-[10px] text-[#6B7280]">{post.authorRole}</span>
                         </div>
                       </div>
                       <p className="text-xs text-[#4B5563] leading-relaxed line-clamp-2">{post.content}</p>
-                      <span className="text-[11px] font-mono font-bold text-[#997A2E] block">{post.taggedProductHashtag || selectedProduct.hashtag}</span>
+                      <span className="text-[11px] font-mono font-semibold text-[#997A2E] block">{post.taggedProductHashtag || selectedProduct.hashtag}</span>
                     </div>
                   ))}
                 </div>
@@ -632,10 +645,10 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
               <div>
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#D4AF37]" />
-                  <h3 className="font-heading font-extrabold text-lg sm:text-xl text-[#0F0F10] tracking-tight">
+                  <h3 className="font-heading font-semibold text-lg sm:text-xl text-[#0F0F10] tracking-tight">
                     Explore Other Formulations
                   </h3>
-                  <span className="px-2.5 py-0.5 rounded-full bg-[#FBF5E8] border border-[#D4AF37]/30 text-[#997A2E] text-[10.5px] font-bold">
+                  <span className="px-2.5 py-0.5 rounded-full bg-[#FBF5E8] border border-[#D4AF37]/30 text-[#997A2E] text-[10.5px] font-semibold">
                     Pairings
                   </span>
                 </div>
@@ -649,7 +662,7 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
                   setSelectedCategory('All');
                   navigateTo('catalogue');
                 }}
-                className="text-xs font-heading font-bold text-[#0F0F10] hover:text-[#997A2E] flex items-center gap-1.5 group cursor-pointer active-press"
+                className="text-xs font-heading font-medium text-[#0F0F10] hover:text-[#997A2E] flex items-center gap-1.5 group cursor-pointer active-press"
               >
                 <span>View Full Catalogue</span>
                 <ArrowRight size={13} weight="bold" className="group-hover:translate-x-1 transition-transform" aria-hidden="true" />
@@ -670,7 +683,7 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-[#E5E7EB] space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-heading font-bold text-base text-[#0F0F10]">
+              <h3 className="font-heading font-semibold text-base text-[#0F0F10]">
                 Write a Verified Review
               </h3>
               <button
@@ -743,7 +756,7 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-full bg-[#0F0F10] text-white text-xs font-bold hover:bg-[#D4AF37] hover:text-[#0F0F10] active-press transition-colors cursor-pointer"
+                  className="px-5 py-2 rounded-full bg-[#0F0F10] text-white text-xs font-medium hover:bg-[#D4AF37] hover:text-[#0F0F10] active-press transition-colors cursor-pointer"
                 >
                   Submit Review
                 </button>
@@ -752,6 +765,7 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
           </div>
         </div>
       )}
+      {showQuickPurchase && <aside aria-label="Quick purchase" className="fixed inset-x-3 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-30 flex items-center justify-between gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-3 shadow-lg lg:hidden"><div className="min-w-0"><p className="truncate text-sm font-semibold">{selectedProduct.name}</p><p className="text-xs text-[#6B7280]">{selectedSize} · {formatNaira(unitPrice * quantity)}</p></div><button type="button" onClick={handleAddToCart} disabled={!selectedProduct.inStock} className="min-h-11 shrink-0 rounded-full bg-[#0F0F10] px-5 text-sm font-semibold text-white disabled:opacity-50">{justAdded ? 'Added' : 'Add to bag'}</button></aside>}
     </div>
   );
 };

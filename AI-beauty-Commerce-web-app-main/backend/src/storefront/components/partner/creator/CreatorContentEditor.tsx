@@ -95,7 +95,7 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
 
   const [postToCommunity, setPostToCommunity] = useState(true);
   const [selectedHashtags, setSelectedHashtags] = useState<string[]>([
-    '#DelslaBeauty',
+    '#DeslaBeauty',
     '#NaturalGlow',
     '#NigerianSkincare',
     '#CleanBeautyAfrica'
@@ -580,12 +580,12 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
 
               {/* Viral Beauty Hashtag Pills */}
               <div>
-                <label className="text-xs font-bold text-[#0F0F10] block mb-1.5">
+                <label className="text-xs font-medium text-[#0F0F10] block mb-1.5">
                   Trending Beauty Hashtags
                 </label>
                 <div className="flex flex-wrap gap-1.5">
                   {[
-                    '#DelslaBeauty',
+                    '#DeslaBeauty',
                     '#NaturalGlow',
                     '#NigerianSkincare',
                     '#CleanBeautyAfrica',
@@ -601,7 +601,7 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                         onClick={() => toggleHashtag(tag)}
                         className={`px-2.5 py-1 rounded-full text-[11px] font-mono transition-all cursor-pointer ${
                           isSelected
-                            ? 'bg-[#0F0F10] text-white font-bold'
+                            ? 'bg-[#0F0F10] text-white font-semibold'
                             : 'bg-[#FAF9F6] text-[#6B7280] border border-[#E5E7EB] hover:text-[#0F0F10]'
                         }`}
                       >
@@ -615,8 +615,8 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
               {/* Cross-post to Community Toggle */}
               <div className="pt-2 border-t border-[#E5E7EB] flex items-center justify-between">
                 <div>
-                  <span className="text-xs font-bold text-[#0F0F10] block">
-                    Broadcast to Delsla Community Feed
+                  <span className="text-xs font-medium text-[#0F0F10] block">
+                    Broadcast to Desla Community Feed
                   </span>
                   <span className="text-[11px] text-[#6B7280]">
                     Pushes this video directly into the Collective community discussion.
@@ -896,7 +896,7 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                   className="p-4 sm:p-5 rounded-2xl bg-white border border-[#E5E7EB] flex flex-col md:flex-row md:items-start justify-between gap-4"
                 >
                   <div className="flex items-start gap-4">
-                    <span className="w-8 h-8 rounded-2xl bg-[#0F0F10] text-[#D4AF37] font-mono font-bold text-xs flex items-center justify-center shrink-0">
+                    <span className="w-8 h-8 rounded-2xl bg-[#0F0F10] text-[#D4AF37] font-mono font-medium text-xs flex items-center justify-center shrink-0">
                       0{idx + 1}
                     </span>
 
@@ -910,7 +910,7 @@ export const CreatorContentEditor: React.FC<CreatorContentEditorProps> = ({
                             updated[idx].name = e.target.value;
                             setRoutineSteps(updated);
                           }}
-                          className="font-heading font-bold text-sm text-[#0F0F10] border-b border-transparent hover:border-[#D4AF37] focus:border-[#D4AF37] focus:outline-none"
+                          className="font-heading font-semibold text-sm text-[#0F0F10] border-b border-transparent hover:border-[#D4AF37] focus:border-[#D4AF37] focus:outline-none"
                         />
 
                         <select

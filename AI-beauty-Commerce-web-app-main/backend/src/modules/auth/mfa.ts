@@ -99,8 +99,8 @@ export async function beginMfaEnrollment(db: AppDb, userId: string, email: strin
     await audit(tx, { actorId: userId, action: 'auth.mfa.setup', entityType: 'user', entityId: userId, requestId });
     return pendingSecret;
   });
-  const label = encodeURIComponent(`Glowly:${email}`);
-  const issuer = encodeURIComponent('Glowly');
+  const label = encodeURIComponent(`Desla:${email}`);
+  const issuer = encodeURIComponent('Desla');
   return {
     secret,
     provisioningUri: `otpauth://totp/${label}?secret=${secret}&issuer=${issuer}&algorithm=SHA1&digits=6&period=${PERIOD_SECONDS}`,

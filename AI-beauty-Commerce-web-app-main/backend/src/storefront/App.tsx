@@ -226,7 +226,7 @@ export const App: React.FC = () => {
           <p className="flex-1 text-xs leading-relaxed">{livePayment.message}</p>
           <button
             onClick={dismissLivePayment}
-            className="shrink-0 px-4 py-2 rounded-full bg-[#D4AF37] text-[#0F0F10] text-xs font-bold active:scale-95 transition-all"
+            className="shrink-0 px-4 py-2 rounded-full bg-[#D4AF37] text-[#0F0F10] text-xs font-medium active:scale-95 transition-all"
           >
             Dismiss
           </button>

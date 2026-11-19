@@ -15,8 +15,8 @@ export const AuthenticReviewsSection: React.FC = () => {
     return () => { cancelled = true; };
   }, [productKey, authUser?.id]);
   const testimonialItems: CardSpreadItem[] = publishedReviews;
-  if (!authUser) return <section className="border-b bg-[#FAF9F6] px-6 py-8 text-center"><h2 className="font-heading text-xl font-bold">Customer reviews</h2><button onClick={() => requestCustomerSignIn()} className="mt-3 text-sm font-semibold underline">Sign in to read customer reviews</button></section>;
-  if (!testimonialItems.length) return <section className="border-b bg-[#FAF9F6] px-6 py-8 text-center"><h2 className="font-heading text-xl font-bold">Customer reviews</h2><p className="mt-3 text-sm text-[#6B7280]">Published customer experiences will appear here.</p></section>;
+  if (!authUser) return <section className="border-b bg-[#FAF9F6] px-6 py-8 text-center"><h2 className="font-heading text-xl font-semibold">Customer reviews</h2><button onClick={() => requestCustomerSignIn()} className="mt-3 text-sm font-semibold underline">Sign in to read customer reviews</button></section>;
+  if (!testimonialItems.length) return <section className="border-b bg-[#FAF9F6] px-6 py-8 text-center"><h2 className="font-heading text-xl font-semibold">Customer reviews</h2><p className="mt-3 text-sm text-[#6B7280]">Published customer experiences will appear here.</p></section>;
 
   return (
     <section
@@ -26,7 +26,7 @@ export const AuthenticReviewsSection: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Compact, Clean Section Header */}
         <div className="mb-4 sm:mb-5 text-center">
-          <h2 className="font-heading font-extrabold text-xl sm:text-2xl text-[#0F0F10] tracking-tight">
+          <h2 className="font-heading font-semibold text-xl sm:text-2xl text-[#0F0F10] tracking-tight">
             In Their Own Words
           </h2>
         </div>

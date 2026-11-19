@@ -1,8 +1,9 @@
 import { and, desc, eq } from 'drizzle-orm';
 import type { AppDb, Db } from '../../db/client';
-import { Errors } from '../../lib/errors';
-import { checkMagicBytes, headBytes, headScan, presignedGetUrl, presignedPutUrl, scanObjectKey, scansBucket } from '../../lib/storage';
+import { ApiError, Errors } from '../../lib/errors';
+import { checkMagicBytes, deleteObject, getObjectBuffer, headScan, presignedGetUrl, presignedPutUrl, scanObjectKey, scansBucket } from '../../lib/storage';
 import { getAiProvider } from '../../lib/ai-provider';
+import { audit } from '../audit/service';
 import { hydrate, type PublicProduct } from '../catalog/service';
 import { products } from '../catalog/schema';
 import { brands, categories } from '../catalog/schema';
@@ -61,22 +62,31 @@ export async function completeAnalysis(db: AppDb, userId: string, analysisId: st
   if (head.bytes <= 0 || head.bytes > ANALYSIS_MAX_BYTES) return failJob(db, job.id, 'Upload size invalid.');
   if (head.mime !== job.imageMime) return failJob(db, job.id, 'Upload content type mismatch.');
   if (head.bytes !== (job.imageBytes ?? -1)) return failJob(db, job.id, 'Upload corrupted in transit — please retry.');
-  const magic = await headBytes(scansBucket(), job.imageKey, 12);
-  if (!checkMagicBytes(magic, job.imageMime)) {
+  const imageBytes = await getObjectBuffer(scansBucket(), job.imageKey, ANALYSIS_MAX_BYTES);
+  if (!checkMagicBytes(imageBytes, job.imageMime)) {
     return failJob(db, job.id, 'File content is not a genuine image.');
   }
 
   await db.update(skinAnalyses).set({ status: 'processing', updatedAt: new Date() }).where(eq(skinAnalyses.id, job.id));
   const profile = await getSkinProfile(db, userId);
+  const provider = getAiProvider();
   let parsed: ReturnType<typeof analysisResultSchema.parse>;
+  let limitations = 'Lighting and a single photo limit this cosmetic observation.';
   try {
-    const raw = await getAiProvider().analyze({
+    const raw = await provider.analyze({
       skinTypeHint: profile?.skinType ?? '',
       concernHints: profile?.concerns ?? [],
+      imageBytes,
+      imageMime: job.imageMime,
     });
+    if (raw && typeof raw === 'object' && typeof (raw as { limitations?: unknown }).limitations === 'string') {
+      limitations = String((raw as { limitations: string }).limitations);
+    }
     parsed = analysisResultSchema.parse(raw);
-  } catch {
-    await db.update(skinAnalyses).set({ status: 'failed', error: 'Analysis engine error — please retry.', updatedAt: new Date() }).where(eq(skinAnalyses.id, job.id));
+  } catch (err) {
+    const msg = err instanceof ApiError ? err.message : 'Analysis engine error — please retry.';
+    await db.update(skinAnalyses).set({ status: 'failed', error: msg.slice(0, 500), updatedAt: new Date() }).where(eq(skinAnalyses.id, job.id));
+    if (err instanceof ApiError) throw err;
     throw Errors.badRequest('Analysis engine error — please retry.');
   }
 
@@ -98,7 +108,51 @@ export async function completeAnalysis(db: AppDb, userId: string, analysisId: st
     await tx.update(skinAnalyses).set({ status: 'complete', updatedAt: new Date() }).where(eq(skinAnalyses.id, job.id));
   });
 
-  return { analysisId: job.id, provider: getAiProvider().name, result: parsed };
+  const recommendations = await recommendForConcerns(db, [parsed.skinType, ...parsed.concerns]);
+  return {
+    analysisId: job.id,
+    provider: provider.name,
+    result: {
+      skinType: parsed.skinType,
+      concerns: parsed.concerns,
+      summary: parsed.summary,
+      limitations,
+    },
+    recommendations,
+  };
+}
+
+/** User-initiated privacy control: deletes stored facial photo from S3 and removes scan record. */
+export async function deleteAnalysis(db: AppDb, userId: string, analysisId: string, requestId?: string) {
+  const [job] = await db
+    .select()
+    .from(skinAnalyses)
+    .where(and(eq(skinAnalyses.id, analysisId), eq(skinAnalyses.userId, userId)))
+    .limit(1);
+  if (!job) throw Errors.notFound('Analysis not found.');
+
+  let imageDeleted = false;
+  if (job.imageKey) {
+    try {
+      await deleteObject(scansBucket(), job.imageKey);
+      imageDeleted = true;
+    } catch {
+      // Do not fail privacy purge if object is already missing or storage is unconfigured in test.
+    }
+  }
+
+  await db.transaction(async (tx) => {
+    await tx.delete(skinAnalyses).where(and(eq(skinAnalyses.id, job.id), eq(skinAnalyses.userId, userId)));
+    await audit(tx, {
+      actorId: userId,
+      action: 'skin_analysis.deleted',
+      entityType: 'skin_analysis',
+      entityId: job.id,
+      after: { imageDeleted },
+      requestId,
+    });
+  });
+  return { deleted: true, analysisId: job.id, imageDeleted };
 }
 
 export async function getAnalysis(db: Db, userId: string, analysisId: string) {
@@ -136,11 +190,16 @@ const RULES: ConcernRule[] = [
 ];
 
 export interface Recommendation {
+  productId: string;
   slug: string;
   name: string;
   priceNgn: number;
   rating: number;
   available: number;
+  imageUrl: string;
+  category: string;
+  subCategory: string;
+  sizes: string[];
   reasons: string[];
 }
 
@@ -201,11 +260,16 @@ export async function recommendForConcerns(db: AppDb, concerns: string[]): Promi
   }
   scored.sort((a, b) => b.score - a.score || b.item.rating - a.item.rating);
   return scored.slice(0, 8).map((s) => ({
+    productId: s.item.slug,
     slug: s.item.slug,
     name: s.item.name,
     priceNgn: s.item.minPriceNgn,
     rating: s.item.rating,
     available: s.item.totalAvailable,
+    imageUrl: s.item.images[0]?.url ?? null,
+    category: s.item.category.name,
+    subCategory: s.item.subCategory,
+    sizes: s.item.variants.map((v) => v.sizeLabel),
     reasons: s.reasons,
   }));
 }

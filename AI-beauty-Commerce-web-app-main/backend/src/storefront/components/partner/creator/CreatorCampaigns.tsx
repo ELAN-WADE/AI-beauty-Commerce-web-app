@@ -111,7 +111,7 @@ export const CreatorCampaigns: React.FC = () => {
       {/* Desktop Header */}
       <div className="hidden md:flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E5E7EB]">
         <div>
-          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
+          <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-[#997A2E]">
             Opportunities &amp; Brand Collaborations
           </span>
           <h1 className="font-heading font-semibold text-xl sm:text-2xl text-[#0F0F10]">
@@ -124,7 +124,7 @@ export const CreatorCampaigns: React.FC = () => {
 
         <button
           onClick={() => setIsSubmitModalOpen(true)}
-          className="px-5 py-2.5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-bold shadow-xs active:scale-[0.97] transition-all flex items-center gap-1.5 cursor-pointer self-start sm:self-auto shrink-0"
+          className="px-5 py-2.5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-medium shadow-xs active:scale-[0.97] transition-all flex items-center gap-1.5 cursor-pointer self-start sm:self-auto shrink-0"
         >
           <Upload size={14} className="text-[#D4AF37]" />
           <span>Submit Deliverable Link</span>
@@ -159,10 +159,10 @@ export const CreatorCampaigns: React.FC = () => {
                     alt={camp.title}
                     className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-300"
                   />
-                  <div className="absolute top-3 left-3 bg-[#0F0F10]/80 backdrop-blur-md px-3 py-1 rounded-full text-white text-[10px] font-mono font-bold">
+                  <div className="absolute top-3 left-3 bg-[#0F0F10]/80 backdrop-blur-md px-3 py-1 rounded-full text-white text-[10px] font-mono font-semibold">
                     {camp.category}
                   </div>
-                  <div className="absolute top-3 right-3 bg-[#0F0F10] text-white px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold flex items-center gap-1">
+                  <div className="absolute top-3 right-3 bg-[#0F0F10] text-white px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold flex items-center gap-1">
                     <Clock size={11} />
                     <span>{camp.deadline}</span>
                   </div>
@@ -181,7 +181,7 @@ export const CreatorCampaigns: React.FC = () => {
                       <span className="text-[10px] font-mono text-[#997A2E] uppercase block">
                         Reward Rate
                       </span>
-                      <span className="font-extrabold text-[#0F0F10] text-sm font-mono">
+                      <span className="font-semibold text-[#0F0F10] text-sm font-mono">
                         {camp.commissionRate}
                       </span>
                     </div>
@@ -189,7 +189,7 @@ export const CreatorCampaigns: React.FC = () => {
                       <span className="text-[10px] font-mono text-[#997A2E] uppercase block">
                         Milestone Reward
                       </span>
-                      <span className="font-bold text-[#0F0F10]">{camp.bonus}</span>
+                      <span className="font-semibold text-[#0F0F10]">{camp.bonus}</span>
                     </div>
                   </div>
                 </div>
@@ -198,7 +198,7 @@ export const CreatorCampaigns: React.FC = () => {
               <div className="p-6 pt-0">
                 <button
                   onClick={() => setSelectedCampaign(camp)}
-                  className="w-full py-3 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-bold flex items-center justify-center gap-2 transition-transform active:scale-[0.98] cursor-pointer"
+                  className="w-full py-3 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-medium flex items-center justify-center gap-2 transition-transform active:scale-[0.98] cursor-pointer"
                 >
                   <span>Read Full Brief &amp; Apply</span>
                   <ArrowRight size={14} className="text-[#D4AF37]" />
@@ -218,7 +218,7 @@ export const CreatorCampaigns: React.FC = () => {
           <div className="rounded-3xl bg-white border border-[#E5E7EB] shadow-xs overflow-hidden">
             <div className="p-5 sm:p-6 border-b border-[#E5E7EB] flex items-center justify-between">
               <div>
-                <h3 className="font-heading font-extrabold text-lg text-[#0F0F10]">
+                <h3 className="font-heading font-semibold text-lg text-[#0F0F10]">
                   Submitted Deliverables ({creatorSubmissions.length})
                 </h3>
                 <p className="text-xs text-[#6B7280]">
@@ -227,7 +227,7 @@ export const CreatorCampaigns: React.FC = () => {
               </div>
               <button
                 onClick={() => setIsSubmitModalOpen(true)}
-                className="px-4 py-2 rounded-full bg-[#0F0F10] text-[#D4AF37] text-xs font-bold hover:bg-[#27272A] cursor-pointer flex items-center gap-1.5"
+                className="px-4 py-2 rounded-full bg-[#0F0F10] text-[#D4AF37] text-xs font-medium hover:bg-[#27272A] cursor-pointer flex items-center gap-1.5"
               >
                 <Upload size={13} />
                 <span>Submit Deliverable</span>
@@ -239,7 +239,7 @@ export const CreatorCampaigns: React.FC = () => {
                 <div key={sub.id} className="p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-[#FAF9F6] transition-colors">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-[#0F0F10]">{sub.campaignTitle}</span>
+                      <span className="text-xs font-medium text-[#0F0F10]">{sub.campaignTitle}</span>
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold uppercase ${
                         sub.status === 'APPROVED'
                           ? 'bg-black text-[#D4AF37] border border-[#D4AF37]/30'
@@ -297,7 +297,7 @@ export const CreatorCampaigns: React.FC = () => {
                       setSubmitCampaignId(c.id);
                       setIsSubmitModalOpen(true);
                     }}
-                    className="px-4 py-2 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-bold cursor-pointer shrink-0 self-start sm:self-auto"
+                    className="px-4 py-2 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-medium cursor-pointer shrink-0 self-start sm:self-auto"
                   >
                     Submit Deliverable
                   </button>
@@ -320,7 +320,7 @@ export const CreatorCampaigns: React.FC = () => {
             >
               <div>
                 <div className="flex items-center gap-2">
-                  <h4 className="font-heading font-bold text-sm text-[#0F0F10]">{item.title}</h4>
+                  <h4 className="font-heading font-semibold text-sm text-[#0F0F10]">{item.title}</h4>
                   <span className="px-2 py-0.5 rounded-full bg-[#F3F4F6] text-[#111827] border border-[#E5E7EB] text-[10px] font-mono font-semibold">
                     Completed campaign
                   </span>
@@ -330,7 +330,7 @@ export const CreatorCampaigns: React.FC = () => {
                 </p>
               </div>
 
-              <span className="text-xs font-mono font-bold text-[#0F0F10] self-start sm:self-auto">
+              <span className="text-xs font-mono font-medium text-[#0F0F10] self-start sm:self-auto">
                 Completed
               </span>
             </div>
@@ -350,7 +350,7 @@ export const CreatorCampaigns: React.FC = () => {
           <div className="flex gap-3">
             <button
               onClick={() => selectedCampaign && handleApply(selectedCampaign)}
-              className="flex-1 py-3 rounded-full bg-[#0F0F10] text-[#D4AF37] font-bold text-xs shadow-md cursor-pointer hover:bg-[#27272A] transition-transform active:scale-95"
+              className="flex-1 py-3 rounded-full bg-[#0F0F10] text-[#D4AF37] font-medium text-xs shadow-md cursor-pointer hover:bg-[#27272A] transition-transform active:scale-95"
             >
               Submit Application to Campaign
             </button>
@@ -360,7 +360,7 @@ export const CreatorCampaigns: React.FC = () => {
         {selectedCampaign && (
           <div className="space-y-5 text-xs">
             <div className="p-4 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] space-y-2">
-              <span className="text-[10px] font-mono font-bold uppercase text-[#997A2E]">
+              <span className="text-[10px] font-mono font-semibold uppercase text-[#997A2E]">
                 Campaign Summary
               </span>
               <p className="text-xs text-[#4B5563] leading-relaxed">
@@ -371,16 +371,16 @@ export const CreatorCampaigns: React.FC = () => {
             <div className="p-4 rounded-2xl bg-[#FBF5E8] border border-[#D4AF37]/30 flex items-center justify-between">
               <div>
                 <span className="text-[10px] font-mono text-[#997A2E] uppercase block">Commission Rate</span>
-                <span className="font-mono font-bold text-[#0F0F10] text-sm">{selectedCampaign.commissionRate}</span>
+                <span className="font-mono font-semibold text-[#0F0F10] text-sm">{selectedCampaign.commissionRate}</span>
               </div>
               <div className="text-right">
                 <span className="text-[10px] font-mono text-[#997A2E] uppercase block">Milestone Bonus</span>
-                <span className="font-bold text-[#0F0F10] text-sm">{selectedCampaign.bonus}</span>
+                <span className="font-semibold text-[#0F0F10] text-sm">{selectedCampaign.bonus}</span>
               </div>
             </div>
 
             <div className="space-y-2">
-              <h4 className="font-bold text-[#0F0F10]">Deliverables Required</h4>
+              <h4 className="font-semibold text-[#0F0F10]">Deliverables Required</h4>
               <ul className="space-y-1.5">
                 {(selectedCampaign.deliverables || []).map((d: string, i: number) => (
                   <li key={i} className="flex items-center gap-2 text-[#4B5563]">
@@ -392,7 +392,7 @@ export const CreatorCampaigns: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              <h4 className="font-bold text-[#0F0F10]">Natural Guidelines</h4>
+              <h4 className="font-semibold text-[#0F0F10]">Natural Guidelines</h4>
               <div className="p-3 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] text-[11px] text-[#4B5563] space-y-1">
                 <p>• Avoid exaggerated claims regarding skin lightening or bleaching.</p>
                 <p>• Emphasize natural hydration, barrier lipid restoration, and natural radiance.</p>
@@ -401,7 +401,7 @@ export const CreatorCampaigns: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="font-bold text-[#0F0F10] block">
+              <label className="font-medium text-[#0F0F10] block">
                 Creator Production Pitch / Angle
               </label>
               <textarea
@@ -427,7 +427,7 @@ export const CreatorCampaigns: React.FC = () => {
                   <Upload size={16} />
                 </div>
                 <div>
-                  <h3 className="font-heading font-extrabold text-lg text-[#0F0F10]">
+                  <h3 className="font-heading font-semibold text-lg text-[#0F0F10]">
                     Submit Campaign Deliverable
                   </h3>
                   <p className="text-xs text-[#6B7280]">
@@ -445,7 +445,7 @@ export const CreatorCampaigns: React.FC = () => {
 
             <form onSubmit={handleDeliverableSubmit} className="p-6 space-y-4">
               <div>
-                <label className="block text-xs font-bold text-[#0F0F10] mb-1">
+                <label className="block text-xs font-medium text-[#0F0F10] mb-1">
                   Target Campaign Brief
                 </label>
                 <select
@@ -462,7 +462,7 @@ export const CreatorCampaigns: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#0F0F10] mb-1">
+                <label className="block text-xs font-medium text-[#0F0F10] mb-1">
                   Published Social Link (Instagram Reel / TikTok / YouTube)
                 </label>
                 <div className="relative">
@@ -479,7 +479,7 @@ export const CreatorCampaigns: React.FC = () => {
               </div>
 
               <div className="p-3.5 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] text-[11px] text-[#6B7280] space-y-1">
-                <span className="font-bold text-[#0F0F10] block">Admin Review Checklist:</span>
+                <span className="font-semibold text-[#0F0F10] block">Admin Review Checklist:</span>
                 <p>• Post must tag <strong className="text-[#0F0F10]">@deslabeauty</strong> and include your promo code.</p>
                 <p>• DESLA reviews the submitted link. Any eligible payment follows your agreed campaign terms and payout approval.</p>
               </div>
@@ -494,7 +494,7 @@ export const CreatorCampaigns: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-[#D4AF37] text-xs font-bold shadow-md cursor-pointer transition-transform active:scale-95 flex items-center gap-1.5"
+                  className="px-6 py-2.5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-[#D4AF37] text-xs font-medium shadow-md cursor-pointer transition-transform active:scale-95 flex items-center gap-1.5"
                 >
                   <Send size={13} />
                   <span>Submit for Review</span>

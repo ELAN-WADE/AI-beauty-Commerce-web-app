@@ -34,7 +34,9 @@ function shutdown(code = 0) {
 }
 for (const signal of ['SIGTERM', 'SIGINT']) process.on(signal, () => shutdown());
 if (!process.argv.includes('--email-only')) {
-  web = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'dev', '-p', developmentPort, '--hostname', '127.0.0.1'], { cwd: root, stdio: 'inherit', windowsHide: true, env: { ...process.env, DESLA_EMBEDDED_COMMISSIONS: '1' } });
+  const nextArgs = ['node_modules/next/dist/bin/next', 'dev', '-p', developmentPort, '--hostname', '127.0.0.1'];
+  if (process.env.NO_TURBOPACK !== '1') nextArgs.push('--turbopack');
+  web = spawn(process.execPath, nextArgs, { cwd: root, stdio: 'inherit', windowsHide: true, env: { ...process.env, DESLA_EMBEDDED_COMMISSIONS: '1' } });
   web.on('error', () => shutdown(1)); web.on('exit', code => shutdown(code ?? 1));
 }
 startWorker();

@@ -14,7 +14,7 @@ export function AdminAccessPanel() {
     finally { setBusy(false); }
   }
   return <section className="rounded-3xl border bg-white p-5 space-y-4" aria-label="Staff access management">
-    <h3 className="font-bold">Staff access management</h3>
+    <h3 className="font-semibold">Staff access management</h3>
     <p className="text-sm text-gray-600">Staff handles fulfilment; Inventory Manager handles stock; Support reads customer orders. Admin manages operations. Super Admin can grant roles.</p>
     {notice && <p role="status" className="text-sm">{notice}</p>}
     {users.map(user => <div key={user.id} className="border-t py-3 space-y-2">

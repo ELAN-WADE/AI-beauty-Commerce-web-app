@@ -2,7 +2,8 @@ import { scheduleBackgroundWarmup } from '../../lib/background-warmup';
 import React, { lazy, Suspense, useEffect, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 
-import { ProductQuickModal } from './ProductQuickModal';
+const loadProductQuickModal = () => import('./ProductQuickModal');
+const ProductQuickModal = lazy(() => loadProductQuickModal().then(module => ({ default: module.ProductQuickModal })));
 const loadFilterSortSheet = () => import('../sheets/FilterSortSheet');
 const FilterSortSheet = lazy(() => loadFilterSortSheet().then(module => ({ default: module.FilterSortSheet })));
 const loadAIAssistantDrawer = () => import('../sheets/AIAssistantDrawer');
@@ -20,25 +21,29 @@ function useHasOpened(open: boolean) {
 }
 
 export const StorefrontOverlays: React.FC = () => {
-  useEffect(() => scheduleBackgroundWarmup([loadFilterSortSheet,loadAIAssistantDrawer,loadCommunityChatDrawer,loadLocationSelector]), []);
-  const { products, quickModalProduct, closeQuickModal, isFilterSheetOpen,
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'production') return;
+    return scheduleBackgroundWarmup([
+      loadProductQuickModal,
+      loadFilterSortSheet,
+      loadAIAssistantDrawer,
+      loadCommunityChatDrawer,
+      loadLocationSelector,
+    ]);
+  }, []);
+  const { quickModalProduct, closeQuickModal, isFilterSheetOpen,
     isAIAssistantOpen, isCommunityOpen, isLocationModalOpen } = useApp();
   const quick = useHasOpened(!!quickModalProduct);
   const filters = useHasOpened(isFilterSheetOpen);
   const ai = useHasOpened(isAIAssistantOpen);
   const chat = useHasOpened(isCommunityOpen);
   const location = useHasOpened(isLocationModalOpen);
-  useEffect(() => scheduleBackgroundWarmup(products.slice(0, 12).filter(product => product.image).map(product => async () => {
-    const image = new Image();
-    image.decoding = 'async'; image.fetchPriority = 'low';
-    const desired = (window.innerWidth >= 1024 ? 512 : window.innerWidth) * Math.min(window.devicePixelRatio || 1, 3);
-    const width = [640, 750, 828, 1080, 1200, 1920, 2048].find(value => value >= desired) || 2048;
-    image.src = product.image.startsWith('/') && !product.image.startsWith('//') && !/\.svg(?:[?#]|$)/i.test(product.image) ? '/_next/image?url=' + encodeURIComponent(product.image) + '&w=' + width + '&q=75' : product.image;
-    if (image.decode) await image.decode().catch(() => {});
-  })), [products]);
+
   return (
     <>
-      {quick && <ProductQuickModal product={quickModalProduct} isOpen={!!quickModalProduct} onClose={closeQuickModal} />}
+      <Suspense fallback={null}>
+        {quick && <ProductQuickModal product={quickModalProduct} isOpen={!!quickModalProduct} onClose={closeQuickModal} />}
+      </Suspense>
       <Suspense fallback={null}>{filters && <FilterSortSheet />}</Suspense>
       <Suspense fallback={null}>{ai && <AIAssistantDrawer />}</Suspense>
       <Suspense fallback={null}>{chat && <CommunityChatDrawer />}</Suspense>
@@ -46,4 +51,3 @@ export const StorefrontOverlays: React.FC = () => {
     </>
   );
 };
-

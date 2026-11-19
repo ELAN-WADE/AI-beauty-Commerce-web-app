@@ -202,7 +202,7 @@ export const CardSpread: React.FC<CardSpreadProps> = ({
                   </div>
 
                   {/* Headline Title */}
-                  <h3 className="font-heading font-bold text-[13.5px] text-[#0F0F10] leading-snug line-clamp-2">
+                  <h3 className="font-heading font-semibold text-[13.5px] text-[#0F0F10] leading-snug line-clamp-2">
                     {item.title}
                   </h3>
 
@@ -215,7 +215,7 @@ export const CardSpread: React.FC<CardSpreadProps> = ({
                 {/* Card Bottom: Author Info & Read Full Link */}
                 <div className="pt-3 border-t border-[#E5E7EB]/80 flex items-center justify-between">
                   <div>
-                    <h4 className="font-heading font-bold text-xs text-[#0F0F10]">
+                    <h4 className="font-heading font-medium text-xs text-[#0F0F10]">
                       {item.authorName}
                     </h4>
                     <p className="text-[10.5px] font-mono text-[#8E8E93]">
@@ -270,7 +270,7 @@ export const CardSpread: React.FC<CardSpreadProps> = ({
                   )}
                 </div>
 
-                <h3 className="font-heading font-bold text-sm text-[#0F0F10] leading-snug">
+                <h3 className="font-heading font-semibold text-sm text-[#0F0F10] leading-snug">
                   {item.title}
                 </h3>
 
@@ -280,7 +280,7 @@ export const CardSpread: React.FC<CardSpreadProps> = ({
               </div>
 
               <div className="pt-3 border-t border-[#E5E7EB]/80 mt-4">
-                <h4 className="font-heading font-bold text-xs text-[#0F0F10]">
+                <h4 className="font-heading font-medium text-xs text-[#0F0F10]">
                   {item.authorName}
                 </h4>
                 <p className="text-[10.5px] font-mono text-[#8E8E93]">
@@ -331,7 +331,7 @@ export const CardSpread: React.FC<CardSpreadProps> = ({
                 )}
               </div>
 
-              <h3 className="font-heading font-extrabold text-base sm:text-lg text-[#0F0F10]">
+              <h3 className="font-heading font-semibold text-base sm:text-lg text-[#0F0F10]">
                 {modalItem.title}
               </h3>
 
@@ -343,7 +343,7 @@ export const CardSpread: React.FC<CardSpreadProps> = ({
 
               <div className="pt-3 border-t border-[#E5E7EB] flex items-center justify-between text-xs">
                 <div>
-                  <p className="font-heading font-bold text-[#0F0F10]">{modalItem.authorName}</p>
+                  <p className="font-heading font-semibold text-[#0F0F10]">{modalItem.authorName}</p>
                   <p className="text-[#8E8E93] text-[11px] font-mono">
                     {modalItem.city} • {modalItem.skinType || 'Fitzpatrick V'}
                   </p>

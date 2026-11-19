@@ -66,12 +66,12 @@ export const AIAssistantDrawer: React.FC = () => {
         {/* Assistant Header */}
         <div className="px-5 py-4 border-b border-[#E5E7EB] flex items-center justify-between bg-white shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center font-heading font-black text-xs shadow-xs shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center font-heading font-semibold text-xs shadow-xs shrink-0">
               D!
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <h3 className="font-heading font-bold text-sm text-[#0F0F10]">
+                <h3 className="font-heading font-semibold text-sm text-[#0F0F10]">
                   Desla<span className="text-[#D4AF37]">!™</span> AI Concierge
                 </h3>
                 <span className={`w-2 h-2 rounded-full ${assistantConfigured ? 'bg-emerald-500' : 'bg-gray-300'}`} title={assistantConfigured ? 'Assistant configured' : 'Assistant unavailable'} />
@@ -105,7 +105,7 @@ export const AIAssistantDrawer: React.FC = () => {
 
         {/* Quick Suggestion Chips */}
         <div className="px-4 py-2.5 bg-[#FAF9F6] border-b border-[#E5E7EB] overflow-x-auto no-scrollbar flex items-center gap-2 shrink-0">
-          <span className="text-[10px] uppercase font-bold tracking-wider text-[#997A2E] shrink-0">
+          <span className="text-[10px] uppercase font-medium tracking-wider text-[#997A2E] shrink-0">
             Suggested:
           </span>
           {quickPrompts.map((p, idx) => (
@@ -144,7 +144,7 @@ export const AIAssistantDrawer: React.FC = () => {
                 {/* Embedded Product Recommendations */}
                 {!isUser && msg.recommendedProductIds && msg.recommendedProductIds.length > 0 && (
                   <div className="mt-2.5 w-full max-w-[95%] space-y-2">
-                    <p className="text-[10px] font-bold text-[#997A2E] uppercase tracking-wider">
+                    <p className="text-[10px] font-medium text-[#997A2E] uppercase tracking-wider">
                       Recommended Formulations:
                     </p>
                     <div className="grid grid-cols-1 gap-2">
@@ -169,13 +169,13 @@ export const AIAssistantDrawer: React.FC = () => {
                                 className="w-12 h-12 rounded-lg object-cover bg-[#F6F5F2] shrink-0 border border-[#E5E7EB]"
                               />
                               <div className="min-w-0">
-                                <p className="text-[9px] font-bold text-[#997A2E] uppercase truncate">
+                                <p className="text-[9px] font-semibold text-[#997A2E] uppercase truncate">
                                   {prod.brand}
                                 </p>
                                 <h5 className="font-heading font-semibold text-xs text-[#0F0F10] truncate">
                                   {prod.name}
                                 </h5>
-                                <span className="font-price font-bold text-xs text-[#0F0F10]">
+                                <span className="font-price font-semibold text-xs text-[#0F0F10]">
                                   ₦{prod.price.toLocaleString('en-NG')}
                                 </span>
                               </div>

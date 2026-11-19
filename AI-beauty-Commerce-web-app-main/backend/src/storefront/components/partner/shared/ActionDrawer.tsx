@@ -61,7 +61,7 @@ export const ActionDrawer: React.FC<ActionDrawerProps> = ({
           {/* Header */}
           <div className="px-6 py-5 border-b border-[#E5E7EB] flex items-center justify-between gap-4 bg-[#FAF9F6]">
             <div>
-              <h2 className="font-heading font-bold text-lg sm:text-xl text-[#0F0F10]">
+              <h2 className="font-heading font-semibold text-lg sm:text-xl text-[#0F0F10]">
                 {title}
               </h2>
               {subtitle && (

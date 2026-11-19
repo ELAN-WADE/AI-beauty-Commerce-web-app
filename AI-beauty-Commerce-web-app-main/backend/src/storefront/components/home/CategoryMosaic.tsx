@@ -141,7 +141,7 @@ export const CategoryMosaic: React.FC<CategoryMosaicProps> = ({
           <button
             type="button"
             onClick={onViewAll}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0F0F10] hover:text-[#997A2E] transition-colors cursor-pointer group self-start sm:self-auto"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-[#0F0F10] hover:text-[#997A2E] transition-colors cursor-pointer group self-start sm:self-auto"
           >
             <span>All Categories</span>
             <ArrowRight

@@ -97,7 +97,7 @@ export const EditorialNavigationTile: React.FC<EditorialNavigationTileProps> = (
         {/* Top Header */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2">
-            <span className="font-mono text-[10px] sm:text-[11px] font-bold tracking-widest uppercase text-white/80">
+            <span className="font-mono text-[10px] sm:text-[11px] font-medium tracking-widest uppercase text-white/80">
               {tile.index}
             </span>
             <span className="hidden md:inline-block w-1 h-1 rounded-full bg-white/40" />
@@ -107,7 +107,7 @@ export const EditorialNavigationTile: React.FC<EditorialNavigationTileProps> = (
           </div>
 
           {tile.badge && (
-            <span className="font-mono text-[9.5px] sm:text-[10px] font-bold uppercase tracking-wider text-white/90 shrink-0">
+            <span className="font-mono text-[9.5px] sm:text-[10px] font-medium uppercase tracking-wider text-white/90 shrink-0">
               {tile.badge}
             </span>
           )}
@@ -116,7 +116,7 @@ export const EditorialNavigationTile: React.FC<EditorialNavigationTileProps> = (
         {/* Bottom Destination Title & Action Indicator */}
         <div className="space-y-1 pt-4">
           <div className="flex items-end justify-between gap-2.5">
-            <h3 className="font-heading font-semibold md:font-extrabold text-base sm:text-lg md:text-xl text-white tracking-tight leading-tight">
+            <h3 className="font-heading font-semibold text-base sm:text-lg md:text-xl text-white tracking-tight leading-tight">
               {tile.title}
             </h3>
 

@@ -142,7 +142,7 @@ export const ScreenAskAI: React.FC = () => {
           if (line.includes('**')) {
             const parts = line.split(/\*\*(.*?)\*\*/g);
             formattedLine = parts.map((part, pIdx) =>
-              pIdx % 2 === 1 ? <strong key={pIdx} className="font-bold text-[#0F0F10]">{part}</strong> : part
+              pIdx % 2 === 1 ? <strong key={pIdx} className="font-semibold text-[#0F0F10]">{part}</strong> : part
             );
           }
 
@@ -158,7 +158,7 @@ export const ScreenAskAI: React.FC = () => {
           if (line.startsWith('1. ') || line.startsWith('2. ') || line.startsWith('3. ')) {
             return (
               <div key={idx} className="flex items-start gap-2 ml-1 text-[#222]">
-                <span className="font-bold text-[#997A2E]">{line.substring(0, 3)}</span>
+                <span className="font-semibold text-[#997A2E]">{line.substring(0, 3)}</span>
                 <span>{typeof formattedLine === 'string' ? formattedLine.substring(3) : formattedLine}</span>
               </div>
             );
@@ -190,7 +190,7 @@ export const ScreenAskAI: React.FC = () => {
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigateTo('home')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#FAF9F6] hover:bg-white border border-[#E5E7EB] hover:border-[#D4AF37] text-xs font-bold text-[#0F0F10] active:scale-95 transition-all cursor-pointer shadow-2xs group"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#FAF9F6] hover:bg-white border border-[#E5E7EB] hover:border-[#D4AF37] text-xs font-medium text-[#0F0F10] active:scale-95 transition-all cursor-pointer shadow-2xs group"
               title="Return to Desla Storefront"
             >
               <ChevronLeft size={16} className="text-[#0F0F10] group-hover:-translate-x-0.5 transition-transform" />
@@ -215,7 +215,7 @@ export const ScreenAskAI: React.FC = () => {
               />
               <div className="hidden xs:block border-l border-gray-200 pl-2">
                 <div className="flex items-center gap-1.5">
-                  <h1 className="font-heading font-bold text-xs sm:text-sm text-[#0F0F10]">
+                  <h1 className="font-heading font-medium text-xs sm:text-sm text-[#0F0F10]">
                     AI Concierge
                   </h1>
                   <span className={`w-1.5 h-1.5 rounded-full ${assistantConfigured ? 'bg-emerald-500' : 'bg-gray-300'}`} title={assistantConfigured ? 'Assistant configured' : 'Assistant unavailable'} />
@@ -253,11 +253,11 @@ export const ScreenAskAI: React.FC = () => {
 
             <button
               onClick={() => navigateTo('cart')}
-              className="px-3.5 py-1.5 rounded-full bg-[#0F0F10] text-white hover:bg-black text-xs font-heading font-bold active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+              className="px-3.5 py-1.5 rounded-full bg-[#0F0F10] text-white hover:bg-black text-xs font-heading font-medium active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
             >
               <ShoppingBag size={13} />
               <span>Bag</span>
-              <span className="w-4 h-4 rounded-full bg-[#D4AF37] text-[#0F0F10] text-[10px] flex items-center justify-center font-bold">
+              <span className="w-4 h-4 rounded-full bg-[#D4AF37] text-[#0F0F10] text-[10px] flex items-center justify-center font-semibold">
                 {cartCount}
               </span>
             </button>
@@ -283,7 +283,7 @@ export const ScreenAskAI: React.FC = () => {
                 inputRef.current?.focus();
                 if (window.innerWidth < 1024) setSidebarOpen(false);
               }}
-              className="w-full py-2.5 px-3.5 rounded-xl bg-[#0F0F10] text-white hover:bg-[#1F1D22] text-xs font-heading font-bold flex items-center justify-between active:scale-[0.98] transition-all cursor-pointer shadow-xs"
+              className="w-full py-2.5 px-3.5 rounded-xl bg-[#0F0F10] text-white hover:bg-[#1F1D22] text-xs font-heading font-medium flex items-center justify-between active:scale-[0.98] transition-all cursor-pointer shadow-xs"
             >
               <span className="flex items-center gap-2">
                 <Plus size={15} className="text-[#D4AF37]" />
@@ -302,7 +302,7 @@ export const ScreenAskAI: React.FC = () => {
                   <Scan size={16} />
                 </div>
                 <div className="min-w-0">
-                  <h4 className="font-heading font-bold text-xs text-[#0F0F10] group-hover:text-[#997A2E] transition-colors truncate">
+                  <h4 className="font-heading font-medium text-xs text-[#0F0F10] group-hover:text-[#997A2E] transition-colors truncate">
                     3D AI Face Scan
                   </h4>
                   <p className="text-[10px] text-[#6B7280] truncate">
@@ -314,7 +314,7 @@ export const ScreenAskAI: React.FC = () => {
 
             {/* Consultation History Feed */}
             <div className="space-y-1">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-[#9CA3AF] px-1 block mb-2">
+              <span className="text-[10px] uppercase font-medium tracking-wider text-[#9CA3AF] px-1 block mb-2">
                 Recent Inquiries
               </span>
 
@@ -352,7 +352,7 @@ export const ScreenAskAI: React.FC = () => {
               href="https://wa.me/2348148120642?text=Hello%20Desla%20VIP%20Concierge,%20I%20have%20an%20order%20inquiry."
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full py-2 px-3 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 text-xs font-heading font-bold flex items-center justify-between transition-colors"
+              className="w-full py-2 px-3 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 text-xs font-heading font-medium flex items-center justify-between transition-colors"
             >
               <div className="flex items-center gap-2">
                 <PhoneCall size={13} />
@@ -381,7 +381,7 @@ export const ScreenAskAI: React.FC = () => {
         <main className="flex-1 flex flex-col h-full overflow-hidden bg-white">
           {/* Quick Category Chips Strip */}
           <div className="px-4 py-2.5 bg-[#FAF9F6] border-b border-[#E5E7EB] overflow-x-auto no-scrollbar flex items-center gap-2 shrink-0">
-            <span className="text-[10px] font-bold text-[#997A2E] uppercase tracking-wider shrink-0">
+            <span className="text-[10px] font-medium text-[#997A2E] uppercase tracking-wider shrink-0">
               Quick Inquiries:
             </span>
             {quickPrompts.map((p, idx) => {
@@ -420,9 +420,9 @@ export const ScreenAskAI: React.FC = () => {
                     }`}
                   >
                     {isUser ? (
-                      <span className="text-[10px] font-bold font-mono">YOU</span>
+                      <span className="text-[10px] font-semibold font-mono">YOU</span>
                     ) : (
-                      <span className="text-[10px] font-heading font-black">D!</span>
+                      <span className="text-[10px] font-heading font-semibold">D!</span>
                     )}
                   </div>
 
@@ -445,7 +445,7 @@ export const ScreenAskAI: React.FC = () => {
                     {/* Rich Embedded Product Recommendations */}
                     {!isUser && msg?.recommendedProductIds && msg.recommendedProductIds.length > 0 && (
                       <div className="pt-2 space-y-2">
-                        <span className="text-[10px] font-bold text-[#997A2E] uppercase tracking-wider block">
+                        <span className="text-[10px] font-medium text-[#997A2E] uppercase tracking-wider block">
                           Formulations Mentioned:
                         </span>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -467,13 +467,13 @@ export const ScreenAskAI: React.FC = () => {
                                     className="w-12 h-12 rounded-lg object-cover bg-[#F6F5F2] border border-[#E5E7EB] shrink-0"
                                   />
                                   <div className="min-w-0">
-                                    <span className="text-[9px] font-bold text-[#997A2E] uppercase truncate block">
+                                    <span className="text-[9px] font-semibold text-[#997A2E] uppercase truncate block">
                                       {prod.brand}
                                     </span>
                                     <h5 className="font-heading font-semibold text-xs text-[#0F0F10] truncate">
                                       {prod.name}
                                     </h5>
-                                    <span className="font-price font-bold text-xs text-[#0F0F10]">
+                                    <span className="font-price font-semibold text-xs text-[#0F0F10]">
                                       ₦{prod.price.toLocaleString('en-NG')}
                                     </span>
                                   </div>
@@ -482,7 +482,7 @@ export const ScreenAskAI: React.FC = () => {
                                 <button
                                   type="button"
                                   onClick={() => handleAddToCartWithToast(prod)}
-                                  className="px-2.5 py-1.5 rounded-lg bg-[#0F0F10] text-white hover:bg-[#D4AF37] hover:text-[#0F0F10] transition-colors text-[11px] font-bold shrink-0 flex items-center gap-1 active:scale-95 cursor-pointer shadow-2xs"
+                                  className="px-2.5 py-1.5 rounded-lg bg-[#0F0F10] text-white hover:bg-[#D4AF37] hover:text-[#0F0F10] transition-colors text-[11px] font-semibold shrink-0 flex items-center gap-1 active:scale-95 cursor-pointer shadow-2xs"
                                 >
                                   <Plus size={12} strokeWidth={2.5} />
                                   <span>Add</span>

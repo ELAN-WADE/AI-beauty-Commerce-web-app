@@ -1,3 +1,4 @@
+import { requirePartnerPolicy } from '@/modules/partners/policy';
 import { NextResponse } from 'next/server';
 import { getDb } from '@/db/client';
 import { api, clientIp, Errors, readJson } from '@/lib/errors';
@@ -5,6 +6,11 @@ import { checkRateLimit, checkSharedRateLimit, Limits } from '@/lib/rate-limit';
 import { requireAuth } from '@/modules/auth/require-auth';
 import { listCreators, submitApplication, trackClick, validateCode } from '@/modules/creators/service';
 import { clickSchema, creatorApplicationSchema, creatorCodeQuery } from '@/modules/creators/validation';
+import { getStorefrontCacheVersion } from '@/lib/storefront-revalidate';
+
+const creatorsMem = globalThis as typeof globalThis & {
+  __deslaCreatorsCache?: { version: number; expiresAt: number; data: unknown };
+};
 
 export const GET = api(async ({ req }) => {
   const url = new URL(req.url);
@@ -16,7 +22,15 @@ export const GET = api(async ({ req }) => {
     const { name, handle, promoCode, discountPercent } = await validateCode(getDb(), q.code);
     return NextResponse.json({ name, handle, promoCode, discountPercent });
   }
-  return NextResponse.json({ creators: await listCreators(getDb()) });
+  const now = Date.now();
+  const ver = getStorefrontCacheVersion();
+  const hit = creatorsMem.__deslaCreatorsCache;
+  if (hit && hit.version === ver && hit.expiresAt > now) {
+    return NextResponse.json({ creators: hit.data });
+  }
+  const creators = await listCreators(getDb());
+  creatorsMem.__deslaCreatorsCache = { version: ver, expiresAt: now + 30_000, data: creators };
+  return NextResponse.json({ creators });
 });
 
 export const POST = api(async ({ req }) => {
@@ -32,6 +46,7 @@ export const POST = api(async ({ req }) => {
   // …otherwise a partnership application (authenticated or guest).
   const auth = await requireAuth(db);
   const input = creatorApplicationSchema.parse(body);
+  await requirePartnerPolicy(db, auth.userId, 'CREATOR');
   const application = await submitApplication(db, auth.userId, input);
   return NextResponse.json({ application }, { status: 201 });
 });

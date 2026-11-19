@@ -90,7 +90,7 @@ export const Screen04Search: React.FC = () => {
             {recentSearches.length > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-[#0F0F10] flex items-center gap-1.5">
+                  <span className="text-xs font-medium text-[#0F0F10] flex items-center gap-1.5">
                     <Clock size={13} className="text-[#997A2E]" />
                     <span>Recent Searches</span>
                   </span>
@@ -118,7 +118,7 @@ export const Screen04Search: React.FC = () => {
 
             {/* Popular trending formulation tags */}
             <div className="space-y-2">
-              <span className="text-xs font-bold text-[#0F0F10] flex items-center gap-1.5">
+              <span className="text-xs font-medium text-[#0F0F10] flex items-center gap-1.5">
                 <TrendingUp size={13} className="text-[#D4AF37]" />
                 <span>Trending Formulations</span>
               </span>
@@ -138,7 +138,7 @@ export const Screen04Search: React.FC = () => {
 
             {/* Shop by Desla Pillars */}
             <div className="space-y-2.5 pt-2">
-              <span className="text-xs font-bold text-[#0F0F10] flex items-center gap-1.5">
+              <span className="text-xs font-medium text-[#0F0F10] flex items-center gap-1.5">
                 <Layers size={13} className="text-[#997A2E]" />
                 <span>Explore by Taxonomy Pillar</span>
               </span>
@@ -150,7 +150,7 @@ export const Screen04Search: React.FC = () => {
                     onClick={() => handleCategoryClick(cat.slug)}
                     className="p-3 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] hover:border-[#D4AF37] text-left active:scale-[0.98] transition-all cursor-pointer group"
                   >
-                    <span className="font-heading font-bold text-xs text-[#0F0F10] block group-hover:text-[#997A2E] transition-colors">
+                    <span className="font-heading font-medium text-xs text-[#0F0F10] block group-hover:text-[#997A2E] transition-colors">
                       {cat.name}
                     </span>
                     <span className="text-[10px] text-[#6B7280] mt-0.5 block">
@@ -168,7 +168,7 @@ export const Screen04Search: React.FC = () => {
               <span className="text-xs text-[#6B7280]">
                 Search results for <strong className="text-[#0F0F10]">"{searchQuery}"</strong> ({searchResults.length} {searchResults.length === 1 ? 'formulation' : 'formulations'})
               </span>
-              <span className="text-xs font-mono font-bold text-[#997A2E]">
+              <span className="text-xs font-mono font-medium text-[#997A2E]">
                 Stock Checked in {selectedCity}
               </span>
             </div>
@@ -178,7 +178,7 @@ export const Screen04Search: React.FC = () => {
                 <div className="w-16 h-16 rounded-full bg-[#FAF9F6] border border-[#E5E7EB] flex items-center justify-center mx-auto text-[#6B7280]">
                   <SearchIcon size={24} />
                 </div>
-                <h3 className="font-heading font-extrabold tracking-tight text-xl text-[#0F0F10]">
+                <h3 className="font-heading font-semibold tracking-tight text-xl text-[#0F0F10]">
                   No formulations found
                 </h3>
                 <p className="text-xs text-[#6B7280] max-w-sm mx-auto">
@@ -186,7 +186,7 @@ export const Screen04Search: React.FC = () => {
                 </p>
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="px-6 py-2.5 rounded-full bg-[#0F0F10] text-white font-bold text-xs active:scale-95 transition-all cursor-pointer"
+                  className="px-6 py-2.5 rounded-full bg-[#0F0F10] text-white font-medium text-xs active:scale-95 transition-all cursor-pointer"
                 >
                   Clear Search
                 </button>

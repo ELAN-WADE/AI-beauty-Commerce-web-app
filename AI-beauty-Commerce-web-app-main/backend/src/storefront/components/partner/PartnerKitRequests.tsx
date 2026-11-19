@@ -19,7 +19,7 @@ export function PartnerKitRequests({ kind }: { kind: 'CREATOR' | 'DISTRIBUTOR' }
     finally { setSaving(''); }
   };
   return <section aria-label="Partner PR kits" className="space-y-4 rounded-3xl border border-[#E5E7EB] bg-white p-5">
-    <h2 className="font-heading text-xl font-bold">Partner PR kits</h2>
+    <h2 className="font-heading text-xl font-semibold">Partner PR kits</h2>
     {loading && <p role="status" className="text-sm">Loading published kits…</p>}
     {error && <p role="alert" className="text-sm text-rose-700">{error}<button onClick={() => void refresh()} className="ml-3 underline">Retry</button></p>}
     {!loading && !error && !kits.length && <p className="text-sm text-[#6B7280]">No PR kits are currently published for your workspace.</p>}

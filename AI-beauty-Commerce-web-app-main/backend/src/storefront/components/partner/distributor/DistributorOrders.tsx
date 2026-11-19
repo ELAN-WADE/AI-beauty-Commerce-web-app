@@ -150,10 +150,10 @@ export const DistributorOrders: React.FC<DistributorOrdersProps> = ({
 
       {/* Desktop Header */}
       <div className="hidden md:block pb-2 border-b border-[#E5E7EB]">
-        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
+        <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-[#997A2E]">
           Hub Fulfilment Management • {selectedCity || 'Lagos'} Central Hub
         </span>
-        <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-[#0F0F10]">
+        <h1 className="font-heading font-bold text-2xl sm:text-3xl text-[#0F0F10]">
           Orders &amp; Fulfilment Queue
         </h1>
         <p className="text-xs sm:text-sm text-[#6B7280] mt-0.5">
@@ -217,7 +217,7 @@ export const DistributorOrders: React.FC<DistributorOrdersProps> = ({
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="border-b border-[#E5E7EB] text-[10px] font-mono font-bold uppercase text-[#9CA3AF] tracking-wider bg-[#FAF9F6]">
+              <tr className="border-b border-[#E5E7EB] text-[10px] font-mono font-medium uppercase text-[#9CA3AF] tracking-wider bg-[#FAF9F6]">
                 <th className="py-3 px-4 sm:px-6">Order ID &amp; Time</th>
                 <th className="py-3 pr-3">Client &amp; Hub Route</th>
                 <th className="py-3 pr-3">Formulations</th>
@@ -241,7 +241,7 @@ export const DistributorOrders: React.FC<DistributorOrdersProps> = ({
                     className="hover:bg-[#FAF9F6]/80 transition-colors cursor-pointer group"
                   >
                     <td className="py-4 px-4 sm:px-6 font-mono">
-                      <span className="font-bold text-[#0F0F10] block group-hover:text-[#997A2E] transition-colors">
+                      <span className="font-semibold text-[#0F0F10] block group-hover:text-[#997A2E] transition-colors">
                         {ord.id}
                       </span>
                       <span className="text-[11px] text-[#9CA3AF] flex items-center gap-1 mt-0.5">
@@ -249,7 +249,7 @@ export const DistributorOrders: React.FC<DistributorOrdersProps> = ({
                       </span>
                     </td>
                     <td className="py-4 pr-3">
-                      <span className="font-bold text-[#0F0F10] block">{ord.customer}</span>
+                      <span className="font-semibold text-[#0F0F10] block">{ord.customer}</span>
                       <span className="text-[11px] text-[#6B7280] line-clamp-1 max-w-[200px]">
                         {ord.address}
                       </span>
@@ -259,7 +259,7 @@ export const DistributorOrders: React.FC<DistributorOrdersProps> = ({
                         {ord.items.map((i: any) => `${i.qty}x ${i.name}`).join(', ')}
                       </span>
                     </td>
-                    <td className="py-4 text-right font-mono font-extrabold text-[#0F0F10]">
+                    <td className="py-4 text-right font-mono font-semibold text-[#0F0F10]">
                       ₦{ord.total.toLocaleString('en-NG')}
                     </td>
                     <td className="py-4 text-center">
@@ -271,7 +271,7 @@ export const DistributorOrders: React.FC<DistributorOrdersProps> = ({
                           e.stopPropagation();
                           setSelectedOrder(ord);
                         }}
-                        className="px-3.5 py-1.5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer transition-transform active:scale-95 shadow-xs"
+                        className="px-3.5 py-1.5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-[11px] font-semibold inline-flex items-center gap-1 cursor-pointer transition-transform active:scale-95 shadow-xs"
                       >
                         <span>Process</span>
                         <ArrowRight size={12} className="text-[#D4AF37]" />
@@ -293,13 +293,13 @@ export const DistributorOrders: React.FC<DistributorOrdersProps> = ({
         subtitle={`Client: ${selectedOrder?.customer} (${selectedOrder?.phone})`}
         footer={
           <div className="w-full space-y-3">
-            {nextAction === 'CONFIRM_PICKUP' && <label className="block text-xs font-bold">Customer collection code
+            {nextAction === 'CONFIRM_PICKUP' && <label className="block text-xs font-medium">Customer collection code
               <input aria-label="Customer collection code" type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={handoffPinInput} onChange={event => setHandoffPinInput(event.target.value.replace(/[^0-9]/g, ''))} placeholder="Six-digit code from the customer's Orders page" className="mt-2 w-full rounded-xl border p-3 font-mono" />
             </label>}
-            {nextAction === 'COMPLETE_DELIVERY' && <label className="block text-xs font-bold">Delivery evidence
+            {nextAction === 'COMPLETE_DELIVERY' && <label className="block text-xs font-medium">Delivery evidence
               <textarea aria-label="Delivery evidence" required minLength={6} maxLength={500} value={deliveryEvidence} onChange={event => setDeliveryEvidence(event.target.value)} placeholder="Record who received the delivery and the handoff details." className="mt-2 w-full rounded-xl border p-3" />
             </label>}
-            {nextAction ? <button type="button" disabled={savingOrder} onClick={() => void handleOrderAction()} className="w-full rounded-full bg-[#0F0F10] px-5 py-3 text-xs font-bold text-white disabled:opacity-50">
+            {nextAction ? <button type="button" disabled={savingOrder} onClick={() => void handleOrderAction()} className="w-full rounded-full bg-[#0F0F10] px-5 py-3 text-xs font-medium text-white disabled:opacity-50">
               {savingOrder ? 'Saving order…' : ({ ACCEPT: 'Accept order for preparation', READY_PICKUP: 'Mark ready for pickup', DISPATCH: 'Dispatch delivery', CONFIRM_PICKUP: 'Confirm customer pickup', COMPLETE_DELIVERY: 'Complete delivery' })[nextAction]}
             </button> : <p className="text-xs text-[#6B7280]">{selectedOrder?.rawOrder?.paymentStatus !== 'PAID' ? 'Payment confirmation is required before fulfilment.' : 'No further fulfilment action is available for this order.'}</p>}
           </div>
@@ -319,15 +319,15 @@ export const DistributorOrders: React.FC<DistributorOrdersProps> = ({
                 <span className="text-[10px] font-mono text-[#9CA3AF] uppercase block">
                   Payment Method
                 </span>
-                <span className="font-bold text-[#0F0F10]">{selectedOrder.paymentMethod}</span>
+                <span className="font-semibold text-[#0F0F10]">{selectedOrder.paymentMethod}</span>
               </div>
             </div>
 
             {/* Customer & Address */}
             <div className="space-y-2">
-              <h4 className="font-bold text-[#0F0F10]">Client Delivery Details</h4>
+              <h4 className="font-semibold text-[#0F0F10]">Client Delivery Details</h4>
               <div className="p-3.5 rounded-2xl border border-[#E5E7EB] bg-white space-y-1">
-                <p className="font-bold text-[#0F0F10]">{selectedOrder.customer}</p>
+                <p className="font-semibold text-[#0F0F10]">{selectedOrder.customer}</p>
                 <p className="text-[#6B7280]">{selectedOrder.address}</p>
                 <p className="font-mono text-[#997A2E] pt-1">
                   <a href={`tel:${selectedOrder.phone}`} className="hover:underline flex items-center gap-1">
@@ -340,7 +340,7 @@ export const DistributorOrders: React.FC<DistributorOrdersProps> = ({
 
             {/* Line items */}
             <div className="space-y-2">
-              <h4 className="font-bold text-[#0F0F10]">Natural Formulations to Pack</h4>
+              <h4 className="font-semibold text-[#0F0F10]">Natural Formulations to Pack</h4>
               <div className="space-y-2">
                 {selectedOrder.items.map((it: any, i: number) => (
                   <div
@@ -348,12 +348,12 @@ export const DistributorOrders: React.FC<DistributorOrdersProps> = ({
                     className="p-3 rounded-2xl border border-[#E5E7EB] bg-white flex items-center justify-between"
                   >
                     <div>
-                      <p className="font-bold text-[#0F0F10]">{it.name}</p>
+                      <p className="font-semibold text-[#0F0F10]">{it.name}</p>
                       <p className="text-[10px] font-mono text-[#6B7280]">
                         SKU: {it.sku} • Qty: {it.qty}
                       </p>
                     </div>
-                    <span className="font-mono font-bold text-[#0F0F10]">
+                    <span className="font-mono font-semibold text-[#0F0F10]">
                       ₦{it.price.toLocaleString('en-NG')}
                     </span>
                   </div>
@@ -363,10 +363,10 @@ export const DistributorOrders: React.FC<DistributorOrdersProps> = ({
 
             {/* Courier info */}
             <div className="p-4 rounded-2xl bg-[#FBF5E8] border border-[#D4AF37]/30 space-y-1">
-              <span className="text-[10px] font-mono font-bold uppercase text-[#997A2E]">
+              <span className="text-[10px] font-mono font-semibold uppercase text-[#997A2E]">
                 Assigned Logistics
               </span>
-              <p className="font-bold text-[#0F0F10]">{selectedOrder.courier}</p>
+              <p className="font-semibold text-[#0F0F10]">{selectedOrder.courier}</p>
               {selectedOrder.courierPin && (
                 <p className="text-[11px] text-[#4B5563]">
                   Rider Verification Code: <strong>{selectedOrder.courierPin}</strong>

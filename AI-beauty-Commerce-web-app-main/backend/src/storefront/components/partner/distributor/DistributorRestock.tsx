@@ -125,14 +125,14 @@ export const DistributorRestock: React.FC = () => {
       {/* Desktop Header */}
       <div className="hidden md:block pb-2 border-b border-[#E5E7EB]">
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
+          <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-[#997A2E]">
             Wholesale Logistics • Direct Laboratory Factory Pricing
           </span>
-          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#FAF9F6] border border-[#E5E7EB] text-[#0F0F10] font-bold">
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#FAF9F6] border border-[#E5E7EB] text-[#0F0F10] font-semibold">
             Configured wholesale prices
           </span>
         </div>
-        <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-[#0F0F10] mt-1">
+        <h1 className="font-heading font-bold text-2xl sm:text-3xl text-[#0F0F10] mt-1">
           Restock Wholesale Master Cartons
         </h1>
         <p className="text-xs sm:text-sm text-[#6B7280] mt-0.5">
@@ -151,10 +151,10 @@ export const DistributorRestock: React.FC = () => {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h4 className="font-heading font-bold text-sm text-white">
+                <h4 className="font-heading font-semibold text-sm text-white">
                   Wholesale Order Queued: {lastBatchPlaced.batchNumber}
                 </h4>
-                <span className="px-2 py-0.5 rounded-full bg-[#D4AF37] text-[#0F0F10] text-[9px] font-mono font-bold uppercase">
+                <span className="px-2 py-0.5 rounded-full bg-[#D4AF37] text-[#0F0F10] text-[9px] font-mono font-semibold uppercase">
                   {lastBatchPlaced.status}
                 </span>
               </div>
@@ -186,13 +186,13 @@ export const DistributorRestock: React.FC = () => {
               <div className="space-y-4">
                 <div className="relative h-44 rounded-2xl overflow-hidden bg-[#FAF9F6]">
                   <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                   <span className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-full bg-[#0F0F10]/80 backdrop-blur-md text-[#D4AF37] text-[10px] font-mono font-bold">
+                   <span className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-full bg-[#0F0F10]/80 backdrop-blur-md text-[#D4AF37] text-[10px] font-mono font-semibold">
                      Master Carton ({item.cartonUnits} Units)
                   </span>
                 </div>
 
                 <div>
-                  <h3 className="font-heading font-bold text-base text-[#0F0F10]">{item.name}</h3>
+                  <h3 className="font-heading font-semibold text-base text-[#0F0F10]">{item.name}</h3>
                   <p className="text-[11px] font-mono text-[#6B7280]">SKU: {item.sku}</p>
                 </div>
 
@@ -207,7 +207,7 @@ export const DistributorRestock: React.FC = () => {
                     <span>Retail Value:</span>
                     <span className="font-mono">₦{item.retailCartonValue.toLocaleString('en-NG')}</span>
                   </div>
-                  <div className="flex justify-between border-t border-[#E5E7EB] pt-1.5 text-[#0F0F10] font-bold">
+                  <div className="flex justify-between border-t border-[#E5E7EB] pt-1.5 text-[#0F0F10] font-semibold">
                     <span>Expected Margin:</span>
                     <span className="font-mono text-[#997A2E]">
                       +₦{item.expectedMargin.toLocaleString('en-NG')} 
@@ -227,7 +227,7 @@ export const DistributorRestock: React.FC = () => {
                   >
                     <Minus size={14} />
                   </button>
-                  <span className="font-mono font-bold text-sm text-[#0F0F10] w-6 text-center">{qty}</span>
+                  <span className="font-mono font-semibold text-sm text-[#0F0F10] w-6 text-center">{qty}</span>
                   <button
                     onClick={() => handleUpdateQty(item.id, 1)}
                     className="w-8 h-8 rounded-full bg-[#0F0F10] text-white flex items-center justify-center hover:bg-[#27272A] cursor-pointer transition-colors"
@@ -246,10 +246,10 @@ export const DistributorRestock: React.FC = () => {
         <div className="fixed bottom-6 inset-x-4 max-w-4xl mx-auto z-40 bg-[#0F0F10] text-white p-4 rounded-3xl shadow-2xl border border-[#D4AF37]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in slide-in-from-bottom-4">
           <div className="space-y-0.5">
             <div className="flex items-center gap-2">
-              <span className="font-mono font-bold text-sm text-white">
+              <span className="font-mono font-semibold text-sm text-white">
                  {totalCartons} Master Cartons ({totalUnits} Units)
               </span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#D4AF37] text-[#0F0F10] font-bold">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#D4AF37] text-[#0F0F10] font-semibold">
                 Est. gross difference: ₦{totalExpectedMargin.toLocaleString('en-NG')}
               </span>
             </div>
@@ -260,7 +260,7 @@ export const DistributorRestock: React.FC = () => {
 
           <button
             onClick={() => setCheckoutOpen(true)}
-            className="px-6 py-3 rounded-full bg-[#D4AF37] hover:bg-[#c5a028] text-[#0F0F10] font-bold text-xs shadow-md cursor-pointer flex items-center justify-center gap-2 active:scale-95 transition-all"
+            className="px-6 py-3 rounded-full bg-[#D4AF37] hover:bg-[#c5a028] text-[#0F0F10] font-medium text-xs shadow-md cursor-pointer flex items-center justify-center gap-2 active:scale-95 transition-all"
           >
             <span>Review &amp; Dispatch Order</span>
             <ArrowRight size={14} />
@@ -278,7 +278,7 @@ export const DistributorRestock: React.FC = () => {
           <button
             onClick={handlePlaceOrder}
             disabled={isQuoting || !quote || !!submitError}
-            className="w-full py-3.5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-[#D4AF37] font-bold text-xs flex items-center justify-center gap-2 shadow-md cursor-pointer transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3.5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-[#D4AF37] font-medium text-xs flex items-center justify-center gap-2 shadow-md cursor-pointer transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ShieldCheck size={16} />
             <span>{isQuoting ? 'Getting server quote…' : `Create wholesale invoice (₦${totalInvestment.toLocaleString('en-NG')})`}</span>
@@ -287,27 +287,27 @@ export const DistributorRestock: React.FC = () => {
       >
         <div className="space-y-5 text-xs">
           <div className="p-4 rounded-2xl bg-[#FBF5E8] border border-[#D4AF37]/30 space-y-1">
-            <span className="text-[10px] font-mono font-bold uppercase text-[#997A2E]">
+            <span className="text-[10px] font-mono font-semibold uppercase text-[#997A2E]">
               City Hub Destination
             </span>
-            <p className="font-bold text-[#0F0F10]">{wholesale?.location?.name || distributorHubSettings?.hubName || selectedCity || 'Configured distributor hub'} • {wholesale?.location?.address || distributorHubSettings?.address}</p>
+            <p className="font-semibold text-[#0F0F10]">{wholesale?.location?.name || distributorHubSettings?.hubName || selectedCity || 'Configured distributor hub'} • {wholesale?.location?.address || distributorHubSettings?.address}</p>
             <p className="text-[#6B7280]">Dispatch timing is confirmed after the wholesale order is accepted.</p>
           </div>
 
           <div className="space-y-2">
-            <h4 className="font-bold text-[#0F0F10]">Cartons Breakdown</h4>
+            <h4 className="font-semibold text-[#0F0F10]">Cartons Breakdown</h4>
             <div className="divide-y divide-[#E5E7EB]">
               {wholesaleItems
                 .filter((item) => (quantities[item.id] || 0) > 0)
                 .map((it) => (
                   <div key={it.id} className="py-2.5 flex items-center justify-between">
                     <div>
-                      <p className="font-bold text-[#0F0F10]">{it.name}</p>
+                      <p className="font-semibold text-[#0F0F10]">{it.name}</p>
                       <p className="text-[10px] text-[#6B7280]">
                         {quantities[it.id]} cartons × {it.cartonUnits} units = {quantities[it.id] * it.cartonUnits} bottles
                       </p>
                     </div>
-                    <span className="font-mono font-bold text-[#0F0F10]">
+                    <span className="font-mono font-semibold text-[#0F0F10]">
                       ₦{((quantities[it.id] || 0) * it.wholesalePrice).toLocaleString('en-NG')}
                     </span>
                   </div>
@@ -326,9 +326,9 @@ export const DistributorRestock: React.FC = () => {
               <span>Estimated Retail Value:</span>
               <strong className="font-mono">₦{(totalInvestment + totalExpectedMargin).toLocaleString('en-NG')}</strong>
             </div>
-            <div className="flex justify-between border-t border-[#E5E7EB] pt-2 font-bold text-xs text-[#0F0F10]">
+            <div className="flex justify-between border-t border-[#E5E7EB] pt-2 font-medium text-xs text-[#0F0F10]">
               <span>Estimated Gross Difference:</span>
-              <span className="text-[#0F0F10] font-mono font-extrabold">₦{totalExpectedMargin.toLocaleString('en-NG')}</span>
+              <span className="text-[#0F0F10] font-mono font-semibold">₦{totalExpectedMargin.toLocaleString('en-NG')}</span>
             </div>
           </div>
         </div>

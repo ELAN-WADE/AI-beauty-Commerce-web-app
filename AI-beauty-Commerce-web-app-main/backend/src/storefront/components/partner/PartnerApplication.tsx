@@ -1,3 +1,4 @@
+import { ProgrammeTerms } from './ProgrammeTerms';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useApp } from '../../context/AppContext';
 import type { ApplicationReceipt } from '../../lib/owned-api';
@@ -84,13 +85,13 @@ export const PartnerApplication: React.FC<{ kind: 'DISTRIBUTOR' | 'CREATOR' }> =
       <section role="status" className="rounded-2xl border border-[#D4AF37]/40 bg-white p-6 space-y-3 max-w-xl">
         <div className="flex items-center gap-2 text-emerald-700">
           <CheckCircle2 size={20} />
-          <h2 className="font-heading text-xl font-bold">{receipt.status === 'approved' ? 'Application Approved' : 'Application Received'}</h2>
+          <h2 className="font-heading text-xl font-semibold">{receipt.status === 'approved' ? 'Application Approved' : 'Application Received'}</h2>
         </div>
         <p className="text-sm text-[#6B7280]">
           {receipt.status === 'approved' ? 'Your account has been approved. Refresh your access to open the workspace.' : `Your ${roleLabel.toLowerCase()} application is waiting for administrator review.`}
         </p>
         <p className="text-xs font-mono bg-[#FAF9F6] p-2.5 rounded-lg border border-[#E5E7EB] break-all">
-          Reference ID: {receipt.id}
+          Application reference: {receipt.id}
         </p>
         {receipt.reviewNote && <p className="text-sm">Review note: {receipt.reviewNote}</p>}
         {error && <p role="alert" className="text-sm text-rose-700">{error}</p>}
@@ -109,7 +110,7 @@ export const PartnerApplication: React.FC<{ kind: 'DISTRIBUTOR' | 'CREATOR' }> =
             {isDistributor ? <Store size={19} /> : <UserCheck size={19} />}
           </div>
           <div>
-            <h2 className="font-heading text-lg font-bold text-[#0F0F10]">
+            <h2 className="font-heading text-lg font-semibold text-[#0F0F10]">
               Sign in to apply as a {roleLabel}
             </h2>
             <p className="text-xs text-[#6B7280]">
@@ -167,7 +168,7 @@ export const PartnerApplication: React.FC<{ kind: 'DISTRIBUTOR' | 'CREATOR' }> =
         className="rounded-2xl border border-[#E5E7EB] bg-white p-5 sm:p-7 space-y-5 shadow-xs"
       >
         <div>
-          <h3 className="font-heading text-base font-bold text-[#0F0F10]">
+          <h3 className="font-heading text-base font-semibold text-[#0F0F10]">
             Manual {roleLabel} Review Form
           </h3>
           <p className="mt-1 text-xs text-[#6B7280]">
@@ -175,6 +176,7 @@ export const PartnerApplication: React.FC<{ kind: 'DISTRIBUTOR' | 'CREATOR' }> =
           </p>
         </div>
 
+        <ProgrammeTerms kind={kind} />
         <fieldset disabled={busy || !authUser?.emailVerified} className="grid gap-4 sm:grid-cols-2">
           {field('name', 'Full name')}
           {isDistributor ? (

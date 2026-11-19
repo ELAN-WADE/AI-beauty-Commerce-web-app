@@ -72,9 +72,9 @@ async function ownedOrder(db: Db, orderId: string, owner: { userId?: string; gue
 async function payerEmail(db: Db, order: typeof orders.$inferSelect, guestEmail?: string): Promise<{ email: string; name: string }> {
   if (order.userId) {
     const u = await db.select({ email: users.email }).from(users).where(eq(users.id, order.userId)).limit(1);
-    return { email: u[0]?.email ?? guestEmail ?? '', name: (order.shippingAddress as { fullName?: string })?.fullName ?? 'Glowly customer' };
+    return { email: u[0]?.email ?? guestEmail ?? '', name: (order.shippingAddress as { fullName?: string })?.fullName ?? 'Desla Beauty customer' };
   }
-  return { email: order.guestEmail ?? guestEmail ?? '', name: (order.shippingAddress as { fullName?: string })?.fullName ?? 'Glowly customer' };
+  return { email: order.guestEmail ?? guestEmail ?? '', name: (order.shippingAddress as { fullName?: string })?.fullName ?? 'Desla Beauty customer' };
 }
 
 // ---------- Init ----------
@@ -219,7 +219,7 @@ export async function initPayment(
       {
         reference,
         amountKobo: order.totalKobo,
-        productName: `Glowly order ${order.orderNumber}`,
+        productName: `Desla Beauty order ${order.orderNumber}`,
         returnUrl,
         callbackUrl: `${input.appUrl}/api/webhooks/opay`,
         email: payer.email,

@@ -122,16 +122,16 @@ export const PartnerSidebar: React.FC<PartnerSidebarProps> = ({
       {/* Brand & Workspace Identity */}
       <div className="p-5 border-b border-[#E5E7EB]">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center font-heading font-black text-lg shadow-xs">
+          <div className="w-9 h-9 rounded-xl bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center font-heading font-medium text-lg shadow-xs">
             D
           </div>
           {!collapsed && (
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="font-heading font-bold text-base text-[#0F0F10] tracking-tight">
-                  Delsla!™
+                <span className="font-heading font-medium text-base text-[#0F0F10] tracking-tight">
+                  Desla!™
                 </span>
-                <span className="text-[9.5px] font-mono font-bold uppercase tracking-wider px-2 py-0.2 rounded-full bg-[#FBF5E8] text-[#997A2E] border border-[#D4AF37]/30">
+                <span className="text-[9.5px] font-mono font-medium uppercase tracking-wider px-2 py-0.2 rounded-full bg-[#FBF5E8] text-[#997A2E] border border-[#D4AF37]/30">
                   {isCreator ? 'Creator' : 'Distributor'}
                 </span>
               </div>
@@ -147,7 +147,7 @@ export const PartnerSidebar: React.FC<PartnerSidebarProps> = ({
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
         <div>
           {!collapsed && (
-            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#9CA3AF] px-3 mb-2 block">
+            <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-[#9CA3AF] px-3 mb-2 block">
               Workspace
             </span>
           )}
@@ -160,7 +160,7 @@ export const PartnerSidebar: React.FC<PartnerSidebarProps> = ({
                   key={item.id}
                   onClick={() => onRouteChange(item.id)}
                   title={collapsed ? item.label : undefined}
-                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-160 cursor-pointer ${
+                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all duration-160 cursor-pointer ${
                     isActive
                       ? 'bg-[#0F0F10] text-white shadow-xs'
                       : 'text-[#4B5563] hover:text-[#0F0F10] hover:bg-[#FAF9F6]'
@@ -173,7 +173,7 @@ export const PartnerSidebar: React.FC<PartnerSidebarProps> = ({
                   {!collapsed && <span className="flex-1 text-left">{item.label}</span>}
                   {!collapsed && item.badge !== undefined && (
                     <span
-                      className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded-full ${
+                      className={`text-[10px] font-mono font-medium px-1.5 py-0.2 rounded-full ${
                         isActive
                           ? 'bg-[#D4AF37] text-[#0F0F10]'
                           : 'bg-rose-100 text-rose-800'
@@ -191,7 +191,7 @@ export const PartnerSidebar: React.FC<PartnerSidebarProps> = ({
         {/* Utility Navigation */}
         <div className="pt-2 border-t border-[#E5E7EB]/70">
           {!collapsed && (
-            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#9CA3AF] px-3 mb-2 block">
+            <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-[#9CA3AF] px-3 mb-2 block">
               Support &amp; Controls
             </span>
           )}
@@ -204,7 +204,7 @@ export const PartnerSidebar: React.FC<PartnerSidebarProps> = ({
                   key={item.id}
                   onClick={() => onRouteChange(item.id)}
                   title={collapsed ? item.label : undefined}
-                  className={`w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-160 cursor-pointer ${
+                  className={`w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs font-medium transition-all duration-160 cursor-pointer ${
                     isActive
                       ? 'bg-[#0F0F10] text-white shadow-xs'
                       : 'text-[#6B7280] hover:text-[#0F0F10] hover:bg-[#FAF9F6]'
@@ -216,7 +216,7 @@ export const PartnerSidebar: React.FC<PartnerSidebarProps> = ({
                   />
                   {!collapsed && <span className="flex-1 text-left">{item.label}</span>}
                   {!collapsed && item.badge !== undefined && (
-                    <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded-full bg-rose-100 text-rose-800">
+                    <span className="text-[10px] font-mono font-medium px-1.5 py-0.2 rounded-full bg-rose-100 text-rose-800">
                       {item.badge}
                     </span>
                   )}
@@ -231,12 +231,12 @@ export const PartnerSidebar: React.FC<PartnerSidebarProps> = ({
       <div className="p-3 border-t border-[#E5E7EB] bg-[#FAF9F6]/60">
         <div className="flex items-center justify-between gap-2 px-2 py-1.5">
           <div className="flex items-center gap-2.5 overflow-hidden">
-            <div className="w-8 h-8 rounded-full bg-[#E5E7EB] flex items-center justify-center text-xs font-bold font-mono text-[#0F0F10] shrink-0 border border-white shadow-2xs">
+            <div className="w-8 h-8 rounded-full bg-[#E5E7EB] flex items-center justify-center text-xs font-medium font-mono text-[#0F0F10] shrink-0 border border-white shadow-2xs">
               {accountName.slice(0, 2).toUpperCase()}
             </div>
             {!collapsed && (
               <div className="overflow-hidden">
-                <p className="text-xs font-bold text-[#0F0F10] truncate">
+                <p className="text-xs font-medium text-[#0F0F10] truncate">
                   {accountName}
                 </p>
                 <p className="text-[10px] text-[#6B7280] truncate font-mono">

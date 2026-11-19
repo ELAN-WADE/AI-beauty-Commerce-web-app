@@ -61,13 +61,13 @@ export default {
         }
       },
       fontFamily: {
-        sans: ['miui', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '".SFNSText-Regular"', 'Helvetica', 'Arial', 'sans-serif'],
-        heading: ['miui', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '".SFNSText-Regular"', 'Helvetica', 'Arial', 'sans-serif'],
-        body: ['miui', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '".SFNSText-Regular"', 'Helvetica', 'Arial', 'sans-serif'],
-        display: ['miui', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '".SFNSText-Regular"', 'Helvetica', 'Arial', 'sans-serif'],
-        serif: ['miui', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '".SFNSText-Regular"', 'Helvetica', 'Arial', 'sans-serif'],
-        price: ['miui', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '".SFNSText-Regular"', 'Helvetica', 'Arial', 'sans-serif'],
-        mono: ['miui', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '".SFNSText-Regular"', 'Helvetica', 'Arial', 'sans-serif'],
+        sans: ['"Segoe UI"', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '".SFNSText-Regular"', 'Helvetica', 'Arial', 'sans-serif'],
+        heading: ['var(--font-manrope)', 'Manrope', '"Segoe UI"', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        body: ['"Segoe UI"', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '".SFNSText-Regular"', 'Helvetica', 'Arial', 'sans-serif'],
+        display: ['var(--font-manrope)', 'Manrope', '"Segoe UI"', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        serif: ['var(--font-manrope)', 'Manrope', '"Segoe UI"', 'system-ui', '-apple-system', 'sans-serif'],
+        price: ['var(--font-manrope)', 'Manrope', '"Segoe UI"', 'system-ui', '-apple-system', 'sans-serif'],
+        mono: ['"Segoe UI"', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '".SFNSText-Regular"', 'Helvetica', 'Arial', 'sans-serif'],
       },
       fontWeight: {
         hairline: '100',
@@ -76,9 +76,9 @@ export default {
         normal: '400',
         medium: '500',
         semibold: '600',
-        bold: '600',
-        extrabold: '600',
-        black: '600',
+        bold: '700',
+        extrabold: '700',
+        black: '700',
       },
       borderRadius: {
         'btn': '14px',

@@ -92,6 +92,6 @@ export const distributorApplications = pgTable(
   },
   (t) => [
     index('distributor_apps_status_idx').on(t.status),
-    check('distributor_app_status_allowed', sql`"status" IN ('pending','approved','rejected')`),
+    check('distributor_app_status_allowed', sql`"status" IN ('pending','under_review','approved','rejected')`),
   ],
 );

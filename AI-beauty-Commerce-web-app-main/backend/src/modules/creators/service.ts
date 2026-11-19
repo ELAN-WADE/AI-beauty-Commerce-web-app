@@ -1,6 +1,6 @@
 import {partnerReferrals} from '../referrals/schema';
 import {validateReferral} from '../referrals/service';
-import { enqueuePartnerReviewEmail } from '../partners/email';
+import { enqueuePartnerReviewEmail, enqueuePartnerSubmittedEmail, enqueuePartnerUnderReviewEmail } from '../partners/email';
 import { getTableColumns, and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 
 import type { AppDb, Db } from '../../db/client';
@@ -143,11 +143,12 @@ export async function submitApplication(db: AppDb, userId: string | undefined, i
 
     if (approved) throw Errors.conflict('Your partner account is already approved. Refresh your session.');
 
-    const [pending] = await tx.select().from(creatorApplications).where(and(eq(creatorApplications.userId, userId), eq(creatorApplications.status, 'pending'))).limit(1);
+    const [pending] = await tx.select().from(creatorApplications).where(and(eq(creatorApplications.userId, userId), inArray(creatorApplications.status, ['pending', 'under_review']))).limit(1);
 
     if (pending) return pending;
 
     const [row] = await tx.insert(creatorApplications).values({ ...input, userId }).returning();
+    await enqueuePartnerSubmittedEmail(tx, { userId, kind: 'CREATOR', applicationId: row.id });
 
     return row;
 
@@ -177,6 +178,35 @@ export async function listApplications(db: AppDb, status?: string) {
 
 
 
+export async function markApplicationUnderReview(
+  db: Db,
+  input: { applicationId: string; adminId: string; note?: string },
+) {
+  return db.transaction(async (tx) => {
+    const [app] = await tx
+      .select()
+      .from(creatorApplications)
+      .where(eq(creatorApplications.id, input.applicationId))
+      .for('update')
+      .limit(1);
+    if (!app) throw Errors.notFound('Application not found.');
+    if (app.userId && app.userId === input.adminId) throw Errors.forbidden('You cannot review your own application.');
+    if (app.status === 'under_review') return { applicationId: app.id, status: 'under_review' as const };
+    if (app.status !== 'pending') throw Errors.conflict('Application already reviewed.');
+    await tx
+      .update(creatorApplications)
+      .set({
+        status: 'under_review',
+        reviewedBy: input.adminId,
+        reviewNote: (input.note ?? app.reviewNote ?? '').slice(0, 500),
+        updatedAt: new Date(),
+      })
+      .where(eq(creatorApplications.id, app.id));
+    await enqueuePartnerUnderReviewEmail(tx, { userId: app.userId, kind: 'CREATOR', applicationId: app.id });
+    return { applicationId: app.id, status: 'under_review' as const };
+  });
+}
+
 export async function reviewApplication(
 
   db: Db,
@@ -195,7 +225,7 @@ export async function reviewApplication(
 
     if (app.userId && app.userId === input.adminId) throw Errors.forbidden('You cannot review your own application.');
 
-    if (app.status !== 'pending') throw Errors.conflict('Application already reviewed.');
+    if (!['pending', 'under_review'].includes(app.status)) throw Errors.conflict('Application already reviewed.');
 
     let creatorId: string | null = null;
 

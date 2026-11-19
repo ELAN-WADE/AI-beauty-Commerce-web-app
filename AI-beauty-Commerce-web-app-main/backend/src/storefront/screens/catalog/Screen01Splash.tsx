@@ -35,12 +35,12 @@ export const Screen01Splash: React.FC = () => {
       {/* Brand Identity & Value Proposition */}
       <div className="relative z-10 pb-12 px-6 sm:px-10 max-w-lg mx-auto w-full text-center space-y-6">
         <div className="space-y-3">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#D4AF37]/15 border border-[#D4AF37]/30 text-[#D4AF37] text-xs font-mono font-bold tracking-widest uppercase">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#D4AF37]/15 border border-[#D4AF37]/30 text-[#D4AF37] text-xs font-mono font-medium tracking-widest uppercase">
             <ShieldCheck size={14} />
             <span>Desla Beauty &amp; Lifestyle Limited</span>
           </div>
 
-          <h1 className="font-heading font-extrabold text-3xl sm:text-5xl text-[#FBF9F5] tracking-tight leading-tight">
+          <h1 className="font-heading font-bold text-3xl sm:text-5xl text-[#FBF9F5] tracking-tight leading-tight">
             Health Before Beauty.<br />
             <span className="text-[#D4AF37]">Intention Before Trend.</span>
           </h1>
@@ -54,7 +54,7 @@ export const Screen01Splash: React.FC = () => {
         <div className="pt-2">
           <button
             onClick={() => navigateTo('home')}
-            className="w-full py-4 px-8 rounded-full bg-gradient-to-r from-[#D4AF37] via-[#F6E7C1] to-[#D4AF37] text-[#09090B] font-heading font-extrabold text-sm sm:text-base tracking-wide shadow-2xl active:scale-[0.98] flex items-center justify-center gap-2.5 transition-all hover:brightness-105 border border-[#F6E7C1]/50 cursor-pointer"
+            className="w-full py-4 px-8 rounded-full bg-gradient-to-r from-[#D4AF37] via-[#F6E7C1] to-[#D4AF37] text-[#09090B] font-heading font-semibold text-sm sm:text-base tracking-wide shadow-2xl active:scale-[0.98] flex items-center justify-center gap-2.5 transition-all hover:brightness-105 border border-[#F6E7C1]/50 cursor-pointer"
           >
             <span>Begin Consultation</span>
             <ArrowRight size={18} strokeWidth={2.4} />

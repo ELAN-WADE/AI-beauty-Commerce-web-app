@@ -17,13 +17,15 @@ export const creatorApplicationSchema = z
 
 export const reviewCreatorApplicationSchema = z
   .object({
-    approve: z.boolean(),
+    action: z.enum(['under_review', 'decide']).optional(),
+    approve: z.boolean().optional(),
     promoCode: z.string().trim().min(3).max(40).regex(/^[A-Za-z0-9]+$/, 'Promo code must be alphanumeric.').optional(),
     discountPercent: z.number().int().min(0).max(50).default(10),
     commissionRate: z.number().int().min(0).max(50).default(12),
     note: z.string().trim().max(500).default(''),
   })
   .strict()
-  .refine((v) => !v.approve || v.promoCode !== undefined, 'Approved creators need a promo code.');
+  .refine((v) => v.action === 'under_review' || typeof v.approve === 'boolean', 'Specify approve or action=under_review.')
+  .refine((v) => v.action === 'under_review' || !v.approve || v.promoCode !== undefined, 'Approved creators need a promo code.');
 
 export const clickSchema = z.object({ code: z.string().trim().min(1).max(40) }).strict();

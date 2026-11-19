@@ -19,8 +19,15 @@ type SyncListener = (event: SyncEvent) => void;
 
 // Route handlers can be emitted into separate Next bundles. Keep a single
 // registry per process, without retaining listeners after a stream disconnects.
-const state = globalThis as typeof globalThis & { __deslaStorefrontListeners?: Set<SyncListener> };
+const state = globalThis as typeof globalThis & {
+  __deslaStorefrontListeners?: Set<SyncListener>;
+  __deslaStorefrontCacheVersion?: number;
+};
 const listeners = state.__deslaStorefrontListeners ??= new Set<SyncListener>();
+
+export function getStorefrontCacheVersion(): number {
+  return state.__deslaStorefrontCacheVersion ?? 0;
+}
 
 export function subscribeStorefrontSync(listener: SyncListener): () => void {
   listeners.add(listener);
@@ -30,6 +37,7 @@ export function subscribeStorefrontSync(listener: SyncListener): () => void {
 }
 
 export function broadcastStorefrontSync(slug?: string | null): void {
+  state.__deslaStorefrontCacheVersion = (state.__deslaStorefrontCacheVersion ?? 0) + 1;
   const event: SyncEvent = {
     type: 'CATALOG_UPDATE',
     slug: slug ?? null,

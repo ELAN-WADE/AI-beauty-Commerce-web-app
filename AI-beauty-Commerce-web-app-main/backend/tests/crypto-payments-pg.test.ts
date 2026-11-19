@@ -10,6 +10,8 @@ import { createHmac } from 'node:crypto';
 
 let client: PGlite;
 let db: ReturnType<typeof drizzle<typeof schema>>;
+let testUserId: string;
+let otherUserId: string;
 let testOrderId: string;
 const pg = () => db as never;
 
@@ -20,8 +22,11 @@ beforeAll(async () => {
   db = drizzle(client, { schema });
   await migrate(db, { migrationsFolder: './drizzle' });
 
-  // Seed user and order
   const [user] = await db.insert(schema.users).values({ email: 'crypto-buyer@example.test', passwordHash: 'hash' }).returning();
+  const [other] = await db.insert(schema.users).values({ email: 'crypto-other@example.test', passwordHash: 'hash' }).returning();
+  testUserId = user.id;
+  otherUserId = other.id;
+
   const [order] = await db.insert(schema.orders).values({
     userId: user.id,
     orderNumber: 'DES-CRYPTO-1001',
@@ -41,7 +46,7 @@ afterAll(async () => {
   await client?.close();
 });
 
-describe('cryptocurrency module end-to-end logic', () => {
+describe('cryptocurrency module end-to-end logic & security', () => {
   it('retrieves real or resilient market rates with valid decimal precision', async () => {
     const rates = await getLiveCryptoRates();
     expect(rates.USDT.usdPrice).toBeGreaterThan(0);
@@ -67,18 +72,34 @@ describe('cryptocurrency module end-to-end logic', () => {
     expect(quote.expiresInSeconds).toBe(900);
   });
 
-  it('initializes a crypto payment attempt and records transaction state', async () => {
+  it('enforces order ownership on init and status reads (blocks IDOR)', async () => {
+    await expect(
+      initCryptoPayment(pg(), {
+        orderId: testOrderId,
+        asset: 'USDT',
+        network: 'TRC20',
+        idempotencyKey: 'idemp-crypto-idor-1',
+        userId: otherUserId,
+      }),
+    ).rejects.toMatchObject({ status: 404 });
+
     const init = await initCryptoPayment(pg(), {
       orderId: testOrderId,
       asset: 'USDT',
       network: 'TRC20',
       idempotencyKey: 'idemp-crypto-test-1',
+      userId: testUserId,
     });
 
     expect(init.paymentId).toBeDefined();
     expect(init.reference).toContain('CRYPTO-DES-CRYPTO-1001');
     expect(init.status).toBe('PENDING');
-    expect(init.depositAddress).toBeDefined();
+
+    // Other user cannot read status
+    await expect(getCryptoPaymentStatus(pg(), init.paymentId, { userId: otherUserId })).rejects.toMatchObject({ status: 404 });
+    // Owner can read status
+    const status = await getCryptoPaymentStatus(pg(), init.paymentId, { userId: testUserId });
+    expect(status.orderId).toBe(testOrderId);
 
     // Replay idempotency check
     const replay = await initCryptoPayment(pg(), {
@@ -86,54 +107,64 @@ describe('cryptocurrency module end-to-end logic', () => {
       asset: 'USDT',
       network: 'TRC20',
       idempotencyKey: 'idemp-crypto-test-1',
+      userId: testUserId,
     });
     expect(replay.paymentId).toBe(init.paymentId);
     expect(replay.replay).toBe(true);
   });
 
-  it('verifies valid transaction hash, settles the order to PAID, and handles replay safely', async () => {
+  it('rejects empty txHash, settles valid hash to PAID with standard order.paid outbox template, and replays safely', async () => {
     const init = await initCryptoPayment(pg(), {
       orderId: testOrderId,
       asset: 'USDT',
       network: 'TRC20',
       idempotencyKey: 'idemp-crypto-test-2',
+      userId: testUserId,
     });
 
-    const mockTxHash = 'a1b2c3d4e5f678901234567890abcdef1234567890abcdef1234567890abcdef';
+    await expect(
+      verifyCryptoPayment(pg(), { paymentId: init.paymentId, txHash: '', actorId: 'admin:test' }),
+    ).rejects.toMatchObject({ status: 400 });
+
+    const validTxHash = 'a1b2c3d4e5f678901234567890abcdef1234567890abcdef1234567890abcdef';
     const verify = await verifyCryptoPayment(pg(), {
       paymentId: init.paymentId,
-      txHash: mockTxHash,
+      txHash: validTxHash,
+      actorId: 'admin:test',
     });
 
     expect(verify.status).toBe('COMPLETED');
     expect(verify.orderId).toBe(testOrderId);
-    expect(verify.txHash).toBe(mockTxHash);
+    expect(verify.txHash).toBe(validTxHash);
 
-    // Order must now be PAID
     const [order] = await db.select().from(schema.orders).where(eq(schema.orders.id, testOrderId));
     expect(order.paymentStatus).toBe('PAID');
 
-    // Payment row must exist
     const [paymentRow] = await db.select().from(schema.payments).where(eq(schema.payments.orderId, testOrderId));
     expect(paymentRow).toBeDefined();
     expect(paymentRow.provider).toBe('crypto');
 
-    // Replay check
+    const outboxRows = await db.select().from(schema.notificationOutbox).where(eq(schema.notificationOutbox.template, 'order.paid'));
+    expect(outboxRows.some((r) => (r.payload as { orderId?: string })?.orderId === testOrderId)).toBe(true);
+
     const replayVerify = await verifyCryptoPayment(pg(), {
       paymentId: init.paymentId,
-      txHash: mockTxHash,
+      txHash: validTxHash,
+      actorId: 'admin:test',
     });
     expect(replayVerify.alreadySettled).toBe(true);
     expect(replayVerify.status).toBe('COMPLETED');
   });
 
-  it('validates webhook signatures correctly', () => {
+  it('validates webhook signatures and fails closed when secret is unset', () => {
     const payload = JSON.stringify({ paymentId: 'test-id', event: 'confirmed' });
     const secret = 'super-secret-crypto-key';
     const validSig = createHmac('sha256', secret).update(payload).digest('hex');
 
     expect(verifyCryptoWebhookSignature(payload, validSig, secret)).toBe(true);
+    expect(verifyCryptoWebhookSignature(payload, `sha256=${validSig}`, secret)).toBe(true);
     expect(verifyCryptoWebhookSignature(payload, 'wrong-sig', secret)).toBe(false);
     expect(verifyCryptoWebhookSignature(payload, null, secret)).toBe(false);
+    expect(verifyCryptoWebhookSignature(payload, validSig, '')).toBe(false);
   });
 });

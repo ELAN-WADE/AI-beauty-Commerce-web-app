@@ -13,7 +13,7 @@ export async function GET() {
   return NextResponse.json({ available }, { headers: { 'Cache-Control': 'no-store' } });
 }
 
-const inputSchema = z.object({ content: z.string().trim().min(1).max(2000) }).strict();
+const inputSchema = z.object({ content: z.string().trim().min(1).max(2000), history: z.array(z.object({ role: z.enum(['user', 'assistant']), content: z.string().trim().min(1).max(2000) }).strict()).max(9).default([]) }).strict();
 export const POST = api(async ({ req }) => {
   const db = getDb();
   if (!(await checkSharedRateLimit(db, 'guest-concierge:' + clientIp(req), Limits.ai)).allowed) throw Errors.rateLimited(60);
@@ -23,8 +23,8 @@ export const POST = api(async ({ req }) => {
   const release = tryAcquire('guest-concierge', BulkheadLimits.ai());
   if (!release) throw Errors.rateLimited(30);
   try {
-    const catalogue = await groundProducts(db, input.content);
-    const text = await provider.chat({ history: [{ role: 'user', content: input.content }], catalog: catalogue });
+    const catalogue = await groundProducts(db, [...input.history.filter(message => message.role === 'user').slice(-3).map(message => message.content), input.content].join(' '));
+    const text = await provider.chat({ history: [...input.history, { role: 'user', content: input.content }], catalog: catalogue });
     const recommendedProductIds = catalogue.filter(product => text.toLowerCase().includes(product.name.toLowerCase())).map(product => product.slug);
     return NextResponse.json({ text, recommendedProductIds, provider: 'gemini' }, { headers: { 'Cache-Control': 'private, no-store' } });
   } finally { release(); }

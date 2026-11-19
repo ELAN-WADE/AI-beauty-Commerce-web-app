@@ -75,11 +75,27 @@ workspace records with unique account/programme keys and transactional audit log
 No schema migration or sample profile is introduced by this role change. Programme
 role definitions are provisioned transactionally during administrator review.
 
-## Financial boundary
+## Automatic commission attribution
 
-Existing creator and distributor financial integrations remain unchanged. Influencer
-or ambassador registration, approval and accepted deliverables do not manufacture
-balances, commissions or payouts. Automatic attribution and compensation for the
-combined role still require explicit commission rules, payment terms and integration
-with the audited ledger. The workspace displays actual assigned work, not estimated
-or fabricated social metrics or earnings.
+Administrators set an individual Influencer / Ambassador commission percentage
+(0 to 50%, with 0 disabling earnings). Initial approval records the rate with
+the agreement. Updating the rate requires a new agreement acceptance; existing
+orders retain their original rate snapshots. Creator and Distributor rates remain
+unchanged.
+
+An activated partner receives a unique referral code and a shareable catalogue
+link. The existing referral capture carries that code through sign-in to checkout.
+The server validates role, membership, verification and agreement acceptance,
+prevents self-referral commission, and records one immutable attribution per order.
+No client can supply the payable rate or amount. Influencer codes do not invent
+a customer discount or grant Creator permissions.
+
+Verified paid retail orders credit commission on merchandise after discounts,
+excluding delivery fees. Unpaid and wholesale orders do not credit it. Settlement
+uses balanced journals with unique order/wallet awards, so retries cannot pay
+twice. Delivery and the configured hold period govern release; refunds reverse
+pending or cleared commissions through the existing ledger.
+
+The partner workspace displays the real pending and available ledger balances.
+Bank disbursements remain subject to payout review; an available ledger balance
+is not a claim that a bank transfer has occurred.

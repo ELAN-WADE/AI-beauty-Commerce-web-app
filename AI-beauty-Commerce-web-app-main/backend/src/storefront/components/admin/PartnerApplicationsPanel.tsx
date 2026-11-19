@@ -59,7 +59,7 @@ export const PartnerApplicationsPanel: React.FC<{ onReviewed: () => void }> = ({
   const visible = rows.filter(row => kind === 'all' || row.kind === kind);
   return <><section aria-label="Partner application reviews" className="space-y-5">
     <div className="flex flex-wrap items-start justify-between gap-4">
-      <div><h2 className="font-heading text-2xl font-bold">Partner Applications</h2><p className="mt-1 text-sm text-[#71717A]">Review account-linked creator and distributor requests. Approval grants partner access, provisions the segregated wallet ledger, and activates distributor locations.</p></div>
+      <div><h2 className="font-heading text-2xl font-semibold">Partner Applications</h2><p className="mt-1 text-sm text-[#71717A]">Review account-linked creator and distributor requests. Approval grants partner access, provisions the segregated wallet ledger, and activates distributor locations.</p></div>
       <button type="button" disabled={loading || Boolean(busy)} onClick={() => void refresh()} className="rounded-full border px-4 py-2 text-sm cursor-pointer hover:bg-black/5">Refresh applications</button>
     </div>
     <p className="text-sm">Pending: {counts.creators} creator requests · {counts.distributors} distributor requests</p>
@@ -75,7 +75,7 @@ export const PartnerApplicationsPanel: React.FC<{ onReviewed: () => void }> = ({
       const canApprove = !busy && row.userId && row.emailVerifiedAt && (row.kind !== 'creators' || /^[A-Za-z0-9]{3,40}$/.test(effectiveCode));
       return (
         <article key={row.id} aria-label={`${row.name} ${row.kind === 'creators' ? 'creator' : 'distributor'} application`} className="space-y-4 rounded-2xl border border-[#EAE8E3] bg-white p-5 shadow-xs">
-          <div className="flex flex-wrap justify-between gap-2"><div><h3 className="font-bold">{row.name}</h3><p className="text-sm text-[#6B7280]">{row.kind === 'creators' ? 'Creator' : 'Distributor'} · {row.email || 'No linked account'}</p></div><span className="text-xs uppercase font-mono px-2.5 py-1 rounded-full bg-[#FAF9F6] border border-[#E5E7EB]">{row.status}</span></div>
+          <div className="flex flex-wrap justify-between gap-2"><div><h3 className="font-medium">{row.name}</h3><p className="text-sm text-[#6B7280]">{row.kind === 'creators' ? 'Creator' : 'Distributor'} · {row.email || 'No linked account'}</p></div><span className="text-xs uppercase font-mono px-2.5 py-1 rounded-full bg-[#FAF9F6] border border-[#E5E7EB]">{row.status}</span></div>
           <dl className="grid gap-2 text-sm sm:grid-cols-2">{Object.entries(row.kind === 'creators' ? { Platform: row.platform, Handle: row.handle, Niche: row.niche } : { Business: row.businessName, City: row.city, State: row.state, Address: row.address, Phone: row.phone }).map(([label, value]) => <div key={label}><dt className="text-[#71717A] text-xs">{label}</dt><dd className="font-medium text-[#0F0F10]">{value || 'Not provided'}</dd></div>)}<div><dt className="text-[#71717A] text-xs">Submitted</dt><dd className="font-medium text-[#0F0F10]">{new Date(row.createdAt).toLocaleString()}</dd></div></dl>
           {row.status === 'pending' ? <>
             {!row.userId && <p className="text-sm text-amber-800 bg-amber-50 p-3 rounded-xl border border-amber-200">This older request has no linked account. Ask the applicant to sign in and submit again before granting access.</p>}

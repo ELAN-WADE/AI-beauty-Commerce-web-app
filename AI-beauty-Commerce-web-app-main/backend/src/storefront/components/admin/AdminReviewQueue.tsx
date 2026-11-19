@@ -3,7 +3,7 @@ export function AdminReviewQueue({ records, review }: { records: any[]; review: 
   const [notes, setNotes] = useState<Record<string, string>>({});
   const pending = records.filter(r => r.ownerId && (['SUBMITTED', 'DELIVERABLE_SUBMITTED'].includes(r.status) || r.kind === 'PR_REQUEST' && ['APPROVED', 'DISPATCHED'].includes(r.status)));
   return <section className="rounded-3xl border bg-white p-5 space-y-4" aria-label="Partner review queue">
-    <h3 className="font-bold">Partner review queue</h3>
+    <h3 className="font-semibold">Partner review queue</h3>
     {!pending.length && <p className="text-sm text-gray-500">No partner requests awaiting review.</p>}
     {pending.map(record => <article key={record.id} className="rounded-2xl border p-4 space-y-3">
       <h4 className="font-semibold">{record.title}</h4><p className="text-xs">{record.kind} · {record.status}</p>

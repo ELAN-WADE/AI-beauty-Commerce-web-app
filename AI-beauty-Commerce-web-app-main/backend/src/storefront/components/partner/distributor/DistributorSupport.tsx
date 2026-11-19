@@ -39,10 +39,10 @@ export const DistributorSupport: React.FC = () => {
       />
 
       <div className="hidden md:block pb-2 border-b border-[#E5E7EB] text-center">
-        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#6B7280]">
+        <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-[#6B7280]">
           Direct Logistics Dispatch
         </span>
-        <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-[#0F0F10]">
+        <h1 className="font-heading font-bold text-2xl sm:text-3xl text-[#0F0F10]">
           Logistics &amp; Stock Incident Support
         </h1>
         <p className="text-xs sm:text-sm text-[#6B7280] mt-0.5">
@@ -55,12 +55,12 @@ export const DistributorSupport: React.FC = () => {
       {/* Emergency Hotline Banner */}
       <div className="p-4 sm:p-5 rounded-3xl bg-[#FBF5E8] border border-[#D4AF37]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
         <div>
-          <span className="font-bold text-[#0F0F10] block">Priority Central Dispatch Line:</span>
+          <span className="font-semibold text-[#0F0F10] block">Priority Central Dispatch Line:</span>
           <span className="text-[#6B7280]">Immediate phone resolution for courier pickup failures.</span>
         </div>
         <a
           href="tel:+2348148120642"
-          className="px-4 py-2 rounded-full bg-[#0F0F10] text-[#D4AF37] font-mono font-bold flex items-center justify-center gap-1.5 shrink-0"
+          className="px-4 py-2 rounded-full bg-[#0F0F10] text-[#D4AF37] font-mono font-medium flex items-center justify-center gap-1.5 shrink-0"
         >
           <PhoneCall size={13} />
           <span>+234 814 812 0642</span>
@@ -74,7 +74,7 @@ export const DistributorSupport: React.FC = () => {
             <div className="w-12 h-12 rounded-full bg-[#FAF9F6] text-[#0F0F10] border border-[#E5E7EB] flex items-center justify-center mx-auto">
               <CheckCircle2 size={24} />
             </div>
-            <h3 className="font-heading font-bold text-lg text-[#0F0F10]">
+            <h3 className="font-heading font-semibold text-lg text-[#0F0F10]">
               {isLiveBackend ? `Incident ${ticketId} logged` : 'Incident Ticket #DIS-4190 Logged'}
             </h3>
             <p className="text-xs text-[#6B7280] max-w-sm mx-auto">
@@ -93,7 +93,7 @@ export const DistributorSupport: React.FC = () => {
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="text-xs font-bold text-[#0F0F10] block mb-1">
+              <label className="text-xs font-medium text-[#0F0F10] block mb-1">
                 Incident Classification
               </label>
               <select
@@ -109,7 +109,7 @@ export const DistributorSupport: React.FC = () => {
             </div>
 
             <div>
-              <label className="text-xs font-bold text-[#0F0F10] block mb-1">
+              <label className="text-xs font-medium text-[#0F0F10] block mb-1">
                 Incident Description &amp; Order / Carton Numbers
               </label>
               <textarea
@@ -124,7 +124,7 @@ export const DistributorSupport: React.FC = () => {
 
             <button
               type="submit" disabled={saving}
-              className="w-full py-3 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs cursor-pointer active:scale-[0.98] transition-all"
+              className="w-full py-3 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white font-medium text-xs flex items-center justify-center gap-2 shadow-xs cursor-pointer active:scale-[0.98] transition-all"
             >
               <Send size={14} className="text-[#D4AF37]" />
               <span>Submit Incident to Central Control</span>

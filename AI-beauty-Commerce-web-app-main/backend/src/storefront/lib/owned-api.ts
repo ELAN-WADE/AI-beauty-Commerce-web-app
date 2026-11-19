@@ -626,10 +626,18 @@ export async function fetchCryptoRates(): Promise<Record<string, CryptoRateDto>>
   return apiFetch('/api/crypto/rates');
 }
 
-export async function initCryptoPayment(orderId: string, asset: string, network: string, idempotencyKey: string): Promise<CryptoInitDto> {
+export async function initCryptoPayment(
+  orderId: string,
+  asset: string,
+  network: string,
+  idempotencyKey: string,
+  guestToken?: string,
+): Promise<CryptoInitDto> {
+  const headers: Record<string, string> = { 'Idempotency-Key': idempotencyKey };
+  if (guestToken) headers['x-guest-order-token'] = guestToken;
   return apiFetch('/api/payments/crypto/init', {
     method: 'POST',
-    headers: { 'Idempotency-Key': idempotencyKey },
+    headers,
     body: JSON.stringify({ orderId, asset, network }),
   });
 }
@@ -641,8 +649,12 @@ export async function verifyCryptoPayment(paymentId: string, txHash?: string): P
   });
 }
 
-export async function getCryptoPaymentStatus(paymentId: string): Promise<CryptoStatusDto> {
-  return apiFetch(`/api/payments/crypto/verify?paymentId=${encodeURIComponent(paymentId)}`);
+export async function getCryptoPaymentStatus(paymentId: string, guestToken?: string): Promise<CryptoStatusDto> {
+  const headers: Record<string, string> = {};
+  if (guestToken) headers['x-guest-order-token'] = guestToken;
+  return apiFetch(`/api/payments/crypto/verify?paymentId=${encodeURIComponent(paymentId)}`, {
+    headers,
+  });
 }
 
 export async function fetchAdminCryptoTransactions(): Promise<CryptoTransactionAdminDto[]> {

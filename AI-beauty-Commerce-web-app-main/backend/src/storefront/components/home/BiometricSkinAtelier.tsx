@@ -26,7 +26,7 @@ export const BiometricSkinAtelier: React.FC<BiometricSkinAtelierProps> = ({
               </div>
 
               <div className="space-y-0.5">
-                <h2 className="font-heading font-extrabold text-section-fluid text-white tracking-tight leading-tight">
+                <h2 className="font-heading font-semibold text-section-fluid text-white tracking-tight leading-tight">
                   Precision Natural Skin Analysis.<br />
                   <span className="font-serif italic font-normal text-amber-100/90">
                     Formulated for your cellular density.
@@ -50,7 +50,7 @@ export const BiometricSkinAtelier: React.FC<BiometricSkinAtelierProps> = ({
                 <button
                   type="button"
                   onClick={onStartScan}
-                  className="px-6 py-2.5 rounded-full bg-[#D4AF37] hover:bg-[#C29B2D] text-[#0F0F10] text-xs font-heading font-semibold tracking-wide micro-press transition-all cursor-pointer shadow-2xs flex items-center gap-2"
+                  className="px-6 py-2.5 rounded-full bg-[#D4AF37] hover:bg-[#C29B2D] text-[#0F0F10] text-xs font-heading font-medium tracking-wide micro-press transition-all cursor-pointer shadow-2xs flex items-center gap-2"
                 >
                   <FaceScanIcon size={14} className="text-[#0F0F10]" />
                   <span>Begin Complimentary Skin Scan</span>

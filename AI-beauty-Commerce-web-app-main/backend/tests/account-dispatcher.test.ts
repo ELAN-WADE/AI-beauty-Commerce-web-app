@@ -14,8 +14,8 @@ describe('account-email dispatcher keeps durable outbox semantics', () => {
     expect(await dispatchAccountEmails(db, sender, { signal: new AbortController().signal, once: true })).toBe(true);
     expect(queue.claimBatch).toHaveBeenCalledWith(db, 10, expect.objectContaining({ templates: expect.arrayContaining(['auth.verify-email']) }));
     expect(queue.discardAuthEmail).toHaveBeenCalledWith(db, 'expired');
-    expect(queue.markSent).toHaveBeenCalledWith(db, 'valid');
-    expect(queue.markFailed).toHaveBeenCalledWith(db, 'failed');
+    expect(queue.markSent).toHaveBeenCalledWith(db, 'valid', { provider: 'fixture', messageId: undefined });
+    expect(queue.markFailed).toHaveBeenCalledWith(db, 'failed', 'DELIVERY_ERROR');
     expect(sender.send).toHaveBeenCalledTimes(2);
   });
   it('never substitutes log delivery for a working verification provider', async () => {

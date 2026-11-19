@@ -1,4 +1,4 @@
-import { AccessIllustration } from '../../components/auth/AccessIllustration';
+import { DeslaWatermark } from '../../components/auth/DeslaAuthShell';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { apiFetch, updateAccountProfile } from '../../lib/owned-api';
 import {
@@ -150,8 +150,42 @@ export const Screen17Account: React.FC = () => {
   const displayWishlist = wishlistedProducts.slice(0, 5);
   const avatarSrc = authUser?.profile?.avatarUrl?.trim();
 
-  if (authLoading && !authUser) return <main className="mx-auto max-w-md p-8"><p role="status">Loading your account…</p></main>;
-  if (!authUser) return <main className="mx-auto max-w-md space-y-4 px-8 py-12 text-center"><AccessIllustration /><h1 className="font-heading text-2xl font-bold">Your account</h1><p>Sign in to view or complete your profile.</p><button onClick={() => navigateTo('login')} className="rounded-full bg-black px-5 py-3 text-white">Sign in</button><button onClick={() => navigateTo('signup')} className="ml-3 underline">Create account</button></main>;
+  if (!authUser) {
+    return (
+      <div className="relative min-h-[75dvh] bg-[#FBF9F5] text-[#111111] flex items-center justify-center px-4 py-12">
+        <DeslaWatermark />
+        <main className="relative z-10 w-full max-w-[440px] rounded-[22px] border border-[#E7E1D6] bg-[#FBF9F5]/90 backdrop-blur-md px-6 py-8 sm:px-8 sm:py-9 text-center shadow-[0_24px_64px_-24px_rgba(17,17,17,0.11)] space-y-5">
+          <div className="flex justify-center">
+            <img src="/desla_logo_dark.svg" alt="Desla!" className="h-6 w-auto block object-contain select-none" />
+          </div>
+          <div className="space-y-1.5">
+            <div className="w-6 h-[1.5px] bg-[#B89248] mx-auto mb-2.5" aria-hidden="true" />
+            <h1 className="font-heading text-2xl font-semibold text-[#111111] tracking-tight">Your account</h1>
+            <p className="text-xs sm:text-sm text-[#6E6A63] leading-relaxed">
+              Sign in to view your profile, saved addresses, orders, and Desla Club loyalty points.
+            </p>
+          </div>
+          <div className="space-y-2.5 pt-1">
+            <button
+              type="button"
+              onClick={() => navigateTo('login')}
+              className="group w-full h-11 rounded-[10px] bg-[#111111] hover:bg-[#242426] active:scale-[0.99] px-5 text-sm font-medium text-white flex items-center justify-center gap-2 transition-all cursor-pointer"
+            >
+              <span>Sign in</span>
+              <ArrowRight size={15} className="text-[#E6C77A]" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              onClick={() => navigateTo('signup')}
+              className="w-full h-11 rounded-[10px] border border-[#DDD7CC] hover:border-[#111111] bg-white/90 hover:bg-white text-sm font-medium text-[#111111] transition-all cursor-pointer"
+            >
+              Create account
+            </button>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#FAF9F6] text-[#0F0F10] pb-28 font-body selection:bg-[#D4AF37]/20 selection:text-[#997A2E]">
@@ -177,7 +211,7 @@ export const Screen17Account: React.FC = () => {
               </div>
 
               <div className="relative z-10 space-y-1">
-                <h3 className="font-heading font-extrabold text-xl text-[#0F0F10]">
+                <h3 className="font-heading font-semibold text-xl text-[#0F0F10]">
                   {authUser.profile?.displayName || 'Complete your profile'}
                 </h3>
 
@@ -193,7 +227,7 @@ export const Screen17Account: React.FC = () => {
                   <div className="pt-2">
                     <button
                       onClick={() => navigateTo('admin-console')}
-                      className="w-full px-3.5 py-2 rounded-xl bg-[#0F0F10] hover:bg-black text-[#D4AF37] border border-[#D4AF37]/40 text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs"
+                      className="w-full px-3.5 py-2 rounded-xl bg-[#0F0F10] hover:bg-black text-[#D4AF37] border border-[#D4AF37]/40 text-xs font-medium transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs"
                     >
                       <ShieldCheck size={14} className="text-[#D4AF37]" />
                       <span>Admin Operations Console</span>
@@ -215,7 +249,7 @@ export const Screen17Account: React.FC = () => {
                   ) : (
                     <button
                       onClick={() => navigateTo('login')}
-                      className="w-full py-2 rounded-xl bg-[#0F0F10] hover:bg-black text-[#D4AF37] border border-[#D4AF37]/30 text-xs font-bold transition-all cursor-pointer shadow-xs"
+                      className="w-full py-2 rounded-xl bg-[#0F0F10] hover:bg-black text-[#D4AF37] border border-[#D4AF37]/30 text-xs font-medium transition-all cursor-pointer shadow-xs"
                     >
                       Sign In to Account
                     </button>
@@ -224,12 +258,12 @@ export const Screen17Account: React.FC = () => {
               </div>
 
               <form aria-label="Complete your profile" onSubmit={saveProfile} className="space-y-3 rounded-xl border border-[#E5E7EB] p-4 text-left">
-                <h2 className="font-heading font-bold">Profile details</h2>
+                <h2 className="font-heading font-semibold">Profile details</h2>
                 <label className="block text-xs">Name<input aria-label="Profile name" autoComplete="name" required maxLength={80} value={profileForm.displayName} onChange={event => setProfileForm(form => ({ ...form, displayName: event.target.value }))} className="mt-1 w-full rounded-xl border p-2.5 text-base" /></label>
                 <label className="block text-xs">Email<input aria-label="Account email" readOnly value={authUser.email} className="mt-1 w-full rounded-xl border bg-gray-50 p-2.5 text-base" /></label>
                 <label className="block text-xs">Phone<input aria-label="Profile phone" type="tel" autoComplete="tel" maxLength={16} value={profileForm.phone} onChange={event => setProfileForm(form => ({ ...form, phone: event.target.value }))} className="mt-1 w-full rounded-xl border p-2.5 text-base" /></label>
                 {profileError && <p role="alert" className="text-xs text-rose-700">{profileError}</p>}{profileNotice && <p role="status" className="text-xs text-emerald-700">{profileNotice}</p>}
-                <button type="submit" disabled={profileBusy} className="rounded-full bg-black px-4 py-2 text-xs font-bold text-white disabled:opacity-50">{profileBusy ? 'Saving…' : 'Save profile'}</button>
+                <button type="submit" disabled={profileBusy} className="rounded-full bg-black px-4 py-2 text-xs font-semibold text-white disabled:opacity-50">{profileBusy ? 'Saving…' : 'Save profile'}</button>
               </form>
               {addressError && <p role="alert" className="text-sm text-rose-700">{addressError}</p>}
               {/* Desla Club Loyalty Points */}
@@ -238,13 +272,13 @@ export const Screen17Account: React.FC = () => {
                   <span className="text-[10px] text-[#6B7280] uppercase tracking-wider block font-semibold">
                     Desla Club Loyalty
                   </span>
-                  <span className="font-mono font-extrabold text-xl text-[#0F0F10] block">
+                  <span className="font-mono font-semibold text-xl text-[#0F0F10] block">
                     {(userProfile.points || 0).toLocaleString()} Points
                   </span>
                 </div>
                 <button
                   onClick={() => navigateTo('rewards')}
-                  className="px-3.5 py-1.5 rounded-full bg-[#0F0F10] text-[#D4AF37] hover:bg-black font-heading font-bold text-xs active:scale-[0.97] transition-all cursor-pointer shadow-xs border border-[#D4AF37]/30"
+                  className="px-3.5 py-1.5 rounded-full bg-[#0F0F10] text-[#D4AF37] hover:bg-black font-heading font-medium text-xs active:scale-[0.97] transition-all cursor-pointer shadow-xs border border-[#D4AF37]/30"
                 >
                   Redeem
                 </button>
@@ -261,14 +295,14 @@ export const Screen17Account: React.FC = () => {
                     <span className="text-[10.5px] text-[#6B7280] uppercase tracking-wider block font-semibold">
                       Sourcing City
                     </span>
-                    <span className="font-heading font-bold text-sm text-[#0F0F10]">
+                    <span className="font-heading font-semibold text-sm text-[#0F0F10]">
                       {selectedCity}
                     </span>
                   </div>
                 </div>
                 <button
                   onClick={() => setIsLocationModalOpen(true)}
-                  className="text-xs font-heading font-bold text-[#997A2E] hover:underline cursor-pointer"
+                  className="text-xs font-heading font-medium text-[#997A2E] hover:underline cursor-pointer"
                 >
                   Change
                 </button>
@@ -280,7 +314,7 @@ export const Screen17Account: React.FC = () => {
                   <span className="text-[10.5px] text-[#6B7280] uppercase tracking-wider block font-semibold">
                     Saved Addresses
                   </span>
-                  <span className="font-heading font-bold text-xs text-[#0F0F10] block mt-0.5">
+                  <span className="font-heading font-medium text-xs text-[#0F0F10] block mt-0.5">
                     {savedAddresses.length} Active Delivery {savedAddresses.length === 1 ? 'Address' : 'Addresses'}
                   </span>
                   {activeDefaultAddress && (
@@ -291,7 +325,7 @@ export const Screen17Account: React.FC = () => {
                 </div>
                 <button
                   onClick={() => setIsAddressModalOpen(true)}
-                  className="px-3 py-1 rounded-lg bg-[#FAF9F6] hover:bg-[#F3EEE3] border border-[#E5E7EB] text-xs font-heading font-bold text-[#0F0F10] hover:text-[#997A2E] cursor-pointer transition-colors shrink-0"
+                  className="px-3 py-1 rounded-lg bg-[#FAF9F6] hover:bg-[#F3EEE3] border border-[#E5E7EB] text-xs font-heading font-medium text-[#0F0F10] hover:text-[#997A2E] cursor-pointer transition-colors shrink-0"
                 >
                   Manage
                 </button>
@@ -301,7 +335,7 @@ export const Screen17Account: React.FC = () => {
               <div className="pt-3 space-y-2">
                 <button
                   onClick={() => navigateTo('ask-ai')}
-                  className="w-full py-2.5 px-4 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] hover:border-[#D4AF37] text-left text-xs font-heading font-bold text-[#0F0F10] flex items-center justify-between active:scale-[0.97] transition-all cursor-pointer"
+                  className="w-full py-2.5 px-4 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB] hover:border-[#D4AF37] text-left text-xs font-heading font-medium text-[#0F0F10] flex items-center justify-between active:scale-[0.97] transition-all cursor-pointer"
                 >
                   <div className="flex items-center gap-2.5">
                     <ShieldCheck size={16} className="text-[#D4AF37]" />
@@ -314,7 +348,7 @@ export const Screen17Account: React.FC = () => {
                   href="https://wa.me/2348148120642?text=Hello%20Desla%20VIP%20Concierge,%20I%20am%20contacting%20you%20regarding%20my%20account."
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full py-2.5 px-4 rounded-xl bg-[#FAF9F6] hover:bg-[#F3EEE3] border border-[#E5E7EB] text-left text-xs font-heading font-bold text-[#0F0F10] flex items-center justify-between active:scale-[0.97] transition-all cursor-pointer"
+                  className="w-full py-2.5 px-4 rounded-xl bg-[#FAF9F6] hover:bg-[#F3EEE3] border border-[#E5E7EB] text-left text-xs font-heading font-medium text-[#0F0F10] flex items-center justify-between active:scale-[0.97] transition-all cursor-pointer"
                 >
                   <div className="flex items-center gap-2.5">
                     <MessageCircle size={15} className="text-[#D4AF37]" />
@@ -336,7 +370,7 @@ export const Screen17Account: React.FC = () => {
                     <Truck size={18} />
                   </div>
                   <div>
-                    <h2 className="font-heading font-extrabold text-base text-[#0F0F10]">
+                    <h2 className="font-heading font-semibold text-base text-[#0F0F10]">
                       Active Orders &amp; Regional Sourcing Tracker
                     </h2>
                     <span className="text-xs text-[#6B7280]">
@@ -347,7 +381,7 @@ export const Screen17Account: React.FC = () => {
 
                 <button
                   onClick={() => navigateTo('orders')}
-                  className="text-xs font-heading font-bold text-[#997A2E] hover:underline flex items-center gap-1 cursor-pointer self-start sm:self-auto"
+                  className="text-xs font-heading font-medium text-[#997A2E] hover:underline flex items-center gap-1 cursor-pointer self-start sm:self-auto"
                 >
                   <span>View my orders</span>
                   <ArrowRight size={13} />
@@ -356,10 +390,10 @@ export const Screen17Account: React.FC = () => {
 
               {ordersLoading && !orders.length ? <p role="status">Loading your orders…</p> : ordersError ? <div><p role="alert">{ordersError}</p><button onClick={() => void refreshOrders()} className="underline">Retry orders</button></div> : orders.length ? orders.slice(0, 3).map(order => (
                 <div key={order.id} className="p-5 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3"><span className="font-mono font-bold text-xs">Order #{order.orderNumber}</span><span className="font-mono text-xs text-[#997A2E]">{order.status}</span></div>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3"><span className="font-mono font-medium text-xs">Order #{order.orderNumber}</span><span className="font-mono text-xs text-[#997A2E]">{order.status}</span></div>
                   <div className="space-y-1.5"><div className="w-full bg-[#E5E7EB] h-2 rounded-full overflow-hidden"><div className="bg-[#D4AF37] h-full rounded-full" style={{width: ({ PENDING: '10%', PAID: '25%', FULFILLING: '50%', READY_PICKUP: '75%', SHIPPED: '75%', DELIVERED: '100%', CANCELLED: '0%' } as Record<string,string>)[order.status] || '0%'}} /></div>
                     <div className="flex justify-between text-[11px] text-[#6B7280]"><span>Placed</span><span>Preparing</span><span>Dispatch / collection</span><span>Delivered</span></div></div>
-                  <div className="pt-2 flex items-center justify-between text-xs"><span className="text-[#6B7280]">{new Date(order.createdAt).toLocaleDateString()} · {order.totalNgn.toLocaleString('en-NG',{style:'currency',currency:'NGN'})}</span><button className="font-heading font-bold underline" onClick={() => { try { sessionStorage.setItem('desla-selected-order', JSON.stringify({ userId: authUser?.id, id: order.id })); } catch {} navigateTo('orders'); }}>Track order →</button></div>
+                  <div className="pt-2 flex items-center justify-between text-xs"><span className="text-[#6B7280]">{new Date(order.createdAt).toLocaleDateString()} · {order.totalNgn.toLocaleString('en-NG',{style:'currency',currency:'NGN'})}</span><button className="font-heading font-medium underline" onClick={() => { try { sessionStorage.setItem('desla-selected-order', JSON.stringify({ userId: authUser?.id, id: order.id })); } catch {} navigateTo('orders'); }}>Track order →</button></div>
                 </div>
               )) : <p className="text-sm text-[#6B7280]">No orders yet.</p>}
 
@@ -373,7 +407,7 @@ export const Screen17Account: React.FC = () => {
                     <Award size={18} />
                   </div>
                   <div>
-                    <h2 className="font-heading font-extrabold text-base text-[#0F0F10]">
+                    <h2 className="font-heading font-semibold text-base text-[#0F0F10]">
                       Active Vouchers &amp; VIP Perks
                     </h2>
                     <span className="text-xs text-[#6B7280]">
@@ -384,7 +418,7 @@ export const Screen17Account: React.FC = () => {
 
                 <button
                   onClick={() => navigateTo('rewards')}
-                  className="text-xs font-heading font-bold text-[#997A2E] hover:underline flex items-center gap-1 cursor-pointer"
+                  className="text-xs font-heading font-medium text-[#997A2E] hover:underline flex items-center gap-1 cursor-pointer"
                 >
                   <span>Reward Center</span>
                   <ArrowRight size={13} />
@@ -393,7 +427,7 @@ export const Screen17Account: React.FC = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {vouchers.length ? vouchers.map(voucher => <div key={voucher.id} className="rounded-xl border border-[#E5E7EB] bg-[#FAF9F6] p-4">
-                  <p className="font-bold">{voucher.title}</p><p className="mt-2 font-mono text-xs">{voucher.code}</p>
+                  <p className="font-medium">{voucher.title}</p><p className="mt-2 font-mono text-xs">{voucher.code}</p>
                   {(voucher.expiryDate || voucher.expiresAt) && <p className="mt-1 text-xs">Expires: {voucher.expiryDate || voucher.expiresAt}</p>}
                 </div>) : <p className="text-sm text-[#6B7280]">No saved vouchers yet.</p>}
               </div>
@@ -408,7 +442,7 @@ export const Screen17Account: React.FC = () => {
                     <Activity size={18} />
                   </div>
                   <div>
-                    <h2 className="font-heading font-extrabold text-base text-[#0F0F10]">
+                    <h2 className="font-heading font-semibold text-base text-[#0F0F10]">
                       Personalized AI Diagnostic Dossier
                     </h2>
                     <span className="text-xs text-[#6B7280]">
@@ -419,7 +453,7 @@ export const Screen17Account: React.FC = () => {
 
                 <button
                   onClick={() => navigateTo('ai-scan')}
-                  className="text-xs font-heading font-bold text-[#997A2E] hover:underline flex items-center gap-1 cursor-pointer"
+                  className="text-xs font-heading font-medium text-[#997A2E] hover:underline flex items-center gap-1 cursor-pointer"
                 >
                   <span>Re-scan Face</span>
                   <ArrowRight size={13} />
@@ -429,7 +463,7 @@ export const Screen17Account: React.FC = () => {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-[#FAF9F6] border border-[#E5E7EB]">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-heading font-bold text-sm text-[#0F0F10]">
+                    <span className="font-heading font-semibold text-sm text-[#0F0F10]">
                       Skin profile: {skinProfile?.skinType || 'Not recorded'}
                     </span>
                   </div>
@@ -440,7 +474,7 @@ export const Screen17Account: React.FC = () => {
 
                 <button
                   onClick={() => navigateTo('ai-scan')}
-                  className="px-5 py-3 rounded-full bg-white border border-[#D4AF37] hover:bg-[#FBF5E8] text-[#997A2E] font-heading font-bold text-xs whitespace-nowrap active:scale-[0.97] transition-all cursor-pointer shadow-xs shrink-0"
+                  className="px-5 py-3 rounded-full bg-white border border-[#D4AF37] hover:bg-[#FBF5E8] text-[#997A2E] font-heading font-medium text-xs whitespace-nowrap active:scale-[0.97] transition-all cursor-pointer shadow-xs shrink-0"
                 >
                   View Full Diagnosis
                 </button>
@@ -455,7 +489,7 @@ export const Screen17Account: React.FC = () => {
                     <Heart size={18} />
                   </div>
                   <div>
-                    <h2 className="font-heading font-extrabold text-base text-[#0F0F10]">
+                    <h2 className="font-heading font-semibold text-base text-[#0F0F10]">
                       Saved Formulations (Wishlist)
                     </h2>
                     <span className="text-xs text-[#6B7280]">
@@ -466,7 +500,7 @@ export const Screen17Account: React.FC = () => {
 
                 <button
                   onClick={() => navigateTo('catalogue')}
-                  className="text-xs font-heading font-bold text-[#997A2E] hover:underline flex items-center gap-1 cursor-pointer"
+                  className="text-xs font-heading font-medium text-[#997A2E] hover:underline flex items-center gap-1 cursor-pointer"
                 >
                   <span>Explore All</span>
                   <ArrowRight size={13} />
@@ -502,7 +536,7 @@ export const Screen17Account: React.FC = () => {
             {/* Header */}
             <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
               <div>
-                <h3 className="font-heading font-extrabold text-lg text-[#0F0F10]">
+                <h3 className="font-heading font-semibold text-lg text-[#0F0F10]">
                   Saved Delivery Addresses
                 </h3>
                 <p className="text-xs text-[#6B7280]">
@@ -536,17 +570,17 @@ export const Screen17Account: React.FC = () => {
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-heading font-bold text-sm text-[#0F0F10]">
+                        <span className="font-heading font-semibold text-sm text-[#0F0F10]">
                           {addr.fullName}
                         </span>
                         {addr.isDefault ? (
-                          <span className="px-2 py-0.5 rounded-full bg-[#0F0F10] text-[#D4AF37] text-[10px] font-mono font-bold tracking-tight">
+                          <span className="px-2 py-0.5 rounded-full bg-[#0F0F10] text-[#D4AF37] text-[10px] font-mono font-semibold tracking-tight">
                             ★ Main Address
                           </span>
                         ) : (
                           <button
                             disabled={addressBusy} onClick={() => void handleSetDefaultAddress(addr.id)}
-                            className="text-[10.5px] font-mono text-[#997A2E] hover:underline font-bold cursor-pointer"
+                            className="text-[10.5px] font-mono text-[#997A2E] hover:underline font-semibold cursor-pointer"
                           >
                             Set as Main Address
                           </button>
@@ -579,7 +613,7 @@ export const Screen17Account: React.FC = () => {
               {!isAddingNewAddress ? (
                 <button
                   onClick={handleOpenAddForm}
-                  className="w-full flex items-center justify-center gap-2 p-3 rounded-2xl bg-[#FAF9F6] hover:bg-[#F3EEE3]/60 border border-[#E5E7EB] cursor-pointer transition-colors text-xs font-heading font-bold text-[#0F0F10]"
+                  className="w-full flex items-center justify-center gap-2 p-3 rounded-2xl bg-[#FAF9F6] hover:bg-[#F3EEE3]/60 border border-[#E5E7EB] cursor-pointer transition-colors text-xs font-heading font-medium text-[#0F0F10]"
                 >
                   <Plus size={16} className="text-[#D4AF37]" />
                   <span>+ Add New Delivery Address</span>
@@ -587,7 +621,7 @@ export const Screen17Account: React.FC = () => {
               ) : (
                 <form onSubmit={handleSaveAddressSubmit} className="space-y-3.5 p-4 rounded-2xl bg-[#FAF9F6]/60 border border-[#E5E7EB]">
                   <div className="flex items-center justify-between pb-1 border-b border-[#E5E7EB]">
-                    <span className="text-xs font-heading font-bold text-[#0F0F10]">
+                    <span className="text-xs font-heading font-medium text-[#0F0F10]">
                       New Delivery Location
                     </span>
                     <button
@@ -700,7 +734,7 @@ export const Screen17Account: React.FC = () => {
                   <div className="flex justify-end gap-2.5 pt-2">
                     <button
                       type="submit"
-                      className="px-5 py-2 rounded-xl bg-[#0F0F10] hover:bg-black text-[#D4AF37] font-heading font-bold text-xs active:scale-95 transition-all cursor-pointer shadow-xs"
+                      className="px-5 py-2 rounded-xl bg-[#0F0F10] hover:bg-black text-[#D4AF37] font-heading font-semibold text-xs active:scale-95 transition-all cursor-pointer shadow-xs"
                     >
                       Save Address
                     </button>

@@ -317,7 +317,7 @@ export const CreatorEarnings: React.FC = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="border-b border-[#E5E7EB] text-[10px] font-mono font-bold uppercase text-[#9CA3AF] tracking-wider">
+              <tr className="border-b border-[#E5E7EB] text-[10px] font-mono font-medium uppercase text-[#9CA3AF] tracking-wider">
                 <th className="py-3.5 px-6">Date &amp; Order</th>
                 <th className="py-3.5 px-6">Client / Description</th>
                 <th className="py-3.5 px-6">Order Value</th>
@@ -332,7 +332,7 @@ export const CreatorEarnings: React.FC = () => {
                   <td colSpan={6} className="py-12 text-center text-[#6B7280]">
                     <div className="max-w-xs mx-auto space-y-2">
                       <CreditCard className="w-8 h-8 text-[#997A2E] mx-auto opacity-40" />
-                      <p className="font-heading font-bold text-sm text-[#0F0F10]">No Transactions Recorded</p>
+                      <p className="font-heading font-semibold text-sm text-[#0F0F10]">No Transactions Recorded</p>
                       <p className="text-xs">Attributed client orders and NIP payout disbursements will be logged here in real time.</p>
                     </div>
                   </td>
@@ -340,20 +340,20 @@ export const CreatorEarnings: React.FC = () => {
               ) : creatorLedger.map((tx) => (
                 <tr key={tx.id} className="hover:bg-[#FAF9F6]/80 transition-colors">
                   <td className="py-4 px-6 font-mono">
-                    <span className="font-bold text-[#0F0F10] block">{tx.orderNumber}</span>
+                    <span className="font-semibold text-[#0F0F10] block">{tx.orderNumber}</span>
                     <span className="text-[11px] text-[#9CA3AF]">{tx.date}</span>
                   </td>
                   <td className="py-4 px-6">
-                    <span className="font-bold text-[#0F0F10] block">{tx.client}</span>
+                    <span className="font-semibold text-[#0F0F10] block">{tx.client}</span>
                     <span className="text-[11px] text-[#6B7280]">{tx.note}</span>
                   </td>
-                  <td className="py-4 px-6 font-mono font-bold text-[#0F0F10]">
+                  <td className="py-4 px-6 font-mono font-semibold text-[#0F0F10]">
                     {tx.grossOrder}
                   </td>
                   <td className="py-4 px-6 font-mono text-[#6B7280]">
                     {tx.commissionRate}
                   </td>
-                  <td className={`py-4 px-6 font-mono font-bold ${
+                  <td className={`py-4 px-6 font-mono font-semibold ${
                     tx.type === 'PAYOUT' ? 'text-rose-700' : 'text-[#0F0F10]'
                   }`}>
                     <span>{tx.netPayout}</span>
@@ -380,7 +380,7 @@ export const CreatorEarnings: React.FC = () => {
                   <ArrowUpRight size={16} />
                 </div>
                 <div>
-                  <h3 className="font-heading font-extrabold text-lg text-[#0F0F10]">
+                  <h3 className="font-heading font-semibold text-lg text-[#0F0F10]">
                     Instant NIP Bank Transfer
                   </h3>
                   <p className="text-xs text-[#6B7280]">
@@ -405,7 +405,7 @@ export const CreatorEarnings: React.FC = () => {
               )}
 
               <div>
-                <label className="block text-xs font-bold text-[#0F0F10] mb-1">
+                <label className="block text-xs font-medium text-[#0F0F10] mb-1">
                   Withdrawal Amount (₦)
                 </label>
                 <input
@@ -416,7 +416,7 @@ export const CreatorEarnings: React.FC = () => {
                   placeholder="e.g. 50000"
                   value={withdrawAmount}
                   onChange={(e) => setWithdrawAmount(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-[#E5E7EB] text-sm font-mono font-bold bg-[#FAF9F6] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#0F0F10]"
+                  className="w-full px-4 py-2.5 rounded-xl border border-[#E5E7EB] text-sm font-mono font-semibold bg-[#FAF9F6] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#0F0F10]"
                 />
               </div>
 
@@ -442,19 +442,19 @@ export const CreatorEarnings: React.FC = () => {
               <div className="p-3.5 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB] text-xs space-y-1.5">
                 <div className="flex justify-between items-center text-[#6B7280]">
                   <span>Destination Bank:</span>
-                  <span className="font-bold text-[#0F0F10]">{bankAccount.bank}</span>
+                  <span className="font-semibold text-[#0F0F10]">{bankAccount.bank}</span>
                 </div>
                 <div className="flex justify-between items-center text-[#6B7280]">
                   <span>Account Number (NUBAN):</span>
-                  <span className="font-mono font-bold text-[#0F0F10]">{bankAccount.nuban}</span>
+                  <span className="font-mono font-semibold text-[#0F0F10]">{bankAccount.nuban}</span>
                 </div>
                 <div className="flex justify-between items-center text-[#6B7280]">
                   <span>Account Name:</span>
-                  <span className="font-bold text-[#0F0F10]">{bankAccount.name}</span>
+                  <span className="font-semibold text-[#0F0F10]">{bankAccount.name}</span>
                 </div>
                 <div className="flex justify-between items-center text-[#6B7280] pt-1 border-t border-[#E5E7EB]">
                   <span>Transfer Fee:</span>
-                  <span className="font-mono text-emerald-700 font-bold">₦0.00 (Desla Absorbed)</span>
+                  <span className="font-mono text-emerald-700 font-semibold">₦0.00 (Desla Absorbed)</span>
                 </div>
               </div>
 
@@ -468,7 +468,7 @@ export const CreatorEarnings: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-[#D4AF37] text-xs font-bold shadow-md cursor-pointer transition-transform active:scale-95"
+                  className="px-6 py-2.5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-[#D4AF37] text-xs font-medium shadow-md cursor-pointer transition-transform active:scale-95"
                 >
                   Confirm Instant Withdrawal
                 </button>
@@ -490,7 +490,7 @@ export const CreatorEarnings: React.FC = () => {
                   <Building size={16} />
                 </div>
                 <div>
-                  <h3 className="font-heading font-extrabold text-lg text-[#0F0F10]">
+                  <h3 className="font-heading font-semibold text-lg text-[#0F0F10]">
                     Update Payout NUBAN
                   </h3>
                   <p className="text-xs text-[#6B7280]">
@@ -508,7 +508,7 @@ export const CreatorEarnings: React.FC = () => {
 
             <form onSubmit={handleSaveBank} className="p-6 space-y-4">
               <div>
-                <label className="block text-xs font-bold text-[#0F0F10] mb-1">
+                <label className="block text-xs font-medium text-[#0F0F10] mb-1">
                   Bank Name
                 </label>
                 <select
@@ -527,7 +527,7 @@ export const CreatorEarnings: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#0F0F10] mb-1">
+                <label className="block text-xs font-medium text-[#0F0F10] mb-1">
                   NUBAN Account Number (10 digits)
                 </label>
                 <input
@@ -536,12 +536,12 @@ export const CreatorEarnings: React.FC = () => {
                   required
                   value={editNuban}
                   onChange={(e) => setEditNuban(e.target.value.replace(/\D/g, ''))}
-                  className="w-full px-4 py-2.5 rounded-xl border border-[#E5E7EB] text-xs font-mono font-bold bg-[#FAF9F6] focus:bg-white focus:outline-none"
+                  className="w-full px-4 py-2.5 rounded-xl border border-[#E5E7EB] text-xs font-mono font-medium bg-[#FAF9F6] focus:bg-white focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#0F0F10] mb-1">
+                <label className="block text-xs font-medium text-[#0F0F10] mb-1">
                   Verified Account Name (BVN Matched)
                 </label>
                 <input
@@ -549,7 +549,7 @@ export const CreatorEarnings: React.FC = () => {
                   required
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-[#E5E7EB] text-xs font-bold bg-[#FAF9F6] focus:bg-white focus:outline-none uppercase"
+                  className="w-full px-4 py-2.5 rounded-xl border border-[#E5E7EB] text-xs font-medium bg-[#FAF9F6] focus:bg-white focus:outline-none uppercase"
                 />
               </div>
 
@@ -563,7 +563,7 @@ export const CreatorEarnings: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-bold shadow-md cursor-pointer"
+                  className="px-6 py-2.5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-medium shadow-md cursor-pointer"
                 >
                   Save &amp; Verify Account
                 </button>

@@ -2,10 +2,10 @@ import { and, desc, eq, sql } from 'drizzle-orm';
 import type { AppDb } from '../../db/client';
 import { ApiError, Errors } from '../../lib/errors';
 import { orders } from '../orders/schema';
-import { paymentAttempts, payments, paymentEvents } from '../payments/schema';
+import { requireGuestOrder, transitionOrder } from '../orders/service';
+import { paymentAttempts, payments } from '../payments/schema';
 import { commitReservation } from '../inventory/service';
 import { reservations } from '../inventory/schema';
-import { transitionOrder } from '../orders/service';
 import { audit } from '../audit/service';
 import { enqueueNotification } from '../notifications/service';
 import { cryptoPayments, type CryptoAsset, type CryptoNetwork } from './schema';
@@ -23,20 +23,44 @@ export interface InitCryptoInput {
 
 export interface VerifyCryptoInput {
   paymentId: string;
-  txHash?: string;
-  actorId?: string;
+  txHash: string;
+  actorId: string;
+}
+
+export interface CryptoStatusAuth {
+  userId?: string;
+  guestToken?: string;
+  isAdmin?: boolean;
+}
+
+function assertPaymentsEnabled() {
+  if (
+    process.env.PAYMENTS_ENABLED === 'false' ||
+    (process.env.NODE_ENV === 'production' && process.env.PAYMENTS_ENABLED !== 'true')
+  ) {
+    throw new ApiError(503, 'payments_disabled', 'Payments are not enabled yet.', false);
+  }
 }
 
 export async function initCryptoPayment(db: AppDb, input: InitCryptoInput) {
+  assertPaymentsEnabled();
   return db.transaction(async (tx) => {
     await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`crypto-init:${input.orderId}`}, 0))`);
     const [order] = await tx.select().from(orders).where(eq(orders.id, input.orderId)).for('update');
     if (!order) throw Errors.notFound('Order not found.');
+
+    // Strict ownership verification (authenticated owner OR verified guest token)
+    const ownsUser = Boolean(order.userId && input.userId && order.userId === input.userId);
+    const ownsGuest = !order.userId && Boolean(await requireGuestOrder(tx as never, order.id, input.guestToken).catch(() => null));
+    if (!ownsUser && !ownsGuest) {
+      throw Errors.notFound('Order not found.');
+    }
+
     if (order.status !== 'PENDING' || order.paymentStatus !== 'UNPAID') {
       throw Errors.conflict('Order is no longer payable.');
     }
 
-    // Check existing attempt with same idempotency key
+    // Check existing attempt with same idempotency key and verify it belongs to THIS order
     const [exactAttempt] = await tx
       .select()
       .from(paymentAttempts)
@@ -44,6 +68,9 @@ export async function initCryptoPayment(db: AppDb, input: InitCryptoInput) {
       .limit(1);
 
     if (exactAttempt) {
+      if (exactAttempt.orderId !== order.id) {
+        throw Errors.conflict('Idempotency-Key was already used for a different order.');
+      }
       const [existingCrypto] = await tx
         .select()
         .from(cryptoPayments)
@@ -73,7 +100,6 @@ export async function initCryptoPayment(db: AppDb, input: InitCryptoInput) {
     const quote = await calculateCryptoQuote(order.totalKobo, input.asset, input.network);
     const reference = `CRYPTO-${order.orderNumber}-${Date.now().toString(36).toUpperCase()}`;
 
-    // Create payment attempt row
     const [attempt] = await tx
       .insert(paymentAttempts)
       .values({
@@ -88,7 +114,6 @@ export async function initCryptoPayment(db: AppDb, input: InitCryptoInput) {
       })
       .returning();
 
-    // Create crypto payments detail row
     const [cryptoRecord] = await tx
       .insert(cryptoPayments)
       .values({
@@ -137,14 +162,18 @@ export async function initCryptoPayment(db: AppDb, input: InitCryptoInput) {
 export function isValidTxHash(network: CryptoNetwork, hash: string): boolean {
   const clean = hash.trim();
   if (network === 'Solana') {
-    // Solana base58 signature, 64-88 characters
     return /^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(clean);
   }
-  // EVM (0x + 64 hex) or Bitcoin/TRC20 (64 hex characters)
   return /^(0x)?[0-9a-fA-F]{64}$/.test(clean);
 }
 
+/**
+ * Privileged settlement only (called by authenticated admin verification or
+ * HMAC-verified crypto gateway webhook). Never synthesizes mock hashes and
+ * never swallows stock reservation failures.
+ */
 export async function verifyCryptoPayment(db: AppDb, input: VerifyCryptoInput) {
+  assertPaymentsEnabled();
   return db.transaction(async (tx) => {
     await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`crypto-verify:${input.paymentId}`}, 0))`);
     const [record] = await tx.select().from(cryptoPayments).where(eq(cryptoPayments.id, input.paymentId)).for('update');
@@ -155,6 +184,7 @@ export async function verifyCryptoPayment(db: AppDb, input: VerifyCryptoInput) {
         paymentId: record.id,
         orderId: record.orderId,
         status: 'COMPLETED',
+        txHash: record.txHash,
         alreadySettled: true,
       };
     }
@@ -167,25 +197,23 @@ export async function verifyCryptoPayment(db: AppDb, input: VerifyCryptoInput) {
       throw Errors.badRequest('This cryptocurrency payment quote has expired. Please initiate a new payment.');
     }
 
-    let txHash = input.txHash?.trim();
-    if (txHash) {
-      if (!isValidTxHash(record.network, txHash)) {
-        throw Errors.badRequest('Invalid transaction hash format for this blockchain network.');
-      }
-    } else {
-      // Deterministic fallback mock hash if verified via operator or test confirmation
-      txHash = record.txHash || `0x${Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, '0')).join('')}`;
+    const txHash = (input.txHash ?? '').trim();
+    if (!txHash || !isValidTxHash(record.network, txHash)) {
+      throw Errors.badRequest('A valid blockchain transaction hash is required for settlement.');
     }
 
-    // Lock the underlying order
     const [order] = await tx.select().from(orders).where(eq(orders.id, record.orderId)).for('update');
     if (!order) throw Errors.notFound('Associated order not found.');
 
-    // Commit inventory reservations if pending
-    const holds = await tx.select().from(reservations).where(and(eq(reservations.refType, 'order'), eq(reservations.refId, order.id)));
-    for (const hold of holds) await commitReservation(tx as never, hold.id).catch(() => null);
+    // Commit active inventory reservations — fail atomically if stock cannot be committed.
+    const holds = await tx
+      .select()
+      .from(reservations)
+      .where(and(eq(reservations.refType, 'order'), eq(reservations.refId, order.id), eq(reservations.status, 'active')));
+    for (const hold of holds) {
+      await commitReservation(tx as never, hold.id);
+    }
 
-    // Transition order to PAID
     if (order.paymentStatus !== 'PAID') {
       await transitionOrder(tx as never, order.id, 'PAID', {
         actor: 'system',
@@ -193,7 +221,6 @@ export async function verifyCryptoPayment(db: AppDb, input: VerifyCryptoInput) {
       });
     }
 
-    // Insert into permanent payments table
     const [attempt] = record.attemptId
       ? await tx.select().from(paymentAttempts).where(eq(paymentAttempts.id, record.attemptId))
       : [];
@@ -211,7 +238,6 @@ export async function verifyCryptoPayment(db: AppDb, input: VerifyCryptoInput) {
       })
       .onConflictDoNothing();
 
-    // Update payment attempt to success
     if (record.attemptId) {
       await tx
         .update(paymentAttempts)
@@ -219,7 +245,6 @@ export async function verifyCryptoPayment(db: AppDb, input: VerifyCryptoInput) {
         .where(eq(paymentAttempts.id, record.attemptId));
     }
 
-    // Mark crypto payment as completed
     const [updatedCrypto] = await tx
       .update(cryptoPayments)
       .set({
@@ -232,23 +257,21 @@ export async function verifyCryptoPayment(db: AppDb, input: VerifyCryptoInput) {
       .where(eq(cryptoPayments.id, record.id))
       .returning();
 
-    // Trigger notification
+    // Standard order.paid email template (handled by outbox worker) with idempotency key
     await enqueueNotification(tx as never, {
       userId: order.userId,
       channel: 'email',
-      template: 'order_paid_crypto',
+      template: 'order.paid',
       payload: {
+        orderId: order.id,
         orderNumber: order.orderNumber,
-        asset: record.asset,
-        network: record.network,
-        totalCrypto: record.totalCrypto,
-        txHash,
+        guestEmail: order.guestEmail ?? undefined,
       },
-    }).catch(() => null);
+      idempotencyKey: `order.paid:${order.id}`,
+    });
 
-    // Audit log
     await audit(tx as never, {
-      actorId: input.actorId || order.userId || 'system:crypto-gateway',
+      actorId: input.actorId,
       action: 'payment.crypto.completed',
       entityType: 'order',
       entityId: order.id,
@@ -272,11 +295,12 @@ export async function verifyCryptoPayment(db: AppDb, input: VerifyCryptoInput) {
   });
 }
 
-export async function getCryptoPaymentStatus(db: AppDb, paymentId: string) {
+export async function getCryptoPaymentStatus(db: AppDb, paymentId: string, auth: CryptoStatusAuth = {}) {
   const [record] = await db
     .select({
       id: cryptoPayments.id,
       orderId: cryptoPayments.orderId,
+      orderUserId: orders.userId,
       asset: cryptoPayments.asset,
       network: cryptoPayments.network,
       depositAddress: cryptoPayments.depositAddress,
@@ -301,12 +325,21 @@ export async function getCryptoPaymentStatus(db: AppDb, paymentId: string) {
 
   if (!record) throw Errors.notFound('Crypto payment not found.');
 
+  if (!auth.isAdmin) {
+    const ownsUser = Boolean(record.orderUserId && auth.userId && record.orderUserId === auth.userId);
+    const ownsGuest = !record.orderUserId && Boolean(await requireGuestOrder(db, record.orderId, auth.guestToken).catch(() => null));
+    if (!ownsUser && !ownsGuest) {
+      throw Errors.notFound('Crypto payment not found.');
+    }
+  }
+
   const now = Date.now();
   const isExpired = record.status === 'PENDING' && now > record.expiresAt.getTime();
   const secondsRemaining = Math.max(0, Math.floor((record.expiresAt.getTime() - now) / 1000));
+  const { orderUserId: _hidden, ...publicRecord } = record;
 
   return {
-    ...record,
+    ...publicRecord,
     isExpired,
     secondsRemaining,
   };
@@ -360,18 +393,17 @@ function getExplorerUrl(network: CryptoNetwork, txHash?: string | null): string 
   }
 }
 
-/** Verifies crypto webhook signature using HMAC-SHA256 if secret is configured. */
+/** Verifies crypto webhook signature using HMAC-SHA256; ALWAYS fails closed if secret is unset. */
 export function verifyCryptoWebhookSignature(
   rawBody: string,
   signatureHeader: string | null,
-  secret: string
+  secret: string,
 ): boolean {
-  if (!secret) return true; // development mode allows unsigned callbacks
-  if (!signatureHeader) return false;
+  if (!secret || !secret.trim() || !signatureHeader) return false;
   try {
     const expected = createHmac('sha256', secret).update(rawBody).digest('hex');
-    const a = Buffer.from(signatureHeader.replace(/^sha256=/, ''));
-    const b = Buffer.from(expected);
+    const a = Buffer.from(signatureHeader.replace(/^sha256=/i, '').trim(), 'utf8');
+    const b = Buffer.from(expected, 'utf8');
     return a.length === b.length && timingSafeEqual(a, b);
   } catch {
     return false;

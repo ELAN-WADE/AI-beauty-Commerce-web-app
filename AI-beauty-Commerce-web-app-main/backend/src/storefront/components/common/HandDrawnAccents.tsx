@@ -167,7 +167,7 @@ export const ApothecaryPuritySeal: React.FC<{ className?: string; size?: number 
       </text>
     </svg>
     <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-      <span className="text-[8px] font-mono font-bold text-[#997A2E] leading-none">PURE</span>
+      <span className="text-[8px] font-mono font-semibold text-[#997A2E] leading-none">PURE</span>
       <span className="text-[6.5px] font-mono text-[#6B7280] leading-none mt-0.5">LAB</span>
     </div>
   </div>

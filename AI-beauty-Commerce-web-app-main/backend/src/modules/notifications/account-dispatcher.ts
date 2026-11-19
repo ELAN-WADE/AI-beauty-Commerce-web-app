@@ -21,12 +21,13 @@ export async function dispatchAccountEmails(db: AppDb, sender: EmailSender, opti
           const message = await pendingAccountEmail(db, row);
           if (!message) { await discardAuthEmail(db, row.id); continue; }
           await sender.send(message);
-          await markSent(db, row.id);
+          await markSent(db, row.id, { provider: sender.name, messageId: sender.lastMessageId });
           console.log(JSON.stringify({ scope: 'auth-email-worker', status: 'sent', template: row.template }));
         } catch (error) {
-          await markFailed(db, row.id);
           const code = (error as { code?: string }).code;
-          console.error(JSON.stringify({ scope: 'auth-email-worker', status: 'retry_scheduled', template: row.template, code: code && /^[A-Z_]+$/.test(code) ? code : 'DELIVERY_ERROR' }));
+          const safeCode = code && /^[A-Z_]+$/.test(code) ? code : 'DELIVERY_ERROR';
+          await markFailed(db, row.id, safeCode);
+          console.error(JSON.stringify({ scope: 'auth-email-worker', status: 'retry_scheduled', template: row.template, code: safeCode }));
         }
       }
     } catch {

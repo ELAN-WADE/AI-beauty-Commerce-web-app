@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/db/client';
-import { clientIp, Errors, readJson, toErrorResponse } from '@/lib/errors';
-import { checkRateLimit, Limits } from '@/lib/rate-limit';
+import { clientIp, enforceOrigin, Errors, readJson, toErrorResponse } from '@/lib/errors';
+import { checkSharedRateLimit, Limits } from '@/lib/rate-limit';
 import { requirePerm } from '@/lib/admin';
 import { audit } from '@/modules/audit/service';
-import { reviewApplication } from '@/modules/distributors/service';
+import { markApplicationUnderReview, reviewApplication } from '@/modules/distributors/service';
 import { reviewApplicationSchema } from '@/modules/distributors/validation';
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -12,16 +12,27 @@ type Ctx = { params: Promise<{ id: string }> };
 export async function POST(req: Request, { params }: Ctx) {
   const requestId = req.headers.get('x-request-id') ?? crypto.randomUUID();
   try {
-    const rl = checkRateLimit(`admin:${clientIp(req)}`, Limits.admin);
+    enforceOrigin(req);
+    const db = getDb();
+    const rl = await checkSharedRateLimit(db, `admin:${clientIp(req)}`, Limits.admin);
     if (!rl.allowed) throw Errors.rateLimited(60);
     const { id } = await params;
-    const db = getDb();
-     const ctx = await requirePerm(db, 'partners:review');
+    const ctx = await requirePerm(db, 'partners:review');
     const input = reviewApplicationSchema.parse(await readJson(req));
-    const result = await db.transaction(async tx => {
-      const result = await reviewApplication(tx, { applicationId: id, adminId: ctx.userId, ...input });
+    const result = await db.transaction(async (tx) => {
+      if (input.action === 'under_review') {
+        const res = await markApplicationUnderReview(tx, { applicationId: id, adminId: ctx.userId, note: input.note });
+        await audit(tx, { actorId: ctx.userId, action: 'distributor.under_review', entityType: 'distributor_application', entityId: id, after: { status: 'under_review' }, ip: clientIp(req), requestId });
+        return res;
+      }
+      const res = await reviewApplication(tx, {
+        applicationId: id,
+        adminId: ctx.userId,
+        approve: Boolean(input.approve),
+        note: input.note,
+      });
       await audit(tx, { actorId: ctx.userId, action: input.approve ? 'distributor.approve' : 'distributor.reject', entityType: 'distributor_application', entityId: id, after: { approve: input.approve }, ip: clientIp(req), requestId });
-      return result;
+      return res;
     });
     const res = NextResponse.json(result);
     res.headers.set('x-request-id', requestId);

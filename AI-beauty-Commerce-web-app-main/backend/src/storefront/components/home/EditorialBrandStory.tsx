@@ -47,7 +47,7 @@ export const EditorialBrandStory: React.FC<EditorialBrandStoryProps> = ({
               <p className="text-[10px] font-mono uppercase tracking-[0.25em] text-[#8E8E93] font-semibold">
                 Our Philosophy
               </p>
-              <h2 className="font-heading font-extrabold text-section-fluid text-[#0F0F10] tracking-tight leading-tight">{brandStory.heading}</h2>
+              <h2 className="font-heading font-semibold text-section-fluid text-[#0F0F10] tracking-tight leading-tight">{brandStory.heading}</h2>
             </div>
 
             <div className="space-y-2.5 text-xs sm:text-[13px] text-[#4B5563] leading-relaxed font-normal">
@@ -60,7 +60,7 @@ export const EditorialBrandStory: React.FC<EditorialBrandStoryProps> = ({
               <button
                 type="button"
                 onClick={onLearnMoreClick}
-                className="inline-flex items-center gap-1.5 text-xs font-heading font-semibold text-[#0F0F10] hover:text-[#997A2E] transition-colors cursor-pointer group hover-underline-minimal"
+                className="inline-flex items-center gap-1.5 text-xs font-heading font-medium text-[#0F0F10] hover:text-[#997A2E] transition-colors cursor-pointer group hover-underline-minimal"
               >
                 <span>Discover Our Botanical Standards</span>
                 <ArrowRight size={13} weight="bold" className="text-[#0F0F10] group-hover:translate-x-0.5 transition-transform" aria-hidden="true" />

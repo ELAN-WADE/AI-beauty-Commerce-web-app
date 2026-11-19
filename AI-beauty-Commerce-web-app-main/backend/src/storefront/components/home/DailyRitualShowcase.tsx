@@ -1,3 +1,4 @@
+import { animateToBag } from '../../lib/cart-motion';
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { ArrowRight, Check } from '@phosphor-icons/react';
@@ -16,10 +17,11 @@ export const DailyRitualShowcase: React.FC<DailyRitualShowcaseProps> = ({
   const [activeStep, setActiveStep] = useState(0);
   const [justAdded, setJustAdded] = useState(false);
 
-  const steps = routineSteps.filter(step => step.isActive !== false).flatMap((step, index) => { const product = products.find(product => product.id === (step.associatedProductId || step.productId)); return product ? [{ number: step.number || String(index + 1).padStart(2, '0'), title: step.title, productName: product.name, price: product.price, image: step.image || product.image, discipline: step.tagline, description: step.description }] : []; });
+  const steps = routineSteps.filter(step => step.isActive !== false).flatMap((step, index) => { const product = products.find(product => product.id === (step.associatedProductId || step.productId)); return product ? [{ number: step.number || String(index + 1).padStart(2, '0'), title: step.title, productName: product.name, price: product.variants?.find(variant => variant.sizeLabel === product.sizes[0])?.priceNgn ?? product.price, image: step.image || product.image, discipline: step.tagline, description: step.description }] : []; });
 
-  const handleAddBundle = () => {
+  const handleAddBundle = (event: React.MouseEvent<HTMLButtonElement>) => {
     if (!onAddCompleteRoutine()) return;
+    animateToBag(event.currentTarget);
     setJustAdded(true);
     setTimeout(() => setJustAdded(false), 2000);
   };
@@ -41,7 +43,7 @@ export const DailyRitualShowcase: React.FC<DailyRitualShowcaseProps> = ({
                 src={selectedStep.image}
                 alt={selectedStep.title}
                 sizes="(max-width: 768px) 100vw, 550px"
-                className="w-full h-full object-cover transition-opacity duration-300 ease-out"
+                className="w-full h-full object-cover desla-stage"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
 
@@ -51,7 +53,7 @@ export const DailyRitualShowcase: React.FC<DailyRitualShowcaseProps> = ({
                   {selectedStep.discipline}
                 </span>
                 <span className="frosted-glass-scrim px-2.5 py-0.5 rounded-full font-mono text-[9.5px] text-gray-200">
-                  Step {selectedStep.number} of 03
+                  Step {selectedStep.number} of {steps.length}
                 </span>
               </div>
             </div>
@@ -63,7 +65,7 @@ export const DailyRitualShowcase: React.FC<DailyRitualShowcaseProps> = ({
               <p className="text-[10px] font-mono uppercase tracking-[0.25em] text-[#8E8E93] font-semibold">
                 The Daily Ritual
               </p>
-              <h2 className="font-heading font-extrabold text-section-fluid text-[#0F0F10] tracking-tight">
+              <h2 className="font-heading font-semibold text-section-fluid text-[#0F0F10] tracking-tight">
                 Your Everyday Regimen.
               </h2>
               <p className="text-xs text-[#6B7280] max-w-md font-normal">
@@ -101,7 +103,7 @@ export const DailyRitualShowcase: React.FC<DailyRitualShowcaseProps> = ({
                         ₦{step.price.toLocaleString('en-NG')}
                       </span>
                     </div>
-                    <h3 className="font-heading font-bold text-xs sm:text-[13px] text-[#0F0F10] mt-0.5">
+                    <h3 className="font-heading font-semibold text-xs sm:text-[13px] text-[#0F0F10] mt-0.5">
                       {step.productName}
                     </h3>
                     <p className="text-[11px] text-[#6B7280] mt-0.5 leading-relaxed font-normal">
@@ -117,7 +119,7 @@ export const DailyRitualShowcase: React.FC<DailyRitualShowcaseProps> = ({
               <button
                 type="button"
                 onClick={handleAddBundle}
-                className="px-5 py-2.5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-heading font-semibold micro-press shadow-2xs flex items-center justify-center gap-2 cursor-pointer"
+                className="px-5 py-2.5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-heading font-medium micro-press shadow-2xs flex items-center justify-center gap-2 cursor-pointer"
               >
                 {justAdded ? (
                   <>
@@ -126,7 +128,7 @@ export const DailyRitualShowcase: React.FC<DailyRitualShowcaseProps> = ({
                   </>
                 ) : (
                   <>
-                    <span>Add Complete Routine • ₦54,000</span>
+                    <span>Add complete routine · ₦{steps.reduce((total, step) => total + step.price, 0).toLocaleString('en-NG')}</span>
                     <ArrowRight size={12} weight="bold" className="text-[#D4AF37]" aria-hidden="true" />
                   </>
                 )}
@@ -135,7 +137,7 @@ export const DailyRitualShowcase: React.FC<DailyRitualShowcaseProps> = ({
               <button
                 type="button"
                 onClick={onExploreSkincare}
-                className="px-4 py-2.5 rounded-full frosted-glass-pill hover:bg-white text-[#0F0F10] text-xs font-heading font-semibold transition-colors micro-press flex items-center justify-center cursor-pointer"
+                className="px-4 py-2.5 rounded-full frosted-glass-pill hover:bg-white text-[#0F0F10] text-xs font-heading font-medium transition-colors micro-press flex items-center justify-center cursor-pointer"
               >
                 <span>View Skincare Formulations</span>
               </button>

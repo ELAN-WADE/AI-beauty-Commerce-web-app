@@ -71,10 +71,10 @@ export const DistributorSettings: React.FC = () => {
       />
 
       <div className="hidden md:block pb-2 border-b border-[#E5E7EB]">
-        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
+        <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-[#997A2E]">
           Hub Configuration • {selectedCity || 'Lagos'}
         </span>
-        <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-[#0F0F10]">
+        <h1 className="font-heading font-bold text-2xl sm:text-3xl text-[#0F0F10]">
           Distributor Hub Settings
         </h1>
         <p className="text-xs sm:text-sm text-[#6B7280] mt-0.5">
@@ -88,10 +88,10 @@ export const DistributorSettings: React.FC = () => {
       <form onSubmit={handleSave} className="space-y-6">
         {/* Hub Profile */}
         <div className="p-6 rounded-3xl bg-white border border-[#E5E7EB] shadow-xs space-y-4">
-          <h2 className="font-heading font-bold text-base text-[#0F0F10]">City Hub Profile &amp; Pickup Point</h2>
+          <h2 className="font-heading font-semibold text-base text-[#0F0F10]">City Hub Profile &amp; Pickup Point</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-[11px] font-bold text-[#0F0F10] block mb-1">Hub Name</label>
+              <label className="text-[11px] font-medium text-[#0F0F10] block mb-1">Hub Name</label>
               <input
                 type="text"
                 aria-label="Hub name" value={hubName}
@@ -101,7 +101,7 @@ export const DistributorSettings: React.FC = () => {
               />
             </div>
             <div>
-              <label className="text-[11px] font-bold text-[#0F0F10] block mb-1">Dispatch WhatsApp / Phone</label>
+              <label className="text-[11px] font-medium text-[#0F0F10] block mb-1">Dispatch WhatsApp / Phone</label>
               <input
                 type="tel"
                 aria-label="Hub phone" value={phone}
@@ -111,7 +111,7 @@ export const DistributorSettings: React.FC = () => {
               />
             </div>
             <div className="sm:col-span-2">
-              <label className="text-[11px] font-bold text-[#0F0F10] block mb-1">Customer Pickup &amp; Warehousing Address</label>
+              <label className="text-[11px] font-medium text-[#0F0F10] block mb-1">Customer Pickup &amp; Warehousing Address</label>
               <input
                 type="text"
                 aria-label="Hub address" value={address}
@@ -121,7 +121,7 @@ export const DistributorSettings: React.FC = () => {
               />
             </div>
             <div className="sm:col-span-2">
-              <label className="text-[11px] font-bold text-[#0F0F10] block mb-1">Operating Hours</label>
+              <label className="text-[11px] font-medium text-[#0F0F10] block mb-1">Operating Hours</label>
               <input
                 type="text"
                 aria-label="Hub operating hours" value={operatingHours}
@@ -157,17 +157,17 @@ export const DistributorSettings: React.FC = () => {
         {/* Settlement Bank */}
         <div className="p-6 rounded-3xl bg-white border border-[#E5E7EB] shadow-xs space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="font-heading font-bold text-base text-[#0F0F10]">
+            <h2 className="font-heading font-semibold text-base text-[#0F0F10]">
               Wholesale Settlement Bank Account
             </h2>
-            <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
+            <span className="text-[10px] font-mono font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
               <CheckCircle2 size={12} /> {bankVerified ? 'Verified' : 'Awaiting verification'}
             </span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-[11px] font-bold text-[#0F0F10] block mb-1">Bank Name</label>
+              <label className="text-[11px] font-medium text-[#0F0F10] block mb-1">Bank Name</label>
               <input
                 type="text"
                 value={bankName}
@@ -176,7 +176,7 @@ export const DistributorSettings: React.FC = () => {
               />
             </div>
             <div>
-              <label className="text-[11px] font-bold text-[#0F0F10] block mb-1">Account Number</label>
+              <label className="text-[11px] font-medium text-[#0F0F10] block mb-1">Account Number</label>
               <input
                 type="text"
                 value={accountNumber}
@@ -196,7 +196,7 @@ export const DistributorSettings: React.FC = () => {
         <div className="flex justify-end pt-2">
           <button
             type="submit" disabled={saving}
-            className="px-8 py-3 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-bold shadow-xs active:scale-[0.97] transition-all cursor-pointer flex items-center gap-2"
+            className="px-8 py-3 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-medium shadow-xs active:scale-[0.97] transition-all cursor-pointer flex items-center gap-2"
           >
             {saved ? (
               <>

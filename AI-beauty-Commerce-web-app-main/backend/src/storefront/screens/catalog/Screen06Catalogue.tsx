@@ -1,7 +1,9 @@
 import React, { useState, useMemo } from 'react';
+import { motion } from 'motion/react';
 import { SlidersHorizontal, ArrowUpDown } from '../../components/common/SolidIcons';
 import { useApp } from '../../context/AppContext';
 import { ProductCard } from '../../components/common/ProductCard';
+import { DESLA_EASE_OUT } from '../../components/motion/DeslaMotion';
 
 export const Screen06Catalogue: React.FC = () => {
   const {
@@ -18,7 +20,7 @@ export const Screen06Catalogue: React.FC = () => {
   } = useApp();
 
   const visualCategories = [
-    { label: 'All Range', value: 'All', image: 'https://images.unsplash.com/photo-1608248597359-0c679234b4c7?auto=format&fit=crop&w=400&q=80' },
+    { label: 'All Range', value: 'All', image: '/artwork/collection-seasonal-editorial.webp' },
     { label: 'Skin Care', value: 'skincare', image: '/cat_skincare.jpg' },
     { label: 'Body Rituals', value: 'body-care', image: '/cat_bodycare.jpg' },
     { label: 'Haute Fragrance', value: 'fragrance', image: '/cat_fragrance.jpg' },
@@ -79,25 +81,27 @@ export const Screen06Catalogue: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start border-b border-[#E5E7EB] pb-5">
           {/* Left Column (lg:col-span-6): Categories */}
           <div className="lg:col-span-6 space-y-3">
-            <h1 className="font-heading font-extrabold text-2xl text-[#0F0F10] tracking-tight">
+            <h1 className="font-heading font-semibold text-2xl text-[#0F0F10] tracking-tight">
               Categories
             </h1>
 
-            {/* Circular Categories Strip */}
-            <div className="flex items-center gap-3.5 sm:gap-4 overflow-x-auto no-scrollbar scroll-smooth py-1">
+            {/* Circular Categories Strip with Traveling Highlight */}
+            <div className="flex items-center gap-3.5 sm:gap-4 overflow-x-auto no-scrollbar scroll-smooth py-1.5">
               {visualCategories.map((cat) => {
                 const isActive = selectedCategory.toLowerCase() === cat.value.toLowerCase();
                 return (
                   <button
                     key={cat.value}
+                    type="button"
+                    aria-pressed={isActive}
                     onClick={() => setSelectedCategory(cat.value)}
-                    className="flex flex-col items-center gap-1.5 group cursor-pointer focus:outline-none transition-transform active:scale-95 shrink-0"
+                    className="relative flex flex-col items-center gap-1.5 pb-2 group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B89248] rounded-xl transition-transform active:scale-95 shrink-0"
                   >
                     <div
-                      className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden p-0.5 transition-all duration-300 ${
+                      className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden p-0.5 transition-all duration-250 ${
                         isActive
-                          ? 'ring-2 ring-[#D4AF37] ring-offset-2 scale-105 shadow-xs'
-                          : 'border border-[#E5E7EB] hover:border-[#D4AF37]/60 opacity-80 group-hover:opacity-100 group-hover:scale-105'
+                          ? 'ring-2 ring-[#111111] ring-offset-2 scale-[1.03] shadow-xs'
+                          : 'border border-[#EAE5DC] hover:border-[#B89248]/70 opacity-80 group-hover:opacity-100'
                       }`}
                     >
                       <img
@@ -111,14 +115,22 @@ export const Screen06Catalogue: React.FC = () => {
                       />
                     </div>
                     <span
-                      className={`text-[11px] whitespace-nowrap transition-colors ${
+                      className={`text-[11px] whitespace-nowrap transition-colors duration-200 ${
                         isActive
-                          ? 'font-bold text-[#0F0F10]'
-                          : 'font-medium text-[#6B7280] group-hover:text-[#0F0F10]'
+                          ? 'font-medium text-[#111111]'
+                          : 'font-normal text-[#6E6A63] group-hover:text-[#111111]'
                       }`}
                     >
                       {cat.label}
                     </span>
+                    {isActive && (
+                      <motion.span
+                        layoutId="catalogue-category-indicator"
+                        transition={{ duration: 0.26, ease: DESLA_EASE_OUT }}
+                        className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full bg-[#B89248]"
+                        aria-hidden="true"
+                      />
+                    )}
                   </button>
                 );
               })}
@@ -129,7 +141,7 @@ export const Screen06Catalogue: React.FC = () => {
           {routineSteps.length > 0 && (<div className="lg:col-span-6 space-y-3 lg:border-l lg:border-[#E5E7EB] lg:pl-8">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h2 className="font-heading font-bold text-base text-[#0F0F10] tracking-tight">
+                <h2 className="font-heading font-semibold text-base text-[#0F0F10] tracking-tight">
                   Published Routine
                 </h2>
                 <div className="text-xs text-[#6B7280] mt-0.5">
@@ -177,13 +189,13 @@ export const Screen06Catalogue: React.FC = () => {
                   }}
                 />
                 <div className="min-w-0">
-                  <span className="text-[10px] font-mono text-[#997A2E] font-bold tracking-wider block">
+                  <span className="text-[10px] font-mono text-[#997A2E] font-semibold tracking-wider block">
                     {routineSteps[Math.min(activeRoutineIndex, routineSteps.length - 1)].step}
                   </span>
-                  <h3 className="font-heading font-bold text-xs sm:text-sm text-[#0F0F10] truncate mt-0.5">
+                  <h3 className="font-heading font-medium text-xs sm:text-sm text-[#0F0F10] truncate mt-0.5">
                     {routineSteps[Math.min(activeRoutineIndex, routineSteps.length - 1)].title}
                   </h3>
-                  <span className="text-xs font-bold font-price text-[#0F0F10] block mt-0.5">
+                  <span className="text-xs font-semibold font-price text-[#0F0F10] block mt-0.5">
                     ₦{routineSteps[Math.min(activeRoutineIndex, routineSteps.length - 1)].price.toLocaleString('en-NG')}
                   </span>
                   <span className="text-[11px] text-[#6B7280] font-medium mt-0.5 truncate block max-w-xs">
@@ -192,21 +204,32 @@ export const Screen06Catalogue: React.FC = () => {
                 </div>
               </div>
 
-              {/* Step Navigation Dots / Indicators */}
-              <div className="flex flex-col gap-1.5 shrink-0 items-center">
-                {routineSteps.map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setActiveRoutineIndex(idx)}
-                    className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-mono font-bold transition-all cursor-pointer ${
-                      activeRoutineIndex === idx
-                        ? 'bg-[#0F0F10] text-white shadow-xs'
-                        : 'text-[#6B7280] hover:text-[#0F0F10]'
-                    }`}
-                  >
-                    0{idx + 1}
-                  </button>
-                ))}
+              {/* Step Navigation Dots / Indicators with Traveling Highlight */}
+              <div className="flex flex-col gap-1 shrink-0 items-center p-1 rounded-full bg-[#F5F2EB] border border-[#EAE5DC]">
+                {routineSteps.map((_, idx) => {
+                  const active = activeRoutineIndex === idx;
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => setActiveRoutineIndex(idx)}
+                      className={`relative w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-mono font-medium transition-colors duration-200 cursor-pointer ${
+                        active ? 'text-white' : 'text-[#6E6A63] hover:text-[#111111]'
+                      }`}
+                    >
+                      {active && (
+                        <motion.span
+                          layoutId="catalogue-routine-step-pill"
+                          transition={{ duration: 0.24, ease: DESLA_EASE_OUT }}
+                          className="absolute inset-0 rounded-full bg-[#111111] ring-1 ring-[#B89248]/50"
+                          aria-hidden="true"
+                        />
+                      )}
+                      <span className="relative z-10">0{idx + 1}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>)}
@@ -216,14 +239,15 @@ export const Screen06Catalogue: React.FC = () => {
         <div className="flex items-center justify-between gap-2 py-1">
           <div className="flex items-center gap-3">
             <button
+              type="button"
               onClick={() => setIsFilterSheetOpen(true)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-[#E5E7EB] text-xs font-heading font-bold text-[#0F0F10] hover:bg-[#FAF9F6] active-press transition-colors shadow-2xs cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-[#E5E7EB] text-xs font-medium text-[#0F0F10] hover:bg-[#FAF9F6] active-press transition-colors shadow-2xs cursor-pointer"
             >
               <SlidersHorizontal size={14} className="text-[#D4AF37]" />
               <span>Filters</span>
             </button>
             <span className="text-xs text-[#6B7280]">
-              Showing <strong className="text-[#0F0F10]">{filtered.length}</strong> formulations
+              Showing <strong className="font-semibold text-[#0F0F10]">{filtered.length}</strong> formulations
             </span>
           </div>
 
@@ -231,9 +255,10 @@ export const Screen06Catalogue: React.FC = () => {
           <div className="flex items-center gap-2 text-xs text-[#6B7280]">
             <ArrowUpDown size={14} className="text-[#997A2E]" />
             <select
+              aria-label="Sort formulations"
               value={sortOption}
               onChange={(e) => setSortOption(e.target.value as any)}
-              className="bg-white border border-[#E5E7EB] text-xs font-heading font-bold text-[#0F0F10] rounded-xl px-3 py-1.5 focus:outline-none focus:border-[#D4AF37] cursor-pointer shadow-2xs"
+              className="bg-white border border-[#E5E7EB] text-xs font-medium text-[#0F0F10] rounded-xl px-3 py-1.5 focus:outline-none focus:border-[#D4AF37] cursor-pointer shadow-2xs"
             >
               <option value="featured">Featured / Best Sellers</option>
               <option value="newest">Newest Formulations</option>
@@ -246,22 +271,39 @@ export const Screen06Catalogue: React.FC = () => {
 
         {/* Product Grid */}
         {filtered.length === 0 ? (
-          <div className="py-20 text-center space-y-3">
-            <h3 className="font-heading font-extrabold text-xl text-[#0F0F10]">No Formulations Found</h3>
-            <p className="text-xs text-[#6B7280]">Try clearing or changing your filters.</p>
+          <div className="py-16 text-center space-y-4 max-w-sm mx-auto">
+            <img
+              src="/artwork/empty-state-apothecary.webp"
+              alt=""
+              width={800}
+              height={600}
+              loading="lazy"
+              className="w-40 h-32 object-cover rounded-2xl mx-auto border border-[#E5E7EB]/70"
+            />
+            <div className="space-y-1">
+              <h3 className="font-heading font-semibold text-xl text-[#0F0F10]">No Formulations Found</h3>
+              <p className="text-xs font-normal text-[#6B7280]">Try clearing or changing your filters to view available inventory.</p>
+            </div>
             <button
+              type="button"
               onClick={() => setSelectedCategory('All')}
-              className="px-6 py-2.5 rounded-full bg-[#0F0F10] text-white hover:bg-[#D4AF37] hover:text-[#0F0F10] font-heading font-bold text-xs active-press transition-colors cursor-pointer shadow-xs"
+              className="px-6 py-2.5 rounded-full bg-[#0F0F10] text-white hover:bg-[#27272A] font-heading font-semibold text-xs active-press transition-colors cursor-pointer shadow-xs"
             >
               Reset Filters
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-4 md:gap-5 pt-1">
+          <motion.div
+            key={`${selectedCategory}:${sortOption}`}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.22, ease: DESLA_EASE_OUT }}
+            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-4 md:gap-5 pt-1"
+          >
             {filtered.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
-          </div>
+          </motion.div>
         )}
       </main>
     </div>

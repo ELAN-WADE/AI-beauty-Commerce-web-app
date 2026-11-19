@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import {
   ShoppingBag,
   Trash,
@@ -88,12 +89,19 @@ const Screen09CartContent: React.FC = () => {
     return (
       <div className="min-h-screen bg-[#FAF9F6] text-[#0F0F10] pb-28 lg:pb-16 font-body flex flex-col items-center justify-center px-6">
         <div className="max-w-sm w-full text-center space-y-5">
-          <ShoppingBag size={40} weight="fill" className="mx-auto text-[#0F0F10]/25" aria-hidden="true" />
+          <img
+            src="/artwork/empty-state-apothecary.webp"
+            alt=""
+            width={800}
+            height={600}
+            loading="lazy"
+            className="w-44 h-36 object-cover rounded-2xl mx-auto border border-[#E5E7EB]/80 shadow-2xs"
+          />
           <div className="space-y-1.5">
             <h1 className="font-heading font-semibold text-xl sm:text-2xl text-[#0F0F10] tracking-tight">
               Your Shopping Bag Is Empty
             </h1>
-            <p className="text-sm text-[#6B7280] leading-relaxed">
+            <p className="text-sm font-normal text-[#6B7280] leading-relaxed">
               Explore natural formulations calibrated for daily skin balance and barrier strength.
             </p>
           </div>
@@ -165,11 +173,17 @@ const Screen09CartContent: React.FC = () => {
 
             {/* Clean Editorial Line Items List */}
             <ul className="divide-y divide-[#E5E7EB]">
+              <AnimatePresence initial={false}>
               {cartItems.map((item) => {
                 const variantLabel = item.size && item.size !== 'Standard' ? item.size : 'Full Size';
                 return (
-                  <li
+                  <motion.li
                     key={`${item.productId}-${item.size}`}
+                    layout
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
                     className="py-5 first:pt-1 flex gap-4 sm:gap-5 items-start"
                   >
                     {/* Proportional Product Photograph */}
@@ -237,9 +251,10 @@ const Screen09CartContent: React.FC = () => {
                         </button>
                       </div>
                     </div>
-                  </li>
+                  </motion.li>
                 );
               })}
+              </AnimatePresence>
             </ul>
 
             {/* Editorial Pairings */}

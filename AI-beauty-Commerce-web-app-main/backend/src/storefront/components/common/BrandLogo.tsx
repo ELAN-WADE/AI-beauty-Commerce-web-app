@@ -16,10 +16,10 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
   onClick,
 }) => {
   const heightClasses = {
-    sm: 'h-6 sm:h-7',
-    md: 'h-8 sm:h-9',
-    lg: 'h-11 sm:h-12',
-    xl: 'h-14 sm:h-16',
+    sm: 'h-6',
+    md: 'h-7 sm:h-8',
+    lg: 'h-10 sm:h-11',
+    xl: 'h-12 sm:h-14',
   };
 
   const logoSrc = {
@@ -29,30 +29,44 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
   }[variant];
 
   const taglineColor = {
-    gold: 'text-[#D4AF37]',
-    white: 'text-white/70',
-    dark: 'text-[#0F0F10] font-bold tracking-[0.22em]',
+    gold: 'text-[#B89248]',
+    white: 'text-white/75',
+    dark: 'text-[#111111] font-medium tracking-[0.2em]',
   };
 
-  return (
-    <div
-      onClick={onClick}
-      className={`inline-flex flex-col select-none cursor-pointer group ${className}`}
-    >
-      <div className="flex items-center">
-        <img
-          src={logoSrc}
-          alt="Desla!â„¢"
-          className={`${heightClasses[size]} w-auto object-contain transition-transform duration-200 group-hover:scale-[1.02]`}
-          loading="eager"
-        />
-      </div>
-
+  const content = (
+    <>
+      <img
+        src={logoSrc}
+        alt="Desla!"
+        className={`${heightClasses[size]} w-auto block object-contain transition-opacity duration-200 group-hover:opacity-85`}
+        loading="eager"
+        decoding="async"
+      />
       {showTagline && (
-        <span className={`text-[8px] sm:text-[8.5px] uppercase font-heading ${taglineColor[variant]} mt-0.5 tracking-[0.22em]`}>
+        <span className={`text-[8px] sm:text-[8.5px] uppercase font-heading ${taglineColor[variant]} mt-0.5`}>
           HEALTH BEFORE BEAUTY
         </span>
       )}
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label="Desla! Homepage"
+        className={`inline-flex flex-col items-start select-none cursor-pointer group bg-transparent border-0 p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B89248] focus-visible:ring-offset-2 rounded-sm ${className}`}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <div className={`inline-flex flex-col items-start select-none group ${className}`}>
+      {content}
     </div>
   );
 };

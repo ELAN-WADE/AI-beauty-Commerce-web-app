@@ -25,7 +25,7 @@ export const FormulationShowcase: React.FC<FormulationShowcaseProps> = ({
         {/* Header & Clean Frosted Category Tabs */}
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-5 sm:mb-6 gap-3">
           <div>
-            <h2 className="font-heading font-extrabold text-xl sm:text-2xl text-[#0F0F10] tracking-tight">
+            <h2 className="font-heading font-semibold text-xl sm:text-2xl text-[#0F0F10] tracking-tight">
               Formulation Essentials
             </h2>
           </div>
@@ -56,7 +56,7 @@ export const FormulationShowcase: React.FC<FormulationShowcaseProps> = ({
           <button
             type="button"
             onClick={onViewAll}
-            className="inline-flex items-center gap-1.5 text-xs font-heading font-semibold text-[#0F0F10] hover:text-[#997A2E] transition-colors cursor-pointer group py-1.5 hover-underline-minimal"
+            className="inline-flex items-center gap-1.5 text-xs font-heading font-medium text-[#0F0F10] hover:text-[#997A2E] transition-colors cursor-pointer group py-1.5 hover-underline-minimal"
           >
             <span>Explore Entire Formulation Catalogue</span>
             <ArrowRight size={13} weight="bold" className="text-[#0F0F10] group-hover:translate-x-0.5 transition-transform" aria-hidden="true" />

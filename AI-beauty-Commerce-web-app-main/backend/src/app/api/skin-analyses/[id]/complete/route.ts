@@ -1,19 +1,22 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/db/client';
-import { clientIp, Errors, toErrorResponse } from '@/lib/errors';
-import { checkRateLimit, Limits } from '@/lib/rate-limit';
+import { clientIp, enforceOrigin, Errors, toErrorResponse } from '@/lib/errors';
+import { checkSharedRateLimit, Limits } from '@/lib/rate-limit';
 import { BulkheadLimits, tryAcquire } from '@/lib/bulkhead';
 import { requireAuth } from '@/modules/auth/require-auth';
 import { completeAnalysis } from '@/modules/skin/service';
 
-/** Step 2 (no body): verify upload → provider → validated result + profile refresh. */
-export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+type Ctx = { params: Promise<{ id: string }> };
+
+/** Step 2 (no body): verify upload → send image to Gemini → validated result + catalog match. */
+export async function POST(req: Request, { params }: Ctx) {
   const requestId = req.headers.get('x-request-id') ?? crypto.randomUUID();
   try {
-    const rl = checkRateLimit(`ai:${clientIp(req)}`, Limits.ai);
+    enforceOrigin(req);
+    const db = getDb();
+    const rl = await checkSharedRateLimit(db, `ai:${clientIp(req)}`, Limits.ai);
     if (!rl.allowed) throw Errors.rateLimited(60);
     const { id } = await params;
-    const db = getDb();
     const ctx = await requireAuth(db);
     const slot = tryAcquire('skin-complete', BulkheadLimits.skin());
     if (!slot) throw Errors.rateLimited(30);

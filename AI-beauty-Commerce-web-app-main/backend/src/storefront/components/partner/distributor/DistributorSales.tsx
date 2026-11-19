@@ -38,7 +38,7 @@ export const DistributorSales: React.FC = () => {
     const encoded = encodeURI(csvContent);
     const a = document.createElement('a');
     a.href = encoded;
-    a.download = `delsla_sales_velocity_${selectedCity || 'hub'}_${timeFilter}.csv`;
+    a.download = `desla_sales_velocity_${selectedCity || 'hub'}_${timeFilter}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -78,10 +78,10 @@ export const DistributorSales: React.FC = () => {
 
       <div className="hidden md:flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E5E7EB]">
         <div>
-          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#997A2E]">
+          <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-[#997A2E]">
             Regional Demand Analytics • {selectedCity || 'Lagos'} Hub
           </span>
-          <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-[#0F0F10]">
+          <h1 className="font-heading font-bold text-2xl sm:text-3xl text-[#0F0F10]">
             Sales &amp; Dispatch Velocity
           </h1>
           <p className="text-xs sm:text-sm text-[#6B7280] mt-0.5">
@@ -91,7 +91,7 @@ export const DistributorSales: React.FC = () => {
 
         <button
           onClick={handleExportCsv}
-          className="px-4 py-2 rounded-full bg-white border border-[#E5E7EB] hover:bg-[#FAF9F6] text-[#0F0F10] text-xs font-bold shadow-xs active:scale-95 transition-all flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
+          className="px-4 py-2 rounded-full bg-white border border-[#E5E7EB] hover:bg-[#FAF9F6] text-[#0F0F10] text-xs font-medium shadow-xs active:scale-95 transition-all flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
         >
           {downloadSuccess ? (
             <>
@@ -131,7 +131,7 @@ export const DistributorSales: React.FC = () => {
       <div className="p-6 rounded-3xl bg-white border border-[#E5E7EB] shadow-xs space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h2 className="font-heading font-bold text-lg text-[#0F0F10]">
+            <h2 className="font-heading font-semibold text-lg text-[#0F0F10]">
               Daily Dispatch Volume (Orders vs Revenue)
             </h2>
             <p className="text-xs text-[#6B7280]">Daily breakdown of fulfilled same-day dispatches across {selectedCity || 'Lagos'}</p>
@@ -141,7 +141,7 @@ export const DistributorSales: React.FC = () => {
               <button
                 key={t}
                 onClick={() => setTimeFilter(t)}
-                className={`px-3 py-1 rounded-full font-bold transition-all cursor-pointer ${
+                className={`px-3 py-1 rounded-full font-semibold transition-all cursor-pointer ${
                   timeFilter === t ? 'bg-[#0F0F10] text-[#D4AF37]' : 'text-[#6B7280]'
                 }`}
               >
@@ -170,7 +170,7 @@ export const DistributorSales: React.FC = () => {
                 className="w-full max-w-10 rounded-t-xl bg-[#0F0F10] group-hover:bg-[#D4AF37] transition-colors"
                 style={{ height: bar.height }}
               />
-              <span className="text-[11px] font-mono text-[#6B7280] font-bold">{bar.day}</span>
+              <span className="text-[11px] font-mono text-[#6B7280] font-semibold">{bar.day}</span>
             </div>
           ))}
         </div>

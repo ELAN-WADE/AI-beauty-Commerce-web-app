@@ -2,7 +2,7 @@ import { createHash, randomBytes, scrypt as scryptCb, type ScryptOptions } from 
 import { and, asc, eq, inArray, isNull, gt, sql } from 'drizzle-orm';
 import type { AppDb, Db } from '../../db/client';
 import { Errors } from '../../lib/errors';
-import { enqueueAuthEmail, enqueueAccountAccessEmail } from './email';
+import { enqueueAuthEmail, enqueueAccountAccessEmail, enqueueCustomerWelcomeEmail } from './email';
 import { adminEmail, hasStaffRole } from './admin-policy';
 import type { SessionScope } from '../../lib/cookies';
 import {
@@ -31,6 +31,10 @@ const KEY_LEN = 64;
 
 const SESSION_TTL_MS =
   Number(process.env.SESSION_TTL_DAYS ?? 30) * 24 * 60 * 60 * 1000;
+const ADMIN_SESSION_TTL_MS =
+  Math.max(1, Number(process.env.ADMIN_SESSION_TTL_HOURS ?? 8)) * 60 * 60 * 1000;
+const ADMIN_IDLE_TIMEOUT_MS =
+  Math.max(5, Number(process.env.ADMIN_IDLE_TIMEOUT_MINUTES ?? 30)) * 60 * 1000;
 const VERIFY_TTL_MS = 24 * 60 * 60 * 1000;
 const RESET_TTL_MS = 60 * 60 * 1000;
 const MAX_FAILED_LOGINS = 5;
@@ -163,6 +167,7 @@ export async function verifyEmail(db: AppDb, rawToken: string): Promise<string> 
     await tx.update(users).set({ emailVerifiedAt: now }).where(eq(users.id, row.userId));
     await tx.update(emailVerificationTokens).set({ consumedAt: now }).where(and(eq(emailVerificationTokens.userId, row.userId), isNull(emailVerificationTokens.consumedAt)));
     await tx.update(userSessions).set({ revokedAt: now }).where(and(eq(userSessions.userId, row.userId), isNull(userSessions.revokedAt)));
+    await enqueueCustomerWelcomeEmail(tx, row.userId);
     return row.userId;
   });
 }
@@ -231,16 +236,20 @@ export async function login(
 
 export async function createSession(db: AppDb, userId: string, meta: SessionMeta = {}) {
   const raw = newRawToken();
-  const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
+  const authScope = meta.authScope ?? 'CUSTOMER';
+  const ttlMs = authScope === 'ADMIN' ? ADMIN_SESSION_TTL_MS : SESSION_TTL_MS;
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + ttlMs);
   await db.insert(userSessions).values({
     userId,
     tokenHash: sha256Hex(raw),
-    authScope: meta.authScope ?? 'CUSTOMER',
+    authScope,
     ip: meta.ip,
     userAgent: meta.userAgent,
+    lastActiveAt: now,
     expiresAt,
   });
-  return { token: raw, expiresAt, authScope: meta.authScope ?? 'CUSTOMER' };
+  return { token: raw, expiresAt, authScope };
 }
 
 /**
@@ -289,6 +298,16 @@ export async function getSessionUser(db: AppDb, rawToken: string | undefined) {
     .limit(1);
   const row = rows[0];
   if (!row) return null;
+  if (row.session.authScope === 'ADMIN') {
+    const idleAnchor = row.session.lastActiveAt ?? row.session.createdAt;
+    if (now.getTime() - idleAnchor.getTime() > ADMIN_IDLE_TIMEOUT_MS) {
+      await db.update(userSessions).set({ revokedAt: now }).where(eq(userSessions.id, row.session.id));
+      return null;
+    }
+    if (now.getTime() - idleAnchor.getTime() > 60_000) {
+      await db.update(userSessions).set({ lastActiveAt: now }).where(eq(userSessions.id, row.session.id));
+    }
+  }
   const roleRows = await db
     .select({ roleId: userRoles.roleId })
     .from(userRoles)

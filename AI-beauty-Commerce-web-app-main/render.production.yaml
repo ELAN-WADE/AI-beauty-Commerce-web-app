@@ -31,8 +31,20 @@ services:
         value: "false"
       - key: AUTH_EMAIL_WORKER_MODE
         value: "external"
+      - key: ADMIN_MFA_REQUIRED
+        value: "true"
+      - key: ADMIN_SESSION_TTL_HOURS
+        value: "8"
+      - key: ADMIN_IDLE_TIMEOUT_MINUTES
+        value: "30"
       - key: EMAIL_TRANSPORT
-        value: "smtp"
+        value: "brevo"
+      - key: BREVO_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: CRYPTO_WEBHOOK_SECRET
+        sync: false
       - key: PAYMENTS_ENABLED
         value: "false"
       - key: CLIENT_IP_HEADER
@@ -95,13 +107,13 @@ services:
         sync: false
 
   - type: worker
-    name: desla-auth-email
+    name: desla-background-worker
     runtime: node
     plan: starter
     rootDir: AI-beauty-Commerce-web-app-main/backend
     autoDeployTrigger: "off"
     buildCommand: npm ci
-    startCommand: npm run worker:auth
+    startCommand: npm run worker
     envVars:
       - key: NODE_VERSION
         value: "22"

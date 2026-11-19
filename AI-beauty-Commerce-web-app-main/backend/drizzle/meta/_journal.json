@@ -197,6 +197,13 @@
       "when": 1794614400000,
       "tag": "0027_partner_referrals",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1795044000000,
+      "tag": "0028_platform_integrity_and_outbox",
+      "breakpoints": true
     }
   ]
 }

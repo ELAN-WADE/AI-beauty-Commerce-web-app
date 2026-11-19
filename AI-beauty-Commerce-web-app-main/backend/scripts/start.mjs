@@ -12,6 +12,7 @@ const child = spawn(nextCmd, ['next', 'start', '-p', port], {
   env: {
     ...process.env,
     DESLA_EMBEDDED_COMMISSIONS: '1',
+    SKIP_PROD_ENV_ASSERT: process.env.RENDER === 'true' ? (process.env.SKIP_PROD_ENV_ASSERT ?? '') : 'true',
     PORT: port,
   },
 });

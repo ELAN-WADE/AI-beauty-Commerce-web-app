@@ -69,11 +69,11 @@ export const Screen05Categories: React.FC = () => {
             >
               <CaretLeft size={20} weight="bold" aria-hidden="true" />
             </button>
-            <h1 className="font-heading font-extrabold tracking-tight text-lg sm:text-xl text-[#0F0F10]">
+            <h1 className="font-heading font-semibold tracking-tight text-lg sm:text-xl text-[#0F0F10]">
               Collections &amp; Pillars
             </h1>
           </div>
-          <span className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-[#997A2E]">
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#997A2E]">
             <StackSimple size={14} weight="fill" aria-hidden="true" />
             <span>{categories.length} Taxonomy Pillars</span>
           </span>
@@ -81,17 +81,29 @@ export const Screen05Categories: React.FC = () => {
       </div>
 
       <main className="max-w-7xl mx-auto px-4 lg:px-8 pt-6 space-y-6">
-        <div className="max-w-2xl">
-          <span className="text-xs font-mono font-bold text-[#997A2E] uppercase tracking-wider">
-            Curated Formulations
-          </span>
-          <h2 className="font-heading font-extrabold tracking-tight text-2xl sm:text-3xl text-[#0F0F10] mt-1">
-            Intentional care for every personal ritual.
-          </h2>
-          <p className="text-xs sm:text-sm text-[#6B7280] mt-1.5 leading-relaxed">
-            From natural barrier body washes and whipped shea butters to extrait perfume oils and velvet lip glazes.
-          </p>
-        </div>
+        {/* Featured Seasonal Collection Editorial Banner */}
+        <section aria-label="Featured Collection" className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center rounded-3xl overflow-hidden bg-[#FAF9F6] border border-[#E5E7EB]">
+          <div className="lg:col-span-6 p-6 sm:p-8 lg:p-10 space-y-3">
+            <span className="text-[11px] font-medium text-[#997A2E] uppercase tracking-[0.2em] block">
+              Curated Formulations
+            </span>
+            <h2 className="font-heading font-semibold tracking-tight text-2xl sm:text-3xl text-[#0F0F10] leading-tight">
+              Intentional care for every personal ritual.
+            </h2>
+            <p className="text-sm font-normal text-[#6B7280] leading-relaxed max-w-lg">
+              From natural barrier body washes and whipped shea butters to extrait perfume oils and velvet lip glazes.
+            </p>
+          </div>
+          <div className="lg:col-span-6 h-52 sm:h-64 lg:h-72 bg-[#F3EEE3]">
+            <img
+              src="/artwork/collection-seasonal-editorial.webp"
+              alt="Desla Beauty skincare bottles and cream jars arranged on sunlit limestone plinths"
+              width={1440}
+              height={810}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        </section>
 
         {categories.length === 0 ? (
           <div className="rounded-3xl bg-[#FAF9F6] border border-[#E5E7EB] p-8 text-center space-y-3">
@@ -127,12 +139,12 @@ export const Screen05Categories: React.FC = () => {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
 
-                  <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-md text-[10.5px] font-mono font-bold text-[#0F0F10] shadow-sm">
+                  <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-md text-[10.5px] font-mono font-semibold text-[#0F0F10] shadow-sm">
                     {cat.itemCount} Formulations
                   </div>
 
                   <div className="absolute bottom-4 left-4 right-4 text-white">
-                    <h3 className="font-heading font-extrabold tracking-tight text-xl sm:text-2xl text-white drop-shadow-sm">
+                    <h3 className="font-heading font-semibold tracking-tight text-xl sm:text-2xl text-white drop-shadow-sm">
                       {cat.name}
                     </h3>
                     <p className="text-xs text-white/80 line-clamp-1 mt-0.5">
@@ -142,7 +154,7 @@ export const Screen05Categories: React.FC = () => {
                 </div>
 
                 <div className="p-4 bg-white flex items-center justify-between">
-                  <span className="text-xs font-bold text-[#0F0F10] group-hover:text-[#997A2E] transition-colors">
+                  <span className="text-xs font-medium text-[#0F0F10] group-hover:text-[#997A2E] transition-colors">
                     Explore {cat.name}
                   </span>
                   <div className="w-8 h-8 rounded-full bg-[#FAF9F6] group-hover:bg-[#0F0F10] group-hover:text-white flex items-center justify-center transition-all text-[#0F0F10] shadow-xs">
