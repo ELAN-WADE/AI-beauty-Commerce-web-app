@@ -3,6 +3,10 @@ import { motion } from 'motion/react';
 import { SlidersHorizontal, ArrowUpDown } from '../../components/common/SolidIcons';
 import { useApp } from '../../context/AppContext';
 import { ProductCard } from '../../components/common/ProductCard';
+import {
+  CircularCategoryChip,
+  SHOP_VISUAL_CATEGORIES,
+} from '../../components/common/CircularCategoryStrip';
 import { DESLA_EASE_OUT } from '../../components/motion/DeslaMotion';
 
 export const Screen06Catalogue: React.FC = () => {
@@ -19,16 +23,7 @@ export const Screen06Catalogue: React.FC = () => {
     addToCartBatch
   } = useApp();
 
-  const visualCategories = [
-    { label: 'All Range', value: 'All', image: '/artwork/collection-seasonal-editorial.webp' },
-    { label: 'Skin Care', value: 'skincare', image: '/cat_skincare.jpg' },
-    { label: 'Body Rituals', value: 'body-care', image: '/cat_bodycare.jpg' },
-    { label: 'Haute Fragrance', value: 'fragrance', image: '/cat_fragrance.jpg' },
-    { label: 'Lip & Color', value: 'makeup', image: '/cat_makeup.jpg' },
-    { label: 'Lifestyle', value: 'lifestyle', image: '/cat_lifestyle.jpg' },
-    { label: 'Sun Defense', value: 'suncare', image: '/product_sunscreen.jpg' },
-    { label: 'Bath & Body', value: 'bath', image: '/routine_01_cleanse.jpg' }
-  ];
+  const visualCategories = SHOP_VISUAL_CATEGORIES;
 
   const [activeRoutineIndex, setActiveRoutineIndex] = useState(1);
   const [showSynergyDetails, setShowSynergyDetails] = useState(false);
@@ -87,53 +82,15 @@ export const Screen06Catalogue: React.FC = () => {
 
             {/* Circular Categories Strip with Traveling Highlight */}
             <div className="flex items-center gap-3.5 sm:gap-4 overflow-x-auto no-scrollbar scroll-smooth py-1.5">
-              {visualCategories.map((cat) => {
-                const isActive = selectedCategory.toLowerCase() === cat.value.toLowerCase();
-                return (
-                  <button
-                    key={cat.value}
-                    type="button"
-                    aria-pressed={isActive}
-                    onClick={() => setSelectedCategory(cat.value)}
-                    className="relative flex flex-col items-center gap-1.5 pb-2 group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B89248] rounded-xl transition-transform active:scale-95 shrink-0"
-                  >
-                    <div
-                      className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden p-0.5 transition-all duration-250 ${
-                        isActive
-                          ? 'ring-2 ring-[#111111] ring-offset-2 scale-[1.03] shadow-xs'
-                          : 'border border-[#EAE5DC] hover:border-[#B89248]/70 opacity-80 group-hover:opacity-100'
-                      }`}
-                    >
-                      <img
-                        src={cat.image}
-                        alt={cat.label}
-                        className="w-full h-full object-cover rounded-full"
-                        loading="lazy"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).src = '/product_barrier_cream.jpg';
-                        }}
-                      />
-                    </div>
-                    <span
-                      className={`text-[11px] whitespace-nowrap transition-colors duration-200 ${
-                        isActive
-                          ? 'font-medium text-[#111111]'
-                          : 'font-normal text-[#6E6A63] group-hover:text-[#111111]'
-                      }`}
-                    >
-                      {cat.label}
-                    </span>
-                    {isActive && (
-                      <motion.span
-                        layoutId="catalogue-category-indicator"
-                        transition={{ duration: 0.26, ease: DESLA_EASE_OUT }}
-                        className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full bg-[#B89248]"
-                        aria-hidden="true"
-                      />
-                    )}
-                  </button>
-                );
-              })}
+              {visualCategories.map((cat) => (
+                <CircularCategoryChip
+                  key={cat.value}
+                  item={cat}
+                  isActive={selectedCategory.toLowerCase() === cat.value.toLowerCase()}
+                  indicatorLayoutId="catalogue-category-indicator"
+                  onClick={() => setSelectedCategory(cat.value)}
+                />
+              ))}
             </div>
           </div>
 

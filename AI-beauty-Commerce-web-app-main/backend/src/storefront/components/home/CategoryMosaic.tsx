@@ -4,6 +4,10 @@ import React, { useMemo } from 'react';
 import { ArrowRight } from '@phosphor-icons/react';
 import { useApp } from '../../context/AppContext';
 import { ElasticReel, type ElasticReelItem } from '../ui/ElasticReel';
+import {
+  MobileCircularCategoryCarousel,
+  SHOP_VISUAL_CATEGORIES,
+} from '../common/CircularCategoryStrip';
 
 interface CategoryMosaicProps {
   onSelectCategory: (category: string) => void;
@@ -125,10 +129,10 @@ export const CategoryMosaic: React.FC<CategoryMosaicProps> = ({
   return (
     <section
       aria-label="Curated Collections"
-      className="py-12 sm:py-16 bg-[#FAF9F6] border-b border-[#E5E7EB]"
+      className="py-8 sm:py-12 md:py-16 bg-[#FAF9F6] border-b border-[#E5E7EB]"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-6 sm:mb-8 gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-4 sm:mb-8 gap-2.5 sm:gap-3">
           <div className="max-w-xl">
             <p className="text-[11px] font-mono uppercase tracking-[0.2em] text-[#997A2E] font-semibold">
               Curated Collections
@@ -153,27 +157,38 @@ export const CategoryMosaic: React.FC<CategoryMosaicProps> = ({
           </button>
         </div>
 
-        <ElasticReel
-          items={collectionItems}
-          barWidth={59}
-          barHeight={0.27}
-          gap={10}
-          radius={12}
-          magnify={2.4}
-          lift={1.15}
-          elasticity={0.35}
-          align="center"
-          autoplay="sweep"
-          speed={1.4}
-          draggable
-          pauseOnHover
-          wheel={false}
-          captions
-          labels
-          onItemClick={(item) => {
-            if (item.category) onSelectCategory(item.category);
-          }}
-        />
+        {/* Mobile (< md): Circular Shop Categories in a Seamless Auto-Moving Horizontal Carousel */}
+        <div className="md:hidden">
+          <MobileCircularCategoryCarousel
+            items={SHOP_VISUAL_CATEGORIES}
+            onSelect={onSelectCategory}
+          />
+        </div>
+
+        {/* Desktop (>= md): Preserved Editorial ElasticReel Curated Collections */}
+        <div className="hidden md:block">
+          <ElasticReel
+            items={collectionItems}
+            barWidth={59}
+            barHeight={0.27}
+            gap={10}
+            radius={12}
+            magnify={2.4}
+            lift={1.15}
+            elasticity={0.35}
+            align="center"
+            autoplay="sweep"
+            speed={1.4}
+            draggable
+            pauseOnHover
+            wheel={false}
+            captions
+            labels
+            onItemClick={(item) => {
+              if (item.category) onSelectCategory(item.category);
+            }}
+          />
+        </div>
       </div>
     </section>
   );

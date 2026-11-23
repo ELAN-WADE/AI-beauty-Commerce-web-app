@@ -183,9 +183,19 @@ export default function SkinAnalysisExperience() {
 
         <div className="skin-scan-back"><Link href="/skin-analysis">Back to skin analysis</Link><span>PHOTO REVIEW / 02</span></div>
 
+        <nav className="skin-scan-mobile-steps" aria-label="Skin analysis steps">
+          <Link href="/skin-analysis" className="skin-step skin-step-done">
+            <span className="skin-step-num">01</span> Preview
+          </Link>
+          <span className="skin-step-line skin-step-line-complete" aria-hidden="true" />
+          <span className="skin-step skin-step-active" aria-current="step">
+            <span className="skin-step-num">02</span> AI Review
+          </span>
+        </nav>
+
         <section className="skin-workspace" id="try-scan" aria-labelledby="try-title">
 
-          <div className="skin-workspace-heading"><span className="skin-eyebrow">YOUR SKIN, A LITTLE CLEARER</span><h1 id="try-title">Try your skin scan</h1><p>Use a clear photo of your face in natural light, without filters. This is cosmetic guidance, not a medical diagnosis.</p></div>
+          <div className="skin-workspace-heading"><span className="skin-eyebrow">YOUR SKIN, A LITTLE CLEARER</span><h1 id="try-title">Try your skin scan</h1><p className="skin-workspace-desc-desktop">Use a clear photo of your face in natural light, without filters. This is cosmetic guidance, not a medical diagnosis.</p><p className="skin-workspace-desc-mobile">Take or upload one clear photo in natural light.</p></div>
 
           <div className="skin-scan-panel">
 

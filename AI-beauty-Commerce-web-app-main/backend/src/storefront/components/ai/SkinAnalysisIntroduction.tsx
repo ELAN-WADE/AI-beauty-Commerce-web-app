@@ -11,14 +11,48 @@ const CALLOUTS = [
   { id: '05', label: 'Care pointers', note: 'A gentle routine to explore', x: 755, y: 375, point: [505, 257], line: '505,257 680,375 900,375' },
 ];
 
+/**
+ * Mobile portrait coordinate system (viewBox 0 0 400 560) where beauty_face_3d.jpg
+ * (1024x1024) sits at x=-60 y=46 width=520 height=520 so the complete head, face,
+ * collar, and all five facial region callouts remain unobstructed and crisp.
+ */
+const MOBILE_CALLOUTS: Array<{
+  id: string;
+  label: string;
+  anchor: 'start' | 'end';
+  textX: number;
+  textY: number;
+  point: [number, number];
+  line: string;
+}> = [
+  { id: '01', label: 'Surface texture', anchor: 'start', textX: 14, textY: 130, point: [184, 194], line: '184,194 114,137 14,137' },
+  { id: '02', label: 'Shine', anchor: 'end', textX: 386, textY: 158, point: [228, 208], line: '228,208 294,165 386,165' },
+  { id: '03', label: 'Tone appearance', anchor: 'start', textX: 14, textY: 316, point: [152, 298], line: '152,298 108,323 14,323' },
+  { id: '04', label: 'Visible dry areas', anchor: 'end', textX: 386, textY: 332, point: [246, 309], line: '246,309 294,339 386,339' },
+  { id: '05', label: 'Care pointers', anchor: 'end', textX: 386, textY: 388, point: [200, 355], line: '200,355 280,395 386,395' },
+];
+
 export default function SkinAnalysisIntroduction() {
   return (
     <div className="skin-page skin-overview">
       <main>
         <section className="skin-overview-hero" aria-labelledby="skin-overview-title">
           <div className="skin-overview-kicker"><span /> DESLA SKIN INTELLIGENCE <span className="skin-overview-edition">01 / DISCOVER</span></div>
+
           <div className="skin-face-diagram">
-            <svg viewBox="0 0 1000 440" role="img" aria-labelledby="skin-face-title skin-face-description">
+            {/* Minimal Mobile Two-Step Progress Indicator overlaid cleanly near top of face visual */}
+            <nav className="skin-mobile-steps" aria-label="Skin analysis steps">
+              <span className="skin-step skin-step-active" aria-current="step">
+                <span className="skin-step-num">01</span> Preview
+              </span>
+              <span className="skin-step-line" aria-hidden="true" />
+              <Link href="/skin-analysis/scan" className="skin-step skin-step-next">
+                <span className="skin-step-num">02</span> AI Review
+              </Link>
+            </nav>
+
+            {/* Desktop Landscape Face Diagram (preserved unchanged) */}
+            <svg className="skin-face-svg-desktop" viewBox="0 0 1000 440" role="img" aria-labelledby="skin-face-title skin-face-description">
               <title id="skin-face-title">Five pointers to a more thoughtful skin routine</title>
               <desc id="skin-face-description">An illustrated 3D face with five gold markers and connecting lines for surface texture, shine, tone appearance, visible dry areas, and care pointers. These demonstrate the photo review, not a scan of a real person.</desc>
               <defs><clipPath id="skin-face-crop"><rect x="300" y="0" width="400" height="410" rx="28" /></clipPath></defs>
@@ -33,13 +67,51 @@ export default function SkinAnalysisIntroduction() {
                 </g>
               ))}
             </svg>
+
+            {/* Mobile Portrait Dominant 3D Face Visual (~75% viewport height) */}
+            <svg className="skin-face-svg-mobile" viewBox="0 0 400 560" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="skin-face-title-m skin-face-desc-m">
+              <title id="skin-face-title-m">Five pointers to a more thoughtful skin routine</title>
+              <desc id="skin-face-desc-m">Full-width illustrated 3D face with five facial markers and subtle lines for surface texture, shine, tone appearance, visible dry areas, and care pointers.</desc>
+              <defs>
+                <clipPath id="skin-face-mobile-frame"><rect x="0" y="0" width="400" height="560" /></clipPath>
+                <linearGradient id="skin-face-top-fade" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#eeeff2" stopOpacity="1" />
+                  <stop offset="10%" stopColor="#eeeff2" stopOpacity="1" />
+                  <stop offset="18%" stopColor="#eeeff2" stopOpacity="0" />
+                  <stop offset="100%" stopColor="#eeeff2" stopOpacity="0" />
+                </linearGradient>
+                <linearGradient id="skin-face-bottom-fade" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#ffffff" stopOpacity="0" />
+                  <stop offset="78%" stopColor="#ffffff" stopOpacity="0" />
+                  <stop offset="100%" stopColor="#ffffff" stopOpacity="1" />
+                </linearGradient>
+              </defs>
+              <g clipPath="url(#skin-face-mobile-frame)">
+                <image href="/beauty_face_3d.jpg" x="-60" y="46" width="520" height="520" preserveAspectRatio="xMidYMid slice" />
+                <rect x="0" y="0" width="400" height="560" fill="url(#skin-face-top-fade)" />
+                <rect x="0" y="0" width="400" height="560" fill="url(#skin-face-bottom-fade)" />
+              </g>
+              {MOBILE_CALLOUTS.map((item, index) => (
+                <g key={item.id} className="skin-face-callout" style={{ animationDelay: `${index * 80}ms` }}>
+                  <polyline points={item.line} className="skin-face-connector-mobile" />
+                  <circle cx={item.point[0]} cy={item.point[1]} r="8" className="skin-face-halo-mobile" />
+                  <circle cx={item.point[0]} cy={item.point[1]} r="3.4" className="skin-face-point" />
+                  <text x={item.textX} y={item.textY} textAnchor={item.anchor} className="skin-face-label-mobile">
+                    {item.label}
+                  </text>
+                </g>
+              ))}
+            </svg>
+
             <p className="skin-diagram-caption">ILLUSTRATED PREVIEW · YOUR PHOTO COMES NEXT</p>
           </div>
+
           <div className="skin-overview-copy">
-            <h1 id="skin-overview-title">Discover what your skin needs.</h1>
-            <p>Get to know your skin beyond the mirror. A photo can offer clues about visible texture, shine, and tone appearance — and a starting point for thoughtful everyday care.</p>
-            <Link className="skin-try-link" href="/skin-analysis/scan">Try it out <ArrowRight size={18} /></Link>
-            <span className="skin-try-note">Take a photo or upload one on the next page. No account needed.</span>
+            <h1 id="skin-overview-title">Discover What Your Skin Needs</h1>
+            <p className="skin-copy-desktop">Get to know your skin beyond the mirror. A photo can offer clues about visible texture, shine, and tone appearance — and a starting point for thoughtful everyday care.</p>
+            <p className="skin-copy-mobile">One clear photo reveals visible texture, shine, and tone cues for a gentle everyday routine.</p>
+            <Link className="skin-try-link" href="/skin-analysis/scan">Try Out <ArrowRight size={17} /></Link>
+            <span className="skin-try-note">Take or upload a photo · No account needed</span>
           </div>
         </section>
 

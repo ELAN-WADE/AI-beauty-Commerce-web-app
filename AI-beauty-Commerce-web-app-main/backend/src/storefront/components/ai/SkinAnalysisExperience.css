@@ -200,6 +200,10 @@
   font-size:13px}
 .skin-stats>div:last-child strong {
   color:#00a487}
+.skin-scan-mobile-steps {
+  display:none}
+.skin-workspace-desc-mobile {
+  display:none}
 .skin-workspace {
   max-width:1000px;
   margin:0 auto;
@@ -477,24 +481,89 @@
   font-size:10px;
   line-height:1.4;
   display:block}
+.skin-scan-back {
+  display:none}
+.skin-scan-mobile-steps {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:calc(14px + env(safe-area-inset-top, 0px)) 20px 6px;
+  font-size:10.5px;
+  letter-spacing:.08em;
+  text-transform:uppercase}
+.skin-scan-mobile-steps .skin-step {
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  white-space:nowrap;
+  text-decoration:none;
+  line-height:1}
+.skin-scan-mobile-steps .skin-step-done {
+  color:#7a756b;
+  font-weight:500}
+.skin-scan-mobile-steps .skin-step-active {
+  color:#141311;
+  font-weight:600}
+.skin-scan-mobile-steps .skin-step-num {
+  color:#9a7a18}
+.skin-scan-mobile-steps .skin-step-line-complete {
+  flex:1;
+  height:1px;
+  background:rgba(199,166,72,.7)}
 .skin-workspace {
-  padding:24px 16px 50px}
+  padding:14px 16px 40px}
+.skin-workspace-heading {
+  margin:0 auto 16px}
+.skin-workspace-heading .skin-eyebrow {
+  display:none}
+.skin-workspace-desc-desktop {
+  display:none}
+.skin-workspace-desc-mobile {
+  display:block;
+  font-size:12.5px;
+  line-height:1.45;
+  color:var(--scan-muted)}
 .skin-scan-panel {
-  grid-template-columns:1fr}
+  grid-template-columns:1fr;
+  border-radius:18px}
 .skin-photo-panel {
-  min-height:300px}
+  min-height:240px}
 .skin-photo-panel>img,.skin-photo-panel video {
-  height:340px}
+  height:280px}
+.skin-photo-empty {
+  padding:24px 20px;
+  gap:10px}
+.skin-photo-empty strong {
+  font-size:16px}
+.skin-photo-empty p {
+  font-size:12px;
+  line-height:1.5}
 .skin-upload-panel {
-  padding:24px}
+  padding:18px}
+.skin-upload-panel .skin-eyebrow {
+  display:none}
+.skin-upload-panel h3 {
+  font-size:17px;
+  margin:0 0 6px}
+.skin-upload-panel>p {
+  font-size:12.5px;
+  line-height:1.5}
+.skin-source-actions {
+  margin:14px 0 8px}
+.skin-consent {
+  margin:14px 0 14px;
+  font-size:11.5px;
+  line-height:1.5}
 .skin-result-columns {
   grid-template-columns:1fr;
   gap:20px}
 .skin-results {
-  padding:24px}
+  padding:20px}
 .skin-footer {
-  flex-wrap:wrap}
+  flex-wrap:wrap;
+  padding:20px 16px calc(22px + env(safe-area-inset-bottom, 0px))}
 .skin-workspace h1,.skin-workspace h2 {
-  font-size:25px}
+  font-size:21px;
+  margin:2px 0 6px}
 }
 
