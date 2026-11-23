@@ -702,29 +702,57 @@ export const ScreenAdminConsole: React.FC = () => {
 
   return (
     <div className="min-h-[100dvh] bg-[#FAF9F6] text-[#0F0F10] font-body flex flex-col lg:flex-row selection:bg-[#0F0F10]/10 selection:text-[#0F0F10]">
-      {/* Mobile Compact Branded Header + Hamburger Drawer Trigger */}
-      <header className="lg:hidden sticky top-0 z-40 h-14 px-4 bg-white/95 backdrop-blur-md border-b border-[#EAE8E3] flex items-center justify-between gap-3 select-none">
-        <div className="flex items-center gap-2">
-          <BrandLogo
-            variant="dark"
-            size="sm"
-            onClick={() => setActiveTab('overview')}
-          />
-          <button
-            type="button"
-            onClick={() => setAdminDrawerOpen(true)}
-            aria-label="Open admin navigation menu"
-            aria-expanded={adminDrawerOpen}
-            className="min-h-11 min-w-11 rounded-lg flex items-center justify-center text-[#0F0F10] hover:bg-[#FAF9F6] transition-colors cursor-pointer touch-manipulation"
-          >
-            <Menu size={20} />
-          </button>
-        </div>
+      {/* Mobile Compact Branded Header + Quick Priority Rail (< lg) */}
+      <div className="lg:hidden sticky top-0 z-40 bg-white/95 backdrop-blur-xl border-b border-[#EAE8E3] select-none">
+        <header className="px-4 py-2 pt-[calc(0.5rem+env(safe-area-inset-top,0px))] flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setAdminDrawerOpen(true)}
+              aria-label="Open admin navigation menu"
+              aria-expanded={adminDrawerOpen}
+              className="w-10 h-10 -ml-1.5 rounded-full flex items-center justify-center text-[#0F0F10] hover:bg-[#FAF9F6] active:scale-95 transition-[transform,background-color] duration-150 cursor-pointer touch-manipulation"
+            >
+              <Menu size={20} />
+            </button>
+            <BrandLogo
+              variant="dark"
+              size="sm"
+              onClick={() => setActiveTab('overview')}
+            />
+          </div>
 
-        <span className="text-xs font-medium text-[#6B7280] truncate">
-          {adminNavItems.find((t) => t.id === activeTab)?.label || 'Overview'}
-        </span>
-      </header>
+          <span className="text-xs font-medium text-[#6B7280] truncate">
+            {adminNavItems.find((t) => t.id === activeTab)?.label || 'Overview'}
+          </span>
+        </header>
+
+        {/* 1-Tap Horizontal Priority Tabs for Mobile Operations */}
+        <nav aria-label="Quick admin tabs" className="px-3 pb-2 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+          {adminNavItems.slice(0, 6).map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`shrink-0 h-8 px-3 rounded-full text-[11px] font-medium inline-flex items-center gap-1.5 transition-[transform,background-color,color] duration-150 active:scale-95 cursor-pointer ${
+                  isActive
+                    ? 'bg-[#111111] text-white'
+                    : 'bg-[#FBF9F5] border border-[#E7E1D6] text-[#4B5563]'
+                }`}
+              >
+                <span>{tab.label.split(' ')[0]}</span>
+                {tab.badge ? (
+                  <span className={`text-[9.5px] font-mono px-1.5 py-0.5 rounded-full leading-none ${isActive ? 'bg-white/20 text-white' : 'bg-[#EAE5DC] text-[#111111]'}`}>
+                    {tab.badge}
+                  </span>
+                ) : null}
+              </button>
+            );
+          })}
+        </nav>
+      </div>
 
       {/* Mobile Slide-Out Admin Navigation Drawer */}
       <AnimatePresence>

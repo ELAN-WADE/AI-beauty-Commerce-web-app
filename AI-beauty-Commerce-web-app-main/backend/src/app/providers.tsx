@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { MotionConfig } from 'motion/react';
+import { Toaster } from 'sonner';
 import { ViewportProvider } from '@/storefront/context/ViewportContext';
 import { AppProvider } from '@/storefront/context/AppContext';
 import { initErrorReporting } from '@/storefront/lib/observe';
@@ -32,6 +33,26 @@ export default function Providers({
     >
       <ViewportProvider>
         <AppProvider initialCatalogue={initialCatalogue} initialEditorial={initialEditorial}>{children}</AppProvider>
+        <Toaster
+          position="bottom-center"
+          offset={78}
+          mobileOffset={76}
+          gap={8}
+          visibleToasts={3}
+          toastOptions={{
+            duration: 3200,
+            classNames: {
+              toast:
+                'bg-[#111111] text-[#FBF9F5] border border-[#D4AF37]/30 rounded-2xl shadow-[0_14px_36px_-10px_rgba(15,15,16,0.35)] px-4 py-3 font-body text-xs',
+              title: 'font-medium text-[#FBF9F5] text-xs',
+              description: 'text-[#C8C3B8] text-[11px]',
+              actionButton:
+                'bg-[#D4AF37] text-[#111111] font-semibold text-[11px] rounded-full px-3 py-1.5 hover:bg-[#E6C77A] transition-colors',
+              cancelButton:
+                'bg-white/10 text-[#FBF9F5] font-medium text-[11px] rounded-full px-3 py-1.5',
+            },
+          }}
+        />
       </ViewportProvider>
     </MotionConfig>
   );

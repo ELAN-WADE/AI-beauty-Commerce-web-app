@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import {
   Award,
   Gift,
@@ -11,6 +12,7 @@ import {
   Copy
 } from '../../components/common/SolidIcons';
 import { useApp } from '../../context/AppContext';
+import { DeslaRollingNumber } from '../../components/motion/DeslaMobileDrawer';
 
 import { fetchLoyaltyView, redeemLoyaltyVoucher, type LoyaltyView } from '../../lib/owned-api';
 
@@ -51,21 +53,28 @@ export const Screen16Rewards: React.FC = () => {
   };
 
   const displayPoints = liveView?.points ?? userProfile.points;
+  const isGuestLive = isLiveBackend && !authUser;
+  const pointsRemaining = userProfile.pointsToNextReward || 0;
+  const progressPercent =
+    displayPoints > 0
+      ? Math.min(100, Math.max(8, Math.round((displayPoints / (displayPoints + Math.max(pointsRemaining, 1))) * 100)))
+      : 0;
 
   const handleCopy = (code: string) => {
     navigator.clipboard.writeText(code);
     setCopiedCode(code);
+    toast.success(`Voucher ${code} copied`, { description: 'Apply it at checkout.' });
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
   return (
-    <div className="min-h-screen bg-[#FBF9F5] pb-28">
+    <div className="min-h-[100dvh] bg-[#FBF9F5] pb-28">
       <main className="max-w-md mx-auto px-4 pt-4 space-y-5">
         {/* Cohesive Desla Club Loyalty Sign-In Prompt for Guests */}
-        {isLiveBackend && !authUser && (
+        {isGuestLive && (
           <section
             aria-label="Desla Club Loyalty Sign In"
-            className="rounded-[20px] border border-[#E7E1D6] bg-[#F4EFE6]/70 backdrop-blur-md p-5 space-y-3.5 text-center shadow-[0_14px_34px_-18px_rgba(17,17,17,0.10)]"
+            className="rounded-[22px] border border-[#E7E1D6] bg-white/90 backdrop-blur-md p-6 space-y-4 text-center shadow-[0_14px_34px_-18px_rgba(17,17,17,0.10)]"
           >
             <div className="flex justify-center">
               <img
@@ -74,22 +83,22 @@ export const Screen16Rewards: React.FC = () => {
                 className="h-5 w-auto block object-contain select-none"
               />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-[#8C6D28]">
                 Desla Club Loyalty
               </p>
-              <h1 className="font-heading text-lg font-semibold text-[#111111] tracking-tight">
+              <h1 className="font-heading text-xl font-semibold text-[#111111] tracking-tight">
                 Sign in to unlock your rewards
               </h1>
               <p className="text-xs text-[#6E6A63] leading-relaxed">
                 Track live points earned on every formulation order and issue instant checkout vouchers.
               </p>
             </div>
-            <div className="flex items-center justify-center gap-2.5 pt-0.5">
+            <div className="flex items-center justify-center gap-2.5 pt-1">
               <button
                 type="button"
                 onClick={() => requestCustomerSignIn('/rewards')}
-                className="h-10 px-5 rounded-[10px] bg-[#111111] hover:bg-[#242426] text-white text-xs font-medium inline-flex items-center gap-1.5 transition-all cursor-pointer"
+                className="h-10 px-5 rounded-[10px] bg-[#111111] hover:bg-[#242426] active:scale-[0.98] text-white text-xs font-medium inline-flex items-center gap-1.5 transition-[transform,background-color] duration-150 cursor-pointer"
               >
                 <span>Sign In</span>
                 <ArrowRight size={13} className="text-[#E6C77A]" />
@@ -97,7 +106,7 @@ export const Screen16Rewards: React.FC = () => {
               <button
                 type="button"
                 onClick={() => navigateTo('signup')}
-                className="h-10 px-4 rounded-[10px] border border-[#DDD7CC] hover:border-[#111111] bg-white/90 hover:bg-white text-[#111111] text-xs font-medium transition-all cursor-pointer"
+                className="h-10 px-4 rounded-[10px] border border-[#DDD7CC] hover:border-[#111111] bg-white text-[#111111] text-xs font-medium transition-colors cursor-pointer"
               >
                 Create Account
               </button>
@@ -105,7 +114,8 @@ export const Screen16Rewards: React.FC = () => {
           </section>
         )}
 
-        {/* Luxury Gold Membership Card */}
+        {/* Luxury Gold Membership Card (shown for signed-in members or demo mode; hidden for live guests to avoid fake 0-point Level 3 progress) */}
+        {!isGuestLive && (
         <section
           aria-label="Membership Status"
           className="relative rounded-hero overflow-hidden p-5 bg-gradient-to-br from-[#D99A26] via-[#F3C053] to-[#B37B15] text-[#1E1B1D] shadow-float border border-amber-300"
@@ -115,12 +125,12 @@ export const Screen16Rewards: React.FC = () => {
 
           <div className="relative z-10 flex items-start justify-between">
             <div>
-              <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-black/10 backdrop-blur-xs text-[10px] font-medium tracking-widest uppercase">
+              <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-black/10 backdrop-blur-sm text-[10px] font-medium tracking-widest uppercase">
                 <Award size={13} />
-                <span>{userProfile.tier} Tier Member</span>
+                <span>{userProfile.tier || 'Member'} Tier</span>
               </div>
               <h2 className="font-heading font-semibold text-2xl tracking-tight mt-2 text-[#1E1B1D]">
-                {userProfile.name}
+                {authUser?.profile?.displayName || userProfile.name || 'Desla Member'}
               </h2>
             </div>
             <div className="w-10 h-10 rounded-2xl bg-black/10 flex items-center justify-center font-heading font-semibold text-lg">
@@ -133,27 +143,31 @@ export const Screen16Rewards: React.FC = () => {
               <span className="text-[10px] uppercase font-medium tracking-wider opacity-80 block">
                 Available Rewards Balance
               </span>
-              <p className="font-heading font-semibold text-3xl text-[#1E1B1D] leading-none mt-0.5">
-                {(displayPoints || 0).toLocaleString()}{' '}
+              <p className="font-heading font-semibold text-3xl text-[#1E1B1D] leading-none mt-1">
+                <DeslaRollingNumber value={displayPoints || 0} />{' '}
                 <span className="text-sm font-medium uppercase tracking-wider">Points</span>
               </p>
             </div>
-            <span className="text-[11px] font-mono font-semibold bg-black/10 px-2 py-1 rounded-lg">
-              Level 3
+            <span className="text-[11px] font-mono font-semibold bg-black/10 px-2.5 py-1 rounded-lg">
+              Desla Club
             </span>
           </div>
 
-          {/* Progress bar to Platinum */}
+          {/* Dynamic Progress bar */}
           <div className="relative z-10 mt-3.5">
             <div className="flex items-center justify-between text-[11px] font-semibold mb-1">
-              <span>Progress to Platinum</span>
-              <span>{userProfile.pointsToNextReward} pts to go</span>
+              <span>Progress to next tier</span>
+              <span>{pointsRemaining > 0 ? `${pointsRemaining} pts to go` : 'Active balance'}</span>
             </div>
             <div className="w-full h-1.5 rounded-full bg-black/15 overflow-hidden">
-              <div className="h-full bg-[#1E1B1D] rounded-full w-[82%]" />
+              <div
+                className="h-full bg-[#1E1B1D] rounded-full transition-[width] duration-300"
+                style={{ width: `${progressPercent}%` }}
+              />
             </div>
           </div>
         </section>
+        )}
 
         {/* Live loyalty ledger (owned backend, authenticated only) */}
         {liveView && (
@@ -205,8 +219,8 @@ export const Screen16Rewards: React.FC = () => {
           </section>
         )}
 
-        {/* Redeemable Vouchers Section (mock catalogue; hidden when live) */}
-        {!liveView && (
+        {/* Redeemable Vouchers Section (mock catalogue; hidden when live or empty) */}
+        {!liveView && vouchers.length > 0 && (
         <section aria-label="Redeemable Vouchers">
           <div className="flex items-center justify-between mb-3">
             <div>
@@ -305,8 +319,8 @@ export const Screen16Rewards: React.FC = () => {
           </div>
         </section>
 
-        {/* Points History Ledger (mock; hidden when live) */}
-        {!liveView && (
+        {/* Points History Ledger (mock; hidden when live or empty) */}
+        {!liveView && pointsActivity.length > 0 && (
         <section aria-label="Activity History">
           <h4 className="font-heading font-medium text-xs uppercase tracking-wider text-glowly-charcoal mb-2.5">
             Points Ledger & Activity

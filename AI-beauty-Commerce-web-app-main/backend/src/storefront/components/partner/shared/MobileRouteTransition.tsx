@@ -192,46 +192,41 @@ export const MobileSharedHeroCard: React.FC<MobileSharedHeroCardProps> = ({
     <div
       className={`${
         showOnDesktop ? 'flex' : 'flex md:hidden'
-      } flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-[#E5E7EB]`}
+      } flex-col gap-3.5 pb-4 border-b border-[#EAE5DC]`}
     >
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+      <div className="flex items-center gap-3.5">
         <motion.div
           layoutId={activeLayoutId}
-          transition={{ duration: shouldReduceMotion ? 0 : 0.34, ease: STUDIO_EASE }}
-          className="relative w-full max-w-[240px] sm:w-48 md:w-52 aspect-[16/10] rounded-2xl overflow-hidden bg-[#18181B] shadow-[0_8px_24px_-6px_rgba(0,0,0,0.16)] shrink-0"
+          transition={{ duration: shouldReduceMotion ? 0 : 0.3, ease: STUDIO_EASE }}
+          className="relative w-16 h-16 rounded-2xl overflow-hidden bg-[#18181B] shadow-[0_6px_18px_-6px_rgba(0,0,0,0.22)] shrink-0"
         >
           <img
             src={meta.image}
             alt={title || meta.title}
             className="w-full h-full object-cover object-center"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
-          <div className="absolute bottom-2.5 left-3 right-3 flex items-center justify-between text-white">
-            <span className="font-mono text-[10px] tracking-wider text-white/80">
-              {meta.index}
-            </span>
-            <span className="text-xs font-medium text-white truncate ml-2">
-              {meta.title}
-            </span>
-          </div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/15 to-transparent" />
+          <span className="absolute bottom-1.5 left-2 font-mono text-[9px] tracking-wider text-[#E6C77A] font-semibold">
+            {meta.index}
+          </span>
         </motion.div>
 
         <motion.div
-          initial={isMobile && !shouldReduceMotion ? { opacity: 0, y: 8 } : false}
+          initial={isMobile && !shouldReduceMotion ? { opacity: 0, y: 6 } : false}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.24, delay: 0.05, ease: STUDIO_EASE }}
-          className="space-y-1 min-w-0"
+          transition={{ duration: 0.22, delay: 0.04, ease: STUDIO_EASE }}
+          className="space-y-0.5 min-w-0 flex-1"
         >
           {subtitle && (
-            <p className="text-[11px] font-mono uppercase tracking-[0.14em] text-[#6B7280] font-medium">
+            <p className="text-[10px] font-mono uppercase tracking-[0.15em] text-[#8C6D28] font-semibold truncate">
               {subtitle}
             </p>
           )}
-          <h1 className="font-heading font-semibold text-xl sm:text-2xl text-[#0F0F10] tracking-tight">
+          <h1 className="font-heading font-semibold text-lg text-[#0F0F10] tracking-tight leading-snug">
             {title}
           </h1>
           {description && (
-            <p className="text-sm text-[#6B7280] max-w-md leading-relaxed">
+            <p className="text-xs text-[#6B7280] leading-relaxed line-clamp-2">
               {description}
             </p>
           )}
@@ -240,9 +235,9 @@ export const MobileSharedHeroCard: React.FC<MobileSharedHeroCardProps> = ({
 
       {rightAction && (
         <motion.div
-          initial={isMobile && !shouldReduceMotion ? { opacity: 0, y: 6 } : false}
+          initial={isMobile && !shouldReduceMotion ? { opacity: 0, y: 5 } : false}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.24, delay: 0.08, ease: STUDIO_EASE }}
+          transition={{ duration: 0.22, delay: 0.06, ease: STUDIO_EASE }}
           className="flex flex-wrap items-center gap-2 shrink-0"
         >
           {rightAction}

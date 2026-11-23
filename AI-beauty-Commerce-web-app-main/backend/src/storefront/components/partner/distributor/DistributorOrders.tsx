@@ -161,28 +161,25 @@ export const DistributorOrders: React.FC<DistributorOrdersProps> = ({
         </p>
       </div>
 
-      <MobileRouteContent className="space-y-6">
-      {/* Minimalist Summary Cards with Status Stamps */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+      <MobileRouteContent className="space-y-5 sm:space-y-6">
+      {/* Compact 3-Col Mobile KPI Strip (saves ~240px on mobile so orders & filters appear above the fold) */}
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
         <StatChip
-          label="Awaiting Hub Packing"
-          value={`${counts.new} Orders`}
-          subtext="Lab tamper seals & cold packaging"
-          badge={counts.new > 0 ? 'NEEDS ACTION' : 'CLEARED'}
+          label="To Pack"
+          value={counts.new}
+          subtext="Packing"
+          badge={counts.new > 0 ? 'Action' : undefined}
+          badgeVariant={counts.new > 0 ? 'warning' : 'success'}
         />
         <StatChip
-          label="Ready for Courier Pickup"
-          value={`${counts.ready} Orders`}
-          subtext="Assigned riders on route to hub"
-          badge="DISPATCH READY"
+          label="Ready"
+          value={counts.ready}
+          subtext="Courier"
         />
         <StatChip
-          label="In Transit / Out for Delivery"
-          value={`${counts.transit} Orders`}
-          change="+2.1%"
-          trend="up"
-          subtext="Real-time bike courier tracking"
-          badge="EN ROUTE"
+          label="In Transit"
+          value={counts.transit}
+          subtext="En route"
         />
       </div>
 
@@ -212,8 +209,53 @@ export const DistributorOrders: React.FC<DistributorOrdersProps> = ({
         </div>
       </div>
 
-      {/* Orders Table */}
-      <div className="rounded-3xl border border-[#E5E7EB] bg-white overflow-hidden shadow-2xs">
+      {/* Mobile 1-Thumb Order Cards (< md) */}
+      <div className="md:hidden space-y-2.5">
+        {filteredOrders.length === 0 ? (
+          <div className="p-8 rounded-2xl border border-[#EAE5DC] bg-[#FBF9F5] text-center text-xs text-[#6B7280]">
+            No orders match the selected filter.
+          </div>
+        ) : (
+          filteredOrders.map((ord) => (
+            <button
+              type="button"
+              key={ord.id}
+              onClick={() => setSelectedOrder(ord)}
+              className="w-full text-left p-4 rounded-2xl border border-[#EAE5DC] bg-white active:scale-[0.99] transition-transform duration-150 space-y-2.5 cursor-pointer"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <span className="font-mono font-semibold text-xs text-[#111111] block truncate">
+                    {ord.id}
+                  </span>
+                  <span className="text-[11px] text-[#6B7280] flex items-center gap-1 mt-0.5">
+                    <Clock size={11} /> {ord.time}
+                  </span>
+                </div>
+                <StatusBadge status={ord.status} />
+              </div>
+
+              <div className="text-xs text-[#111111]">
+                <p className="font-semibold truncate">{ord.customer}</p>
+                <p className="text-[11px] text-[#6B7280] line-clamp-1 mt-0.5">{ord.address}</p>
+              </div>
+
+              <div className="pt-2 border-t border-[#EAE5DC] flex items-center justify-between gap-2">
+                <span className="font-price font-semibold text-sm text-[#111111]">
+                  ₦{ord.total.toLocaleString('en-NG')}
+                </span>
+                <span className="px-3 py-1.5 rounded-full bg-[#111111] text-white text-[11px] font-semibold inline-flex items-center gap-1">
+                  <span>Process</span>
+                  <ArrowRight size={11} className="text-[#E6C77A]" />
+                </span>
+              </div>
+            </button>
+          ))
+        )}
+      </div>
+
+      {/* Desktop Orders Table (>= md) preserved untouched */}
+      <div className="hidden md:block rounded-3xl border border-[#E5E7EB] bg-white overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>

@@ -56,15 +56,15 @@ export const Screen05Categories: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white text-[#0F0F10] pb-28 font-body selection:bg-[#D4AF37]/20 selection:text-[#997A2E]">
-      {/* Top Header */}
-      <div className="sticky top-0 z-30 w-full bg-white/95 backdrop-blur-md border-b border-[#E5E7EB] px-4 py-3.5">
+    <div className="min-h-[100dvh] bg-white text-[#0F0F10] pb-28 font-body selection:bg-[#D4AF37]/20 selection:text-[#997A2E]">
+      {/* Desktop Top Header (hidden on mobile where global Header already renders Collections & Taxonomy) */}
+      <div className="hidden lg:block sticky top-0 z-30 w-full bg-white/95 backdrop-blur-md border-b border-[#E5E7EB] px-4 py-3.5">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={goBack}
-              className="p-1.5 -ml-1 rounded-full text-[#0F0F10] hover:bg-gray-100 active:scale-95 transition-all cursor-pointer"
+              className="p-1.5 -ml-1 rounded-full text-[#0F0F10] hover:bg-gray-100 active:scale-95 transition-[transform,background-color] duration-150 cursor-pointer"
               aria-label="Go back"
             >
               <CaretLeft size={20} weight="bold" aria-hidden="true" />
@@ -80,7 +80,17 @@ export const Screen05Categories: React.FC = () => {
         </div>
       </div>
 
-      <main className="max-w-7xl mx-auto px-4 lg:px-8 pt-6 space-y-6">
+      <main className="max-w-7xl mx-auto px-4 lg:px-8 pt-4 lg:pt-6 space-y-5 lg:space-y-6">
+        {/* Compact mobile taxonomy count chip */}
+        <div className="flex lg:hidden items-center justify-between">
+          <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-[#8C6D28]">
+            Desla Taxonomy
+          </span>
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#6E6A63] bg-[#FBF9F5] border border-[#E7E1D6] px-2.5 py-1 rounded-full">
+            <StackSimple size={12} weight="fill" className="text-[#997A2E]" aria-hidden="true" />
+            <span>{categories.length} Pillars</span>
+          </span>
+        </div>
         {/* Featured Seasonal Collection Editorial Banner */}
         <section aria-label="Featured Collection" className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center rounded-3xl overflow-hidden bg-[#FAF9F6] border border-[#E5E7EB]">
           <div className="lg:col-span-6 p-6 sm:p-8 lg:p-10 space-y-3">
@@ -129,7 +139,7 @@ export const Screen05Categories: React.FC = () => {
                 key={cat.id}
                 type="button"
                 onClick={() => handleSelect(cat.slug)}
-                className="group relative text-left rounded-3xl overflow-hidden border border-[#E5E7EB] bg-[#FAF9F6] shadow-xs hover:shadow-md hover:border-[#D4AF37] transition-all cursor-pointer active:scale-[0.98]"
+                className="group relative text-left rounded-3xl overflow-hidden border border-[#E5E7EB] bg-[#FAF9F6] shadow-sm hover:shadow-md hover:border-[#D4AF37] transition-[transform,border-color,box-shadow] duration-200 cursor-pointer active:scale-[0.98]"
               >
                 <div className="relative h-48 sm:h-56 overflow-hidden bg-[#F6F5F2]">
                   <img

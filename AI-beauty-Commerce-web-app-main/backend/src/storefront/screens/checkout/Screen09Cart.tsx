@@ -18,6 +18,7 @@ import { creatorDiscountNaira } from '../../lib/order-journey';
 import { useApp } from '../../context/AppContext';
 import { CustomerAccess } from '../../components/auth/CustomerAccess';
 import { ProductImage } from '../../components/common/ProductImage';
+import { DeslaRollingNumber } from '../../components/motion/DeslaMobileDrawer';
 
 const Screen09CartContent: React.FC = () => {
   const {
@@ -119,7 +120,7 @@ const Screen09CartContent: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAF9F6] text-[#0F0F10] pb-32 lg:pb-20 font-body selection:bg-[#D4AF37]/20 selection:text-[#997A2E]">
+    <div className="min-h-[100dvh] bg-[#FAF9F6] text-[#0F0F10] pb-32 lg:pb-20 font-body selection:bg-[#D4AF37]/20 selection:text-[#997A2E]">
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-10">
         {/* Minimal Editorial Page Header */}
         <header className="flex items-end justify-between pb-5 border-b border-[#E5E7EB]">
@@ -212,7 +213,7 @@ const Screen09CartContent: React.FC = () => {
                         </div>
 
                         <span className="font-price font-semibold text-sm sm:text-base text-[#0F0F10] shrink-0">
-                          {formatNaira(item.unitPrice * item.quantity)}
+                          <DeslaRollingNumber value={item.unitPrice * item.quantity} prefix="₦" />
                         </span>
                       </div>
 
@@ -222,18 +223,18 @@ const Screen09CartContent: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                            className="w-8 h-8 flex items-center justify-center rounded-full text-[#0F0F10] hover:bg-[#FAF9F6] active:scale-90 transition-all cursor-pointer"
+                            className="w-8 h-8 flex items-center justify-center rounded-full text-[#0F0F10] hover:bg-[#FAF9F6] active:scale-90 transition-[transform,background-color] duration-150 cursor-pointer"
                             aria-label={`Decrease quantity of ${item.product.name}`}
                           >
                             <Minus size={12} weight="bold" aria-hidden="true" />
                           </button>
                           <span className="w-8 text-center font-mono font-semibold text-xs text-[#0F0F10]">
-                            {item.quantity}
+                            <DeslaRollingNumber value={item.quantity} />
                           </span>
                           <button
                             type="button"
                             onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                            className="w-8 h-8 flex items-center justify-center rounded-full text-[#0F0F10] hover:bg-[#FAF9F6] active:scale-90 transition-all cursor-pointer"
+                            className="w-8 h-8 flex items-center justify-center rounded-full text-[#0F0F10] hover:bg-[#FAF9F6] active:scale-90 transition-[transform,background-color] duration-150 cursor-pointer"
                             aria-label={`Increase quantity of ${item.product.name}`}
                           >
                             <Plus size={12} weight="bold" aria-hidden="true" />
@@ -395,13 +396,17 @@ const Screen09CartContent: React.FC = () => {
             <div className="space-y-2.5 text-xs sm:text-[13px]">
               <div className="flex justify-between text-[#6B7280]">
                 <span>Subtotal</span>
-                <span className="font-price font-medium text-[#0F0F10]">{formatNaira(cartSubtotal)}</span>
+                <span className="font-price font-medium text-[#0F0F10]">
+                  <DeslaRollingNumber value={cartSubtotal} prefix="₦" />
+                </span>
               </div>
 
               {discountAmount > 0 && (
                 <div className="flex justify-between text-emerald-700 font-medium">
                   <span>Creator discount ({creatorDiscountPercent}%)</span>
-                  <span className="font-price">-{formatNaira(discountAmount)}</span>
+                  <span className="font-price">
+                    <DeslaRollingNumber value={discountAmount} prefix="-₦" />
+                  </span>
                 </div>
               )}
 
@@ -413,7 +418,7 @@ const Screen09CartContent: React.FC = () => {
               <div className="pt-3 border-t border-[#E5E7EB] flex items-baseline justify-between">
                 <span className="font-heading font-semibold text-sm text-[#0F0F10]">Estimated Total</span>
                 <span className="font-price font-semibold text-xl text-[#0F0F10]">
-                  {formatNaira(finalTotal)}
+                  <DeslaRollingNumber value={finalTotal} prefix="₦" />
                 </span>
               </div>
             </div>
@@ -422,7 +427,7 @@ const Screen09CartContent: React.FC = () => {
             <button
               type="button"
               onClick={() => navigateTo('checkout')}
-              className="w-full py-3.5 px-6 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white font-heading font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 active:scale-[0.97] transition-all cursor-pointer"
+              className="w-full py-3.5 px-6 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white font-heading font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 active:scale-[0.97] transition-[transform,background-color] duration-150 cursor-pointer"
             >
               <span>Proceed to Checkout</span>
               <ArrowRight size={15} weight="bold" className="text-[#D4AF37]" aria-hidden="true" />

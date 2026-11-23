@@ -29,6 +29,8 @@ import { useCustomerOrders } from '../../lib/use-customer-orders';
 import { useApp } from '../../context/AppContext';
 import { ProductCard } from '../../components/common/ProductCard';
 import { BotanicalSprig, HandDrawnLoop, ApothecaryPuritySeal } from '../../components/common/HandDrawnAccents';
+import { DeslaMobileDrawer } from '../../components/motion/DeslaMobileDrawer';
+import { toast } from 'sonner';
 
 export interface SavedAddress {
   id: string;
@@ -140,7 +142,7 @@ export const Screen17Account: React.FC = () => {
     setAddressBusy(true); setAddressError('');
     try {
       await apiFetch('/api/me/addresses', { method: 'POST', body: JSON.stringify({ fullName: addressForm.fullName.trim(), phone: addressForm.phone.trim(), street: [addressForm.street.trim(), addressForm.area.trim()].filter(Boolean).join(', '), city: addressForm.city.trim(), state: addressForm.state.trim(), postalCode: addressForm.postalCode.trim(), isDefault: addressForm.isDefault, label: 'Delivery' }) });
-      await refreshAddresses(); setIsAddingNewAddress(false);
+      await refreshAddresses(); setIsAddingNewAddress(false); toast.success('Delivery address saved');
     } catch (error) { setAddressError(error instanceof Error ? error.message : 'Could not save your address.'); }
     finally { setAddressBusy(false); }
   };
@@ -518,21 +520,18 @@ export const Screen17Account: React.FC = () => {
         </div>
       </main>
 
-      {/* Saved Delivery Address Manager Modal */}
-      {isAddressModalOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
-          onClick={() => {
-            setIsAddressModalOpen(false);
-            setIsAddingNewAddress(false);
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-[#E5E7EB] p-6 max-h-[88vh] overflow-y-auto space-y-5 animate-in zoom-in-95 font-body"
-          >
+      {/* Saved Delivery Address Manager Drawer (Vaul on mobile, centered modal on desktop) */}
+      <DeslaMobileDrawer
+        open={isAddressModalOpen}
+        onClose={() => {
+          setIsAddressModalOpen(false);
+          setIsAddingNewAddress(false);
+        }}
+        ariaLabel="Saved Delivery Addresses"
+        desktopPanelClassName="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-[#E5E7EB] p-6 max-h-[88dvh] overflow-y-auto overscroll-contain-y space-y-5 font-body"
+        mobileContentClassName="bg-white rounded-t-[26px] border-t border-[#E7E1D6] shadow-2xl max-h-[88dvh] flex flex-col overflow-hidden"
+      >
+        <div className="px-5 pb-5 sm:p-0 space-y-5 overflow-y-auto overscroll-contain-y font-body">
             {/* Header */}
             <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
               <div>
@@ -742,9 +741,8 @@ export const Screen17Account: React.FC = () => {
                 </form>
               )}
             </div>
-          </div>
         </div>
-      )}
+      </DeslaMobileDrawer>
     </div>
   );
 };

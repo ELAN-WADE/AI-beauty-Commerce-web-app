@@ -128,15 +128,35 @@ function ProgrammeWorkspace() {
   };
   const member = workspace?.membership;
   const canApply = !member || ['REJECTED', 'REVOKED'].includes(member.status);
-  return <main className="mx-auto min-h-screen max-w-7xl bg-white p-4 pb-24 text-[#0F0F10] sm:p-6 lg:p-10">
+  return <div className="min-h-[100dvh] bg-[#FBF9F5] text-[#111111]">
+    {/* Compact Mobile Sticky Header */}
+    <div className="md:hidden sticky top-0 z-30 bg-[#FFFFFF]/95 backdrop-blur-xl border-b border-[#EAE5DC] px-4 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] flex items-center justify-between gap-2">
+      <button type="button" onClick={() => navigateTo('home')} className="inline-flex items-center gap-2 cursor-pointer">
+        <img src="/desla_logo_dark.svg" alt="Desla!" className="h-5 w-auto block object-contain" />
+        <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-[#8C6D28]">Ambassador</span>
+      </button>
+      <div className="flex items-center gap-2">
+        <button type="button" disabled={loading || busy} onClick={refresh} className="h-8 px-3 rounded-full border border-[#DDD7CC] bg-white text-[11px] font-medium text-[#111111] cursor-pointer">Refresh</button>
+        <button type="button" onClick={() => navigateTo('home')} className="h-8 px-3 rounded-full bg-[#111111] text-white text-[11px] font-medium cursor-pointer">Shop</button>
+      </div>
+    </div>
+
+    <main className="mx-auto max-w-7xl p-4 pb-24 text-[#0F0F10] sm:p-6 lg:p-10">
     <PartnerProgrammeSelector key={revision} kind="INFLUENCER" />
-    <header className="mb-8 flex flex-wrap items-start justify-between gap-4">
-      <div><p className="text-xs uppercase tracking-wider text-[#6B7280]">{programmeDefinitions.INFLUENCER.title}</p><h1 className="mt-2 font-heading text-2xl sm:text-3xl font-semibold">Influencer / Ambassador</h1><p className="mt-2 text-sm text-[#6B7280]">Your campaigns, brand activities and reviewed deliverables.</p></div>
-      <div className="flex gap-4"><button type="button" disabled={loading || busy} onClick={refresh} className="min-h-11 text-sm underline">Refresh workspace</button><button type="button" onClick={() => navigateTo('home')} className="min-h-11 text-sm underline">Storefront</button></div>
+    <header className="mb-6 sm:mb-8 flex flex-wrap items-start justify-between gap-4">
+      <div><p className="text-[10px] sm:text-xs font-mono uppercase tracking-[0.18em] text-[#8C6D28] font-semibold">{programmeDefinitions.INFLUENCER.title}</p><h1 className="mt-1 sm:mt-2 font-heading text-xl sm:text-3xl font-semibold">Influencer / Ambassador</h1><p className="mt-1.5 text-xs sm:text-sm text-[#6B7280]">Your campaigns, brand activities and reviewed deliverables.</p></div>
+      <div className="hidden md:flex gap-4"><button type="button" disabled={loading || busy} onClick={refresh} className="min-h-11 text-sm underline cursor-pointer">Refresh workspace</button><button type="button" onClick={() => navigateTo('home')} className="min-h-11 text-sm underline cursor-pointer">Storefront</button></div>
     </header>
-    {workspace?.canOperate && <nav aria-label="Ambassador workspace" className="mb-6 flex gap-2 overflow-x-auto border-b border-[#E5E7EB] pb-3">{['overview', 'campaigns', 'submissions', 'earnings', 'resources', 'support'].map(item => <button key={item} type="button" aria-current={view === item ? 'page' : undefined} onClick={() => setView(item)} className={`min-h-11 shrink-0 rounded-full px-5 text-sm capitalize ${view === item ? 'bg-[#263127] text-white' : 'bg-[#FAF9F6] text-[#0F0F10]'}`}>{item}</button>)}</nav>}
-    {(!workspace?.canOperate || view === 'resources') && <ProgrammeTerms kind="INFLUENCER" />}
-    {workspace?.canOperate && view === 'overview' && <section className="mb-6 grid gap-4 sm:grid-cols-3" aria-label="Programme overview">{[['Assigned activities', workspace.tasks.length], ['Submitted deliverables', workspace.submissions.length], ['Awaiting review', workspace.submissions.filter(item => item.status === 'SUBMITTED').length]].map(([label, value]) => <div key={label} className="rounded-2xl border border-[#E5E7EB] p-5"><p className="text-sm text-[#6B7280]">{label}</p><p className="mt-2 text-3xl font-semibold">{value}</p></div>)}</section>}
+    {workspace?.canOperate && <nav aria-label="Ambassador workspace" className="mb-5 sm:mb-6 flex gap-1.5 overflow-x-auto no-scrollbar border-b border-[#EAE5DC] pb-3">{['overview', 'campaigns', 'submissions', 'earnings', 'resources', 'support'].map(item => <button key={item} type="button" aria-current={view === item ? 'page' : undefined} onClick={() => setView(item)} className={`h-9 sm:min-h-11 shrink-0 rounded-full px-4 sm:px-5 text-xs sm:text-sm font-medium capitalize transition-colors cursor-pointer ${view === item ? 'bg-[#111111] text-white shadow-sm' : 'bg-white border border-[#E7E1D6] text-[#5C5850]'}`}>{item}</button>)}</nav>}
+    {(!workspace?.canOperate || view === 'resources') && (
+      view === 'resources' ? <ProgrammeTerms kind="INFLUENCER" /> : (
+        <details className="mb-5 rounded-2xl border border-[#E7E1D6] bg-white p-4">
+          <summary className="text-xs font-semibold text-[#111111] cursor-pointer select-none">Programme terms &amp; commission guidelines</summary>
+          <div className="mt-3"><ProgrammeTerms kind="INFLUENCER" /></div>
+        </details>
+      )
+    )}
+    {workspace?.canOperate && view === 'overview' && <section className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4" aria-label="Programme overview">{[['Assigned activities', workspace.tasks.length], ['Submitted deliverables', workspace.submissions.length], ['Awaiting review', workspace.submissions.filter(item => item.status === 'SUBMITTED').length]].map(([label, value]) => <div key={label} className="rounded-2xl border border-[#EAE5DC] bg-white p-4 sm:p-5"><p className="text-xs sm:text-sm text-[#6B7280]">{label}</p><p className="mt-1.5 text-2xl sm:text-3xl font-semibold tabular-nums">{value}</p></div>)}</section>}
     {workspace?.canOperate && view === 'submissions' && <section className="mb-6 space-y-4"><h2 className="font-heading text-2xl">Your submissions</h2>{!workspace.submissions.length && <p className="text-sm text-[#6B7280]">Submit an assigned campaign to see its review here.</p>}{workspace.submissions.map(item => <article key={item.id} className="space-y-2 rounded-2xl border p-5"><h3 className="font-heading">{item.title}</h3><p className="text-sm">{item.status.replaceAll('_', ' ').toLowerCase()}</p><p className="text-sm">{item.body}</p>{item.reviewNote && <p className="rounded-xl bg-[#FBF5E8] p-3 text-sm">Admin review: {item.reviewNote}</p>}<a href={item.url} target="_blank" rel="noopener noreferrer" className="text-sm underline">View deliverable</a></article>)}</section>}
     {workspace?.canOperate && view === 'support' && <section className="mb-6 space-y-3 rounded-2xl border p-6"><h2 className="font-heading text-2xl">Programme support</h2><p className="text-sm text-[#6B7280]">Contact the Desla team about briefs, review notes, agreements or payout questions. Include your programme reference: {workspace.membership?.id}.</p><a className="inline-block min-h-11 text-sm underline" href="https://wa.me/2348148120642" target="_blank" rel="noopener noreferrer">Contact programme support</a></section>}
     {error && <p role="alert" className="mb-5 rounded-xl bg-rose-50 p-4 text-sm text-rose-800">{error}</p>}
@@ -179,5 +199,6 @@ function ProgrammeWorkspace() {
         })}
       </section>}
     </>}
-  </main>;
+  </main>
+  </div>;
 }

@@ -54,6 +54,7 @@
     touch-action: manipulation;
     user-select: none;
     -webkit-user-select: none;
+    -webkit-touch-callout: none;
   }
 
   body {
@@ -178,9 +179,11 @@
   transition: transform 180ms var(--ease-out), border-color 180ms ease, box-shadow 180ms ease;
 }
 
-.desla-card:hover {
-  border-color: rgba(212, 175, 55, 0.45);
-  box-shadow: 0 8px 24px -4px rgba(212, 175, 55, 0.12), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+@media (hover: hover) and (pointer: fine) {
+  .desla-card:hover {
+    border-color: rgba(212, 175, 55, 0.45);
+    box-shadow: 0 8px 24px -4px rgba(212, 175, 55, 0.12), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+  }
 }
 
 /* Gold Metallic Gradient Utilities */
@@ -321,6 +324,51 @@
 }
 article.group:focus-within .desla-product-preview { opacity: 1; }
 
+/* Safe-area & touch scroll helpers */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.overscroll-contain-y {
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Smooth Radix Accordion height disclosure (emil-design-eng & animate compliant) */
+@keyframes desla-accordion-down {
+  from {
+    height: 0;
+    opacity: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+    opacity: 1;
+  }
+}
+
+@keyframes desla-accordion-up {
+  from {
+    height: var(--radix-accordion-content-height);
+    opacity: 1;
+  }
+  to {
+    height: 0;
+    opacity: 0;
+  }
+}
+
+.desla-accordion-content {
+  overflow: hidden;
+}
+.desla-accordion-content[data-state="open"] {
+  animation: desla-accordion-down 220ms var(--ease-out);
+}
+.desla-accordion-content[data-state="closed"] {
+  animation: desla-accordion-up 180ms var(--ease-out);
+}
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .desla-enter,
@@ -328,7 +376,9 @@ article.group:focus-within .desla-product-preview { opacity: 1; }
   .animate-marquee-smooth,
   .animate-wave-flow,
   .animate-wave-flow-slow,
-  .animate-gold-shimmer::after {
+  .animate-gold-shimmer::after,
+  .desla-accordion-content[data-state="open"],
+  .desla-accordion-content[data-state="closed"] {
     animation: none !important;
   }
   .desla-product-preview { transition: opacity 150ms ease; }

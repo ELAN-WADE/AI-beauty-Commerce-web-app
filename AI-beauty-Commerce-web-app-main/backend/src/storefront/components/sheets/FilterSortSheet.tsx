@@ -1,8 +1,7 @@
 import React from 'react';
 import { X, Check, SlidersHorizontal, RotateCcw } from '../common/SolidIcons';
 import { useApp } from '../../context/AppContext';
-import { useViewport } from '../../context/ViewportContext';
-import { DeslaModalFrame } from '../motion/DeslaMotion';
+import { DeslaMobileDrawer } from '../motion/DeslaMobileDrawer';
 
 export const FilterSortSheet: React.FC = () => {
   const {
@@ -15,7 +14,6 @@ export const FilterSortSheet: React.FC = () => {
     sortOption,
     setSortOption,
   } = useApp();
-  const { isDesktop } = useViewport();
 
   const categories = [
     { label: 'All Range', value: 'All' },
@@ -50,15 +48,16 @@ export const FilterSortSheet: React.FC = () => {
   };
 
   return (
-    <DeslaModalFrame
+    <DeslaMobileDrawer
       open={isFilterSheetOpen}
       onClose={() => setIsFilterSheetOpen(false)}
       ariaLabel="Filter and sort formulations"
-      align={isDesktop ? 'center' : 'bottom'}
-      panelClassName="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-[#E5E7EB] p-5 sm:p-6"
+      desktopPanelClassName="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-[#E5E7EB] p-5 sm:p-6"
+      mobileContentClassName="bg-white rounded-t-[26px] border-t border-[#E7E1D6] shadow-2xl max-h-[88dvh] flex flex-col overflow-hidden"
     >
+      <div className="px-5 pb-5 sm:p-0 flex flex-col min-h-0">
         {/* Header */}
-        <div className="flex items-center justify-between pb-3.5 border-b border-[#E5E7EB]">
+        <div className="flex items-center justify-between pb-3.5 border-b border-[#E5E7EB] shrink-0">
           <div className="flex items-center gap-2">
             <SlidersHorizontal size={16} className="text-[#D4AF37]" />
             <h3 className="font-heading font-semibold text-sm text-[#0F0F10]">
@@ -68,15 +67,17 @@ export const FilterSortSheet: React.FC = () => {
 
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={handleReset}
-              className="text-[11px] font-medium text-[#6B7280] hover:text-[#0F0F10] flex items-center gap-1 cursor-pointer"
+              className="text-[11px] font-medium text-[#6B7280] hover:text-[#0F0F10] flex items-center gap-1 cursor-pointer px-2 py-1 rounded-full hover:bg-[#FAF9F6]"
             >
               <RotateCcw size={11} />
               <span>Reset</span>
             </button>
             <button
+              type="button"
               onClick={() => setIsFilterSheetOpen(false)}
-              className="min-h-10 min-w-10 rounded-full text-gray-400 hover:text-black cursor-pointer flex items-center justify-center"
+              className="min-h-9 min-w-9 rounded-full text-gray-400 hover:text-black cursor-pointer flex items-center justify-center"
               aria-label="Close"
             >
               <X size={18} />
@@ -84,7 +85,7 @@ export const FilterSortSheet: React.FC = () => {
           </div>
         </div>
 
-        <div className="space-y-4 my-4 max-h-[65vh] overflow-y-auto pr-1">
+        <div className="space-y-4 my-4 max-h-[58dvh] overflow-y-auto overscroll-contain-y pr-1">
           {/* Categories Pillar */}
           <div>
             <span className="text-xs font-medium text-[#0F0F10] block mb-2">
@@ -95,11 +96,12 @@ export const FilterSortSheet: React.FC = () => {
                 const isActive = selectedCategory.toLowerCase() === cat.value.toLowerCase();
                 return (
                   <button
+                    type="button"
                     key={cat.value}
                     onClick={() => setSelectedCategory(cat.value)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all active:scale-95 cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-[transform,background-color,color] duration-150 active:scale-95 cursor-pointer ${
                       isActive
-                        ? 'bg-[#0F0F10] text-white shadow-xs'
+                        ? 'bg-[#0F0F10] text-white shadow-sm'
                         : 'bg-[#F3EEE3] hover:bg-[#EAE4D7] text-[#0F0F10]'
                     }`}
                   >
@@ -120,11 +122,12 @@ export const FilterSortSheet: React.FC = () => {
                 const isActive = selectedConcern === concern;
                 return (
                   <button
+                    type="button"
                     key={concern}
                     onClick={() => setSelectedConcern(concern)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all active:scale-95 cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-[transform,background-color,color] duration-150 active:scale-95 cursor-pointer ${
                       isActive
-                        ? 'bg-[#0F0F10] text-white shadow-xs'
+                        ? 'bg-[#0F0F10] text-white shadow-sm'
                         : 'bg-[#F6F5F2] hover:bg-gray-200 text-[#4B5563] border border-[#E5E7EB]'
                     }`}
                   >
@@ -148,7 +151,7 @@ export const FilterSortSheet: React.FC = () => {
                     type="button"
                     key={opt.value}
                     onClick={() => setSortOption(opt.value)}
-                    className={`w-full p-2.5 rounded-xl border flex items-center justify-between text-xs cursor-pointer transition-all text-left ${
+                    className={`w-full p-2.5 rounded-xl border flex items-center justify-between text-xs cursor-pointer transition-[border-color,background-color,color] duration-150 text-left ${
                       isSelected
                         ? 'border-[#D4AF37] bg-[#FBF5E8]/60 font-semibold text-[#0F0F10]'
                         : 'border-[#E5E7EB] hover:bg-[#FAF9F6] font-normal text-[#4B5563]'
@@ -165,11 +168,13 @@ export const FilterSortSheet: React.FC = () => {
 
         {/* Apply CTA */}
         <button
+          type="button"
           onClick={() => setIsFilterSheetOpen(false)}
-          className="w-full py-3.5 rounded-full bg-[#0F0F10] hover:bg-[#1F1D22] text-white font-heading font-semibold text-xs tracking-wide shadow-md active:scale-[0.97] transition-all cursor-pointer"
+          className="w-full py-3.5 rounded-full bg-[#0F0F10] hover:bg-[#1F1D22] text-white font-heading font-semibold text-xs tracking-wide shadow-md active:scale-[0.97] transition-[transform,background-color] duration-150 cursor-pointer shrink-0"
         >
           Apply Filters &amp; View Formulations
         </button>
-    </DeslaModalFrame>
+      </div>
+    </DeslaMobileDrawer>
   );
 };

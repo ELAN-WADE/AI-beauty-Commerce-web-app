@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { toast } from 'sonner';
 import {
   Building,
   CheckCircle2,
@@ -13,6 +14,7 @@ import {
 import { StatChip } from '../shared/StatChip';
 import { StatusBadge } from '../shared/StatusBadge';
 import { MobileRouteContent, MobileSharedHeroCard } from '../shared/MobileRouteTransition';
+import { DeslaRollingNumber } from '../../motion/DeslaMobileDrawer';
 import { useApp } from '../../../context/AppContext';
 import {
   fetchPartnerDashboard,
@@ -128,6 +130,7 @@ export const CreatorEarnings: React.FC = () => {
           setWithdrawAmount('');
           setWithdrawError(null);
           setToastMessage(`Instant NIP transfer of ₦${amount.toLocaleString('en-NG')} initiated to ${bankAccount.bank}!`);
+          toast.success(`NIP transfer of ₦${amount.toLocaleString('en-NG')} initiated`, { description: bankAccount.bank });
           setTimeout(() => setToastMessage(null), 5000);
           return;
         }
@@ -239,9 +242,44 @@ export const CreatorEarnings: React.FC = () => {
         </button>
       </div>
 
-      <MobileRouteContent className="space-y-6">
-      {/* 3 Metric Cards with Live Calculations */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <MobileRouteContent className="space-y-5 sm:space-y-6">
+      {/* Compact Mobile Hero Balance + 2-Col Sub-KPIs (saves ~180px vs 3 tall stacked cards) */}
+      <div className="sm:hidden space-y-2.5">
+        <div className="p-4 rounded-2xl bg-[#111111] text-white border border-[#D4AF37]/30 flex items-center justify-between gap-3">
+          <div>
+            <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-[#C8C3B8] block">
+              Available Balance
+            </span>
+            <p className="font-heading font-semibold text-2xl text-white mt-0.5">
+              <DeslaRollingNumber value={availableBalance} prefix="₦" />
+            </p>
+            <span className="text-[11px] text-[#C8C3B8] mt-0.5 block">
+              Ready for instant bank transfer
+            </span>
+          </div>
+          <span className="px-2.5 py-1 rounded-full bg-[#D4AF37]/20 text-[#E6C77A] text-[10px] font-mono uppercase font-semibold shrink-0">
+            Cleared
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-2.5">
+          <StatChip
+            label="Pending Clearance"
+            value={`₦${pendingClearance.toLocaleString('en-NG')}`}
+            subtext="7-day hold window"
+            badge="Pending"
+          />
+          <StatChip
+            label="Lifetime Payouts"
+            value={`₦${lifetimePayouts.toLocaleString('en-NG')}`}
+            subtext="To verified NUBAN"
+            badge="Paid"
+            badgeVariant="success"
+          />
+        </div>
+      </div>
+
+      {/* Desktop 3 Metric Cards preserved untouched */}
+      <div className="hidden sm:grid sm:grid-cols-3 gap-4">
         <StatChip
           label="Available Balance"
           value={`₦${availableBalance.toLocaleString('en-NG')}`}
@@ -314,7 +352,38 @@ export const CreatorEarnings: React.FC = () => {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Mobile Ledger Card List (< md) — zero horizontal table scrolling */}
+        <div className="md:hidden divide-y divide-[#EAE5DC]">
+          {creatorLedger.length === 0 ? (
+            <div className="py-10 px-5 text-center text-[#6B7280] space-y-2">
+              <CreditCard className="w-7 h-7 text-[#997A2E] mx-auto opacity-45" />
+              <p className="font-heading font-semibold text-sm text-[#0F0F10]">No Transactions Recorded</p>
+              <p className="text-xs">Attributed client orders and NIP payout disbursements will appear here in real time.</p>
+            </div>
+          ) : (
+            creatorLedger.map((tx) => (
+              <div key={tx.id} className="p-4 flex items-start justify-between gap-3">
+                <div className="min-w-0 space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs font-semibold text-[#111111] truncate">{tx.orderNumber}</span>
+                    <StatusBadge status={tx.status} variant="minimal" />
+                  </div>
+                  <p className="text-xs font-medium text-[#111111] truncate">{tx.client}</p>
+                  <p className="text-[11px] text-[#6B7280] truncate">{tx.date} · {tx.commissionRate}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className={`font-mono font-semibold text-sm block ${tx.type === 'PAYOUT' ? 'text-rose-700' : 'text-[#111111]'}`}>
+                    {tx.netPayout}
+                  </span>
+                  <span className="text-[10.5px] font-mono text-[#6B7280]">{tx.grossOrder}</span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Desktop Ledger Table (>= md) preserved untouched */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="border-b border-[#E5E7EB] text-[10px] font-mono font-medium uppercase text-[#9CA3AF] tracking-wider">

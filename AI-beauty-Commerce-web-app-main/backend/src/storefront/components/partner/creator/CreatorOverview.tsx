@@ -18,6 +18,7 @@ import { ActionDrawer } from '../shared/ActionDrawer';
 import { useIsMobilePartnerViewport } from '../shared/MobileRouteTransition';
 import { useApp } from '../../../context/AppContext';
 import { AnimatedMetricValue } from '../../motion/DeslaMotion';
+import { DeslaRollingNumber } from '../../motion/DeslaMobileDrawer';
 
 export interface CreatorOverviewProps {
   onNavigate: (routeId: string) => void;
@@ -286,80 +287,70 @@ export const CreatorOverview: React.FC<CreatorOverviewProps> = ({
       /* =====================================================================
           MOBILE VIEW (< md): Retained Native App-Inspired Interface
       ====================================================================== */
-      <div className="md:hidden space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h1 className="font-heading font-semibold text-xl text-[#0F0F10] tracking-tight">
+      <div className="md:hidden space-y-5">
+        <div className="flex items-center justify-between gap-2.5">
+          <div className="min-w-0">
+            <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#8C6D28] font-semibold">
+              Creator Office
+            </p>
+            <h1 className="font-heading font-semibold text-xl text-[#111111] tracking-tight truncate">
               Good morning, {creatorName}
             </h1>
           </div>
 
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setShowExecutiveStrip(!showExecutiveStrip)}
-              className="min-h-10 px-3 rounded-lg border border-[#E5E7EB] bg-white hover:bg-[#FAF9F6] text-xs font-medium text-[#4B5563] hover:text-[#0F0F10] flex items-center gap-1.5 transition-colors cursor-pointer touch-manipulation"
-            >
-              <span>Summary</span>
-              {showExecutiveStrip ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setAnalyticsOpen(true)}
-              className="min-h-10 px-3 rounded-lg border border-[#E5E7EB] bg-white hover:bg-[#FAF9F6] text-xs font-medium text-[#0F0F10] flex items-center gap-1.5 transition-colors cursor-pointer touch-manipulation"
-            >
-              <BarChart2 size={14} className="text-[#4B5563]" />
-              <span>Pulse Telemetry</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setAnalyticsOpen(true)}
+            className="h-9 px-3 rounded-full border border-[#E7E1D6] bg-[#FBF9F5] hover:bg-white text-xs font-medium text-[#111111] flex items-center gap-1.5 transition-colors cursor-pointer touch-manipulation shrink-0 active:scale-95"
+          >
+            <BarChart2 size={13} className="text-[#8C6D28]" />
+            <span>Pulse</span>
+          </button>
         </div>
 
-        {showExecutiveStrip && (
-          <div className="space-y-3 p-4 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB]">
-            <div className="flex flex-col gap-1.5 pb-2 border-b border-[#E5E7EB]">
-              <span className="text-xs font-medium text-[#0F0F10]">
-                Live Studio Telemetry
-              </span>
-              {activePR && (
-                <span className="text-xs text-[#6B7280]">
-                  {activePR.boxTitle}: <strong className="font-medium text-[#0F0F10]">{activePR.status}</strong> ({activePR.courier} #{activePR.trackingNumber})
-                </span>
-              )}
-            </div>
+        {/* Glanceable Live 2-KPI Strip (immediately visible without tapping Summary) */}
+        <div className="grid grid-cols-2 gap-2.5">
+          <button
+            type="button"
+            onClick={() => onNavigate('earnings')}
+            className="text-left p-3.5 rounded-2xl bg-[#111111] text-[#FBF9F5] border border-[#D4AF37]/25 shadow-sm active:scale-[0.98] transition-transform duration-150 cursor-pointer"
+          >
+            <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-[#C8C3B8] block">
+              Available Balance
+            </span>
+            <span className="font-heading font-semibold text-lg text-white mt-1 block">
+              <DeslaRollingNumber value={availableBalance} prefix="₦" />
+            </span>
+            <span className="text-[10px] font-mono text-[#E6C77A] mt-0.5 block">
+              {pendingClearance > 0 ? `₦${pendingClearance.toLocaleString('en-NG')} pending` : 'Cleared · Tap ledger'}
+            </span>
+          </button>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <span className="text-xs text-[#6B7280] block">Available Balance</span>
-                <span className="font-heading font-semibold text-lg text-[#0F0F10] mt-0.5 block">
-                  ₦{availableBalance.toLocaleString('en-NG')}
-                </span>
-                <span className="text-xs text-[#4B5563] block">Cleared</span>
-              </div>
-              <div>
-                <span className="text-xs text-[#6B7280] block">Pending Clearance</span>
-                <span className="font-heading font-semibold text-lg text-[#0F0F10] mt-0.5 block">
-                  ₦{pendingClearance.toLocaleString('en-NG')}
-                </span>
-                <span className="text-xs text-[#6B7280] block">
-                  {creatorLedger.filter((t) => t.status === 'pending').length} orders
-                </span>
-              </div>
-              <div>
-                <span className="text-xs text-[#6B7280] block">Attributed Orders</span>
-                <span className="font-heading font-semibold text-lg text-[#0F0F10] mt-0.5 block">
-                  {attributedOrdersCount.toLocaleString()}
-                </span>
-                <span className="text-xs text-[#6B7280] block">Recorded activity</span>
-              </div>
-              <div>
-                <span className="text-xs text-[#6B7280] block">Active Links</span>
-                <span className="font-heading font-semibold text-lg text-[#0F0F10] mt-0.5 block">
-                  {creatorLinks.length}
-                </span>
-                <span className="text-xs text-[#6B7280] block">Tracked referral URLs</span>
-              </div>
-            </div>
+          <button
+            type="button"
+            onClick={() => onNavigate('links')}
+            className="text-left p-3.5 rounded-2xl bg-[#FBF9F5] border border-[#E7E1D6] active:scale-[0.98] transition-transform duration-150 cursor-pointer"
+          >
+            <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-[#767168] block">
+              Attributed Orders
+            </span>
+            <span className="font-heading font-semibold text-lg text-[#111111] mt-1 block">
+              <DeslaRollingNumber value={attributedOrdersCount} />
+            </span>
+            <span className="text-[10px] font-mono text-[#6E6A63] mt-0.5 block">
+              {creatorLinks.length} active referral {creatorLinks.length === 1 ? 'link' : 'links'}
+            </span>
+          </button>
+        </div>
+
+        {activePR && (
+          <div className="px-3.5 py-2.5 rounded-xl bg-[#FBF5E8]/70 border border-[#D4AF37]/30 flex items-center justify-between gap-2 text-xs">
+            <span className="text-[#4B5563] truncate">
+              PR Box: <strong className="font-semibold text-[#111111]">{activePR.boxTitle}</strong>
+            </span>
+            <span className="font-mono text-[10px] uppercase font-semibold text-[#8C6D28] shrink-0">
+              {activePR.status}
+            </span>
           </div>
         )}
 

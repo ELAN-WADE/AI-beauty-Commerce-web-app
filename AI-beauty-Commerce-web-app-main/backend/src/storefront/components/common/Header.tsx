@@ -1,7 +1,8 @@
-import React from 'react';
-import { CaretLeft, ShoppingBag, MagnifyingGlass, User, UsersThree } from '@phosphor-icons/react';
+import React, { useEffect, useState } from 'react';
+import { CaretLeft, ShoppingBag, MagnifyingGlass } from '@phosphor-icons/react';
 import { useApp } from '../../context/AppContext';
 import { BrandLogo } from './BrandLogo';
+import { DeslaRollingNumber } from '../motion/DeslaMobileDrawer';
 
 interface HeaderProps {
   title?: string;
@@ -62,20 +63,35 @@ export const Header: React.FC<HeaderProps> = ({ title, showBack }) => {
   };
 
   const displayTitle = getScreenTitle();
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   return (
-    <header className="sticky top-0 z-30 w-full bg-white/95 backdrop-blur-md border-b border-[#EAE5DC] px-4 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] transition-colors duration-160 font-body">
+    <header
+      className={`sticky top-0 z-30 w-full bg-white/95 backdrop-blur-xl border-b px-4 py-2 pt-[calc(0.5rem+env(safe-area-inset-top,0px))] transition-[border-color,box-shadow,background-color] duration-150 font-body ${
+        scrolled ? 'border-[#E7E1D6] shadow-[0_6px_20px_-14px_rgba(17,17,17,0.16)]' : 'border-[#EAE5DC]/75'
+      }`}
+    >
       <div className="flex items-center justify-between gap-2 max-w-md mx-auto min-h-[40px]">
-        {shouldShowBack || ['catalogue', 'search', 'ai-scan', 'community', 'account'].includes(currentScreen) ? (
-          <div className="flex items-center gap-2">
-            {shouldShowBack && <button
-              onClick={goBack}
-              className="p-1.5 -ml-1 rounded-full text-[#0F0F10] hover:bg-[#F3F4F6] active-press transition-colors cursor-pointer"
-              aria-label="Go back"
-            >
-              <CaretLeft size={21} weight="bold" aria-hidden="true" />
-            </button>}
-            <h1 className="font-heading font-medium text-base text-[#0F0F10] tracking-tight truncate max-w-[200px]">
+        {shouldShowBack || ['categories', 'catalogue', 'search', 'ai-scan', 'community', 'account'].includes(currentScreen) ? (
+          <div className="flex items-center gap-1.5 min-w-0">
+            {shouldShowBack && (
+              <button
+                type="button"
+                onClick={goBack}
+                className="w-9 h-9 -ml-1.5 rounded-full flex items-center justify-center text-[#111111] hover:bg-[#F5F2EB] active-press transition-colors cursor-pointer shrink-0"
+                aria-label="Go back"
+              >
+                <CaretLeft size={20} weight="bold" aria-hidden="true" />
+              </button>
+            )}
+            <h1 className="font-heading font-semibold text-[15px] text-[#111111] tracking-tight truncate">
               {displayTitle}
             </h1>
           </div>
@@ -88,74 +104,70 @@ export const Header: React.FC<HeaderProps> = ({ title, showBack }) => {
           />
         )}
 
-        {/* Right Action Icons: Cart Bag + Sign In / Account + Community at the edge */}
-        <div className="flex items-center gap-1 shrink-0">
-          {/* Quick Search only on non-home pages when not already on search screen */}
-          {currentScreen !== 'home' && currentScreen !== 'search' && (
+        {/* Right Action Icons: Search + Shopping Bag (NumberFlow) + Account / Sign In */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* Quick Search when not already on search screen */}
+          {currentScreen !== 'search' && (
             <button
+              type="button"
               onClick={() => navigateTo('search')}
-              className="p-2 rounded-full text-[#0F0F10] hover:bg-[#F3F4F6] active-press transition-colors cursor-pointer"
+              className="w-9 h-9 rounded-full flex items-center justify-center text-[#111111] hover:bg-[#F5F2EB] active-press transition-colors cursor-pointer"
               aria-label="Search skincare"
               title="Search skincare"
             >
-              <MagnifyingGlass size={18} weight="bold" aria-hidden="true" />
+              <MagnifyingGlass size={18} weight="regular" aria-hidden="true" />
             </button>
           )}
 
-          {/* Shopping Bag with live count badge */}
+          {/* Shopping Bag with rolling NumberFlow live count badge */}
           <button
+            type="button"
             onClick={() => navigateTo('cart')}
-            className="p-2 rounded-full text-[#0F0F10] hover:bg-[#F3F4F6] active-press relative transition-colors cursor-pointer"
+            className="w-9 h-9 rounded-full flex items-center justify-center text-[#111111] hover:bg-[#F5F2EB] active-press relative transition-colors cursor-pointer"
             aria-label={`Shopping bag${cartCount > 0 ? `, ${cartCount} items` : ''}`}
             title="View shopping bag"
             data-cart-target
           >
             <ShoppingBag
               size={19}
-              weight="fill"
-              className="text-[#0F0F10]"
+              weight={cartCount > 0 ? 'fill' : 'regular'}
+              className="text-[#111111]"
               aria-hidden="true"
             />
             {cartCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-1 bg-[#D4AF37] text-[#0F0F10] text-[9.5px] font-medium rounded-full flex items-center justify-center shadow-xs">
-                {cartCount}
+              <span className="absolute top-0 right-0 min-w-[17px] h-[17px] px-1 bg-[#D4AF37] text-[#111111] text-[9.5px] font-semibold rounded-full flex items-center justify-center shadow-sm leading-none">
+                <DeslaRollingNumber value={cartCount} />
               </span>
             )}
           </button>
 
-          {/* Account / Sign In access */}
+          {/* Account / Sign In access (Community lives cleanly in BottomNav Tab #4) */}
           {authUser ? (
             <button
+              type="button"
               onClick={() => navigateTo('account')}
-              className="p-1 rounded-full border border-[#D4AF37] hover:border-black active-press transition-all cursor-pointer relative"
+              className="p-0.5 rounded-full border border-[#D4AF37]/80 hover:border-[#111111] active-press transition-[transform,border-color] duration-150 cursor-pointer relative"
               aria-label="Account Dossier"
               title={`Account: ${authUser.email}`}
             >
-              <div className="w-6 h-6 rounded-full bg-[#0F0F10] text-[#D4AF37] flex items-center justify-center text-[10px] font-medium">
-                {authUser.profile?.avatarUrl ? <img src={authUser.profile.avatarUrl} alt="Your profile" className="w-full h-full rounded-full object-cover" /> : (authUser.profile?.displayName || authUser.email || 'D').charAt(0).toUpperCase()}
+              <div className="w-7 h-7 rounded-full bg-[#111111] text-[#E6C77A] flex items-center justify-center text-[10px] font-semibold overflow-hidden">
+                {authUser.profile?.avatarUrl ? (
+                  <img src={authUser.profile.avatarUrl} alt="Your profile" className="w-full h-full object-cover" />
+                ) : (
+                  (authUser.profile?.displayName || authUser.email || 'D').charAt(0).toUpperCase()
+                )}
               </div>
             </button>
           ) : (
             <button
+              type="button"
               onClick={() => navigateTo('login')}
-              className="px-2.5 py-1 rounded-full bg-[#0F0F10] text-white hover:bg-[#27272A] text-[11px] font-medium active-press transition-colors cursor-pointer"
+              className="px-3 h-8 rounded-full bg-[#111111] text-white hover:bg-[#242426] text-[11px] font-medium active-press transition-colors cursor-pointer"
               aria-label="Sign In"
             >
               Sign In
             </button>
           )}
-
-          {/* Community Icon at the edge of the navbar right-hand side */}
-          <button
-            onClick={() => navigateTo('community')}
-            className={`p-2 rounded-full hover:bg-[#F3F4F6] active-press transition-colors cursor-pointer relative ${
-              currentScreen === 'community' ? 'text-[#8B6E27] bg-[#F6E7C1]/20' : 'text-[#0F0F10]'
-            }`}
-            aria-label="Community Collective"
-            title="Desla Collective Community"
-          >
-            <UsersThree size={19} weight="fill" aria-hidden="true" />
-          </button>
         </div>
       </div>
     </header>

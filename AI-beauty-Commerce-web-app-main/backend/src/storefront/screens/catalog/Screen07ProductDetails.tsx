@@ -1,6 +1,10 @@
 import { animateToBag } from '../../lib/cart-motion';
 import { NavigationIcon } from '../../components/common/NavigationIcon';
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
+import useEmblaCarousel from 'embla-carousel-react';
+import * as Accordion from '@radix-ui/react-accordion';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { toast } from 'sonner';
 import {
   Star,
   Minus,
@@ -19,6 +23,8 @@ import {
 import { useApp } from '../../context/AppContext';
 import { ProductCard } from '../../components/common/ProductCard';
 import { ProductImage } from '../../components/common/ProductImage';
+import { DESLA_EASE_DRAWER } from '../../components/motion/DeslaMotion';
+import { DeslaMobileDrawer, DeslaRollingNumber } from '../../components/motion/DeslaMobileDrawer';
 import { isOwnedApiConfigured, fetchProductReviewsApi, fetchStockNearCity, resolveVariantId, submitReviewApi } from '../../lib/owned-api';
 import type { Product, ProductReview } from '../../types';
 
@@ -52,7 +58,22 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
     observer.observe(purchaseButton.current);
     return () => observer.disconnect();
   }, [selectedProduct?.id]);
+  const prefersReduced = useReducedMotion();
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [mobileGalleryRef, mobileGalleryApi] = useEmblaCarousel({ loop: false, align: 'start' });
+  const syncMobileGallery = useCallback(() => {
+    if (!mobileGalleryApi) return;
+    setActiveImageIndex(mobileGalleryApi.selectedScrollSnap());
+  }, [mobileGalleryApi]);
+  useEffect(() => {
+    if (!mobileGalleryApi) return;
+    mobileGalleryApi.on('select', syncMobileGallery);
+    mobileGalleryApi.on('reInit', syncMobileGallery);
+    return () => {
+      mobileGalleryApi.off('select', syncMobileGallery);
+      mobileGalleryApi.off('reInit', syncMobileGallery);
+    };
+  }, [mobileGalleryApi, syncMobileGallery]);
   const [selectedSize, setSelectedSize] = useState(
     selectedProduct?.selectedSize || selectedProduct?.sizes[0] || 'Standard'
   );
@@ -138,6 +159,13 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
   const handleAddToCart = (event: React.MouseEvent<HTMLButtonElement>) => {
     if (!addToCart({ ...selectedProduct, price: unitPrice }, selectedSize, quantity)) return;
     animateToBag(event.currentTarget, selectedProduct.image);
+    toast.success(`Added ${selectedProduct.name}`, {
+      description: `${selectedSize} × ${quantity} · ${formatNaira(unitPrice * quantity)}`,
+      action: {
+        label: 'View Bag',
+        onClick: () => navigateTo('cart'),
+      },
+    });
     setJustAdded(true);
     setTimeout(() => setJustAdded(false), 1500);
   };
@@ -213,7 +241,7 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
   };
 
   return (
-    <div className="min-h-screen bg-white text-[#0F0F10] flex flex-col pb-28 font-body selection:bg-[#D4AF37]/20 selection:text-[#997A2E]">
+    <div className="min-h-[100dvh] bg-white text-[#0F0F10] flex flex-col pb-32 lg:pb-28 font-body selection:bg-[#D4AF37]/20 selection:text-[#997A2E]">
       {/* Main Content: Mobile First Ordering + Desktop Dual-Grid */}
       <main className="max-w-7xl mx-auto px-4 lg:px-8 pt-3 space-y-6 flex-1 w-full">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-start">
@@ -221,16 +249,67 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
           {/* 1. MEDIA GALLERY (lg:col-span-7, order-1)                                 */}
           {/* ========================================================================= */}
           <div className="lg:col-span-7 order-1 space-y-3 min-w-0">
-            <div className="flex flex-col-reverse md:flex-row gap-3.5 items-start">
+            {/* Mobile (< 768px): Full-bleed swipeable Embla gallery */}
+            <div className="md:hidden -mx-4">
+              <div
+                ref={mobileGalleryRef}
+                className="overflow-hidden"
+                style={{ touchAction: 'pan-y pinch-zoom' }}
+              >
+                <div className="flex">
+                  {images.map((img, idx) => (
+                    <div key={idx} className="flex-[0_0_100%] min-w-0 px-4">
+                      <div className="relative aspect-square w-full rounded-[22px] overflow-hidden bg-[#F6F5F2] border border-[#EAE5DC]">
+                        <ProductImage
+                          src={img}
+                          alt={`${selectedProduct.name} — view ${idx + 1}`}
+                          sizes="100vw"
+                          priority={idx === 0}
+                          className="object-cover object-center"
+                          fallbackSrc={selectedProduct.image || '/product_barrier_cream.jpg'}
+                        />
+                        {images.length > 1 && (
+                          <span className="absolute bottom-3 right-3 px-2.5 py-1 rounded-full bg-[#1C1712]/50 backdrop-blur-md border border-white/20 text-[10px] font-mono text-white tabular-nums">
+                            {idx + 1} / {images.length}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {images.length > 1 && (
+                <div className="flex items-center justify-center gap-1.5 mt-3 px-4">
+                  {images.map((_, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        setActiveImageIndex(idx);
+                        mobileGalleryApi?.scrollTo(idx);
+                      }}
+                      aria-label={`View image ${idx + 1}`}
+                      className={`h-1.5 rounded-full transition-[width,background-color] duration-200 cursor-pointer ${
+                        activeImageIndex === idx ? 'w-5 bg-[#111111]' : 'w-1.5 bg-[#D4CEC3]'
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Desktop (>= 768px): Vertical thumbnails + Main Gallery preserved untouched */}
+            <div className="hidden md:flex flex-row gap-3.5 items-start">
               {/* Vertical Thumbnails */}
-              <div className="flex md:flex-col gap-2 overflow-x-auto md:overflow-y-auto no-scrollbar shrink-0 max-h-[480px]">
+              <div className="flex flex-col gap-2 overflow-y-auto no-scrollbar shrink-0 max-h-[480px]">
                 {images.map((img, idx) => (
                   <button
                     key={idx}
+                    type="button"
                     onClick={() => setActiveImageIndex(idx)}
-                    className={`relative w-14 h-14 md:w-16 md:h-16 rounded-xl overflow-hidden bg-[#F6F5F2] border-2 transition-all shrink-0 cursor-pointer active-press ${
+                    className={`relative w-16 h-16 rounded-xl overflow-hidden bg-[#F6F5F2] border-2 transition-[border-color,opacity,box-shadow] duration-150 shrink-0 cursor-pointer active-press ${
                       activeImageIndex === idx
-                        ? 'border-[#D4AF37] shadow-xs'
+                        ? 'border-[#D4AF37] shadow-sm'
                         : 'border-[#E5E7EB] opacity-75 hover:opacity-100 hover:border-gray-400'
                     }`}
                   >
@@ -245,12 +324,12 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
                 ))}
               </div>
 
-              {/* Main Hero Image Viewport - Full Bleed Coverage without Awkward Letterboxing */}
-              <div className="relative flex-1 aspect-square max-h-[480px] w-full rounded-2xl overflow-hidden bg-[#F6F5F2] border border-[#E5E7EB] shadow-xs group">
+              {/* Main Hero Image Viewport */}
+              <div className="relative flex-1 aspect-square max-h-[480px] w-full rounded-2xl overflow-hidden bg-[#F6F5F2] border border-[#E5E7EB] shadow-sm group">
                 <ProductImage
                   src={images[activeImageIndex] || selectedProduct.image || '/product_barrier_cream.jpg'}
                   alt={selectedProduct.name}
-                  sizes="(max-width: 768px) 100vw, 50vw"
+                  sizes="50vw"
                   priority
                   className="object-cover object-center transition-transform duration-300 group-hover:scale-102"
                 />
@@ -259,15 +338,17 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
                 {images.length > 1 && (
                   <>
                     <button
+                      type="button"
                       onClick={() => setActiveImageIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1))}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 shadow-md flex items-center justify-center text-[#0F0F10] hover:bg-[#D4AF37] hover:text-[#0F0F10] active-press transition-all cursor-pointer z-10"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 shadow-md flex items-center justify-center text-[#0F0F10] hover:bg-[#D4AF37] hover:text-[#0F0F10] active-press transition-[transform,background-color] duration-150 cursor-pointer z-10"
                       aria-label="Previous image"
                     >
                       <CaretLeft size={16} weight="bold" aria-hidden="true" />
                     </button>
                     <button
+                      type="button"
                       onClick={() => setActiveImageIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0))}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 shadow-md flex items-center justify-center text-[#0F0F10] hover:bg-[#D4AF37] hover:text-[#0F0F10] active-press transition-all cursor-pointer z-10"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 shadow-md flex items-center justify-center text-[#0F0F10] hover:bg-[#D4AF37] hover:text-[#0F0F10] active-press transition-[transform,background-color] duration-150 cursor-pointer z-10"
                       aria-label="Next image"
                     >
                       <CaretRight size={16} weight="bold" aria-hidden="true" />
@@ -332,11 +413,11 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
               </div>
             </div>
 
-            {/* Price & Savings Block - Clean White Card */}
+            {/* Price & Savings Block - Clean White Card with Rolling NumberFlow */}
             <div className="p-3.5 rounded-2xl bg-white border border-[#E5E7EB] space-y-1">
               <div className="flex items-baseline gap-2.5 flex-wrap">
                 <span className="font-price font-semibold text-xl sm:text-2xl text-[#0F0F10]">
-                  {formatNaira(unitPrice)}
+                  <DeslaRollingNumber value={unitPrice} prefix="₦" />
                 </span>
                 {comparePrice && comparePrice > unitPrice && (
                   <span className="font-price text-xs sm:text-sm text-[#9CA3AF] line-through">
@@ -430,7 +511,10 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
                   ) : (
                     <>
                       <ShoppingBag size={16} weight="fill" className="text-[#D4AF37]" aria-hidden="true" />
-                      <span>Add to Bag • {formatNaira(unitPrice * quantity)}</span>
+                      <span className="inline-flex items-center gap-1">
+                        <span>Add to Bag •</span>
+                        <DeslaRollingNumber value={unitPrice * quantity} prefix="₦" />
+                      </span>
                     </>
                   )}
                 </button>
@@ -444,47 +528,50 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
               )}
             </div>
 
-            {/* ACCORDIONS: INCI Transparency & Routine Guide */}
-            <div className="border-t border-[#E5E7EB] pt-2 divide-y divide-[#E5E7EB] text-xs">
+            {/* ACCORDIONS: Smooth Radix INCI Transparency & Routine Guide */}
+            <Accordion.Root
+              type="single"
+              collapsible
+              value={openAccordion ?? ''}
+              onValueChange={(val) => setOpenAccordion(val || null)}
+              className="border-t border-[#E5E7EB] pt-1 divide-y divide-[#E5E7EB] text-xs"
+            >
               {/* Accordion 1: What It Does */}
-              <div className="py-2.5">
-                <button
-                  onClick={() => toggleAccordion('what-it-does')}
-                  className="w-full flex items-center justify-between font-semibold text-[#0F0F10] text-left cursor-pointer active-press"
-                >
-                  <span>What It Does &amp; Natural Benefits</span>
-                  <CaretDown
-                    size={15}
-                    className={`transition-transform duration-200 ${
-                      openAccordion === 'what-it-does' ? 'rotate-180 text-[#D4AF37]' : ''
-                    }`}
-                  />
-                </button>
-                {openAccordion === 'what-it-does' && (
-                  <p className="mt-2 text-[#6B7280] leading-relaxed text-[11.5px]">
+              <Accordion.Item value="what-it-does" className="py-1">
+                <Accordion.Header className="flex">
+                  <Accordion.Trigger className="w-full py-2.5 flex items-center justify-between font-semibold text-[#0F0F10] text-left cursor-pointer group focus-visible:outline-none">
+                    <span>What It Does &amp; Natural Benefits</span>
+                    <CaretDown
+                      size={15}
+                      className="transition-transform duration-200 group-data-[state=open]:rotate-180 group-data-[state=open]:text-[#D4AF37]"
+                      aria-hidden="true"
+                    />
+                  </Accordion.Trigger>
+                </Accordion.Header>
+                <Accordion.Content className="desla-accordion-content">
+                  <p className="pb-2.5 text-[#6B7280] leading-relaxed text-[12px]">
                     {selectedProduct.description}
                   </p>
-                )}
-              </div>
+                </Accordion.Content>
+              </Accordion.Item>
 
               {/* Accordion 2: INCI Ingredients */}
-              <div className="py-2.5">
-                <button
-                  onClick={() => toggleAccordion('ingredients')}
-                  aria-expanded={openAccordion === 'ingredients'}
-                  aria-controls="product-ingredients"
-                  className="w-full flex items-center justify-between font-semibold text-[#0F0F10] text-left cursor-pointer active-press"
-                >
-                  <span>INCI Natural Ingredients Transparency</span>
-                  <CaretDown
-                    size={15}
-                    className={`transition-transform duration-200 ${
-                      openAccordion === 'ingredients' ? 'rotate-180 text-[#D4AF37]' : ''
-                    }`}
-                  />
-                </button>
-                {openAccordion === 'ingredients' && (
-                  <div id="product-ingredients" className="mt-2 space-y-1.5 text-[#6B7280] text-sm desla-stage">
+              <Accordion.Item value="ingredients" className="py-1">
+                <Accordion.Header className="flex">
+                  <Accordion.Trigger
+                    aria-controls="product-ingredients"
+                    className="w-full py-2.5 flex items-center justify-between font-semibold text-[#0F0F10] text-left cursor-pointer group focus-visible:outline-none"
+                  >
+                    <span>INCI Natural Ingredients Transparency</span>
+                    <CaretDown
+                      size={15}
+                      className="transition-transform duration-200 group-data-[state=open]:rotate-180 group-data-[state=open]:text-[#D4AF37]"
+                      aria-hidden="true"
+                    />
+                  </Accordion.Trigger>
+                </Accordion.Header>
+                <Accordion.Content id="product-ingredients" className="desla-accordion-content">
+                  <div className="pb-2.5 space-y-1.5 text-[#6B7280] text-xs">
                     <p className="leading-relaxed">
                       Safe-conscious formulations formulated without harsh sulfates, artificial endocrine disruptors, or bleaching agents:
                     </p>
@@ -496,9 +583,9 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
                       ))}
                     </div>
                   </div>
-                )}
-              </div>
-            </div>
+                </Accordion.Content>
+              </Accordion.Item>
+            </Accordion.Root>
           </div>
 
           {/* ========================================================================= */}
@@ -678,94 +765,131 @@ export const Screen07ProductDetails: React.FC<{ initialProduct?: Product }> = ({
         )}
       </main>
 
-      {/* Review Submission Modal with Photo Upload */}
-      {isReviewModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-[#E5E7EB] space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-heading font-semibold text-base text-[#0F0F10]">
-                Write a Verified Review
-              </h3>
+      {/* Review Submission Drawer (Native Vaul on mobile, centered modal on desktop) */}
+      <DeslaMobileDrawer
+        open={isReviewModalOpen}
+        onClose={() => {
+          setIsReviewModalOpen(false);
+          setReviewPhoto('');
+        }}
+        ariaLabel="Write a Verified Review"
+        desktopPanelClassName="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-[#E5E7EB] space-y-4"
+        mobileContentClassName="bg-white rounded-t-[26px] border-t border-[#E7E1D6] shadow-2xl max-h-[88dvh] flex flex-col overflow-hidden"
+      >
+        <div className="px-5 pb-5 sm:p-0 space-y-4 overflow-y-auto overscroll-contain-y">
+          <div className="flex items-center justify-between">
+            <h3 className="font-heading font-semibold text-base text-[#0F0F10]">
+              Write a Verified Review
+            </h3>
+            <button
+              type="button"
+              onClick={() => {
+                setIsReviewModalOpen(false);
+                setReviewPhoto('');
+              }}
+              className="p-1.5 rounded-full hover:bg-gray-100 text-gray-500 cursor-pointer active-press"
+              aria-label="Close review sheet"
+            >
+              <X size={18} weight="bold" aria-hidden="true" />
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmitReview} className="space-y-3.5">
+            <div>
+              <label className="text-xs font-semibold text-[#0F0F10] block mb-1">Your Rating</label>
+              <div className="flex gap-2 text-[#D4AF37]">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    type="button"
+                    key={star}
+                    onClick={() => setReviewRating(star)}
+                    className="cursor-pointer active-press p-1"
+                  >
+                    <Star
+                      size={22}
+                      weight={star <= reviewRating ? 'fill' : 'regular'}
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="review-headline" className="text-xs font-semibold text-[#0F0F10] block mb-1">Headline</label>
+              <input
+                id="review-headline"
+                type="text"
+                required
+                placeholder="Summarize your experience"
+                value={reviewTitle}
+                onChange={(e) => setReviewTitle(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#F8F9FA] border border-[#E5E7EB] text-base sm:text-xs text-[#0F0F10] focus:outline-none focus:border-[#D4AF37]"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="review-comment" className="text-xs font-semibold text-[#0F0F10] block mb-1">Review</label>
+              <textarea
+                id="review-comment"
+                required
+                rows={3}
+                placeholder="Share details about the texture, hydration level, and results on your skin..."
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#F8F9FA] border border-[#E5E7EB] text-base sm:text-xs text-[#0F0F10] focus:outline-none focus:border-[#D4AF37]"
+              />
+            </div>
+            <div className="pt-2 flex justify-end gap-2">
               <button
+                type="button"
                 onClick={() => {
                   setIsReviewModalOpen(false);
                   setReviewPhoto('');
                 }}
-                className="p-1 rounded-full hover:bg-gray-100 text-gray-500 cursor-pointer active-press"
+                className="px-4 py-2.5 rounded-full border border-[#E5E7EB] text-xs text-[#6B7280] font-semibold cursor-pointer active-press"
               >
-                <X size={18} weight="bold" aria-hidden="true" />
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-5 py-2.5 rounded-full bg-[#0F0F10] text-white text-xs font-medium hover:bg-[#D4AF37] hover:text-[#0F0F10] active-press transition-colors cursor-pointer"
+              >
+                Submit Review
               </button>
             </div>
-
-            <form onSubmit={handleSubmitReview} className="space-y-3.5">
-              <div>
-                <label className="text-xs font-semibold text-[#0F0F10] block mb-1">Your Rating</label>
-                <div className="flex gap-2 text-[#D4AF37]">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      type="button"
-                      key={star}
-                      onClick={() => setReviewRating(star)}
-                      className="cursor-pointer active-press"
-                    >
-                      <Star
-                        size={22}
-                        fill={star <= reviewRating ? 'currentColor' : 'none'}
-                        strokeWidth={1.5}
-                      />
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="review-headline" className="text-xs font-semibold text-[#0F0F10] block mb-1">Headline</label>
-                <input
-                  id="review-headline"
-                  type="text"
-                  required
-                  placeholder="Summarize your experience"
-                  value={reviewTitle}
-                  onChange={(e) => setReviewTitle(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-[#F8F9FA] border border-[#E5E7EB] text-xs text-[#0F0F10] focus:outline-none focus:border-[#D4AF37]"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="review-comment" className="text-xs font-semibold text-[#0F0F10] block mb-1">Review</label>
-                <textarea
-                  id="review-comment"
-                  required
-                  rows={3}
-                  placeholder="Share details about the texture, hydration level, and results on your skin..."
-                  value={reviewComment}
-                  onChange={(e) => setReviewComment(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-[#F8F9FA] border border-[#E5E7EB] text-xs text-[#0F0F10] focus:outline-none focus:border-[#D4AF37]"
-                />
-              </div>
-              <div className="pt-2 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsReviewModalOpen(false);
-                    setReviewPhoto('');
-                  }}
-                  className="px-4 py-2 rounded-full border border-[#E5E7EB] text-xs text-[#6B7280] font-semibold cursor-pointer active-press"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-full bg-[#0F0F10] text-white text-xs font-medium hover:bg-[#D4AF37] hover:text-[#0F0F10] active-press transition-colors cursor-pointer"
-                >
-                  Submit Review
-                </button>
-              </div>
-            </form>
-          </div>
+          </form>
         </div>
-      )}
-      {showQuickPurchase && <aside aria-label="Quick purchase" className="fixed inset-x-3 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-30 flex items-center justify-between gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-3 shadow-lg lg:hidden"><div className="min-w-0"><p className="truncate text-sm font-semibold">{selectedProduct.name}</p><p className="text-xs text-[#6B7280]">{selectedSize} · {formatNaira(unitPrice * quantity)}</p></div><button type="button" onClick={handleAddToCart} disabled={!selectedProduct.inStock} className="min-h-11 shrink-0 rounded-full bg-[#0F0F10] px-5 text-sm font-semibold text-white disabled:opacity-50">{justAdded ? 'Added' : 'Add to bag'}</button></aside>}
+      </DeslaMobileDrawer>
+
+      {/* Animated Sticky Mobile Quick-Purchase Bar (slides symmetrically from bottom edge) */}
+      <AnimatePresence>
+        {showQuickPurchase && (
+          <motion.aside
+            aria-label="Quick purchase"
+            initial={prefersReduced ? { opacity: 0 } : { opacity: 0, y: 24 }}
+            animate={prefersReduced ? { opacity: 1 } : { opacity: 1, y: 0 }}
+            exit={prefersReduced ? { opacity: 0 } : { opacity: 0, y: 24 }}
+            transition={{ duration: 0.22, ease: DESLA_EASE_DRAWER }}
+            className="fixed inset-x-3 bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] z-30 flex items-center justify-between gap-3 rounded-2xl border border-[#E7E1D6] bg-[#FFFFFF]/95 backdrop-blur-xl p-3 shadow-[0_14px_34px_-12px_rgba(17,17,17,0.22)] lg:hidden"
+          >
+            <div className="min-w-0">
+              <p className="truncate text-xs font-heading font-semibold text-[#111111]">{selectedProduct.name}</p>
+              <p className="text-[11px] text-[#6E6A63] inline-flex items-center gap-1">
+                <span>{selectedSize} ·</span>
+                <DeslaRollingNumber value={unitPrice * quantity} prefix="₦" className="font-semibold text-[#111111]" />
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              disabled={!selectedProduct.inStock}
+              className="min-h-10 shrink-0 rounded-full bg-[#111111] px-4 text-xs font-semibold text-white active:scale-95 transition-transform duration-150 disabled:opacity-50 cursor-pointer"
+            >
+              {justAdded ? 'Added' : 'Add to bag'}
+            </button>
+          </motion.aside>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

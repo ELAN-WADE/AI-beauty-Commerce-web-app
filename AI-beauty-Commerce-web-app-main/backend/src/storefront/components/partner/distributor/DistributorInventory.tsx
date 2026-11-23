@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { toast } from 'sonner';
 import {
   Layers,
   Search,
@@ -16,6 +17,7 @@ import { FilterTabs } from '../shared/FilterTabs';
 import { StatusBadge } from '../shared/StatusBadge';
 import { StatChip } from '../shared/StatChip';
 import { MobileRouteContent, MobileSharedHeroCard } from '../shared/MobileRouteTransition';
+import { DeslaMobileDrawer } from '../../motion/DeslaMobileDrawer';
 import { useApp } from '../../../context/AppContext';
 
 export interface DistributorInventoryProps {
@@ -36,6 +38,7 @@ export const DistributorInventory: React.FC<DistributorInventoryProps> = ({
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
+    toast.success(msg);
     setTimeout(() => setToastMessage(null), 3000);
   };
 
@@ -249,8 +252,74 @@ export const DistributorInventory: React.FC<DistributorInventoryProps> = ({
         </div>
       </div>
 
-      {/* Inventory Table */}
-      <div className="p-4 sm:p-6 rounded-3xl bg-white border border-[#E5E7EB] shadow-xs">
+      {/* Mobile 1-Thumb SKU Cards (< md) */}
+      <div className="md:hidden space-y-2.5">
+        {filtered.length === 0 ? (
+          <div className="p-8 rounded-2xl border border-[#EAE5DC] bg-[#FBF9F5] text-center text-xs text-[#6B7280]">
+            No formulations match this filter.
+          </div>
+        ) : (
+          filtered.map((item) => (
+            <div key={item.sku} className="p-3.5 rounded-2xl bg-white border border-[#EAE5DC] space-y-3">
+              <div className="flex items-start gap-3">
+                <img
+                  src={item.image}
+                  alt={item.name}
+                  className="w-12 h-12 rounded-xl object-cover border border-[#EAE5DC] shrink-0"
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="font-semibold text-xs text-[#111111] leading-snug line-clamp-2">
+                      {item.name}
+                    </span>
+                    <StatusBadge status={item.status} />
+                  </div>
+                  <span className="text-[11px] font-mono text-[#6B7280] block mt-0.5">{item.sku}</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 text-center bg-[#FBF9F5] rounded-xl p-2 border border-[#EAE5DC]/70">
+                <div>
+                  <span className="text-[9.5px] font-mono uppercase text-[#6B7280] block">Available</span>
+                  <span className="font-mono font-semibold text-xs text-[#111111]">{item.available}</span>
+                </div>
+                <div>
+                  <span className="text-[9.5px] font-mono uppercase text-[#6B7280] block">Reserved</span>
+                  <span className="font-mono font-semibold text-xs text-[#6B7280]">{item.reserved}</span>
+                </div>
+                <div>
+                  <span className="text-[9.5px] font-mono uppercase text-[#6B7280] block">Min Alert</span>
+                  <span className="font-mono font-semibold text-xs text-[#6B7280]">{item.threshold}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAdjustingItem(item);
+                    setAdjustDelta(5);
+                  }}
+                  className="flex-1 h-9 rounded-full border border-[#DDD7CC] bg-white text-[#111111] text-xs font-semibold cursor-pointer active:scale-95 transition-transform duration-150"
+                >
+                  Adjust Count
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onRestockItem && onRestockItem(item.sku)}
+                  className="flex-1 h-9 rounded-full bg-[#111111] text-white text-xs font-semibold inline-flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 transition-transform duration-150"
+                >
+                  <Truck size={12} className="text-[#E6C77A]" />
+                  <span>Restock</span>
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop Inventory Table (>= md) preserved untouched */}
+      <div className="hidden md:block p-4 sm:p-6 rounded-3xl bg-white border border-[#E5E7EB] shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
@@ -322,20 +391,27 @@ export const DistributorInventory: React.FC<DistributorInventoryProps> = ({
         </div>
       </div>
 
-      {/* Adjust Count Modal */}
-      {adjustingItem && (
-        <div className="fixed inset-0 z-50 bg-[#0F0F10]/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
-          <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-[#EAE8E3] overflow-hidden">
+      {/* Adjust Count Drawer (Vaul sheet on mobile, centered modal on desktop) */}
+      <DeslaMobileDrawer
+        open={Boolean(adjustingItem)}
+        onClose={() => setAdjustingItem(null)}
+        ariaLabel={adjustingItem ? `Adjust Local Count for ${adjustingItem.name}` : 'Adjust Local Count'}
+        desktopPanelClassName="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-[#EAE8E3] overflow-hidden"
+        mobileContentClassName="bg-white rounded-t-[26px] border-t border-[#E7E1D6] shadow-2xl max-h-[88dvh] flex flex-col overflow-hidden"
+      >
+        {adjustingItem && (
+          <div className="overflow-y-auto overscroll-contain-y">
             <div className="p-5 border-b border-[#EAE8E3] flex items-center justify-between">
               <div>
                 <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-[#997A2E]">
                   City Hub Reconciliation
                 </span>
-                <h3 className="font-heading font-semibold text-lg text-[#0F0F10]">
+                <h3 className="font-heading font-semibold text-base sm:text-lg text-[#0F0F10]">
                   Adjust Local Count • {adjustingItem.name}
                 </h3>
               </div>
               <button
+                type="button"
                 onClick={() => setAdjustingItem(null)}
                 className="p-1.5 rounded-full hover:bg-[#FAF9F6] text-[#71717A] cursor-pointer"
               >
@@ -355,7 +431,7 @@ export const DistributorInventory: React.FC<DistributorInventoryProps> = ({
                   <button
                     type="button"
                     onClick={() => setAdjustDelta((d) => (d > 0 ? -Math.abs(d) : d))}
-                    className={`flex-1 py-2 rounded-xl border text-xs font-medium cursor-pointer ${
+                    className={`flex-1 py-2.5 rounded-xl border text-xs font-medium cursor-pointer ${
                       adjustDelta < 0 ? 'bg-rose-50 border-rose-300 text-rose-700' : 'bg-white border-[#E5E7EB] text-[#71717A]'
                     }`}
                   >
@@ -364,7 +440,7 @@ export const DistributorInventory: React.FC<DistributorInventoryProps> = ({
                   <button
                     type="button"
                     onClick={() => setAdjustDelta((d) => Math.abs(d))}
-                    className={`flex-1 py-2 rounded-xl border text-xs font-medium cursor-pointer ${
+                    className={`flex-1 py-2.5 rounded-xl border text-xs font-medium cursor-pointer ${
                       adjustDelta > 0 ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-white border-[#E5E7EB] text-[#71717A]'
                     }`}
                   >
@@ -373,12 +449,13 @@ export const DistributorInventory: React.FC<DistributorInventoryProps> = ({
                 </div>
                 <input
                   type="number"
+                  inputMode="numeric"
                   value={Math.abs(adjustDelta)}
                   onChange={(e) => {
                     const val = Number(e.target.value);
                     setAdjustDelta(adjustDelta < 0 ? -val : val);
                   }}
-                  className="w-full mt-2 p-2.5 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] text-xs font-mono font-medium focus:outline-none"
+                  className="w-full mt-2 p-2.5 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] text-base sm:text-xs font-mono font-medium focus:outline-none"
                   required
                 />
               </div>
@@ -388,7 +465,7 @@ export const DistributorInventory: React.FC<DistributorInventoryProps> = ({
                 <select
                   value={adjustReason}
                   onChange={(e) => setAdjustReason(e.target.value)}
-                  className="w-full p-2.5 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] text-xs focus:outline-none"
+                  className="w-full p-2.5 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] text-base sm:text-xs focus:outline-none"
                 >
                   <option value="Local stock intake from regional transit">Intake from Regional Laboratory Batch</option>
                   <option value="Damaged packaging during local handling">Damaged Packaging / Seal Broken</option>
@@ -404,7 +481,7 @@ export const DistributorInventory: React.FC<DistributorInventoryProps> = ({
                   value={adjustNote}
                   onChange={(e) => setAdjustNote(e.target.value)}
                   placeholder="Reference number or note..."
-                  className="w-full p-2.5 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] text-xs focus:outline-none"
+                  className="w-full p-2.5 rounded-2xl bg-[#FAF9F6] border border-[#EAE8E3] text-base sm:text-xs focus:outline-none"
                 />
               </div>
 
@@ -412,21 +489,21 @@ export const DistributorInventory: React.FC<DistributorInventoryProps> = ({
                 <button
                   type="button"
                   onClick={() => setAdjustingItem(null)}
-                  className="px-4 py-2 rounded-full border border-[#EAE8E3] text-xs font-semibold text-[#71717A] cursor-pointer"
+                  className="px-4 py-2.5 rounded-full border border-[#EAE8E3] text-xs font-semibold text-[#71717A] cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-full bg-[#0F0F10] text-[#D4AF37] font-medium text-xs shadow-md cursor-pointer"
+                  className="px-5 py-2.5 rounded-full bg-[#0F0F10] text-[#D4AF37] font-medium text-xs shadow-md cursor-pointer"
                 >
                   Save Count
                 </button>
               </div>
             </form>
           </div>
-        </div>
-      )}
+        )}
+      </DeslaMobileDrawer>
       </MobileRouteContent>
     </div>
   );

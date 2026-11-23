@@ -33,18 +33,36 @@ export const FormulationShowcase: React.FC<FormulationShowcaseProps> = ({
 
         </div>
 
-        {/* 5-Column Desktop Grid / 2-Column Mobile Grid */}
+        {/* Mobile (< 640px): Edge-peeking horizontal snap rail (zero orphan 5th card) */}
+        {/* Desktop (>= 640px): Original 3-col / 5-col grid preserved untouched */}
         {displayedProducts.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-5">
-            {displayedProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                variant="grid"
-                onOpenModal={onOpenModal}
-              />
-            ))}
-          </div>
+          <>
+            <div
+              className="sm:hidden flex gap-3.5 overflow-x-auto no-scrollbar snap-x snap-mandatory -mx-4 px-4 pb-1"
+              style={{ touchAction: 'pan-x pan-y' }}
+            >
+              {displayedProducts.map((product) => (
+                <div key={product.id} className="snap-start shrink-0 w-[45vw] min-w-[166px] max-w-[196px]">
+                  <ProductCard
+                    product={product}
+                    variant="grid"
+                    onOpenModal={onOpenModal}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div className="hidden sm:grid sm:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-5">
+              {displayedProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  variant="grid"
+                  onOpenModal={onOpenModal}
+                />
+              ))}
+            </div>
+          </>
         ) : (
           <div className="py-12 text-center text-xs text-[#6B7280]">
             No formulations currently published under this discipline.

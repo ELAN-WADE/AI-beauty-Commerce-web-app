@@ -141,27 +141,27 @@ export const Screen13OrdersTracking: React.FC = () => {
   const pickupMessage = pickupError || (pickup ? 'Expires ' + new Date(pickup.expiresAt).toLocaleString() : '');
   const formatNaira = (amount: number) => amount.toLocaleString('en-NG', { style: 'currency', currency: 'NGN' });
   return (
-    <div className="min-h-screen bg-[#FAF9F6] text-[#0F0F10] pb-28 font-body selection:bg-[#D4AF37]/20 selection:text-[#997A2E]">
-      <main className="max-w-7xl mx-auto px-4 lg:px-8 pt-6 space-y-6">
+    <div className="min-h-[100dvh] bg-[#FBF9F5] text-[#0F0F10] pb-28 font-body selection:bg-[#D4AF37]/20 selection:text-[#997A2E]">
+      <main className="max-w-7xl mx-auto px-4 lg:px-8 pt-5 sm:pt-6 space-y-5 sm:space-y-6">
         {/* Header Title with Clinical Apothecary Accents */}
-        <div className="flex items-center justify-between pb-2 border-b border-[#E5E7EB]/80">
+        <div className="flex items-center justify-between pb-2.5 border-b border-[#EAE5DC]">
           <div>
             <div className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-[#D4AF37]" />
-              <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-[#997A2E]">
+              <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-[#8C6D28]">
                 Local Partner Dispatch Telemetry
               </span>
             </div>
-            <h1 className="font-heading font-bold text-2xl text-[#0F0F10] tracking-tight mt-0.5 flex items-center gap-2">
+            <h1 className="font-heading font-bold text-xl sm:text-2xl text-[#111111] tracking-tight mt-0.5 flex items-center gap-2">
               <span>My orders</span>
               <BotanicalSprig className="w-5 h-5 opacity-60 text-[#D4AF37]" color="#D4AF37" />
             </h1>
           </div>
           <div className="hidden sm:flex items-center gap-2">
-            <span className="px-3.5 py-1.5 rounded-full bg-white border border-[#E5E7EB] text-xs font-mono font-medium text-[#0F0F10] shadow-2xs">
+            <span className="px-3.5 py-1.5 rounded-full bg-white border border-[#E5E7EB] text-xs font-mono font-medium text-[#0F0F10] shadow-sm">
               Tracking: #{currentTrackingId}
             </span>
-            <button type="button" onClick={() => { setRevision(value => value + 1); void own.refresh(); }} disabled={loading || own.loading} className="rounded-full border bg-white px-4 py-2 text-xs">Refresh orders</button>
+            <button type="button" onClick={() => { setRevision(value => value + 1); void own.refresh(); }} disabled={loading || own.loading} className="rounded-full border bg-white px-4 py-2 text-xs cursor-pointer">Refresh orders</button>
           </div>
         </div>
 
@@ -191,16 +191,74 @@ export const Screen13OrdersTracking: React.FC = () => {
           <TransferClaimCard key={o.id} order={o} email={authUser?.email || ''} />
         ))}
 
-        {own.loading && !own.orders.length && <p role="status">Loading your orders…</p>}
-        {own.error && <p role="alert">{own.error} <button className="underline" onClick={() => void own.refresh()}>Retry orders</button></p>}
-        {!authUser && !shown && <div className="p-5 rounded-2xl border bg-white"><p>Sign in to see your orders.</p><button className="underline" onClick={() => navigateTo('login')}>Sign in</button></div>}
-        {!!own.orders.length && <label className="block text-xs font-semibold">Select an order<select aria-label="Select an order" className="block mt-2 p-3 rounded-xl border bg-white w-full" value={selectedId} onChange={event => setSelectedId(event.target.value)}>{own.orders.map(order => <option key={order.id} value={order.id}>{order.orderNumber} · {order.status}</option>)}</select></label>}
-        {authUser && !own.loading && !own.orders.length && <div className="p-5 rounded-2xl bg-white border text-sm">No orders yet. <button className="underline" onClick={() => navigateTo('catalogue')}>Explore formulations</button></div>}
-        {own.hasMore && <button className="underline text-xs" onClick={() => void own.loadMore()}>Load older orders</button>}
-        {loading && <p role="status">Loading order details…</p>}
-        {error && <p role="alert">{error} <button className="underline" onClick={() => setRevision(value => value + 1)}>Retry order</button></p>}
-        {/* TWO-GRID TRACK ORDER SYSTEM */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {own.loading && !own.orders.length && <p role="status" className="text-xs text-[#6B7280]">Loading your orders…</p>}
+        {own.error && <p role="alert" className="rounded-xl bg-rose-50 border border-rose-200 px-4 py-3 text-xs text-rose-800">{own.error} <button className="underline font-medium ml-1 cursor-pointer" onClick={() => void own.refresh()}>Retry orders</button></p>}
+
+        {/* Unified Dignified Empty / Sign-In State (replaces 5 stacked empty placeholder cards on mobile) */}
+        {!authUser && !shown && (
+          <section className="max-w-md mx-auto rounded-[22px] border border-[#E7E1D6] bg-white p-6 text-center shadow-[0_14px_34px_-18px_rgba(17,17,17,0.10)] space-y-4">
+            <div className="flex justify-center">
+              <img src="/desla_logo_dark.svg" alt="Desla!" className="h-5 w-auto block object-contain select-none" />
+            </div>
+            <div className="space-y-1.5">
+              <div className="w-6 h-[1.5px] bg-[#B89248] mx-auto" aria-hidden="true" />
+              <h2 className="font-heading text-lg font-semibold text-[#111111] tracking-tight">
+                Track your formulations
+              </h2>
+              <p className="text-xs text-[#6E6A63] leading-relaxed">
+                Sign in to see live local hub packing, courier handoffs, and collection pickup codes for your orders.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-1">
+              <button
+                type="button"
+                onClick={() => navigateTo('login')}
+                className="w-full sm:w-auto h-10 px-6 rounded-[10px] bg-[#111111] hover:bg-[#242426] active:scale-[0.98] text-white text-xs font-medium inline-flex items-center justify-center gap-1.5 transition-[transform,background-color] duration-150 cursor-pointer"
+              >
+                <span>Sign in</span>
+                <ArrowRight size={13} className="text-[#E6C77A]" />
+              </button>
+              <button
+                type="button"
+                onClick={() => navigateTo('catalogue')}
+                className="w-full sm:w-auto h-10 px-5 rounded-[10px] border border-[#DDD7CC] bg-white text-[#111111] text-xs font-medium cursor-pointer"
+              >
+                Explore formulations
+              </button>
+            </div>
+          </section>
+        )}
+
+        {authUser && !own.loading && !own.orders.length && !shown && (
+          <section className="max-w-md mx-auto rounded-[22px] border border-[#E7E1D6] bg-white p-6 text-center shadow-[0_14px_34px_-18px_rgba(17,17,17,0.10)] space-y-4">
+            <div className="w-11 h-11 rounded-2xl bg-[#FBF5E8] border border-[#D4AF37]/30 text-[#8C6D28] mx-auto flex items-center justify-center">
+              <Package size={20} />
+            </div>
+            <div className="space-y-1">
+              <h2 className="font-heading text-lg font-semibold text-[#111111]">No orders yet</h2>
+              <p className="text-xs text-[#6E6A63] leading-relaxed">
+                Once you place an order, real-time hub packing milestones and dispatch updates will appear here.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigateTo('catalogue')}
+              className="h-10 px-6 rounded-full bg-[#111111] text-white text-xs font-medium inline-flex items-center gap-1.5 cursor-pointer active:scale-95 transition-transform duration-150"
+            >
+              <span>Explore formulations</span>
+              <ArrowRight size={13} className="text-[#E6C77A]" />
+            </button>
+          </section>
+        )}
+
+        {!!own.orders.length && <label className="block text-xs font-semibold">Select an order<select aria-label="Select an order" className="block mt-2 p-3 rounded-xl border border-[#E7E1D6] bg-white w-full" value={selectedId} onChange={event => setSelectedId(event.target.value)}>{own.orders.map(order => <option key={order.id} value={order.id}>{order.orderNumber} · {order.status}</option>)}</select></label>}
+        {own.hasMore && <button className="underline text-xs cursor-pointer" onClick={() => void own.loadMore()}>Load older orders</button>}
+        {loading && <p role="status" className="text-xs text-[#6B7280]">Loading order details…</p>}
+        {error && <p role="alert" className="rounded-xl bg-rose-50 border border-rose-200 px-4 py-3 text-xs text-rose-800">{error} <button className="underline font-medium ml-1 cursor-pointer" onClick={() => setRevision(value => value + 1)}>Retry order</button></p>}
+
+        {/* TWO-GRID TRACK ORDER SYSTEM (shown only when an order is actually active/selected) */}
+        {shown && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
           {/* LEFT GRID: Order Timeline, Milestones & Rider Details (6 cols) */}
           <div className="lg:col-span-6 space-y-5">
             {/* Status Summary Card */}
@@ -320,6 +378,7 @@ export const Screen13OrdersTracking: React.FC = () => {
             </div>
           </div>
         </div>
+        )}
       </main>
     </div>
   );

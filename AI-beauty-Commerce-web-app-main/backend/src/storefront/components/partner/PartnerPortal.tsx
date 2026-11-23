@@ -1,6 +1,7 @@
 import { ProgrammeTerms } from './ProgrammeTerms';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { LayoutGroup } from 'framer-motion';
+import { useApp } from '../../context/AppContext';
 import { PartnerAppShell } from './shell/PartnerAppShell';
 import { partnerRoute } from '../../lib/portal-navigation';
 import { CreatorOverview } from './creator/CreatorOverview';
@@ -32,6 +33,29 @@ export interface PartnerPortalProps {
 
 export const PartnerPortal: React.FC<PartnerPortalProps> = ({ kind: initialKind }) => {
   const currentKind = initialKind;
+  const { orders, inventoryItems, selectedCity } = useApp();
+
+  const liveBadges = useMemo(() => {
+    const cityKey = (selectedCity || 'Lagos').toLowerCase();
+    const pendingOrders = orders.filter((o) =>
+      ['PENDING', 'PAID', 'PACKING', 'READY_PICKUP'].includes(String(o.status || '').toUpperCase())
+    ).length;
+    const lowStock = inventoryItems.filter((inv) => {
+      const units = cityKey.includes('abuja')
+        ? inv.abujaHub
+        : cityKey.includes('port')
+          ? inv.phHub
+          : cityKey.includes('kano')
+            ? inv.kanoHub
+            : inv.lagosHub;
+      return units <= (inv.lowStockThreshold || 15);
+    }).length;
+    return {
+      orders: pendingOrders,
+      lowStock,
+      notifications: 0,
+    };
+  }, [orders, inventoryItems, selectedCity]);
 
   const [activeRoute, setActiveRoute] = useState<string>(() => partnerRoute(initialKind, typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('workspace') : null));
   const changeRoute = (route: string) => {
@@ -159,21 +183,23 @@ export const PartnerPortal: React.FC<PartnerPortalProps> = ({ kind: initialKind 
     }
   };
 
+  const showTermsFooter = ['overview', 'resources', 'settings'].includes(activeRoute);
+
   return (
     <PartnerAppShell
       kind={currentKind}
       activeRoute={activeRoute}
       onRouteChange={changeRoute}
       onQuickAction={handleQuickAction}
-      badgeCounts={{
-        orders: 0,
-        lowStock: 0,
-        notifications: 0
-      }}
+      badgeCounts={liveBadges}
     >
       <LayoutGroup id="partner-portal-layout">
         {renderActiveScreen()}
-        <div className="mx-auto max-w-7xl p-4 sm:p-6"><ProgrammeTerms kind={currentKind} /></div>
+        {showTermsFooter && (
+          <div className="mx-auto max-w-7xl pt-4 sm:p-6">
+            <ProgrammeTerms kind={currentKind} />
+          </div>
+        )}
       </LayoutGroup>
     </PartnerAppShell>
   );

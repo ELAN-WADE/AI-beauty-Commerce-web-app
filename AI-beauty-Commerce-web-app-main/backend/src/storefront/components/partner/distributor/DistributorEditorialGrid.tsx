@@ -55,7 +55,7 @@ export const defaultDistributorTiles: EditorialTileData[] = [
     index: '03',
     category: 'Warehouse Storage',
     title: 'Hub Inventory Vault',
-    description: 'Monitor live SKU inventory health, safety thresholds, and batch expiry across Lagos warehouses.',
+    description: 'Monitor live SKU inventory health, safety thresholds, and batch expiry across your regional hub stock pools.',
     image: '/tile_dist_inventory.jpg',
     badge: '',
     desktopSpan: 'col-span-1',

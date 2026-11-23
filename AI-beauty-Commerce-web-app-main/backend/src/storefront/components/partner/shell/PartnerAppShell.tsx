@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { PartnerProgrammeSelector } from './PartnerProgrammeSelector';
+import { PartnerMobileBottomNav } from './PartnerMobileBottomNav';
 import { usePartnerRecords } from '../../../lib/use-partner-records';
 import { CreatorSecondaryNav } from '../creator/CreatorSecondaryNav';
 import { DistributorSecondaryNav } from '../distributor/DistributorSecondaryNav';
@@ -114,6 +115,7 @@ export const PartnerAppShell: React.FC<PartnerAppShellProps> = ({
   ];
 
   const navItems = isCreator ? creatorNavItems : distributorNavItems;
+  const activeRouteLabel = navItems.find((item) => item.id === activeRoute)?.label || (isCreator ? 'Creator Studio' : 'Distributor Hub');
 
   const handleNavigate = (routeId: string) => {
     setDrawerOpen(false);
@@ -121,47 +123,70 @@ export const PartnerAppShell: React.FC<PartnerAppShellProps> = ({
   };
 
   return (
-    <div className="min-h-[100dvh] bg-[#FFFFFF] text-[#0F0F10] flex flex-col antialiased font-body overflow-x-hidden selection:bg-[#D4AF37]/20 selection:text-[#997A2E]">
-      {/* Mobile Compact Branded Logo + Hamburger Header (Mobile < md only) */}
-      <header className="md:hidden sticky top-0 z-40 h-14 px-4 sm:px-6 bg-white/95 backdrop-blur-md border-b border-[#E5E7EB] flex items-center justify-between gap-3 select-none">
-        <div className="flex items-center gap-2">
-          <BrandLogo
-            variant="dark"
-            size="sm"
-            onClick={() => onRouteChange('overview')}
-          />
-          <button
-            type="button"
-            onClick={() => setDrawerOpen(true)}
-            aria-label="Open navigation menu"
-            aria-expanded={drawerOpen}
-            aria-controls="partner-navigation-drawer"
-            className="min-h-11 min-w-11 rounded-lg flex items-center justify-center text-[#0F0F10] hover:bg-[#FAF9F6] active:scale-[0.97] transition-all cursor-pointer touch-manipulation"
-          >
-            <Menu size={20} />
-          </button>
+    <div
+      data-vaul-drawer-wrapper=""
+      className="min-h-[100dvh] bg-[#FFFFFF] text-[#0F0F10] flex flex-col antialiased font-body overflow-x-clip selection:bg-[#D4AF37]/20 selection:text-[#997A2E]"
+    >
+      {/* Mobile Ergonomic Header (Mobile < md only) */}
+      <header className="md:hidden sticky top-0 z-40 px-3.5 py-2 pt-[calc(0.5rem+env(safe-area-inset-top,0px))] bg-[#FFFFFF]/95 backdrop-blur-xl border-b border-[#EAE5DC] flex items-center justify-between gap-2 select-none">
+        <div className="flex items-center gap-2 min-w-0">
+          {isOverview ? (
+            <>
+              <button
+                type="button"
+                onClick={() => setDrawerOpen(true)}
+                aria-label="Open navigation menu"
+                aria-expanded={drawerOpen}
+                aria-controls="partner-navigation-drawer"
+                className="w-10 h-10 -ml-1 rounded-full flex items-center justify-center text-[#111111] hover:bg-[#F5F2EB] active:scale-95 transition-[transform,background-color] duration-150 cursor-pointer touch-manipulation shrink-0"
+              >
+                <Menu size={20} />
+              </button>
+              <BrandLogo
+                variant="dark"
+                size="sm"
+                onClick={() => onRouteChange('overview')}
+              />
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => onRouteChange('overview')}
+                aria-label="Back to dashboard"
+                className="w-10 h-10 -ml-1 rounded-full flex items-center justify-center text-[#111111] hover:bg-[#F5F2EB] active:scale-95 transition-[transform,background-color] duration-150 cursor-pointer touch-manipulation shrink-0"
+              >
+                <ArrowLeft size={19} />
+              </button>
+              <span className="font-heading font-semibold text-[15px] text-[#111111] tracking-tight truncate">
+                {activeRouteLabel}
+              </span>
+            </>
+          )}
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1 shrink-0">
           {!isOverview && (
             <button
               type="button"
-              onClick={() => onRouteChange('overview')}
-              className="min-h-11 px-3 rounded-lg text-xs font-medium text-[#4B5563] hover:text-[#0F0F10] hover:bg-[#FAF9F6] flex items-center gap-1.5 transition-colors cursor-pointer touch-manipulation"
+              onClick={() => setDrawerOpen(true)}
+              aria-label="Open navigation menu"
+              aria-expanded={drawerOpen}
+              aria-controls="partner-navigation-drawer"
+              className="w-10 h-10 rounded-full flex items-center justify-center text-[#111111] hover:bg-[#F5F2EB] active:scale-95 transition-[transform,background-color] duration-150 cursor-pointer touch-manipulation"
             >
-              <ArrowLeft size={14} />
-              <span>Dashboard</span>
+              <Menu size={19} />
             </button>
           )}
           <button
             type="button"
             onClick={() => setNotificationsOpen(true)}
             aria-label="Notifications"
-            className="relative min-h-11 min-w-11 rounded-lg hover:bg-[#FAF9F6] text-[#0F0F10] flex items-center justify-center transition-colors cursor-pointer touch-manipulation"
+            className="relative w-10 h-10 rounded-full hover:bg-[#F5F2EB] text-[#111111] flex items-center justify-center transition-colors cursor-pointer touch-manipulation"
           >
             <Bell size={18} />
             {(badgeCounts.notifications ?? 0) > 0 && (
-              <span className="sr-only">Unread notifications</span>
+              <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-rose-600 ring-2 ring-white" aria-hidden="true" />
             )}
           </button>
         </div>
@@ -194,10 +219,10 @@ export const PartnerAppShell: React.FC<PartnerAppShellProps> = ({
 
       {/* Main Content Viewport */}
       <main
-        className={`flex-1 w-full mx-auto px-4 py-5 sm:p-6 ${
+        className={`flex-1 w-full mx-auto px-4 py-4 pb-24 sm:p-6 md:pb-12 ${
           isOverview
             ? 'lg:p-10 max-w-7xl'
-            : 'lg:p-8 lg:pl-24 max-w-7xl pb-12'
+            : 'lg:p-8 lg:pl-24 max-w-7xl'
         }`}
       >
         <div className="hidden md:block">
@@ -205,6 +230,15 @@ export const PartnerAppShell: React.FC<PartnerAppShellProps> = ({
         </div>
         {children}
       </main>
+
+      {/* Native Thumb-Zone Mobile Bottom Tab Bar (Mobile < md only) */}
+      <PartnerMobileBottomNav
+        kind={kind}
+        activeRoute={activeRoute}
+        onRouteChange={onRouteChange}
+        onOpenMenu={() => setDrawerOpen(true)}
+        badgeCounts={badgeCounts}
+      />
 
       {/* Minimalist Slide-Out Hamburger Navigation Drawer (Mobile < md) */}
       <AnimatePresence>

@@ -112,7 +112,7 @@ export const DeslaModalFrame: React.FC<{
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18, ease: DESLA_EASE_OUT }}
             onClick={onClose}
-            className="absolute inset-0 bg-black/55 backdrop-blur-xs"
+            className="absolute inset-0 bg-black/55 backdrop-blur-sm"
             aria-hidden="true"
           />
           <motion.div

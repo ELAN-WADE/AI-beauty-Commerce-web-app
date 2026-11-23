@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
+import { toast } from 'sonner';
 import { animateToBag } from '../../lib/cart-motion';
 import { Heart, ShoppingBag, Star, Check } from '@phosphor-icons/react';
 import { Product } from '../../types';
@@ -19,6 +21,7 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({
   onQuickAdd,
   onOpenModal
 }) => {
+  const router = useRouter();
   const { addToCart, isWishlisted, toggleWishlist, openQuickModal } = useProductActions();
   const wishlisted = isWishlisted(product.id);
   const [justAdded, setJustAdded] = useState(false);
@@ -48,18 +51,30 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({
       return;
     }
 
-    // Single simple product: add directly to cart
+    // Single simple product: add directly to cart with non-blocking Sonner toast
     const size = product.selectedSize || (product.sizes && product.sizes[0]) || 'Standard';
     if (!addToCart(product, size, 1)) return;
     animateToBag(e.currentTarget as HTMLElement, product.image);
     setJustAdded(true);
+    toast.success(`Added ${product.name}`, {
+      description: `${size} · ${formatNaira(product.price)}`,
+      action: {
+        label: 'View Bag',
+        onClick: () => router.push('/cart'),
+      },
+    });
     setTimeout(() => setJustAdded(false), 1400);
     if (onQuickAdd) onQuickAdd();
   };
 
   const handleWishlist = (e: React.MouseEvent) => {
     e.stopPropagation();
+    const nextSaved = !wishlisted;
     toggleWishlist(product.id);
+    toast(nextSaved ? 'Saved to wishlist' : 'Removed from wishlist', {
+      description: product.name,
+      duration: 2000,
+    });
   };
 
   const badge = /clinical/i.test(product.customBadge || '') ? '' : product.customBadge;
@@ -111,8 +126,8 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({
   return (
     <article
       onClick={handleCardClick}
-      className={`group relative flex flex-col bg-white rounded-2xl transition-all duration-300 cursor-pointer overflow-hidden ${
-        isRail ? 'w-[200px] shrink-0' : 'w-full'
+      className={`group relative flex flex-col bg-white rounded-2xl transition-colors duration-200 cursor-pointer overflow-hidden ${
+        isRail ? 'w-[172px] sm:w-[200px] shrink-0' : 'w-full'
       }`}
     >
       {/* Photographic Frame (Zero hover gap: strictly clipped rounded container + GPU transform) */}
@@ -135,7 +150,7 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({
         <button
           type="button"
           onClick={handleWishlist}
-          className="absolute top-2.5 right-2.5 z-10 w-8 h-8 rounded-full bg-white/95 hover:bg-white backdrop-blur-xs flex items-center justify-center text-[#6B7280] hover:text-[#0F0F10] active:scale-90 transition-all cursor-pointer shadow-xs"
+          className="absolute top-2.5 right-2.5 z-10 w-8 h-8 rounded-full bg-white/95 hover:bg-white backdrop-blur-sm flex items-center justify-center text-[#6B7280] hover:text-[#0F0F10] active:scale-90 transition-[transform,background-color,color] duration-150 cursor-pointer shadow-sm"
           aria-label={wishlisted ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
           aria-pressed={wishlisted}
         >
@@ -159,9 +174,9 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({
       {/* Product Content Details (Disciplined Minimalist Hierarchy) */}
       <div className="pt-2.5 pb-1 px-0.5 flex flex-col flex-1 justify-between">
         <div>
-          {/* Concise Category & Rating (500 medium supporting metadata) */}
+          {/* Concise Category & Rating (always readable on touch; reveals on hover on desktop pointers) */}
           <div className="flex items-center justify-between text-[11px] gap-2">
-            <span className="text-[#6B7280] uppercase tracking-wider text-[10px] font-medium truncate opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
+            <span className="text-[#6B7280] uppercase tracking-wider text-[10px] font-medium truncate opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-focus-within:opacity-100 transition-opacity">
               {descriptor}
             </span>
             {product.rating > 0 && (
@@ -179,9 +194,9 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({
         </div>
 
         {/* Pricing (600) and Cart Control */}
-        <div className="pt-1.5 mt-1 flex items-center justify-between">
-          <div className="flex items-baseline gap-1.5">
-            <span className="font-price font-semibold text-[14px] text-[#0F0F10]">
+        <div className="pt-1.5 mt-1 flex items-center justify-between gap-1.5">
+          <div className="flex items-baseline gap-1.5 min-w-0">
+            <span className="font-price font-semibold text-[13.5px] sm:text-[14px] text-[#0F0F10] truncate">
               {formatNaira(product.price)}
             </span>
             {product.originalPrice && product.originalPrice > product.price && (
@@ -191,10 +206,11 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({
             )}
           </div>
 
-          {/* Cart Icon Quick Action Control */}
+          {/* Cart Icon Quick Action Control (comfortable 32px touch target) */}
           <button
+            type="button"
             onClick={handleActionClick}
-            className={`w-7 h-7 rounded-full flex items-center justify-center transition-all duration-160 active:scale-90 cursor-pointer shadow-2xs ${
+            className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-[transform,background-color,border-color,color] duration-150 active:scale-90 cursor-pointer shadow-sm ${
               justAdded
                 ? 'bg-[#0F0F10] text-[#D4AF37]'
                 : 'bg-[#FAF9F6] hover:bg-[#0F0F10] text-[#0F0F10] hover:text-white border border-[#E5E7EB] hover:border-[#0F0F10]'
@@ -203,7 +219,7 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({
             title={product.sizes && product.sizes.length > 1 ? 'Select size' : 'Add to bag'}
           >
             {justAdded ? (
-              <Check size={13} weight="bold" className="text-[#D4AF37]" aria-hidden="true" />
+              <Check size={14} weight="bold" className="text-[#D4AF37]" aria-hidden="true" />
             ) : (
               <ShoppingBag size={14} weight="fill" aria-hidden="true" />
             )}

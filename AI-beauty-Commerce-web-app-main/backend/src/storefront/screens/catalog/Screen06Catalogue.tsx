@@ -75,7 +75,7 @@ export const Screen06Catalogue: React.FC = () => {
   }, [products, preferredDistributor, selectedCategory, sortOption]);
 
   return (
-    <div className="min-h-screen bg-white text-[#0F0F10] pb-28 font-body selection:bg-[#D4AF37]/20 selection:text-[#997A2E]">
+    <div className="min-h-[100dvh] bg-white text-[#0F0F10] pb-28 font-body selection:bg-[#D4AF37]/20 selection:text-[#997A2E]">
       <main className="max-w-7xl mx-auto px-4 lg:px-8 pt-4 space-y-4">
         {/* DUAL TOP SHELF: Categories on the Left + Recommended Routine on the Right */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start border-b border-[#E5E7EB] pb-5">
@@ -235,32 +235,58 @@ export const Screen06Catalogue: React.FC = () => {
           </div>)}
         </div>
 
-        {/* Filter and Sort Toolbar */}
+        {/* Filter and Sort Toolbar — Compact non-clipping mobile bar + desktop select */}
         <div className="flex items-center justify-between gap-2 py-1">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <button
               type="button"
               onClick={() => setIsFilterSheetOpen(true)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-[#E5E7EB] text-xs font-medium text-[#0F0F10] hover:bg-[#FAF9F6] active-press transition-colors shadow-2xs cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 h-9 rounded-full sm:rounded-xl bg-[#FBF9F5] sm:bg-white border border-[#E7E1D6] sm:border-[#E5E7EB] text-xs font-medium text-[#111111] hover:bg-[#FAF9F6] active-press transition-colors shadow-sm cursor-pointer shrink-0"
             >
-              <SlidersHorizontal size={14} className="text-[#D4AF37]" />
+              <SlidersHorizontal size={14} className="text-[#997A2E]" />
               <span>Filters</span>
+              {selectedCategory !== 'All' && (
+                <span className="w-1.5 h-1.5 rounded-full bg-[#B89248]" aria-hidden="true" />
+              )}
             </button>
-            <span className="text-xs text-[#6B7280]">
-              Showing <strong className="font-semibold text-[#0F0F10]">{filtered.length}</strong> formulations
+            <span className="text-[11.5px] sm:text-xs text-[#6B7280] truncate">
+              <strong className="font-semibold text-[#0F0F10] tabular-nums">{filtered.length}</strong>{' '}
+              <span className="hidden xs:inline">formulations</span>
+              <span className="xs:hidden">items</span>
             </span>
           </div>
 
-          {/* Quick Sort Dropdown */}
-          <div className="flex items-center gap-2 text-xs text-[#6B7280]">
+          {/* Mobile Sort Trigger -> Opens Native Vaul FilterSortSheet (never clips off 390px edge) */}
+          <button
+            type="button"
+            onClick={() => setIsFilterSheetOpen(true)}
+            className="sm:hidden inline-flex items-center gap-1.5 px-3.5 h-9 rounded-full bg-white border border-[#E7E1D6] text-xs font-medium text-[#111111] active-press shadow-sm cursor-pointer shrink-0"
+            aria-label="Sort formulations"
+          >
+            <ArrowUpDown size={13} className="text-[#997A2E]" />
+            <span>
+              {sortOption === 'price-low'
+                ? 'Price ↑'
+                : sortOption === 'price-high'
+                  ? 'Price ↓'
+                  : sortOption === 'rating'
+                    ? 'Top Rated'
+                    : sortOption === 'newest'
+                      ? 'Newest'
+                      : 'Sort'}
+            </span>
+          </button>
+
+          {/* Desktop Quick Sort Dropdown */}
+          <div className="hidden sm:flex items-center gap-2 text-xs text-[#6B7280]">
             <ArrowUpDown size={14} className="text-[#997A2E]" />
             <select
               aria-label="Sort formulations"
               value={sortOption}
               onChange={(e) => setSortOption(e.target.value as any)}
-              className="bg-white border border-[#E5E7EB] text-xs font-medium text-[#0F0F10] rounded-xl px-3 py-1.5 focus:outline-none focus:border-[#D4AF37] cursor-pointer shadow-2xs"
+              className="bg-white border border-[#E5E7EB] text-xs font-medium text-[#0F0F10] rounded-xl px-3 py-1.5 focus:outline-none focus:border-[#D4AF37] cursor-pointer shadow-sm"
             >
-              <option value="featured">Featured / Best Sellers</option>
+              <option value="recommended">Featured / Best Sellers</option>
               <option value="newest">Newest Formulations</option>
               <option value="price-low">Price: Low to High</option>
               <option value="price-high">Price: High to Low</option>

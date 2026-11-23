@@ -19,6 +19,7 @@ import { ActionDrawer } from '../shared/ActionDrawer';
 import { useIsMobilePartnerViewport } from '../shared/MobileRouteTransition';
 import { useApp } from '../../../context/AppContext';
 import { AnimatedMetricValue } from '../../motion/DeslaMotion';
+import { DeslaRollingNumber } from '../../motion/DeslaMobileDrawer';
 
 export interface DistributorOverviewProps {
   onNavigate: (routeId: string) => void;
@@ -274,78 +275,70 @@ export const DistributorOverview: React.FC<DistributorOverviewProps> = ({
       /* =====================================================================
           MOBILE VIEW (< md): Retained Native App-Inspired Interface
       ====================================================================== */
-      <div className="md:hidden space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h1 className="font-heading font-semibold text-xl text-[#0F0F10] tracking-tight">
+      <div className="md:hidden space-y-5">
+        <div className="flex items-center justify-between gap-2.5">
+          <div className="min-w-0">
+            <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#8C6D28] font-semibold">
+              Distributor Hub
+            </p>
+            <h1 className="font-heading font-semibold text-xl text-[#111111] tracking-tight truncate">
               {hubDisplayName}
             </h1>
           </div>
 
-          <div className="flex items-center gap-2.5">
-            <button
-              type="button"
-              onClick={() => setShowExecutiveStrip(!showExecutiveStrip)}
-              className="min-h-10 px-3 rounded-lg border border-[#E5E7EB] bg-white hover:bg-[#FAF9F6] text-xs font-medium text-[#4B5563] hover:text-[#0F0F10] flex items-center gap-1.5 transition-colors cursor-pointer touch-manipulation"
-            >
-              <span>Summary</span>
-              {showExecutiveStrip ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setTelemetryOpen(true)}
-              className="min-h-10 px-3 rounded-lg border border-[#E5E7EB] bg-white hover:bg-[#FAF9F6] text-xs font-medium text-[#0F0F10] flex items-center gap-1.5 transition-colors cursor-pointer touch-manipulation"
-            >
-              <BarChart2 size={14} className="text-[#4B5563]" />
-              <span>Hub Telemetry</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setTelemetryOpen(true)}
+            className="h-9 px-3 rounded-full border border-[#E7E1D6] bg-[#FBF9F5] hover:bg-white text-xs font-medium text-[#111111] flex items-center gap-1.5 transition-colors cursor-pointer touch-manipulation shrink-0 active:scale-95"
+          >
+            <BarChart2 size={13} className="text-[#8C6D28]" />
+            <span>Telemetry</span>
+          </button>
         </div>
 
-        {showExecutiveStrip && (
-          <div className="space-y-3 p-4 rounded-2xl bg-[#FAF9F6] border border-[#E5E7EB]">
-            <div className="flex flex-col gap-1.5 pb-2 border-b border-[#E5E7EB]">
-              <span className="text-xs font-medium text-[#0F0F10]">
-                Live Hub Telemetry
-              </span>
-              {inTransitLab && (
-                <span className="text-xs text-[#6B7280]">
-                  Lab Restock #{inTransitLab.batchNumber}: <strong className="font-medium text-[#0F0F10]">{inTransitLab.status}</strong> ({inTransitLab.courier})
-                </span>
-              )}
-            </div>
+        {/* Glanceable Live 2-KPI Operational Strip (immediately actionable on phone) */}
+        <div className="grid grid-cols-2 gap-2.5">
+          <button
+            type="button"
+            onClick={() => onNavigate('orders')}
+            className="text-left p-3.5 rounded-2xl bg-[#111111] text-[#FBF9F5] border border-[#D4AF37]/25 shadow-sm active:scale-[0.98] transition-transform duration-150 cursor-pointer"
+          >
+            <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-[#C8C3B8] block">
+              Pending Dispatch
+            </span>
+            <span className="font-heading font-semibold text-lg text-white mt-1 block">
+              <DeslaRollingNumber value={pendingOrders.length} suffix=" Orders" />
+            </span>
+            <span className="text-[10px] font-mono text-[#E6C77A] mt-0.5 block">
+              {pendingOrders.length > 0 ? 'Needs packing · Tap' : 'Queue cleared'}
+            </span>
+          </button>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <span className="text-xs text-[#6B7280] block">Pending Dispatch</span>
-                <span className="font-heading font-semibold text-lg text-[#0F0F10] mt-0.5 block">
-                  {pendingOrders.length} Orders
-                </span>
-                <span className="text-xs text-[#4B5563] block">Needs packing</span>
-              </div>
-              <div>
-                <span className="text-xs text-[#6B7280] block">Cleared Margin</span>
-                <span className="font-heading font-semibold text-lg text-[#0F0F10] mt-0.5 block">
-                  ₦{totalMargin.toLocaleString('en-NG')}
-                </span>
-                <span className="text-xs text-[#4B5563] block">Recorded balance</span>
-              </div>
-              <div>
-                <span className="text-xs text-[#6B7280] block">Stock Health</span>
-                <span className="font-heading font-semibold text-lg text-[#0F0F10] mt-0.5 block">
-                  {lowStockItems.length > 0 ? `${lowStockItems.length} Low` : 'Optimal'}
-                </span>
-                <span className="text-xs text-[#6B7280] block">
-                  {lowStockItems.length} SKUs below threshold
-                </span>
-              </div>
-              <div>
-                <span className="text-xs text-[#6B7280] block">Fulfilment SLA</span>
-                <span className="font-heading font-semibold text-lg text-[#0F0F10] mt-0.5 block">Not measured</span>
-                <span className="text-xs text-[#6B7280] block">Same-day dispatch</span>
-              </div>
-            </div>
+          <button
+            type="button"
+            onClick={() => onNavigate('inventory')}
+            className="text-left p-3.5 rounded-2xl bg-[#FBF9F5] border border-[#E7E1D6] active:scale-[0.98] transition-transform duration-150 cursor-pointer"
+          >
+            <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-[#767168] block">
+              Stock Health
+            </span>
+            <span className={`font-heading font-semibold text-lg mt-1 block ${lowStockItems.length > 0 ? 'text-amber-700' : 'text-[#111111]'}`}>
+              {lowStockItems.length > 0 ? `${lowStockItems.length} Low` : 'Optimal'}
+            </span>
+            <span className="text-[10px] font-mono text-[#6E6A63] mt-0.5 block">
+              Margin ₦{totalMargin.toLocaleString('en-NG')}
+            </span>
+          </button>
+        </div>
+
+        {inTransitLab && (
+          <div className="px-3.5 py-2.5 rounded-xl bg-[#FBF5E8]/70 border border-[#D4AF37]/30 flex items-center justify-between gap-2 text-xs">
+            <span className="text-[#4B5563] truncate">
+              Lab Batch <strong className="font-mono font-semibold text-[#111111]">#{inTransitLab.batchNumber}</strong>
+            </span>
+            <span className="font-mono text-[10px] uppercase font-semibold text-[#8C6D28] shrink-0">
+              {inTransitLab.status}
+            </span>
           </div>
         )}
 
