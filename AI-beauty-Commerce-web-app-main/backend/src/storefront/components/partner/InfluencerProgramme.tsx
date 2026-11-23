@@ -1,6 +1,6 @@
 import { ProgrammeTerms } from './ProgrammeTerms';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ArrowLeft, ArrowRight, LogIn, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, LoaderCircle, LogIn, Sparkles } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { apiFetch } from '../../lib/owned-api';
 import { programmeDefinitions, programmePath } from '../../lib/partner-programmes';
@@ -14,18 +14,46 @@ type Workspace = { earnings?:{code:string;commissionBps:number;wallet:{pendingKo
 const programme = 'INFLUENCER' as const;
 
 export function InfluencerProgramme() {
-  const { authUser, requestCustomerSignIn, loginWithGoogle, navigateTo } = useApp();
+  const { authUser, authLoading, requestCustomerSignIn, loginWithGoogle, navigateTo } = useApp();
+  const [connecting, setConnecting] = useState(false);
+
+  if (authLoading && !authUser) {
+    return (
+      <div className="min-h-[100svh] bg-[#FBF9F5] flex flex-col items-center justify-center p-6 text-center">
+        <img
+          src="/desla_logo_dark.svg"
+          alt="Desla!"
+          className="h-6 w-auto mb-5 block object-contain select-none"
+        />
+        <div className="w-7 h-7 rounded-full border-2 border-[#EAE5DC] border-t-[#B89248] animate-spin mb-3" />
+        <p className="text-xs font-medium uppercase tracking-wider text-[#6E6A63]">
+          Verifying ambassador session…
+        </p>
+      </div>
+    );
+  }
+
   if (!authUser) {
+    const handleGoogleSignIn = async () => {
+      if (connecting) return;
+      setConnecting(true);
+      try {
+        await loginWithGoogle(window.location.origin + programmePath(programme), 'CUSTOMER');
+      } finally {
+        setConnecting(false);
+      }
+    };
+
     return (
       <DeslaAuthShell
         artworkSrc="/artwork/creator-login-editorial.webp"
         artworkAlt="Desla Beauty ambassador filming a skincare routine in warm studio light"
-        artworkPosition="object-top"
+        artworkPosition="object-[50%_30%] lg:object-top"
         eyebrow="Desla Ambassador"
         headline="Welcome to Desla"
         subheadline="Influence, inspire, and grow with us."
         supportingCopy="Use your existing Desla account to apply, track your ambassador campaigns, and manage reviewed deliverables."
-        showSkinScanFeature={true}
+        showSkinScanFeature={false}
         onSkinScanClick={() => navigateTo('ai-scan')}
       >
         <div className="flex items-center justify-between mb-5">
@@ -56,16 +84,21 @@ export function InfluencerProgramme() {
           <div className="space-y-3 pt-1">
             <button
               type="button"
-              onClick={() => loginWithGoogle(window.location.origin + programmePath(programme), 'CUSTOMER')}
-              className="w-full h-11 px-4 rounded-[10px] border border-[#DDD7CC] hover:border-[#111111] bg-white/90 hover:bg-white text-[#111111] text-sm font-medium flex items-center justify-center gap-2.5 active:scale-[0.99] transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B89248] focus-visible:ring-offset-2"
+              disabled={connecting}
+              onClick={() => void handleGoogleSignIn()}
+              className="w-full h-11 px-4 rounded-[10px] border border-[#DDD7CC] hover:border-[#111111] bg-white/90 hover:bg-white text-[#111111] text-sm font-medium flex items-center justify-center gap-2.5 active:scale-[0.99] transition-all duration-150 cursor-pointer disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B89248] focus-visible:ring-offset-2"
             >
-              <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-              </svg>
-              <span>Continue with Google</span>
+              {connecting ? (
+                <LoaderCircle className="w-4 h-4 animate-spin text-[#B89248]" aria-hidden="true" />
+              ) : (
+                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                </svg>
+              )}
+              <span>{connecting ? 'Connecting with Google…' : 'Continue with Google'}</span>
             </button>
 
             <div className="relative flex py-1 items-center">
@@ -128,7 +161,7 @@ function ProgrammeWorkspace() {
   };
   const member = workspace?.membership;
   const canApply = !member || ['REJECTED', 'REVOKED'].includes(member.status);
-  return <div className="min-h-[100dvh] bg-[#FBF9F5] text-[#111111]">
+  return <div className="min-h-[100svh] bg-[#FBF9F5] text-[#111111]">
     {/* Compact Mobile Sticky Header */}
     <div className="md:hidden sticky top-0 z-30 bg-[#FFFFFF]/95 backdrop-blur-xl border-b border-[#EAE5DC] px-4 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] flex items-center justify-between gap-2">
       <button type="button" onClick={() => navigateTo('home')} className="inline-flex items-center gap-2 cursor-pointer">

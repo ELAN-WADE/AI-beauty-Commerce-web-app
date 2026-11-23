@@ -80,13 +80,29 @@ export const RequireRole: React.FC<RequireRoleProps> = ({
     );
   }
 
+  if (authLoading && !authUser) {
+    return (
+      <div className="min-h-[100svh] bg-[#FBF9F5] flex flex-col items-center justify-center p-6 text-center">
+        <img
+          src="/desla_logo_dark.svg"
+          alt="Desla!"
+          className="h-6 w-auto mb-5 block object-contain select-none"
+        />
+        <div className="w-7 h-7 rounded-full border-2 border-[#EAE5DC] border-t-[#B89248] animate-spin mb-3" />
+        <p className="text-xs font-medium uppercase tracking-wider text-[#6E6A63]">
+          Verifying workspace session…
+        </p>
+      </div>
+    );
+  }
+
   if (staffOnly && !authUser && !authLoading) return <AdminSignIn />;
 
   if (needsMfa && authUser) {
     return (
-      <div className="relative min-h-[100dvh] flex items-center justify-center bg-[#FBF9F5] p-4 sm:p-6">
+      <div className="relative min-h-[100svh] flex flex-col justify-start sm:justify-center items-center bg-[#FBF9F5] px-4 pt-[calc(1.25rem+env(safe-area-inset-top,0px))] pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] sm:p-6">
         <DeslaWatermark />
-        <div className="relative z-10 w-full max-w-[460px] rounded-[22px] border border-[#E7E1D6] bg-[#FBF9F5]/90 backdrop-blur-md p-6 sm:p-8 shadow-[0_24px_64px_-24px_rgba(17,17,17,0.12)]">
+        <div className="relative z-10 w-full max-w-[460px] rounded-[22px] border border-[#E7E1D6] bg-[#FBF9F5] p-6 sm:p-8 shadow-[0_24px_64px_-24px_rgba(17,17,17,0.12)]">
           <div className="flex justify-center mb-5">
             <img src="/desla_logo_dark.svg" alt="Desla!" className="h-6 w-auto block object-contain select-none" />
           </div>
@@ -98,17 +114,6 @@ export const RequireRole: React.FC<RequireRoleProps> = ({
             onRestart={logout}
           />
         </div>
-      </div>
-    );
-  }
-
-  if (staffOnly && authLoading && !authUser) {
-    return (
-      <div className="min-h-screen bg-[#FBF9F5] flex flex-col items-center justify-center p-6 text-center">
-        <div className="w-8 h-8 rounded-full border-2 border-[#EAE5DC] border-t-[#B89248] animate-spin mb-3" />
-        <p className="text-xs font-medium uppercase tracking-wider text-[#6E6A63]">
-          Verifying workspace session…
-        </p>
       </div>
     );
   }
@@ -164,7 +169,7 @@ export const RequireRole: React.FC<RequireRoleProps> = ({
   // Signed-in customer applying for Creator / Distributor onboarding
   if (authUser && !isAdmin) {
     return (
-      <div className="relative min-h-screen bg-[#FBF9F5] text-[#111111] font-body py-6 px-4 sm:px-6 lg:px-8">
+      <div className="relative min-h-[100svh] bg-[#FBF9F5] text-[#111111] font-body pt-[calc(1rem+env(safe-area-inset-top,0px))] pb-[calc(2rem+env(safe-area-inset-bottom,0px))] px-4 sm:py-6 sm:px-6 lg:px-8">
         <DeslaWatermark />
         <div className="relative z-10 mx-auto max-w-[950px] grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-7 items-start">
           <div className="lg:col-span-5 lg:sticky lg:top-8">
@@ -174,15 +179,16 @@ export const RequireRole: React.FC<RequireRoleProps> = ({
                 alt={editorialAlt}
                 width={960}
                 height={1200}
-                className="w-full h-[36svh] min-h-[240px] max-h-[320px] lg:h-[520px] lg:max-h-none object-cover object-top"
+                decoding="async"
+                className="w-full h-[210px] sm:h-[250px] lg:h-[520px] object-cover object-top"
               />
               <div className="absolute inset-0 p-4 sm:p-5 flex flex-col justify-between pointer-events-none">
                 <img src="/desla_logo_dark.svg" alt="Desla!" className="h-6 w-auto self-start block object-contain select-none" />
-                <div className="rounded-2xl bg-[#1C1712]/[0.38] backdrop-blur-md border border-white/[0.20] p-4 shadow-[0_12px_32px_-14px_rgba(17,17,17,0.28)]">
+                <div className="rounded-2xl bg-[#1C1712]/70 lg:bg-[#1C1712]/[0.42] lg:backdrop-blur-md border border-white/[0.20] p-3.5 sm:p-4 shadow-[0_12px_32px_-14px_rgba(17,17,17,0.28)]">
                   <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-[#F3DFAC] block">
                     {portalBadge}
                   </span>
-                  <p className="text-xs font-normal text-white/90 mt-1 leading-relaxed">
+                  <p className="text-xs font-normal text-white/95 mt-1 leading-relaxed">
                     {editorialCaption}
                   </p>
                 </div>
@@ -234,12 +240,12 @@ export const RequireRole: React.FC<RequireRoleProps> = ({
       <DeslaAuthShell
         artworkSrc={editorialImage}
         artworkAlt={editorialAlt}
-        artworkPosition="object-top"
+        artworkPosition={isCreator ? 'object-[50%_30%] lg:object-top' : 'object-[50%_68%] lg:object-center'}
         eyebrow={portalBadge}
         headline={editorialHeadline}
         subheadline={editorialSubheadline}
         supportingCopy={editorialCaption}
-        showSkinScanFeature={true}
+        showSkinScanFeature={false}
         onSkinScanClick={() => navigateTo('ai-scan')}
       >
         <div className="flex items-center justify-between mb-5">
@@ -298,17 +304,6 @@ export const RequireRole: React.FC<RequireRoleProps> = ({
               <ArrowRight className="w-4 h-4 text-[#E6C77A] transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true" />
             </button>
           </div>
-
-          <div className="pt-3 border-t border-[#F0ECE4] text-center">
-            <button
-              type="button"
-              onClick={() => navigateTo('home')}
-              className="text-xs text-[#6E6A63] hover:text-[#111111] font-medium transition-colors cursor-pointer inline-flex items-center gap-1.5"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
-              <span>Return to Storefront</span>
-            </button>
-          </div>
         </div>
       </DeslaAuthShell>
     );
@@ -316,9 +311,9 @@ export const RequireRole: React.FC<RequireRoleProps> = ({
 
   // Restricted Admin fallback
   return (
-    <div className="relative min-h-[100dvh] bg-[#FBF9F5] text-[#111111] font-body flex items-center justify-center p-4 sm:p-6">
+    <div className="relative min-h-[100svh] bg-[#FBF9F5] text-[#111111] font-body flex flex-col justify-start sm:justify-center items-center px-4 pt-[calc(1.25rem+env(safe-area-inset-top,0px))] pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] sm:p-6">
       <DeslaWatermark />
-      <div className="relative z-10 max-w-md w-full bg-[#FBF9F5]/90 backdrop-blur-md border border-[#E7E1D6] rounded-[22px] p-6 sm:p-8 shadow-[0_24px_64px_-24px_rgba(17,17,17,0.12)] text-center">
+      <div className="relative z-10 max-w-md w-full bg-[#FBF9F5] border border-[#E7E1D6] rounded-[22px] p-6 sm:p-8 shadow-[0_24px_64px_-24px_rgba(17,17,17,0.12)] text-center">
         <div className="flex justify-center mb-5">
           <img src="/desla_logo_dark.svg" alt="Desla!" className="h-6 w-auto block object-contain select-none" />
         </div>

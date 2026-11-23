@@ -23,7 +23,7 @@ export function MfaSignIn({ user, request, onComplete, onRestart }: Props) {
   const submitting = useRef(false);
   const enrolling = !user.mfaEnabled;
   const confirmingPassword = enrolling && !secret && !recoveryCodes.length;
-  const field = 'w-full h-11 px-3.5 rounded-[10px] border border-[#DDD7CC] hover:border-[#C5BDB0] bg-white/90 focus:bg-white text-sm text-[#111111] focus:outline-none focus:border-[#111111] focus:ring-2 focus:ring-[#B89248]/25 transition-all [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_#FFFFFF] [&:-webkit-autofill]:[-webkit-text-fill-color:#111111]';
+  const field = 'w-full h-11 px-3.5 rounded-[10px] border border-[#DDD7CC] hover:border-[#C5BDB0] bg-white/90 focus:bg-white text-base sm:text-sm text-[#111111] focus:outline-none focus:border-[#111111] focus:ring-2 focus:ring-[#B89248]/25 transition-all [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_#FFFFFF] [&:-webkit-autofill]:[-webkit-text-fill-color:#111111]';
   const button = 'w-full h-11 px-5 rounded-[10px] bg-[#111111] hover:bg-[#242426] text-white text-sm font-medium shadow-sm cursor-pointer transition-all disabled:opacity-55';
 
   async function submit(event: React.FormEvent) {

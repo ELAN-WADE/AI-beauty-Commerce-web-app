@@ -123,10 +123,7 @@ export const PartnerAppShell: React.FC<PartnerAppShellProps> = ({
   };
 
   return (
-    <div
-      data-vaul-drawer-wrapper=""
-      className="min-h-[100dvh] bg-[#FFFFFF] text-[#0F0F10] flex flex-col antialiased font-body overflow-x-clip selection:bg-[#D4AF37]/20 selection:text-[#997A2E]"
-    >
+    <div className="min-h-[100svh] bg-[#FFFFFF] text-[#0F0F10] flex flex-col antialiased font-body overflow-x-clip selection:bg-[#D4AF37]/20 selection:text-[#997A2E]">
       {/* Mobile Ergonomic Header (Mobile < md only) */}
       <header className="md:hidden sticky top-0 z-40 px-3.5 py-2 pt-[calc(0.5rem+env(safe-area-inset-top,0px))] bg-[#FFFFFF]/95 backdrop-blur-xl border-b border-[#EAE5DC] flex items-center justify-between gap-2 select-none">
         <div className="flex items-center gap-2 min-w-0">
@@ -258,7 +255,7 @@ export const PartnerAppShell: React.FC<PartnerAppShellProps> = ({
               animate={{ x: 0 }}
               exit={shouldReduceMotion ? undefined : { x: '-100%' }}
               transition={{ duration: shouldReduceMotion ? 0 : 0.28, ease: [0.32, 0.72, 0, 1] }}
-              className="relative z-10 w-80 max-w-[85vw] h-[100dvh] bg-white border-r border-[#E5E7EB] flex flex-col justify-between shadow-2xl"
+              className="relative z-10 w-80 max-w-[85vw] h-full bg-white border-r border-[#E5E7EB] flex flex-col justify-between shadow-2xl"
             >
               <div className="h-14 px-4 border-b border-[#E5E7EB] flex items-center justify-between shrink-0">
                 <BrandLogo

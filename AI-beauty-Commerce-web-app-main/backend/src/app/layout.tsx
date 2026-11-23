@@ -15,13 +15,7 @@ const manrope = localFont({
   fallback: ['Segoe UI', 'Inter', 'system-ui', 'sans-serif'],
 });
 
-export const viewport: Viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  viewportFit: 'cover',
-  interactiveWidget: 'resizes-content',
-  themeColor: '#ffffff',
-};
+export const viewport: Viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover', themeColor: '#ffffff' };
 
 export const metadata = {
   metadataBase: publicSiteOrigin() ? new URL(publicSiteOrigin()!) : undefined,

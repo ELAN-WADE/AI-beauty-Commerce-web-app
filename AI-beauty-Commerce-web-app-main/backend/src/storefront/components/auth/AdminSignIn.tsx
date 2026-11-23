@@ -40,17 +40,18 @@ export function AdminSignIn() {
   };
 
   const inputClass =
-    'mt-1 w-full h-11 px-3.5 rounded-[10px] border border-[#DDD7CC] hover:border-[#C5BDB0] bg-white/90 focus:bg-white text-sm text-[#111111] placeholder:text-[#9A948A] focus:outline-none focus:border-[#111111] focus:ring-2 focus:ring-[#B89248]/25 transition-all [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_#FFFFFF] [&:-webkit-autofill]:[-webkit-text-fill-color:#111111]';
+    'mt-1 w-full h-11 px-3.5 rounded-[10px] border border-[#DDD7CC] hover:border-[#C5BDB0] bg-white/90 focus:bg-white text-base sm:text-sm text-[#111111] placeholder:text-[#9A948A] focus:outline-none focus:border-[#111111] focus:ring-2 focus:ring-[#B89248]/25 transition-all [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_#FFFFFF] [&:-webkit-autofill]:[-webkit-text-fill-color:#111111]';
 
   return (
     <DeslaAuthShell
       artworkSrc="/artwork/distributor-onboarding-editorial.webp"
       artworkAlt="Desla Beauty minimalist apothecary editorial interior"
+      artworkPosition="object-[50%_68%] lg:object-center"
       eyebrow="Desla Operations"
       headline="Welcome to Desla"
       subheadline="Executive operations console."
       supportingCopy="Restricted workspace for order governance, catalog stewardship, and partner approvals."
-      showSkinScanFeature={true}
+      showSkinScanFeature={false}
     >
       <div className="space-y-4">
         <div className="flex items-center justify-between">

@@ -23,7 +23,7 @@ export interface AuthSuiteProps {
 }
 
 const INPUT_CLASS =
-  'w-full h-11 px-3.5 rounded-[10px] border border-[#DDD7CC] hover:border-[#C5BDB0] bg-white/90 focus:bg-white text-sm text-[#111111] placeholder:text-[#9A948A] focus:outline-none focus:border-[#111111] focus:ring-2 focus:ring-[#B89248]/25 transition-all duration-150 [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_#FFFFFF] [&:-webkit-autofill]:[-webkit-text-fill-color:#111111]';
+  'w-full h-11 px-3.5 rounded-[10px] border border-[#DDD7CC] hover:border-[#C5BDB0] bg-white/90 focus:bg-white text-base sm:text-sm text-[#111111] placeholder:text-[#9A948A] focus:outline-none focus:border-[#111111] focus:ring-2 focus:ring-[#B89248]/25 transition-all duration-150 [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_#FFFFFF] [&:-webkit-autofill]:[-webkit-text-fill-color:#111111]';
 
 const SUBMIT_BTN_CLASS =
   'group w-full h-11 px-5 rounded-[10px] bg-[#111111] hover:bg-[#242426] active:scale-[0.99] text-white text-sm font-medium tracking-tight shadow-sm flex items-center justify-center gap-2 transition-all duration-150 cursor-pointer disabled:opacity-55 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B89248] focus-visible:ring-offset-2';
@@ -427,9 +427,9 @@ export const ScreenAuthSuite: React.FC<AuthSuiteProps> = ({ initialMode = 'login
       {mode === 'login' && (
         <motion.div
           key="auth-login"
-          initial={prefersReduced ? false : { opacity: 0, y: 4 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.2, ease: DESLA_EASE_OUT }}
+          initial={prefersReduced ? false : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.16, ease: DESLA_EASE_OUT }}
           className="space-y-4"
         >
           <div>
@@ -571,9 +571,9 @@ export const ScreenAuthSuite: React.FC<AuthSuiteProps> = ({ initialMode = 'login
       {mode === 'signup' && (
         <motion.div
           key="auth-signup"
-          initial={prefersReduced ? false : { opacity: 0, y: 4 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.2, ease: DESLA_EASE_OUT }}
+          initial={prefersReduced ? false : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.16, ease: DESLA_EASE_OUT }}
           className="space-y-4"
         >
           <div>
@@ -784,7 +784,7 @@ export const ScreenAuthSuite: React.FC<AuthSuiteProps> = ({ initialMode = 'login
                 id="reset-token-input"
                 autoComplete="off"
                 placeholder="Paste token from email"
-                className={`${INPUT_CLASS} font-mono text-xs`}
+                className={`${INPUT_CLASS} font-mono text-base sm:text-xs`}
               />
               <p className="text-[11px] text-[#767168] mt-1">Tokens expire in 1 hour and are single-use.</p>
             </div>
@@ -954,7 +954,7 @@ export const ScreenAuthSuite: React.FC<AuthSuiteProps> = ({ initialMode = 'login
                     id="email-verification-token"
                     autoComplete="off"
                     placeholder="Paste token from email"
-                    className={`${INPUT_CLASS} font-mono text-xs`}
+                    className={`${INPUT_CLASS} font-mono text-base sm:text-xs`}
                   />
                   <p className="text-[11px] text-[#767168] mt-1">Tokens expire in 24 hours and are single-use.</p>
                 </div>

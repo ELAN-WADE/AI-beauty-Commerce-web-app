@@ -10,33 +10,6 @@ export const AIFloatingButton: React.FC = () => {
 
   const [isHovered, setIsHovered] = useState(false);
   const [isAutoExpanded, setIsAutoExpanded] = useState(true);
-  const [isTuckedMobile, setIsTuckedMobile] = useState(false);
-
-  // Passive scroll-direction auto-tuck on mobile so the concierge orb never obscures prices or CTAs
-  useEffect(() => {
-    if (isDesktop) return;
-    let lastY = window.scrollY;
-    let ticking = false;
-    const onScroll = () => {
-      if (ticking) return;
-      ticking = true;
-      window.requestAnimationFrame(() => {
-        const y = window.scrollY;
-        const delta = y - lastY;
-        if (y < 40) {
-          setIsTuckedMobile(false);
-        } else if (delta > 10) {
-          setIsTuckedMobile(true);
-        } else if (delta < -8) {
-          setIsTuckedMobile(false);
-        }
-        lastY = y;
-        ticking = false;
-      });
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, [isDesktop]);
 
   // Auto-collapse after 3.5s initially, then periodically animate out and close back to sphere
   useEffect(() => {
@@ -70,9 +43,7 @@ export const AIFloatingButton: React.FC = () => {
         onClick={() => navigateTo('ask-ai')}
         aria-label="Ask Desla AI Concierge"
         title="Ask Desla AI Concierge"
-        className={`fixed right-3.5 z-[45] w-11 h-11 rounded-full bg-[#111111]/95 backdrop-blur-md text-[#E6C77A] border border-[#D4AF37]/50 shadow-[0_10px_28px_-6px_rgba(15,15,16,0.45)] flex items-center justify-center touch-manipulation active:scale-95 transition-[transform,opacity] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] cursor-pointer ${
-          isTuckedMobile ? 'translate-y-3 scale-90 opacity-45' : 'translate-y-0 scale-100 opacity-100'
-        }`}
+        className="fixed right-3.5 z-[45] w-11 h-11 rounded-full bg-[#111111]/95 text-[#E6C77A] border border-[#D4AF37]/50 shadow-[0_10px_28px_-6px_rgba(15,15,16,0.45)] flex items-center justify-center touch-manipulation active:scale-95 transition-transform duration-150 cursor-pointer"
         style={{ bottom: 'calc(74px + env(safe-area-inset-bottom, 0px))' }}
       >
         <NavigationIcon name="assistant" size={20} />

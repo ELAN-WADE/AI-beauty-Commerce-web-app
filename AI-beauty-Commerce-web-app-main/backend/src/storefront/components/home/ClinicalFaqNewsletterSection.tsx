@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import * as Accordion from '@radix-ui/react-accordion';
-import { toast } from 'sonner';
 import { CaretDown, Check } from '@phosphor-icons/react';
 import { apiFetch } from '../../lib/owned-api';
 
@@ -15,7 +14,7 @@ export const ClinicalFaqNewsletterSection: React.FC = () => {
     e.preventDefault();
     if (!email || !email.includes('@')) return;
     setBusy(true); setError('');
-    try { await apiFetch('/api/newsletter/subscribe', { method: 'POST', body: JSON.stringify({ email, consent: true, source: 'home', company }) }); setIsSubscribed(true); toast.success('Invitation requested', { description: 'Check your inbox to confirm your journal subscription.' }); }
+    try { await apiFetch('/api/newsletter/subscribe', { method: 'POST', body: JSON.stringify({ email, consent: true, source: 'home', company }) }); setIsSubscribed(true); }
     catch (error) { setError(error instanceof Error ? error.message : 'Could not subscribe. Please try again.'); }
     finally { setBusy(false); }
   };
@@ -86,7 +85,7 @@ export const ClinicalFaqNewsletterSection: React.FC = () => {
                       />
                     </Accordion.Trigger>
                   </Accordion.Header>
-                  <Accordion.Content className="desla-accordion-content pb-3.5 text-xs text-[#4B5563] leading-relaxed font-normal">
+                  <Accordion.Content className="pb-3.5 text-xs text-[#4B5563] leading-relaxed font-normal">
                     {faq.answer}
                   </Accordion.Content>
                 </Accordion.Item>
@@ -96,7 +95,7 @@ export const ClinicalFaqNewsletterSection: React.FC = () => {
 
           {/* Right Column: Frosted Glass Formulation Journal Invitation */}
           <div className="lg:col-span-5 pt-2 lg:pt-0">
-            <div className="frosted-glass-surface rounded-2xl p-6 sm:p-7 border border-white/90 space-y-3.5 shadow-sm">
+            <div className="frosted-glass-surface rounded-2xl p-6 sm:p-7 border border-white/90 space-y-3.5 shadow-xs">
               <div className="space-y-0.5">
                 <p className="text-[9.5px] font-mono uppercase tracking-wider text-[#8E8E93] font-semibold">
                   Private Subscriptions
@@ -123,14 +122,14 @@ export const ClinicalFaqNewsletterSection: React.FC = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Enter your email address"
-                    className="w-full px-4 py-2.5 rounded-full frosted-glass-pill text-[#0F0F10] placeholder-gray-400 text-base sm:text-xs focus:outline-none focus:border-[#0F0F10] transition-colors shadow-sm"
+                    className="w-full px-4 py-2.5 rounded-full frosted-glass-pill text-[#0F0F10] placeholder-gray-400 text-xs focus:outline-none focus:border-[#0F0F10] transition-colors shadow-2xs"
                   />
                 </div>
 
                 <button
                   type="submit"
                   disabled={isSubscribed || busy}
-                  className="w-full py-2.5 px-5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-heading font-medium transition-[transform,background-color] duration-150 micro-press cursor-pointer shadow-sm flex items-center justify-center gap-2"
+                  className="w-full py-2.5 px-5 rounded-full bg-[#0F0F10] hover:bg-[#27272A] text-white text-xs font-heading font-medium transition-all micro-press cursor-pointer shadow-2xs flex items-center justify-center gap-2"
                 >
                   {isSubscribed ? (
                     <>

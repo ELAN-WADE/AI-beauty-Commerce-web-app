@@ -2,16 +2,13 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, useReducedMotion } from 'motion/react';
 import { SCREEN_PATHS } from '@/lib/screen-routes';
 import { useApp } from '../../context/AppContext';
 import { NavigationIcon } from './NavigationIcon';
-import { DESLA_EASE_OUT } from '../motion/DeslaMotion';
 
 export const BottomNav: React.FC = () => {
   const router = useRouter();
   const { currentScreen, navigateTo } = useApp();
-  const prefersReduced = useReducedMotion();
 
   const items = [
     { icon: 'home', label: 'Home', screen: 'home', active: ['home', 'desktop-home', 'splash'] },
@@ -46,23 +43,15 @@ export const BottomNav: React.FC = () => {
                   : 'text-[#767168] font-medium'
               }`}
             >
-              <span className="relative flex items-center justify-center w-12 h-7 rounded-full">
-                {active && (
-                  <motion.span
-                    layoutId={prefersReduced ? undefined : 'mobile-bottom-nav-pill'}
-                    transition={
-                      prefersReduced
-                        ? { duration: 0 }
-                        : { duration: 0.2, ease: DESLA_EASE_OUT }
-                    }
-                    className={`absolute inset-0 rounded-full ${
-                      isScan
-                        ? 'bg-[#D4AF37]/20 border border-[#D4AF37]/40'
-                        : 'bg-[#111111]/[0.07]'
-                    }`}
-                    aria-hidden="true"
-                  />
-                )}
+              <span
+                className={`relative flex items-center justify-center w-12 h-7 rounded-full transition-colors duration-150 ${
+                  active
+                    ? isScan
+                      ? 'bg-[#D4AF37]/20 border border-[#D4AF37]/40'
+                      : 'bg-[#111111]/[0.07]'
+                    : 'bg-transparent'
+                }`}
+              >
                 <NavigationIcon
                   name={item.icon}
                   size={20}

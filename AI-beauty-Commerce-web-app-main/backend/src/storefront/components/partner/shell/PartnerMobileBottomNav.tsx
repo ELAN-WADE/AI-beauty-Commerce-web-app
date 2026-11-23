@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { motion, useReducedMotion } from 'motion/react';
 import {
   LayoutDashboard,
   PlusCircle,
@@ -12,7 +11,6 @@ import {
   Truck,
   MoreHorizontal,
 } from '../../common/SolidIcons';
-import { DESLA_EASE_OUT } from '../../motion/DeslaMotion';
 
 export interface PartnerMobileBottomNavProps {
   kind: 'CREATOR' | 'DISTRIBUTOR';
@@ -38,7 +36,6 @@ export const PartnerMobileBottomNav: React.FC<PartnerMobileBottomNavProps> = ({
   onOpenMenu,
   badgeCounts = {},
 }) => {
-  const prefersReduced = useReducedMotion();
   const isCreator = kind === 'CREATOR';
 
   const creatorTabs: PartnerTabItem[] = [
@@ -135,15 +132,11 @@ export const PartnerMobileBottomNav: React.FC<PartnerMobileBottomNavProps> = ({
                 isActive ? 'text-[#111111]' : 'text-[#767168]'
               }`}
             >
-              <span className="relative flex items-center justify-center w-10 h-6 rounded-full">
-                {isActive && (
-                  <motion.span
-                    layoutId={prefersReduced ? undefined : `partner-nav-pill-${kind}`}
-                    transition={prefersReduced ? { duration: 0 } : { duration: 0.2, ease: DESLA_EASE_OUT }}
-                    className="absolute inset-0 rounded-full bg-[#111111]/[0.07]"
-                    aria-hidden="true"
-                  />
-                )}
+              <span
+                className={`relative flex items-center justify-center w-10 h-6 rounded-full transition-colors duration-150 ${
+                  isActive ? 'bg-[#111111]/[0.07]' : 'bg-transparent'
+                }`}
+              >
                 <Icon
                   size={19}
                   className={`relative z-10 ${isActive ? 'text-[#111111]' : 'text-[#767168]'}`}

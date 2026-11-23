@@ -53,10 +53,7 @@ export default function StorefrontChrome({ children }: { children: React.ReactNo
   const showOverlays = shouldShowStorefrontOverlays(pathname);
 
   return (
-    <div
-      data-vaul-drawer-wrapper=""
-      className="min-h-[100dvh] bg-[#FFFFFF] text-[#0F0F10] relative font-body flex flex-col selection:bg-[#D4AF37]/20 selection:text-[#997A2E] overflow-x-clip"
-    >
+    <div className="min-h-screen bg-[#FFFFFF] text-[#0F0F10] relative font-body flex flex-col selection:bg-[#D4AF37]/20 selection:text-[#997A2E] overflow-x-clip">
       <OfflineStatusBanner />
       {showOverlays && <CartStatusBanner />}
       {isDesktop && showNav && <DesktopNav />}
